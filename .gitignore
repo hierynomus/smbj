@@ -1,0 +1,22 @@
+# use glob syntax.
+syntax: glob
+target/
+.svn/
+.settings
+.cache
+.classpath
+.project
+.metadata
+.pydevproject
+*.iml
+*.ipr
+*.iws
+*.log
+.gradle/
+.idea/
+out/
+build/
+classes/
+bin/
+test-output/
+.DS_Store

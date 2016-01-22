@@ -1,0 +1,66 @@
+plugins {
+    id "java"
+    id "groovy"
+    id "idea"
+    id "maven"
+    id "org.ajoberstar.release-opinion" version "1.4.0-rc.1"
+    id "com.github.hierynomus.license" version "0.12.1"
+}
+
+repositories {
+    mavenCentral()
+}
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
+configurations.compile.transitive = false
+
+dependencies {
+    testCompile 'org.spockframework:spock-core:1.0'
+}
+
+release {
+    grgit = org.ajoberstar.grgit.Grgit.open(project.projectDir)
+}
+
+// This disables the pedantic doclint feature of JDK8
+if (JavaVersion.current().isJava8Compatible()) {
+    tasks.withType(Javadoc) {
+        options.addStringOption('Xdoclint:none', '-quiet')
+    }
+}
+
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allSource
+    classifier = 'sources'
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+test {
+  afterSuite { descriptor, result ->
+    def indicator = "\u001B[32m✓\u001b[0m"
+    if (result.failedTestCount > 0) {
+      indicator = "\u001B[31m✘\u001b[0m"
+    }
+    logger.lifecycle("$indicator Test ${descriptor.name}; Executed: ${result.testCount}/\u001B[32m${result.successfulTestCount}\u001B[0m/\u001B[31m${result.failedTestCount}\u001B[0m")
+  }
+}
+
+license {
+    header rootProject.file('LICENSE')
+    strictCheck true
+}
+
+project.tasks.compileGroovy.onlyIf { false }
