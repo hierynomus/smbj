@@ -1,0 +1,90 @@
+package com.hierynomus.smbj.transport;
+
+import com.hierynomus.smbj.common.SMBRuntimeException;
+
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
+/**
+ * [MS-SMB2].pdf 3.2.4.1.6 Algorithm for Handling Available Message Sequence Numbers by the Client.
+ * <p/>
+ * The client MUST implement an algorithm to manage message sequence numbers.
+ * <p/>
+ * Sequence numbers are used to associate requests with responses and to determine what requests are allowed for processing.
+ * The algorithm MUST meet the following conditions:
+ * <ul>
+ * <li>When the connection is first established, the allowable sequence numbers for sending a request MUST be set to the set { 0 }.</li>
+ * <li>The client MUST never send a request on a given connection with a sequence number that has already been used unless it is a request to cancel a previously sent request.</li>
+ * <li>The client MUST grow the set in a monotonically increasing manner based on the credits granted. If the set is { 0 }, and 2 credits are granted, the set MUST grow to { 0, 1, 2 }.</li>
+ * <li>The client MUST use the lowest available sequence number in its allowable set for each request.</li>
+ * <li>For a multi-credit request as specified in section 3.2.4.1.5, the client MUST use the lowest available range of consecutive sequence numbers.</li>
+ * </ul>
+ */
+public class SequenceWindow {
+    private AtomicLong lowestAvailable = new AtomicLong(0);
+    private Semaphore available = new Semaphore(1);
+
+    public long get() {
+        if (available.tryAcquire()) {
+            return lowestAvailable.getAndIncrement();
+        }
+        throw new SMBRuntimeException("No more credits available to hand out sequence number");
+    }
+
+    public long[] get(int credits) {
+        if (available.tryAcquire(credits)) {
+            long lowest = lowestAvailable.getAndAdd(credits);
+            return range(lowest, lowest + credits);
+        }
+        throw new SMBRuntimeException("Not enough credits (" + available.availablePermits() + " available) to hand out " + credits + " sequence numbers");
+    }
+
+    public void disableCredits() {
+        this.available = new NoopSemaphore();
+    }
+
+    public int available() {
+        return available.availablePermits();
+    }
+
+    public void creditsGranted(int credits) {
+        available.release(credits);
+    }
+
+    private long[] range(long start, long stop) {
+        int l = (int) (stop - start);
+        long[] result = new long[l];
+
+        for (int i = 0; i < l; i++)
+            result[i] = start + i;
+
+        return result;
+    }
+
+    private static class NoopSemaphore extends Semaphore {
+        public NoopSemaphore() {
+            super(1);
+        }
+
+        @Override
+        public boolean tryAcquire() {
+            return true;
+        }
+
+        @Override
+        public boolean tryAcquire(int permits) {
+            return true;
+        }
+
+        @Override
+        public void release(int permits) {
+            // no-op
+        }
+
+        @Override
+        public int availablePermits() {
+            return Integer.MAX_VALUE;
+        }
+    }
+}
