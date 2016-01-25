@@ -24,7 +24,8 @@ idea {
 configurations.compile.transitive = false
 
 dependencies {
-    testCompile 'org.spockframework:spock-core:1.0'
+    compile "org.slf4j:slf4j-api:1.7.13"
+    testCompile 'org.spockframework:spock-core:1.0-groovy-2.4'
 }
 
 release {
