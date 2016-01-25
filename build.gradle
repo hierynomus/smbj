@@ -28,6 +28,12 @@ dependencies {
     testCompile 'org.spockframework:spock-core:1.0-groovy-2.4'
 }
 
+license {
+    mapping {
+        java = 'SLASHSTAR_STYLE'
+    }
+}
+
 release {
     grgit = org.ajoberstar.grgit.Grgit.open(project.projectDir)
 }
