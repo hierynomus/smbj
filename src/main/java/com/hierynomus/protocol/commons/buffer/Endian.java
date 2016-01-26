@@ -19,6 +19,10 @@ package com.hierynomus.protocol.commons.buffer;
  * Buffer helper class to read/write bytes in correct endian order.
  */
 public abstract class Endian {
+
+    public static final Endian LE = new Little();
+    public static final Endian BE = new Big();
+
     public static class Big extends Endian {
 
         @Override

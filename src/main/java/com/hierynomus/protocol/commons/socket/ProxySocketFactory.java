@@ -13,14 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.protocol.socket;
+package com.hierynomus.protocol.commons.socket;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.SocketFactory;
 import java.io.IOException;
 import java.net.*;
 
 public class ProxySocketFactory extends SocketFactory {
-    public static final int DEFAULT_CONNECT_TIMEOUT = 0;
+    private static final Logger logger = LoggerFactory.getLogger(ProxySocketFactory.class);
+    public static final int DEFAULT_CONNECT_TIMEOUT = 5000;
 
     private Proxy proxy;
     private int connectTimeout;
@@ -71,6 +75,7 @@ public class ProxySocketFactory extends SocketFactory {
         if (bindAddress != null) {
             socket.bind(bindAddress);
         }
+        logger.info("Connecting to {}", address);
         socket.connect(address, connectTimeout);
         return socket;
     }

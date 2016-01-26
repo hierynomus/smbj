@@ -150,6 +150,7 @@ public class Buffer<T extends Buffer<T>> {
 
     /**
      * Returns the current writing position of this buffer.
+     *
      * @return The current writing position.
      */
     public int wpos() {
@@ -158,6 +159,7 @@ public class Buffer<T extends Buffer<T>> {
 
     /**
      * Set the current writing position.
+     *
      * @param wpos The new writing position.
      */
     public void wpos(int wpos) {
@@ -257,6 +259,19 @@ public class Buffer<T extends Buffer<T>> {
         ensureCapacity(1);
         data[wpos++] = b;
         return this;
+    }
+
+    /**
+     * Read <code>length</code> raw bytes from the buffer into a newly allocated byte array of length <code>length</code>.
+     *
+     * @param length The number of bytes to read.
+     * @return a newly allocated byte array of <code>length</code> containing the read bytes.
+     * @throws BufferException If the read operation would cause an underflow (less than <code>length</code> bytes available)
+     */
+    public byte[] readRawBytes(int length) throws BufferException {
+        byte[] bytes = new byte[length];
+        readRawBytes(bytes);
+        return bytes;
     }
 
     /**
@@ -508,6 +523,16 @@ public class Buffer<T extends Buffer<T>> {
         return this;
     }
 
+    /**
+     * Skip the specified number of bytes.
+     *
+     * @param length The number of bytes to skip
+     * @return this
+     */
+    public Buffer<T> skip(int length) {
+        rpos += length;
+        return this;
+    }
 
     /**
      * Gives a readable snapshot of the buffer in hex. This is useful for debugging.
