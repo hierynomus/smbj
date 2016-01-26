@@ -24,9 +24,9 @@ class IntegrationTest extends Specification {
         def client = new SMBClient()
 
         when:
-        client.connect("172.16.37.141")
+        def connection = client.connect("172.16.37.141")
 
         then:
-        client.connected
+        connection.connected
     }
 }

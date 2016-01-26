@@ -15,20 +15,57 @@
  */
 package com.hierynomus.smbj.connection;
 
-import com.hierynomus.smbj.transport.ConnectionInfo;
+import com.hierynomus.protocol.commons.socket.SocketClient;
+import com.hierynomus.smbj.Config;
+import com.hierynomus.smbj.smb2.SMB2Packet;
+import com.hierynomus.smbj.smb2.messages.SMB2NegotiateRequest;
+import com.hierynomus.smbj.smb2.messages.SMB2NegotiateResponse;
+import com.hierynomus.smbj.transport.DirectTcpTransport;
+import com.hierynomus.smbj.transport.PacketReader;
+import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.smbj.transport.TransportLayer;
+
+import java.io.IOException;
 
 /**
  * A connection to a server.
  */
-public class Connection {
+public class Connection extends SocketClient implements AutoCloseable {
 
     private ConnectionInfo connectionInfo;
+    private Config config;
     private TransportLayer transport;
 
-    public Connection(TransportLayer transport) {
+    public Connection(Config config, TransportLayer transport) {
+        super(transport.getDefaultPort());
+        this.config = config;
         this.transport = transport;
     }
 
+    private void negotiateDialect() throws TransportException {
+        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(connectionInfo.getSequenceWindow().get(), config.getSupportedDialects(), connectionInfo.getClientGuid());
+        transport.write(negotiatePacket);
+        SMB2Packet negotiateResponse = new PacketReader(getInputStream(), connectionInfo.getSequenceWindow()).readPacket();
+        if (!(negotiateResponse instanceof SMB2NegotiateResponse)) {
+            throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + negotiateResponse.getHeader().getMessageId());
+        }
+        SMB2NegotiateResponse resp = (SMB2NegotiateResponse) negotiateResponse;
+        connectionInfo.negotiated(resp);
+    }
 
+    /**
+     * On connection establishment, also initializes the transport via {@link DirectTcpTransport#init}.
+     */
+    @Override
+    protected void onConnect() throws IOException {
+        super.onConnect();
+        this.connectionInfo = new ConnectionInfo(getRemoteHostname());
+        transport.init(getInputStream(), getOutputStream());
+        negotiateDialect();
+    }
+
+    @Override
+    public void close() throws Exception {
+        super.disconnect();
+    }
 }

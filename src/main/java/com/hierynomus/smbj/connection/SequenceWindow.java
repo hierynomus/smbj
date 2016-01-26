@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.transport;
+package com.hierynomus.smbj.connection;
 
 import com.hierynomus.smbj.common.SMBRuntimeException;
 
@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * <li>For a multi-credit request as specified in section 3.2.4.1.5, the client MUST use the lowest available range of consecutive sequence numbers.</li>
  * </ul>
  */
-class SequenceWindow {
+public class SequenceWindow {
     private AtomicLong lowestAvailable = new AtomicLong(0);
     private Semaphore available = new Semaphore(1);
 

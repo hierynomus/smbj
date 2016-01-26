@@ -18,6 +18,7 @@ package com.hierynomus.smbj.transport;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smbj.connection.SequenceWindow;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 import com.hierynomus.smbj.smb2.messages.SMB2ResponseMessageFactory;
 

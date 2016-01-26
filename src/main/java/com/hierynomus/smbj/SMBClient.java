@@ -15,17 +15,16 @@
  */
 package com.hierynomus.smbj;
 
-import com.hierynomus.protocol.commons.socket.SocketClient;
-import com.hierynomus.smbj.transport.TransportLayer;
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.transport.DirectTcpTransport;
 
 import java.io.IOException;
 
 /**
  * Server Message Block Client API.
  */
-public class SMBClient extends SocketClient implements AutoCloseable {
+public class SMBClient {
     public static final int DEFAULT_PORT = 445;
-    private final TransportLayer transport;
     private Config config;
 
     public SMBClient() {
@@ -33,22 +32,12 @@ public class SMBClient extends SocketClient implements AutoCloseable {
     }
 
     public SMBClient(Config config) {
-        super(DEFAULT_PORT);
         this.config = config;
-        this.transport = new TransportLayer(config);
     }
 
-    @Override
-    public void close() throws Exception {
-        disconnect();
+    public Connection connect(String hostname) throws IOException {
+        Connection connection = new Connection(config, new DirectTcpTransport());
+        connection.connect(hostname);
+        return connection;
     }
-
-    /** On connection establishment, also initializes the transport via {@link TransportLayer#init}. */
-    @Override
-    protected void onConnect()
-            throws IOException {
-        super.onConnect();
-        transport.init(getRemoteHostname(), getRemotePort(), getInputStream(), getOutputStream());
-    }
-
 }

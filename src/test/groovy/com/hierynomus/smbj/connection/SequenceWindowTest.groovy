@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.transport
+package com.hierynomus.smbj.connection
 
 import com.hierynomus.smbj.common.SMBRuntimeException
 import spock.lang.Specification

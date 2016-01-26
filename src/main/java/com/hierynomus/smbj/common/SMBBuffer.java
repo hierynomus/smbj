@@ -24,8 +24,8 @@ import java.util.UUID;
 
 public class SMBBuffer extends Buffer<SMBBuffer> {
     private static final byte[] RESERVED_4 = new byte[]{0x0, 0x0, 0x0, 0x0};
-    public static final int NANO100_TO_MILLI = 1000000;
-    public static final long WINDOWS_TO_UNIX_EPOCH = 11644473600L;
+    public static final int NANO100_TO_MILLI = 10000;
+    public static final long WINDOWS_TO_UNIX_EPOCH = 0x19DB1DED53E8000L;
 
     public SMBBuffer() {
         super(Endian.LE);
@@ -124,6 +124,6 @@ public class SMBBuffer extends Buffer<SMBBuffer> {
         long lowOrder = readUInt32();
         long highOrder = readUInt32();
         long windowsTimeStamp = (highOrder << 32) | lowOrder;
-        return new Date((windowsTimeStamp / NANO100_TO_MILLI) - WINDOWS_TO_UNIX_EPOCH);
+        return new Date((windowsTimeStamp - WINDOWS_TO_UNIX_EPOCH) / NANO100_TO_MILLI);
     }
 }
