@@ -15,26 +15,27 @@
  */
 package com.hierynomus.smbj.smb2;
 
-public enum SMB2MessageFlag {
-    SMB2_FLAGS_SERVER_TO_REDIR(0x00000001),
-    SMB2_FLAGS_ASYNC_COMMAND(0x00000002),
-    SMB2_FLAGS_RELATED_OPERATIONS(0x00000004),
-    SMB2_FLAGS_SIGNED(0x00000008),
-    SMB2_FLAGS_PRIORITY_MASK(0x00000070),
-    SMB2_FLAGS_DFS_OPERATIONS(0x10000000),
-    SMB2_FLAGS_REPLAY_OPERATION(0x20000000);
+import com.hierynomus.smbj.smb2.messages.SMB2Close;
 
-    private long value;
+/**
+ * [MS-SMB2].pdf 2.2.14.1 SMB2_FILEID
+ */
+public class SMB2FileId {
 
-    SMB2MessageFlag(long value) {
-        this.value = value;
+    private byte[] persistentHandle = new byte[8];
+
+    private byte[] volatileHandle = new byte[8];
+
+    public byte[] getPersistentHandle() {
+        return persistentHandle;
     }
 
-    public long getValue() {
-        return value;
+    public byte[] getVolatileHandle() {
+        return volatileHandle;
     }
 
-    public boolean isSet(long bytes) {
-        return (bytes & this.value) > 0;
+    public void write(SMB2Packet packet) {
+        packet.putRawBytes(persistentHandle);
+        packet.putRawBytes(volatileHandle);
     }
 }

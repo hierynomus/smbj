@@ -13,28 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.smb2;
+package com.hierynomus.smbj.session;
 
-public enum SMB2MessageFlag {
-    SMB2_FLAGS_SERVER_TO_REDIR(0x00000001),
-    SMB2_FLAGS_ASYNC_COMMAND(0x00000002),
-    SMB2_FLAGS_RELATED_OPERATIONS(0x00000004),
-    SMB2_FLAGS_SIGNED(0x00000008),
-    SMB2_FLAGS_PRIORITY_MASK(0x00000070),
-    SMB2_FLAGS_DFS_OPERATIONS(0x10000000),
-    SMB2_FLAGS_REPLAY_OPERATION(0x20000000);
+/**
+ * A Session
+ */
+public class Session {
 
-    private long value;
-
-    SMB2MessageFlag(long value) {
-        this.value = value;
+    public Session() {
     }
 
-    public long getValue() {
-        return value;
-    }
+    public void authenticate(String username, char[] password) {
 
-    public boolean isSet(long bytes) {
-        return (bytes & this.value) > 0;
     }
 }

@@ -22,6 +22,8 @@ import com.hierynomus.smbj.common.SMBBuffer;
  * [MS-SMB2].pdf 2.2.1 SMB2 Packet Header
  */
 public class SMB2Header {
+    public static final int STRUCTURE_SIZE = 64;
+
     private SMB2Dialect dialect;
     private int creditCost;
     private int creditRequest;
@@ -38,7 +40,7 @@ public class SMB2Header {
 
     public void writeTo(SMBBuffer buffer) {
         buffer.putRawBytes(new byte[]{(byte) 0xFE, 'S', 'M', 'B'}); // ProtocolId (4 byte)
-        buffer.putUInt16(64); // StructureSize (2 byte)
+        buffer.putUInt16(STRUCTURE_SIZE); // StructureSize (2 byte)
         writeCreditCharge(buffer); // CreditCharge (2 byte)
         writeChannelSequenceReserved(buffer); // (ChannelSequence/Reserved)/Status (4 bytes)
         buffer.putUInt16(message.getValue()); // Command (2 bytes)
@@ -52,7 +54,7 @@ public class SMB2Header {
             buffer.putReserved4(); // Reserved (4 bytes)
             buffer.putUInt32(treeId); // TreeId (4 bytes)
         }
-        buffer.putUInt64(sessionId); // SessionId (4 bytes)
+        buffer.putUInt64(sessionId); // SessionId (8 bytes)
         buffer.putRawBytes(new byte[] {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}); // Signature (16 bytes)
     }
 
@@ -84,6 +86,10 @@ public class SMB2Header {
 
     public void setMessageType(SMB2MessageCommandCode messageType) {
         this.message = messageType;
+    }
+
+    public SMB2MessageCommandCode getMessage() {
+        return message;
     }
 
     public void setTreeId(long treeId) {

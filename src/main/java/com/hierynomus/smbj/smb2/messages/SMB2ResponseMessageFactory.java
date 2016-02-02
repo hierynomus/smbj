@@ -34,6 +34,7 @@ public class SMB2ResponseMessageFactory {
         switch (command) {
             case 0x0: // SMB2_NEGOTIATE
                 return new SMB2NegotiateResponse().read(buffer);
+            case 0x01: // SMB2_SESSION_SETUP
             default:
                 throw new TransportException("Unknown SMB2 Message Command type: " + command);
 

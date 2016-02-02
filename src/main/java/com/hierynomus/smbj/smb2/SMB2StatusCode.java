@@ -15,26 +15,24 @@
  */
 package com.hierynomus.smbj.smb2;
 
-public enum SMB2MessageFlag {
-    SMB2_FLAGS_SERVER_TO_REDIR(0x00000001),
-    SMB2_FLAGS_ASYNC_COMMAND(0x00000002),
-    SMB2_FLAGS_RELATED_OPERATIONS(0x00000004),
-    SMB2_FLAGS_SIGNED(0x00000008),
-    SMB2_FLAGS_PRIORITY_MASK(0x00000070),
-    SMB2_FLAGS_DFS_OPERATIONS(0x10000000),
-    SMB2_FLAGS_REPLAY_OPERATION(0x20000000);
+/**
+ * [MS-ERREF].pdf 2.3.1 NTSTATUS values
+ *
+ * Subset of the possible values which are useful for SMB2 communication
+ */
+public enum SMB2StatusCode {
+    STATUS_SUCCESS(0x00000000L),
+    STATUS_BUFFER_OVERFLOW(0x80000005L),
+    STATUS_INVALID_PARAMETER(0xC000000DL),
+    STATUS_MORE_PROCESSING_REQUIRED(0xC0000016L),
+    STATUS_REQUEST_NOT_ACCEPTED(0xC00000D0L),
+    STATUS_LOGON_FAILURE(0xC000006DL),
+    STATUS_PASSWORD_EXPIRED(0xC0000071L),
+    STATUS_INSUFFICIENT_RESOURCES(0xC000009AL),
+    STATUS_NOT_SUPPORTED(0xC00000BBL),
+    STATUS_USER_SESSION_DELETED(0xC0000203L);
 
-    private long value;
+    SMB2StatusCode(long i) {
 
-    SMB2MessageFlag(long value) {
-        this.value = value;
-    }
-
-    public long getValue() {
-        return value;
-    }
-
-    public boolean isSet(long bytes) {
-        return (bytes & this.value) > 0;
     }
 }

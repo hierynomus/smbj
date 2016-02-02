@@ -16,6 +16,8 @@
 package com.hierynomus.smbj.transport;
 
 import com.hierynomus.smbj.smb2.SMB2Packet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,6 +25,8 @@ import java.io.OutputStream;
 import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class BaseTransport implements TransportLayer {
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
+
     protected InputStream in;
     protected OutputStream out;
 
@@ -40,6 +44,7 @@ public abstract class BaseTransport implements TransportLayer {
         try {
             try {
                 packet.write();
+                logger.trace("Writing packet {}, sequence number {}", packet.getHeader().getMessage(), packet.getSequenceNumber());
                 doWrite(packet);
                 out.flush();
             } catch (IOException ioe) {
@@ -49,7 +54,6 @@ public abstract class BaseTransport implements TransportLayer {
         } finally {
             writeLock.unlock();
         }
-
     }
 
     protected abstract void doWrite(SMB2Packet packet) throws IOException;

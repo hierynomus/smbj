@@ -13,28 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.smb2;
+package com.hierynomus.smbj.smb2.messages;
 
-public enum SMB2MessageFlag {
-    SMB2_FLAGS_SERVER_TO_REDIR(0x00000001),
-    SMB2_FLAGS_ASYNC_COMMAND(0x00000002),
-    SMB2_FLAGS_RELATED_OPERATIONS(0x00000004),
-    SMB2_FLAGS_SIGNED(0x00000008),
-    SMB2_FLAGS_PRIORITY_MASK(0x00000070),
-    SMB2_FLAGS_DFS_OPERATIONS(0x10000000),
-    SMB2_FLAGS_REPLAY_OPERATION(0x20000000);
+import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
+import com.hierynomus.smbj.smb2.SMB2Packet;
 
-    private long value;
+/**
+ * [MS-SMB2].pdf 2.2.13 SMB2 CREATE Request
+ *
+ * TODO
+ */
+public class SMB2CreateRequest extends SMB2Packet {
 
-    SMB2MessageFlag(long value) {
-        this.value = value;
-    }
-
-    public long getValue() {
-        return value;
-    }
-
-    public boolean isSet(long bytes) {
-        return (bytes & this.value) > 0;
+    public SMB2CreateRequest(long messageId) {
+        super(messageId, SMB2MessageCommandCode.SMB2_CREATE);
     }
 }

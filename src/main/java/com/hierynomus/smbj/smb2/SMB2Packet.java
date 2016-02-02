@@ -15,7 +15,6 @@
  */
 package com.hierynomus.smbj.smb2;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 public class SMB2Packet extends SMBBuffer {

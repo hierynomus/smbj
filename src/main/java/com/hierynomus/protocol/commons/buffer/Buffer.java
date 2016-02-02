@@ -19,6 +19,9 @@ import com.hierynomus.protocol.commons.ByteArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.Charset;
+import java.nio.charset.UnsupportedCharsetException;
+
 public class Buffer<T extends Buffer<T>> {
     private static final Logger logger = LoggerFactory.getLogger(Buffer.class);
 
@@ -520,6 +523,82 @@ public class Buffer<T extends Buffer<T>> {
      */
     private Buffer<T> putUInt64(long uint64, Endian endianness) {
         endianness.writeUInt64(this, uint64);
+        return this;
+    }
+
+    /**
+     * Read a string in the specified encoding.
+     * <p/>
+     * If the encoding is UTF-16, the buffer's endianness is used to determine the correct byte order.
+     *
+     * @param encoding The charset name to use.
+     * @throws BufferException             If reading this string would cause an underflow
+     * @throws UnsupportedCharsetException If the charset specified is not supported by the buffer.
+     */
+    public String readString(String encoding, int length) throws BufferException {
+        return readString(Charset.forName(encoding), length, endianness);
+    }
+
+    /**
+     * Read a string in the specified encoding.
+     * <p/>
+     * If the charset is UTF-16, the buffer's endianness is used to determine the correct byte order.
+     *
+     * @param charset The charset to use.
+     * @throws BufferException             If reading this string would cause an underflow
+     * @throws UnsupportedCharsetException If the charset specified is not supported by the buffer.
+     */
+    public String readString(Charset charset, int length) throws BufferException {
+        return readString(charset, length, endianness);
+    }
+
+    private String readString(Charset charset, int length, Endian endianness) throws BufferException {
+        switch (charset.name()) {
+            case "UTF-16":
+                return endianness.readUtf16String(this, length);
+            case "UTF-16LE":
+                return Endian.LE.readUtf16String(this, length);
+            case "UTF-16BE":
+                return Endian.BE.readUtf16String(this, length);
+            case "UTF-8":
+                return new String(readRawBytes(length), charset);
+            default:
+                throw new UnsupportedCharsetException(charset.name());
+        }
+    }
+
+    /**
+     * Write the string in the specified charset.
+     * <p/>
+     * If the charset is UTF-16, the buffer's endianness is used to determine the correct byte order.
+     *
+     * @param string  The string to write
+     * @param charset The charset to use
+     * @return this
+     * @throws UnsupportedCharsetException If the charset specified is not supported by the buffer.
+     */
+    public Buffer<T> putString(String string, Charset charset) {
+        return putString(string, charset, endianness);
+    }
+
+    private Buffer<T> putString(String string, Charset charset, Endian endianness) {
+        switch (charset.name()) {
+            case "UTF-16":
+                endianness.writeUtf16String(this, string);
+                break;
+            case "UTF-16LE":
+                Endian.LE.writeUtf16String(this, string);
+                break;
+            case "UTF-16BE":
+                Endian.BE.writeUtf16String(this, string);
+                break;
+            case "UTF-8":
+                byte[] bytes = string.getBytes(charset);
+                putRawBytes(bytes);
+                break;
+            default:
+                throw new UnsupportedCharsetException(charset.name());
+        }
         return this;
     }
 

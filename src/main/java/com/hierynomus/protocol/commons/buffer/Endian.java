@@ -15,6 +15,8 @@
  */
 package com.hierynomus.protocol.commons.buffer;
 
+import java.nio.charset.Charset;
+
 /**
  * Buffer helper class to read/write bytes in correct endian order.
  */
@@ -101,6 +103,19 @@ public abstract class Endian {
             if (uint64 < 0)
                 throw new Buffer.BufferException("Cannot handle values > " + Long.MAX_VALUE);
             return uint64;
+        }
+
+        @Override
+        public <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException {
+            byte[] stringBytes = new byte[length * 2];
+            buffer.readRawBytes(stringBytes);
+            return new String(stringBytes, Charset.forName("UTF-16BE"));
+        }
+
+        @Override
+        public <T extends Buffer<T>> void writeUtf16String(Buffer<T> buffer, String string) {
+            byte[] bytes = string.getBytes(Charset.forName("UTF-16BE"));
+            buffer.putRawBytes(bytes);
         }
 
         @Override
@@ -193,6 +208,19 @@ public abstract class Endian {
         }
 
         @Override
+        public <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException {
+            byte[] stringBytes = new byte[length * 2];
+            buffer.readRawBytes(stringBytes);
+            return new String(stringBytes, Charset.forName("UTF-16LE"));
+        }
+
+        @Override
+        public <T extends Buffer<T>> void writeUtf16String(Buffer<T> buffer, String string) {
+            byte[] bytes = string.getBytes(Charset.forName("UTF-16LE"));
+            buffer.putRawBytes(bytes);
+        }
+
+        @Override
         public String toString() {
             return "little endian";
         }
@@ -213,4 +241,9 @@ public abstract class Endian {
     public abstract <T extends Buffer<T>> void writeUInt64(Buffer<T> buffer, long uint64);
 
     public abstract <T extends Buffer<T>> long readUInt64(Buffer<T> buffer) throws Buffer.BufferException;
+
+    public abstract <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException;
+
+    public abstract <T extends Buffer<T>> void writeUtf16String(Buffer<T> buffer, String string);
+
 }

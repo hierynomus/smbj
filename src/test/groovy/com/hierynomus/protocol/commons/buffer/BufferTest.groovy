@@ -18,6 +18,8 @@ package com.hierynomus.protocol.commons.buffer
 import spock.lang.Specification
 import spock.lang.Unroll
 
+import java.nio.charset.Charset
+
 @Unroll
 class BufferTest extends Specification {
 
@@ -33,35 +35,35 @@ class BufferTest extends Specification {
         buffer.metaClass.invokeMethod(buffer, "readUInt$size") == value
 
         where:
-        endian              | size | value               | contents
-        new Endian.Little() | 16   | 255                 | "ff 00"
-        new Endian.Little() | 16   | 256                 | "00 01"
-        new Endian.Little() | 16   | 65535               | "ff ff"
-        new Endian.Big()    | 16   | 255                 | "00 ff"
-        new Endian.Big()    | 16   | 256                 | "01 00"
-        new Endian.Big()    | 16   | 65535               | "ff ff"
-        new Endian.Little() | 24   | 255                 | "ff 00 00"
-        new Endian.Little() | 24   | 0xff00ef            | "ef 00 ff"
-        new Endian.Little() | 24   | 0xff0100            | "00 01 ff"
-        new Endian.Little() | 24   | 0xffffff            | "ff ff ff"
-        new Endian.Big()    | 24   | 255                 | "00 00 ff"
-        new Endian.Big()    | 24   | 0xff00ef            | "ff 00 ef"
-        new Endian.Big()    | 24   | 0xff0100            | "ff 01 00"
-        new Endian.Big()    | 24   | 0xffffff            | "ff ff ff"
-        new Endian.Little() | 32   | 255                 | "ff 00 00 00"
-        new Endian.Little() | 32   | 0xffaa00            | "00 aa ff 00"
-        new Endian.Little() | 32   | 0xffaa0011          | "11 00 aa ff"
-        new Endian.Little() | 32   | 0xffffffffL         | "ff ff ff ff"
-        new Endian.Big()    | 32   | 255                 | "00 00 00 ff"
-        new Endian.Big()    | 32   | 0xffaa00            | "00 ff aa 00"
-        new Endian.Big()    | 32   | 0xffaa0011          | "ff aa 00 11"
-        new Endian.Big()    | 32   | 0xffffffffL         | "ff ff ff ff"
-        new Endian.Little() | 64   | 255                 | "ff 00 00 00 00 00 00 00"
-        new Endian.Little() | 64   | 0x66ff0066ff000000L | "00 00 00 ff 66 00 ff 66"
-        new Endian.Little() | 64   | 0x7fffffffffffffffL | "ff ff ff ff ff ff ff 7f"
-        new Endian.Big()    | 64   | 255                 | "00 00 00 00 00 00 00 ff"
-        new Endian.Big()    | 64   | 0x66ff0066ff000000L | "66 ff 00 66 ff 00 00 00"
-        new Endian.Big()    | 64   | 0x7fffffffffffffffL | "7f ff ff ff ff ff ff ff"
+        endian    | size | value               | contents
+        Endian.LE | 16   | 255                 | "ff 00"
+        Endian.LE | 16   | 256                 | "00 01"
+        Endian.LE | 16   | 65535               | "ff ff"
+        Endian.BE | 16   | 255                 | "00 ff"
+        Endian.BE | 16   | 256                 | "01 00"
+        Endian.BE | 16   | 65535               | "ff ff"
+        Endian.LE | 24   | 255                 | "ff 00 00"
+        Endian.LE | 24   | 0xff00ef            | "ef 00 ff"
+        Endian.LE | 24   | 0xff0100            | "00 01 ff"
+        Endian.LE | 24   | 0xffffff            | "ff ff ff"
+        Endian.BE | 24   | 255                 | "00 00 ff"
+        Endian.BE | 24   | 0xff00ef            | "ff 00 ef"
+        Endian.BE | 24   | 0xff0100            | "ff 01 00"
+        Endian.BE | 24   | 0xffffff            | "ff ff ff"
+        Endian.LE | 32   | 255                 | "ff 00 00 00"
+        Endian.LE | 32   | 0xffaa00            | "00 aa ff 00"
+        Endian.LE | 32   | 0xffaa0011          | "11 00 aa ff"
+        Endian.LE | 32   | 0xffffffffL         | "ff ff ff ff"
+        Endian.BE | 32   | 255                 | "00 00 00 ff"
+        Endian.BE | 32   | 0xffaa00            | "00 ff aa 00"
+        Endian.BE | 32   | 0xffaa0011          | "ff aa 00 11"
+        Endian.BE | 32   | 0xffffffffL         | "ff ff ff ff"
+        Endian.LE | 64   | 255                 | "ff 00 00 00 00 00 00 00"
+        Endian.LE | 64   | 0x66ff0066ff000000L | "00 00 00 ff 66 00 ff 66"
+        Endian.LE | 64   | 0x7fffffffffffffffL | "ff ff ff ff ff ff ff 7f"
+        Endian.BE | 64   | 255                 | "00 00 00 00 00 00 00 ff"
+        Endian.BE | 64   | 0x66ff0066ff000000L | "66 ff 00 66 ff 00 00 00"
+        Endian.BE | 64   | 0x7fffffffffffffffL | "7f ff ff ff ff ff ff ff"
     }
 
     def "should throw exception for #value as uint#size in #endian as it is out of range"() {
@@ -76,23 +78,23 @@ class BufferTest extends Specification {
         ex.message == "Invalid uint$size value: " + value
 
         where:
-        endian              | size | value
-        new Endian.Little() | 16   | 65536
-        new Endian.Little() | 16   | -1
-        new Endian.Big()    | 16   | 65536
-        new Endian.Big()    | 16   | -1
-        new Endian.Little() | 24   | 0x01000000
-        new Endian.Little() | 24   | -1
-        new Endian.Big()    | 24   | 0x01000000
-        new Endian.Big()    | 24   | -1
-        new Endian.Little() | 32   | 0x0100000000
-        new Endian.Little() | 32   | -1
-        new Endian.Big()    | 32   | 0x0100000000
-        new Endian.Big()    | 32   | -1
-        new Endian.Little() | 64   | 0x8000000000000000L
-        new Endian.Little() | 64   | -1
-        new Endian.Big()    | 64   | 0x8000000000000000L
-        new Endian.Big()    | 64   | -1
+        endian    | size | value
+        Endian.LE | 16   | 65536
+        Endian.LE | 16   | -1
+        Endian.BE | 16   | 65536
+        Endian.BE | 16   | -1
+        Endian.LE | 24   | 0x01000000
+        Endian.LE | 24   | -1
+        Endian.BE | 24   | 0x01000000
+        Endian.BE | 24   | -1
+        Endian.LE | 32   | 0x0100000000
+        Endian.LE | 32   | -1
+        Endian.BE | 32   | 0x0100000000
+        Endian.BE | 32   | -1
+        Endian.LE | 64   | 0x8000000000000000L
+        Endian.LE | 64   | -1
+        Endian.BE | 64   | 0x8000000000000000L
+        Endian.BE | 64   | -1
     }
 
     def "should throw exception when trying to read too large uint64 value in #endian"() {
@@ -108,8 +110,32 @@ class BufferTest extends Specification {
         def ex = thrown(Buffer.BufferException)
         ex.message == "Cannot handle values > " + Long.MAX_VALUE
         where:
-        endian              | val1       | val2
-        new Endian.Little() | 0x0        | 0x80000000L
-        new Endian.Big()    | 0x80000000 | 0x0
+        endian    | val1       | val2
+        Endian.LE | 0x0        | 0x80000000L
+        Endian.BE | 0x80000000 | 0x0
+    }
+
+    def "should read and write string '#value' as #unicode in #endian"() {
+        given:
+        def buffer = new Buffer.PlainBuffer(endian)
+        def charset = Charset.forName(unicode)
+
+        when:
+        buffer.putString(value, charset)
+
+        then:
+        buffer.printHex() == contents
+        buffer.readString(charset, value.length()) == value
+
+        where:
+        endian    | unicode  | value   | contents
+        Endian.BE | "UTF-8" | "abcde" | "61 62 63 64 65"
+        Endian.BE | "UTF-16" | "ab会意字" | "00 61 00 62 4f 1a 61 0f 5b 57"
+        Endian.BE | "UTF-16LE" | "ab会意字" | "61 00 62 00 1a 4f 0f 61 57 5b"
+        Endian.BE | "UTF-16BE" | "ab会意字" | "00 61 00 62 4f 1a 61 0f 5b 57"
+        Endian.LE | "UTF-8" | "abcde" | "61 62 63 64 65"
+        Endian.LE | "UTF-16" | "ab会意字" | "61 00 62 00 1a 4f 0f 61 57 5b"
+        Endian.LE | "UTF-16LE" | "ab会意字" | "61 00 62 00 1a 4f 0f 61 57 5b"
+        Endian.LE | "UTF-16BE" | "ab会意字" | "00 61 00 62 4f 1a 61 0f 5b 57"
     }
 }

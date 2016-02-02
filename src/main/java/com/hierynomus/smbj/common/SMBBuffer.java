@@ -18,6 +18,7 @@ package com.hierynomus.smbj.common;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
@@ -115,7 +116,7 @@ public class SMBBuffer extends Buffer<SMBBuffer> {
     }
 
     /**
-     * [MS-DTYP].pdf Section 2.3.3 FILETIME
+     * [MS-DTYP].pdf 2.3.3 FILETIME
      *
      * @return a Date converted from the Windows FILETIME stored in the buffer
      * @throws BufferException If an underflow occurs by reading the FILETIME (less than 8 bytes available).
@@ -125,5 +126,15 @@ public class SMBBuffer extends Buffer<SMBBuffer> {
         long highOrder = readUInt32();
         long windowsTimeStamp = (highOrder << 32) | lowOrder;
         return new Date((windowsTimeStamp - WINDOWS_TO_UNIX_EPOCH) / NANO100_TO_MILLI);
+    }
+
+    /**
+     * [MS-SMB2].pdf 2.2 Message Syntax
+     *
+     * @param string The string value to write
+     * @return this
+     */
+    public Buffer<SMBBuffer> putString(String string) {
+        return putString(string, Charset.forName("UTF-16"));
     }
 }
