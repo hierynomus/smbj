@@ -27,6 +27,7 @@ public class SMB2Flush extends SMB2Packet {
     private SMB2FileId fileId;
 
     public SMB2Flush() {
+        super();
     }
 
     public SMB2Flush(long messageId) {

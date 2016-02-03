@@ -43,6 +43,7 @@ public class SMB2NegotiateResponse extends SMB2Packet {
      * Response constructor
      */
     public SMB2NegotiateResponse() {
+        super();
     }
 
     @Override

@@ -24,6 +24,10 @@ import com.hierynomus.smbj.smb2.SMB2Packet;
  */
 public class SMB2Logoff extends SMB2Packet {
 
+    public SMB2Logoff() {
+        super();
+    }
+
     public SMB2Logoff(long messageId) {
         super(messageId, SMB2MessageCommandCode.SMB2_LOGOFF);
     }

@@ -38,6 +38,7 @@ public class SMB2SessionSetup extends SMB2Packet {
     private int sessionFlags;
 
     public SMB2SessionSetup(SMB2Dialect negotiatedDialect) {
+        super();
         this.negotiatedDialect = negotiatedDialect;
     }
 
