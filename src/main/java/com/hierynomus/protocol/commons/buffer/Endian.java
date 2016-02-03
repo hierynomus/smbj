@@ -84,17 +84,9 @@ public abstract class Endian {
 
         @Override
         public <T extends Buffer<T>> void writeUInt64(Buffer<T> buffer, long uint64) {
-            buffer.ensureCapacity(8);
             if (uint64 < 0)
                 throw new RuntimeException("Invalid uint64 value: " + uint64);
-            buffer.data[buffer.wpos++] = (byte) (uint64 >> 56);
-            buffer.data[buffer.wpos++] = (byte) (uint64 >> 48);
-            buffer.data[buffer.wpos++] = (byte) (uint64 >> 40);
-            buffer.data[buffer.wpos++] = (byte) (uint64 >> 32);
-            buffer.data[buffer.wpos++] = (byte) (uint64 >> 24);
-            buffer.data[buffer.wpos++] = (byte) (uint64 >> 16);
-            buffer.data[buffer.wpos++] = (byte) (uint64 >> 8);
-            buffer.data[buffer.wpos++] = (byte) uint64;
+            writeLong(buffer, uint64);
         }
 
         @Override
@@ -103,6 +95,29 @@ public abstract class Endian {
             if (uint64 < 0)
                 throw new Buffer.BufferException("Cannot handle values > " + Long.MAX_VALUE);
             return uint64;
+        }
+
+        @Override
+        public <T extends Buffer<T>> void writeLong(Buffer<T> buffer, long longVal) {
+            buffer.ensureCapacity(8);
+            buffer.data[buffer.wpos++] = (byte) (longVal >> 56);
+            buffer.data[buffer.wpos++] = (byte) (longVal >> 48);
+            buffer.data[buffer.wpos++] = (byte) (longVal >> 40);
+            buffer.data[buffer.wpos++] = (byte) (longVal >> 32);
+            buffer.data[buffer.wpos++] = (byte) (longVal >> 24);
+            buffer.data[buffer.wpos++] = (byte) (longVal >> 16);
+            buffer.data[buffer.wpos++] = (byte) (longVal >> 8);
+            buffer.data[buffer.wpos++] = (byte) longVal;
+        }
+
+        @Override
+        public <T extends Buffer<T>> long readLong(Buffer<T> buffer) throws Buffer.BufferException {
+            long result = 0;
+            for (int i = 0; i < 8; i++) {
+                result <<= 8;
+                result |= (buffer.data[buffer.rpos++] & 0xFF);
+            }
+            return result;
         }
 
         @Override
@@ -185,18 +200,9 @@ public abstract class Endian {
 
         @Override
         public <T extends Buffer<T>> void writeUInt64(Buffer<T> buffer, long uint64) {
-            buffer.ensureCapacity(8);
             if (uint64 < 0)
                 throw new RuntimeException("Invalid uint64 value: " + uint64);
-            buffer.data[buffer.wpos++] = (byte) uint64;
-            buffer.data[buffer.wpos++] = (byte) (uint64 >> 8);
-            buffer.data[buffer.wpos++] = (byte) (uint64 >> 16);
-            buffer.data[buffer.wpos++] = (byte) (uint64 >> 24);
-            buffer.data[buffer.wpos++] = (byte) (uint64 >> 32);
-            buffer.data[buffer.wpos++] = (byte) (uint64 >> 40);
-            buffer.data[buffer.wpos++] = (byte) (uint64 >> 48);
-            buffer.data[buffer.wpos++] = (byte) (uint64 >> 56);
-
+            writeLong(buffer, uint64);
         }
 
         @Override
@@ -205,6 +211,32 @@ public abstract class Endian {
             if (uint64 < 0)
                 throw new Buffer.BufferException("Cannot handle values > " + Long.MAX_VALUE);
             return uint64;
+        }
+
+        @Override
+        public <T extends Buffer<T>> void writeLong(Buffer<T> buffer, long longVal) {
+            buffer.ensureCapacity(8);
+            buffer.data[buffer.wpos++] = (byte) longVal;
+            buffer.data[buffer.wpos++] = (byte) (longVal >> 8);
+            buffer.data[buffer.wpos++] = (byte) (longVal >> 16);
+            buffer.data[buffer.wpos++] = (byte) (longVal >> 24);
+            buffer.data[buffer.wpos++] = (byte) (longVal >> 32);
+            buffer.data[buffer.wpos++] = (byte) (longVal >> 40);
+            buffer.data[buffer.wpos++] = (byte) (longVal >> 48);
+            buffer.data[buffer.wpos++] = (byte) (longVal >> 56);
+
+        }
+
+        @Override
+        public <T extends Buffer<T>> long readLong(Buffer<T> buffer) throws Buffer.BufferException {
+            long result = 0;
+            byte[] bytes = buffer.readRawBytes(8);
+            for (int i = 7; i >= 0; i++) {
+                result <<= 8;
+                result |= (bytes[i] & 0xFF);
+            }
+            return result;
+
         }
 
         @Override
@@ -242,8 +274,12 @@ public abstract class Endian {
 
     public abstract <T extends Buffer<T>> long readUInt64(Buffer<T> buffer) throws Buffer.BufferException;
 
-    public abstract <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException;
+    public abstract <T extends Buffer<T>> void writeLong(Buffer<T> buffer, long longVal);
+
+    public abstract <T extends Buffer<T>> long readLong(Buffer<T> buffer) throws Buffer.BufferException;
 
     public abstract <T extends Buffer<T>> void writeUtf16String(Buffer<T> buffer, String string);
+
+    public abstract <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException;
 
 }

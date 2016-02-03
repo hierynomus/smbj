@@ -49,32 +49,31 @@ public class SMBBuffer extends Buffer<SMBBuffer> {
         putUInt32(mostSignificantBits >>> 32); // Data1 (4 bytes)
         putUInt16((int) ((mostSignificantBits >>> 16) & 0xFFFF)); // Data2 (2 bytes)
         putUInt16((int) (mostSignificantBits & 0xFFFF)); // Data 3 (2 bytes)
-        putRawBytes(longToBytes(leastSignificantBits));
+        // For some weird reason the correct way of reading/writing the last part is BigEndian, thanks MS.
+        // This could be due to the fact that the Data4 section is regarded as an opaque byte sequence, so no
+        // endian translation is applied, unlike the Data1/2/3 sections which are regarded as unsigned long/short/short
+        putLong(leastSignificantBits, Endian.BE);
         return this;
     }
 
-    private byte[] longToBytes(long value) {
-        return new byte[]{
-                (byte) value,
-                (byte) (value >> 8),
-                (byte) (value >> 16),
-                (byte) (value >> 24),
-                (byte) (value >> 32),
-                (byte) (value >> 40),
-                (byte) (value >> 48),
-                (byte) (value >> 56)
-        };
-    }
 
-    private long bytesToLong(byte[] bytes) {
-        return bytes[0] |
-                (bytes[1] << 8) |
-                (bytes[2] << 16) |
-                (bytes[3] << 24) |
-                ((long) bytes[4] << 32) |
-                ((long) bytes[5] << 40) |
-                ((long) bytes[6] << 48) |
-                ((long) bytes[7] << 56);
+    /**
+     * [MS-DTYP].pdf 2.3.4.2 GUID Packet representation
+     *
+     * @return The GUID read from the buffer
+     * @throws BufferException If an underflow occurs by reading the GUID (less than 16 bytes available).
+     */
+    public UUID readGuid() throws BufferException {
+        long mostSigBits = readUInt32();
+        mostSigBits <<= 16;
+        mostSigBits |= readUInt16();
+        mostSigBits <<= 16;
+        mostSigBits |= readUInt16();
+        // For some weird reason the correct way of reading/writing the last part is BigEndian, thanks MS.
+        // This could be due to the fact that the Data4 section is regarded as an opaque byte sequence, so no
+        // endian translation is applied, unlike the Data1/2/3 sections which are regarded as unsigned long/short/short
+        long leastSigBits = readLong(Endian.BE);
+        return new UUID(mostSigBits, leastSigBits);
     }
 
     /**
@@ -98,21 +97,6 @@ public class SMBBuffer extends Buffer<SMBBuffer> {
     public Buffer<SMBBuffer> putReserved4() {
         putRawBytes(RESERVED_4);
         return this;
-    }
-
-    /**
-     * [MS-DTYP].pdf 2.3.4.2 GUID Packet representation
-     *
-     * @return The GUID read from the buffer
-     * @throws BufferException If an underflow occurs by reading the GUID (less than 16 bytes available).
-     */
-    public UUID readGuid() throws BufferException {
-        long mostSignificantBits = 0;
-        mostSignificantBits |= (readUInt32() << 32);
-        mostSignificantBits |= (readUInt16() << 16);
-        mostSignificantBits |= readUInt16();
-
-        return new UUID(mostSignificantBits, bytesToLong(readRawBytes(8)));
     }
 
     /**

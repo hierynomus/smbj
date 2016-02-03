@@ -521,9 +521,53 @@ public class Buffer<T extends Buffer<T>> {
      * @param endianness The endian (Big or Little) to use
      * @return this
      */
-    private Buffer<T> putUInt64(long uint64, Endian endianness) {
+    public Buffer<T> putUInt64(long uint64, Endian endianness) {
         endianness.writeUInt64(this, uint64);
         return this;
+    }
+
+    /**
+     * Writes a long in the buffer's endianness.
+     *
+     * Note: unlike a uint64, a long can be <em>negative.</em>
+     * @param longVal
+     * @return this
+     */
+    public Buffer<T> putLong(long longVal) {
+        return putLong(longVal, endianness);
+    }
+
+    /**
+     * Writes a long in the specified endianness.
+     *
+     * Note: unlike a uint64, a long can be <em>negative</em> or <em>overflowed.</em>
+     * @param longVal
+     * @return this
+     */
+    public Buffer<T> putLong(long longVal, Endian endianness) {
+        endianness.writeLong(this, longVal);
+        return this;
+    }
+
+    /**
+     * Read a long from the buffer using the buffer's endianness.
+     *
+     * @return a long
+     * @throws BufferException If this would cause an underflow (less than 8 bytes available)
+     */
+    public long readLong() throws BufferException {
+        return readLong(endianness);
+    }
+
+    /**
+     * Read a long from the buffer using the specified endianness.
+     *
+     * @param endianness The endian (Big or Little) to use
+     * @return a long
+     * @throws BufferException If this would cause an underflow (less than 8 bytes available)
+     */
+    public long readLong(Endian endianness) throws BufferException {
+        return endianness.readLong(this);
     }
 
     /**
