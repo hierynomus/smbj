@@ -478,7 +478,7 @@ public class Buffer<T extends Buffer<T>> {
      * @param endianness The endian (Big or Little) to use
      * @return this
      */
-    private Buffer<T> putUInt32(long uint32, Endian endianness) {
+    public Buffer<T> putUInt32(long uint32, Endian endianness) {
         endianness.writeUInt32(this, uint32);
         return this;
     }
