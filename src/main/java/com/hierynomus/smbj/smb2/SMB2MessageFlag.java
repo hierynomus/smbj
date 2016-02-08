@@ -15,7 +15,9 @@
  */
 package com.hierynomus.smbj.smb2;
 
-public enum SMB2MessageFlag {
+import com.hierynomus.protocol.commons.EnumWithValue;
+
+public enum SMB2MessageFlag implements EnumWithValue<SMB2MessageFlag> {
     SMB2_FLAGS_SERVER_TO_REDIR(0x00000001),
     SMB2_FLAGS_ASYNC_COMMAND(0x00000002),
     SMB2_FLAGS_RELATED_OPERATIONS(0x00000004),
@@ -32,9 +34,5 @@ public enum SMB2MessageFlag {
 
     public long getValue() {
         return value;
-    }
-
-    public boolean isSet(long bytes) {
-        return (bytes & this.value) > 0;
     }
 }

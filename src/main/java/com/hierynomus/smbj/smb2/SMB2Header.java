@@ -15,8 +15,11 @@
  */
 package com.hierynomus.smbj.smb2;
 
+import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
+
+import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.*;
 
 /**
  * [MS-SMB2].pdf 2.2.1 SMB2 Packet Header
@@ -48,7 +51,7 @@ public class SMB2Header {
         buffer.putUInt32(flags); // Flags (4 bytes)
         buffer.putRawBytes(new byte[] {0x0, 0x0, 0x0, 0x0}); // NextCommand (4 bytes)
         buffer.putUInt64(messageId); // MessageId (8 bytes)
-        if (SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND.isSet(flags)) {
+        if (isSet(flags, SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
             throw new UnsupportedOperationException("ASYNC not yet implemented");
         } else {
             buffer.putReserved4(); // Reserved (4 bytes)
@@ -134,7 +137,7 @@ public class SMB2Header {
         flags = buffer.readUInt32(); // Flags (4 bytes)
         buffer.readRawBytes(4); // NextCommand (4 bytes)
         messageId = buffer.readUInt64(); // MessageId (4 bytes)
-        if (SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND.isSet(flags)) {
+        if (isSet(flags, SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
             throw new UnsupportedOperationException("ASYNC not implemented");
         } else {
             buffer.skip(4); // Reserved (4 bytes)

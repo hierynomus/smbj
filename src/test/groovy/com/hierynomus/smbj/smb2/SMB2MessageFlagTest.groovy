@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.smb2
 
+import com.hierynomus.protocol.commons.EnumWithValue
 import spock.lang.Specification
 
 class SMB2MessageFlagTest extends Specification {
@@ -24,7 +25,7 @@ class SMB2MessageFlagTest extends Specification {
         long b = 0x10000001
 
         when:
-        def flagses = SMB2MessageFlag.values().toList().findAll { it.isSet(b) }
+        def flagses = EnumWithValue.EnumUtils.toEnumSet(b, SMB2MessageFlag.class)
 
         then:
         flagses.size() == 2

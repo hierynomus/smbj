@@ -15,12 +15,14 @@
  */
 package com.hierynomus.smbj.smb2;
 
+import com.hierynomus.protocol.commons.EnumWithValue;
+
 /**
  * [MS-ERREF].pdf 2.3.1 NTSTATUS values
  *
  * Subset of the possible values which are useful for SMB2 communication
  */
-public enum SMB2StatusCode {
+public enum SMB2StatusCode implements EnumWithValue<SMB2StatusCode> {
     STATUS_SUCCESS(0x00000000L),
     STATUS_BUFFER_OVERFLOW(0x80000005L),
     STATUS_INVALID_PARAMETER(0xC000000DL),
@@ -32,7 +34,14 @@ public enum SMB2StatusCode {
     STATUS_NOT_SUPPORTED(0xC00000BBL),
     STATUS_USER_SESSION_DELETED(0xC0000203L);
 
-    SMB2StatusCode(long i) {
+    private long value;
 
+    SMB2StatusCode(long val) {
+        value = val;
+    }
+
+    @Override
+    public long getValue() {
+        return value;
     }
 }
