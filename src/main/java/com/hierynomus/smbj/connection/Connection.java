@@ -48,8 +48,8 @@ public class Connection extends SocketClient implements AutoCloseable {
 
     private void negotiateDialect() throws TransportException {
         logger.info("Negotiating dialects {} with server {}", config.getSupportedDialects(), getRemoteHostname());
-        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(connectionInfo.getSequenceWindow().get(), config.getSupportedDialects(), connectionInfo.getClientGuid());
-        transport.write(negotiatePacket);
+        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid());
+        send(negotiatePacket);
         SMB2Packet negotiateResponse = new PacketReader(getInputStream(), connectionInfo.getSequenceWindow()).readPacket();
         if (!(negotiateResponse instanceof SMB2NegotiateResponse)) {
             throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + negotiateResponse.getHeader().getMessageId());
@@ -76,11 +76,25 @@ public class Connection extends SocketClient implements AutoCloseable {
         super.disconnect();
     }
 
+    public long send(SMB2Packet packet) throws TransportException {
+        packet.getHeader().setMessageId(connectionInfo.getSequenceWindow().get());
+        return transport.write(packet);
+    }
+
     /**
      * Start a new Session on this connection.
      * @return A
      */
     public Session startSession() {
         return null;
+    }
+
+    /**
+     * Return the negotiated dialect for this connection.
+     *
+     * @return The negotiated dialect
+     */
+    public SMB2Dialect getNegotiatedDialect() {
+        return connectionInfo.getDialect();
     }
 }
