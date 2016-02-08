@@ -15,17 +15,14 @@
  */
 package com.hierynomus.smbj.smb2;
 
+import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
-public class SMB2Packet extends SMBBuffer {
+public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
     protected final SMB2Header header = new SMB2Header();
 
-    public SMB2Packet() {
-        super();
-    }
-
-    public SMB2Packet(long messageId, SMB2MessageCommandCode messageType) {
-        header.setMessageId(messageId);
+    public SMB2Packet(SMB2MessageCommandCode messageType) {
         header.setMessageType(messageType);
     }
 
@@ -37,22 +34,22 @@ public class SMB2Packet extends SMBBuffer {
         return header.getMessageId();
     }
 
-    public final void write() {
-        header.writeTo(this);
-        writeMessage();
+    public final void write(SMBBuffer buffer) {
+        header.writeTo(buffer);
+        writeTo(buffer);
     }
 
-    protected void writeMessage() {
+    protected void writeTo(SMBBuffer buffer) {
         throw new UnsupportedOperationException("Should be implemented by specific message type");
     }
 
-    public final SMB2Packet read(SMBBuffer buffer) throws BufferException {
+    public final SMB2Packet read(SMBBuffer buffer) throws Buffer.BufferException {
         header.readFrom(buffer);
         readMessage(buffer);
         return this;
     }
 
-    protected void readMessage(SMBBuffer buffer) throws BufferException {
+    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         throw new UnsupportedOperationException("Should be implemented by specific message type");
     }
 }

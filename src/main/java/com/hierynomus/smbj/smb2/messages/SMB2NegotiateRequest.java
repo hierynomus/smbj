@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
+import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
 import com.hierynomus.smbj.smb2.SMB2Packet;
@@ -32,12 +33,11 @@ public class SMB2NegotiateRequest extends SMB2Packet {
 
     /**
      * Request constructor.
-     * @param messageId
      * @param dialects
      * @param clientGuid
      */
-    public SMB2NegotiateRequest(long messageId, EnumSet<SMB2Dialect> dialects, UUID clientGuid) {
-        super(messageId, SMB2MessageCommandCode.SMB2_NEGOTIATE);
+    public SMB2NegotiateRequest(EnumSet<SMB2Dialect> dialects, UUID clientGuid) {
+        super(SMB2MessageCommandCode.SMB2_NEGOTIATE);
         header.setDialect(SMB2Dialect.UNKNOWN);
         header.setCreditCost(0);
         header.setTreeId(0);
@@ -48,20 +48,21 @@ public class SMB2NegotiateRequest extends SMB2Packet {
 
     /**
      * The Request packet
+     * @param buffer
      */
     @Override
-    protected void writeMessage() {
-        putUInt16(36); // StructureSize (2 bytes)
-        putUInt16(dialects.size()); // DialectCount (2 bytes)
-        putUInt16(1); // SecurityMode (2 bytes) Hardcoded to enabled.
-        putReserved(2); // Reserved (2 bytes)
-        putCapabilities(); // Capabilities (2 bytes)
-        putGuid(clientGuid); // ClientGuid (16 bytes)
-        putNegotiateStartTime(); // (NegotiateContextOffset/NegotiateContextCount/Reserved2)/ClientStartTime (8 bytes)
-        putDialects(); // Dialects (x * 2 bytes)
+    protected void writeTo(SMBBuffer buffer) {
+        buffer.putUInt16(36); // StructureSize (2 bytes)
+        buffer.putUInt16(dialects.size()); // DialectCount (2 bytes)
+        buffer.putUInt16(1); // SecurityMode (2 bytes) Hardcoded to enabled.
+        buffer.putReserved(2); // Reserved (2 bytes)
+        putCapabilities(buffer); // Capabilities (2 bytes)
+        buffer.putGuid(clientGuid); // ClientGuid (16 bytes)
+        putNegotiateStartTime(buffer); // (NegotiateContextOffset/NegotiateContextCount/Reserved2)/ClientStartTime (8 bytes)
+        putDialects(buffer); // Dialects (x * 2 bytes)
         int eightByteAlignment = (34 + dialects.size() * 2) % 8;
         if (eightByteAlignment > 0) {
-            putReserved(8 - eightByteAlignment); // Padding (variable) Ensure that the next field is 8-byte aligned
+            buffer.putReserved(8 - eightByteAlignment); // Padding (variable) Ensure that the next field is 8-byte aligned
         }
         putNegotiateContextList(); // NegotiateContextList (variable)
     }
@@ -72,26 +73,26 @@ public class SMB2NegotiateRequest extends SMB2Packet {
         }
     }
 
-    private void putDialects() {
+    private void putDialects(SMBBuffer buffer) {
         for (SMB2Dialect dialect : dialects) {
-            putUInt16(dialect.getValue());
+            buffer.putUInt16(dialect.getValue());
         }
     }
 
-    private void putNegotiateStartTime() {
+    private void putNegotiateStartTime(SMBBuffer buffer) {
         if (dialects.contains(SMB2Dialect.SMB_3_1_1)) {
             throw new UnsupportedOperationException("SMB 3.x support is not yet implemented");
         } else {
-            putReserved4();
-            putReserved4();
+            buffer.putReserved4();
+            buffer.putReserved4();
         }
     }
 
-    private void putCapabilities() {
+    private void putCapabilities(SMBBuffer buffer) {
         if (SMB2Dialect.supportsSmb3x(dialects)) {
             throw new UnsupportedOperationException("SMB 3.x support is not yet implemented");
         } else {
-            putReserved4();
+            buffer.putReserved4();
         }
     }
 }

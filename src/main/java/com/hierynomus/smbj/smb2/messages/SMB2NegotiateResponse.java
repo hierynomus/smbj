@@ -18,6 +18,7 @@ package com.hierynomus.smbj.smb2.messages;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
+import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 
 import java.util.Date;
@@ -43,11 +44,11 @@ public class SMB2NegotiateResponse extends SMB2Packet {
      * Response constructor
      */
     public SMB2NegotiateResponse() {
-        super();
+        super(SMB2MessageCommandCode.SMB2_NEGOTIATE);
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws BufferException {
+    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.skip(2); // StructureSize (2 bytes)
         securityMode = buffer.readUInt16(); // SecurityMode (2 bytes)
         dialect = SMB2Dialect.lookup(buffer.readUInt16()); // DialectRevision (2 bytes)
@@ -73,7 +74,7 @@ public class SMB2NegotiateResponse extends SMB2Packet {
         }
     }
 
-    private byte[] readSecurityBuffer(SMBBuffer buffer, int securityBufferOffset, int securityBufferLength) throws BufferException {
+    private byte[] readSecurityBuffer(SMBBuffer buffer, int securityBufferOffset, int securityBufferLength) throws Buffer.BufferException {
         if (securityBufferLength > 0) {
             // Set the read pos to the start of the security buffer offset.
             buffer.rpos(securityBufferOffset);
@@ -83,7 +84,7 @@ public class SMB2NegotiateResponse extends SMB2Packet {
         }
     }
 
-    private int readNegotiateContextOffset(SMBBuffer buffer) throws BufferException {
+    private int readNegotiateContextOffset(SMBBuffer buffer) throws Buffer.BufferException {
         if (dialect == SMB2Dialect.SMB_3_1_1) {
             return buffer.readUInt16();
         } else {
@@ -92,7 +93,7 @@ public class SMB2NegotiateResponse extends SMB2Packet {
         }
     }
 
-    private int readNegotiateContextCount(Buffer<?> buffer) throws BufferException {
+    private int readNegotiateContextCount(Buffer<?> buffer) throws Buffer.BufferException {
         if (dialect == SMB2Dialect.SMB_3_1_1) {
             return buffer.readUInt16();
         } else {

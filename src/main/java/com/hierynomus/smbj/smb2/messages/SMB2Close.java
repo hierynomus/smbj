@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
+import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2FileId;
 import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
@@ -37,23 +38,19 @@ public class SMB2Close extends SMB2Packet {
     private byte[] fileAttributes;
 
     public SMB2Close() {
-        super();
-    }
-
-    public SMB2Close(long messageId) {
-        super(messageId, SMB2MessageCommandCode.SMB2_CLOSE);
+        super(SMB2MessageCommandCode.SMB2_CLOSE);
     }
 
     @Override
-    protected void writeMessage() {
-        putUInt16(24); // StructureSize (2 bytes)
-        putUInt16(0x01); // Flags (2 bytes) (SMB2_CLOSE_FLAGS_POSTQUERY_ATTRIB)
-        putReserved4(); // Reserved (4 bytes)
-        fileId.write(this); // FileId (16 bytes)
+    protected void writeTo(SMBBuffer buffer) {
+        buffer.putUInt16(24); // StructureSize (2 bytes)
+        buffer.putUInt16(0x01); // Flags (2 bytes) (SMB2_CLOSE_FLAGS_POSTQUERY_ATTRIB)
+        buffer.putReserved4(); // Reserved (4 bytes)
+        fileId.write(buffer); // FileId (16 bytes)
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws BufferException {
+    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.readUInt16(); // StructureSize (2 bytes)
         // We set the Flags value 0x01 hardcoded, so the server should also echo that
         buffer.readUInt16(); // Flags (2 bytes)

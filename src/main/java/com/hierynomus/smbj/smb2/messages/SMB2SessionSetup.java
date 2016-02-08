@@ -17,7 +17,6 @@ package com.hierynomus.smbj.smb2.messages;
 
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.common.SMBException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2Header;
@@ -38,29 +37,25 @@ public class SMB2SessionSetup extends SMB2Packet {
     private int sessionFlags;
 
     public SMB2SessionSetup(SMB2Dialect negotiatedDialect) {
-        super();
+        super(SMB2MessageCommandCode.SMB2_SESSION_SETUP);
         this.negotiatedDialect = negotiatedDialect;
     }
 
-    public SMB2SessionSetup(long messageId, SMB2MessageCommandCode messageType) {
-        super(messageId, messageType);
+    @Override
+    protected void writeTo(SMBBuffer buffer) {
+        buffer.putUInt16(25); // StructureSize (2 bytes)
+        putFlags(buffer); // Flags (1 byte)
+        buffer.putByte(securityMode); // SecurityMode (1 byte)
+        buffer.putUInt32(clientCapabilities & 0x01); // Capabilities (4 bytes) (only last byte can be set)
+        buffer.putReserved4(); // Channel (4 bytes)
+        buffer.putUInt16(SMB2Header.STRUCTURE_SIZE + 25); // SecurityBufferOffset (2 bytes) (header structure size + Session setup structure size)
+        buffer.putUInt16(securityBuffer.length); // SecurityBufferLength (2 bytes)
+        buffer.putUInt64(previousSessionId); // PreviousSessionId (8 bytes)
+        buffer.putRawBytes(securityBuffer); // SecurityBuffer (variable)
     }
 
     @Override
-    protected void writeMessage() {
-        putUInt16(25); // StructureSize (2 bytes)
-        putFlags(); // Flags (1 byte)
-        putByte(securityMode); // SecurityMode (1 byte)
-        putUInt32(clientCapabilities & 0x00000001); // Capabilities (4 bytes) (only last byte can be set)
-        putReserved4(); // Channel (4 bytes)
-        putUInt16(SMB2Header.STRUCTURE_SIZE + 25); // SecurityBufferOffset (2 bytes) (header structure size + Session setup structure size)
-        putUInt16(securityBuffer.length); // SecurityBufferLength (2 bytes)
-        putUInt64(previousSessionId); // PreviousSessionId (8 bytes)
-        putRawBytes(securityBuffer); // SecurityBuffer (variable)
-    }
-
-    @Override
-    protected void readMessage(SMBBuffer buffer) throws BufferException {
+    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.readUInt16(); // StructureSize (2 bytes) (always 9)
         buffer.readUInt16(); // SessionFlags (2 bytes)
         int securityBufferOffset = buffer.readUInt16(); // SecurityBufferOffset (2 bytes)
@@ -68,20 +63,21 @@ public class SMB2SessionSetup extends SMB2Packet {
         securityBuffer = readSecurityBuffer(buffer, securityBufferOffset, securityBufferLength); // SecurityBuffer (variable)
     }
 
-    private byte[] readSecurityBuffer(SMBBuffer buffer, int securityBufferOffset, int securityBufferLength) throws BufferException {
+    private byte[] readSecurityBuffer(SMBBuffer buffer, int securityBufferOffset, int securityBufferLength) throws Buffer.BufferException {
         if (securityBufferLength > 0) {
             // Just to be sure, we should already be there.
+            // TODO might need to subtract one, check!
             buffer.rpos(securityBufferOffset);
             return buffer.readRawBytes(securityBufferLength);
         }
         throw new SMBRuntimeException("The SMB2 Session Setup response should contain a positive length security buffer");
     }
 
-    private void putFlags() {
+    private void putFlags(SMBBuffer buffer) {
         if (negotiatedDialect.isSmb3x() && previousSessionId != 0L) {
-            putByte((byte) 0x01);
+            buffer.putByte((byte) 0x01);
         } else {
-            putByte((byte) 0);
+            buffer.putByte((byte) 0);
         }
     }
 

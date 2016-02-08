@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
+import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2Header;
 import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
@@ -29,27 +30,27 @@ public class SMB2TreeConnectRequest extends SMB2Packet {
     private boolean isClusterReconnect; // SMB 3.1.1 only
     private String smbPath;
 
-    public SMB2TreeConnectRequest(long messageId, SMB2Dialect dialect) {
-        super(messageId, SMB2MessageCommandCode.SMB2_TREE_CONNECT);
+    public SMB2TreeConnectRequest(SMB2Dialect dialect) {
+        super(SMB2MessageCommandCode.SMB2_TREE_CONNECT);
         this.dialect = dialect;
     }
 
     @Override
-    protected void writeMessage() {
-        putUInt16(9); // StructureSize (2 bytes)
-        putFlags(); // Flags (2 bytes)
-        putUInt16(SMB2Header.STRUCTURE_SIZE + 9); // PathOffset (2 bytes) (header structure size + msg structure size)
-        putUInt16(smbPath.length());
-        putString(smbPath);
+    protected void writeTo(SMBBuffer buffer) {
+        buffer.putUInt16(9); // StructureSize (2 bytes)
+        putFlags(buffer); // Flags (2 bytes)
+        buffer.putUInt16(SMB2Header.STRUCTURE_SIZE + 9); // PathOffset (2 bytes) (header structure size + msg structure size)
+        buffer.putUInt16(smbPath.length());
+        buffer.putString(smbPath);
     }
 
 
 
-    private void putFlags() {
+    private void putFlags(SMBBuffer buffer) {
         if (dialect == SMB2Dialect.SMB_3_1_1 && isClusterReconnect) {
-            putUInt16(0x01);
+            buffer.putUInt16(0x01);
         } else {
-            putReserved(2);
+            buffer.putReserved(2);
         }
     }
 }

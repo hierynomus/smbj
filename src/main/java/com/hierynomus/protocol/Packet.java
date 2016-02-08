@@ -13,29 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.smb2;
+package com.hierynomus.protocol;
 
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.protocol.commons.buffer.Buffer;
 
-/**
- * [MS-SMB2].pdf 2.2.14.1 SMB2_FILEID
- */
-public class SMB2FileId {
+public interface Packet<P extends Packet<P, T>, T extends Buffer<T>> {
 
-    private byte[] persistentHandle = new byte[8];
+    void write(T buffer);
 
-    private byte[] volatileHandle = new byte[8];
-
-    public byte[] getPersistentHandle() {
-        return persistentHandle;
-    }
-
-    public byte[] getVolatileHandle() {
-        return volatileHandle;
-    }
-
-    public void write(SMBBuffer buffer) {
-        buffer.putRawBytes(persistentHandle);
-        buffer.putRawBytes(volatileHandle);
-    }
+    P read(T buffer) throws Buffer.BufferException;
 }

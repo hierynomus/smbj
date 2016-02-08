@@ -25,7 +25,7 @@ import com.hierynomus.smbj.smb2.SMB2Packet;
  */
 public class SMB2CreateRequest extends SMB2Packet {
 
-    public SMB2CreateRequest(long messageId) {
-        super(messageId, SMB2MessageCommandCode.SMB2_CREATE);
+    public SMB2CreateRequest() {
+        super(SMB2MessageCommandCode.SMB2_CREATE);
     }
 }

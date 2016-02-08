@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
+import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
 import com.hierynomus.smbj.smb2.SMB2Packet;
@@ -25,21 +26,17 @@ import com.hierynomus.smbj.smb2.SMB2Packet;
 public class SMB2Logoff extends SMB2Packet {
 
     public SMB2Logoff() {
-        super();
-    }
-
-    public SMB2Logoff(long messageId) {
-        super(messageId, SMB2MessageCommandCode.SMB2_LOGOFF);
+        super(SMB2MessageCommandCode.SMB2_LOGOFF);
     }
 
     @Override
-    protected void writeMessage() {
-        putUInt16(4);
-        putReserved(2);
+    protected void writeTo(SMBBuffer buffer) {
+        buffer.putUInt16(4);
+        buffer.putReserved(2);
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws BufferException {
+    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.readUInt16(); // StructureSize (2 bytes)
         buffer.skip(2); // Reserved (2 bytes)
     }

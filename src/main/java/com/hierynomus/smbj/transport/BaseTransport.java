@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.transport;
 
+import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,9 +44,10 @@ public abstract class BaseTransport implements TransportLayer {
         writeLock.lock();
         try {
             try {
-                packet.write();
+                SMBBuffer buffer = new SMBBuffer();
+                packet.write(buffer);
                 logger.trace("Writing packet {}, sequence number {}", packet.getHeader().getMessage(), packet.getSequenceNumber());
-                doWrite(packet);
+                doWrite(buffer);
                 out.flush();
             } catch (IOException ioe) {
                 throw new TransportException(ioe);
@@ -56,5 +58,5 @@ public abstract class BaseTransport implements TransportLayer {
         }
     }
 
-    protected abstract void doWrite(SMB2Packet packet) throws IOException;
+    protected abstract void doWrite(SMBBuffer packetData) throws IOException;
 }

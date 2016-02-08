@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.transport;
 
 import com.hierynomus.smbj.Config;
+import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 import com.hierynomus.smbj.smb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.smbj.smb2.messages.SMB2NegotiateResponse;
@@ -34,9 +35,9 @@ public class DirectTcpTransport extends BaseTransport implements TransportLayer 
     private static final Logger logger = LoggerFactory.getLogger(DirectTcpTransport.class);
 
     @Override
-    protected void doWrite(SMB2Packet packet) throws IOException {
+    protected void doWrite(SMBBuffer packetData) throws IOException {
         // Wrap in the Direct TCP packet header
-        DirectTcpPacket directTcpPacket = new DirectTcpPacket(packet);
+        DirectTcpPacket directTcpPacket = new DirectTcpPacket(packetData);
         out.write(directTcpPacket.array(), directTcpPacket.rpos(), directTcpPacket.available());
     }
 

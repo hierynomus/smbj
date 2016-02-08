@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
+import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2FileId;
 import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
@@ -27,23 +28,19 @@ public class SMB2Flush extends SMB2Packet {
     private SMB2FileId fileId;
 
     public SMB2Flush() {
-        super();
-    }
-
-    public SMB2Flush(long messageId) {
-        super(messageId, SMB2MessageCommandCode.SMB2_FLUSH);
+        super(SMB2MessageCommandCode.SMB2_FLUSH);
     }
 
     @Override
-    protected void writeMessage() {
-        putUInt16(24); // StructureSize (2 bytes)
-        putReserved(2); // Reserved1 (2 bytes)
-        putReserved4(); // Reserved2 (4 bytes)
-        fileId.write(this);
+    protected void writeTo(SMBBuffer buffer) {
+        buffer.putUInt16(24); // StructureSize (2 bytes)
+        buffer.putReserved(2); // Reserved1 (2 bytes)
+        buffer.putReserved4(); // Reserved2 (4 bytes)
+        fileId.write(buffer);
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws BufferException {
+    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.readUInt16(); // StructureSize (2 bytes)
         buffer.skip(2); // Reserved (2 bytes)
     }
