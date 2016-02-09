@@ -15,6 +15,8 @@
  */
 package com.hierynomus.protocol.commons;
 
+import com.hierynomus.smbj.smb2.SMB2StatusCode;
+
 import java.util.Collection;
 import java.util.EnumSet;
 
@@ -50,6 +52,17 @@ public interface EnumWithValue<E extends Enum<E>> {
 
         public static <E extends EnumWithValue<?>> boolean isSet(long bytes, E value) {
             return (bytes & value.getValue()) > 0;
+        }
+
+        public static <E extends EnumWithValue<?>> E valueOf(long l, Class<E> enumClass, E defaultValue) {
+            E[] enumConstants = enumClass.getEnumConstants();
+            for (E enumConstant : enumConstants) {
+                if (enumConstant.getValue() == l) {
+                    return enumConstant;
+                }
+            }
+
+            return defaultValue;
         }
     }
 
