@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
+import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 
@@ -25,7 +26,7 @@ import com.hierynomus.smbj.smb2.SMB2Packet;
  */
 public class SMB2CreateRequest extends SMB2Packet {
 
-    public SMB2CreateRequest() {
-        super(SMB2MessageCommandCode.SMB2_CREATE);
+    public SMB2CreateRequest(SMB2Dialect smbDialect) {
+        super(smbDialect, SMB2MessageCommandCode.SMB2_CREATE);
     }
 }

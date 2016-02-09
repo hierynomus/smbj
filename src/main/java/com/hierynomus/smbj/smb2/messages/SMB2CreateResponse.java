@@ -26,6 +26,6 @@ import com.hierynomus.smbj.smb2.SMB2Packet;
 public class SMB2CreateResponse extends SMB2Packet {
 
     public SMB2CreateResponse() {
-        super(SMB2MessageCommandCode.SMB2_CREATE);
+        super();
     }
 }

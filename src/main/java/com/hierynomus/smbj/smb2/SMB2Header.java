@@ -19,6 +19,7 @@ import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
+import static com.hierynomus.protocol.commons.EnumWithValue.*;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.*;
 
 /**
@@ -35,7 +36,7 @@ public class SMB2Header {
     private long messageId;
     private long sessionId;
     private long treeId;
-    private byte[] status;
+    private SMB2StatusCode status;
     private long flags;
 
     public SMB2Header() {
@@ -131,7 +132,7 @@ public class SMB2Header {
         buffer.skip(4); // ProtocolId (4 bytes) (already verified)
         buffer.skip(2); // StructureSize (2 bytes)
         creditCost = buffer.readUInt16(); // CreditCharge (2 bytes)
-        status = buffer.readRawBytes(4); // Status (4 bytes)
+        status = EnumUtils.valueOf(buffer.readUInt32(), SMB2StatusCode.class, SMB2StatusCode.UNKNOWN); // Status (4 bytes)
         message = SMB2MessageCommandCode.lookup(buffer.readUInt16()); // Command (2 bytes)
         creditResponse = buffer.readUInt16(); // CreditRequest/CreditResponse (2 bytes)
         flags = buffer.readUInt32(); // Flags (4 bytes)
@@ -147,7 +148,7 @@ public class SMB2Header {
         buffer.readRawBytes(16); // Signature (16 bytes)
     }
 
-    public void setStatus(byte[] status) {
-        this.status = status;
+    public SMB2StatusCode getStatus() {
+        return status;
     }
 }

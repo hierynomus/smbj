@@ -15,42 +15,28 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
-import com.hierynomus.smbj.smb2.SMB2FileId;
 import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 
 /**
- * [MS-SMB2].pdf 2.2.17 SMB2 FLUSH Request / 2.2.18 SMB2 FLUSH Response
+ * [MS-SMB2].pdf 2.2.19 SMB2 READ Request
+ * TODO
  */
-public class SMB2Flush extends SMB2Packet {
-    private SMB2FileId fileId;
+public class SMB2ReadRequest extends SMB2Packet {
 
-    public SMB2Flush() {
-        super();
-    }
+    private SMB2Dialect negotiatedDialect;
 
-    public SMB2Flush(SMB2Dialect smbDialect) {
-        super(smbDialect, SMB2MessageCommandCode.SMB2_FLUSH);
+    public SMB2ReadRequest(SMB2Dialect negotiatedDialect) {
+        super(negotiatedDialect, SMB2MessageCommandCode.SMB2_READ);
+        this.negotiatedDialect = negotiatedDialect;
     }
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
-        buffer.putUInt16(24); // StructureSize (2 bytes)
-        buffer.putReserved(2); // Reserved1 (2 bytes)
-        buffer.putReserved4(); // Reserved2 (4 bytes)
-        fileId.write(buffer);
-    }
+        buffer.putUInt16(49); // StructureSize (2 bytes)
+//        putByte(dataOffset); // Padding (1 byte)
 
-    @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
-        buffer.readUInt16(); // StructureSize (2 bytes)
-        buffer.skip(2); // Reserved (2 bytes)
-    }
-
-    public void setFileId(SMB2FileId fileId) {
-        this.fileId = fileId;
     }
 }

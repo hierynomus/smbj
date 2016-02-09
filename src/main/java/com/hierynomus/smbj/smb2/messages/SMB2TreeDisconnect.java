@@ -17,6 +17,7 @@ package com.hierynomus.smbj.smb2.messages;
 
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 
@@ -26,7 +27,11 @@ import com.hierynomus.smbj.smb2.SMB2Packet;
 public class SMB2TreeDisconnect extends SMB2Packet {
 
     public SMB2TreeDisconnect() {
-        super(SMB2MessageCommandCode.SMB2_TREE_DISCONNECT);
+        super();
+    }
+
+    public SMB2TreeDisconnect(SMB2Dialect smbDialect) {
+        super(smbDialect, SMB2MessageCommandCode.SMB2_TREE_DISCONNECT);
     }
 
     @Override

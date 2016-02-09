@@ -25,6 +25,6 @@ import com.hierynomus.smbj.smb2.SMB2Packet;
  */
 public class SMB2TreeConnectResponse extends SMB2Packet {
     public SMB2TreeConnectResponse() {
-            super(SMB2MessageCommandCode.SMB2_TREE_CONNECT);
+            super();
     }
 }

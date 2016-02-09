@@ -17,6 +17,7 @@ package com.hierynomus.smbj.smb2.messages;
 
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2FileId;
 import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
 import com.hierynomus.smbj.smb2.SMB2Packet;
@@ -37,8 +38,8 @@ public class SMB2Close extends SMB2Packet {
     private long size;
     private byte[] fileAttributes;
 
-    public SMB2Close() {
-        super(SMB2MessageCommandCode.SMB2_CLOSE);
+    public SMB2Close(SMB2Dialect smbDialect) {
+        super(smbDialect, SMB2MessageCommandCode.SMB2_CLOSE);
     }
 
     @Override

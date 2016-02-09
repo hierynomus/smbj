@@ -31,7 +31,7 @@ public class SMB2TreeConnectRequest extends SMB2Packet {
     private String smbPath;
 
     public SMB2TreeConnectRequest(SMB2Dialect dialect) {
-        super(SMB2MessageCommandCode.SMB2_TREE_CONNECT);
+        super(dialect, SMB2MessageCommandCode.SMB2_TREE_CONNECT);
         this.dialect = dialect;
     }
 

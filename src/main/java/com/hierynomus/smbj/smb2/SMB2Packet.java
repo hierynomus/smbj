@@ -22,7 +22,11 @@ import com.hierynomus.smbj.common.SMBBuffer;
 public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
     protected final SMB2Header header = new SMB2Header();
 
-    public SMB2Packet(SMB2MessageCommandCode messageType) {
+    public SMB2Packet() {
+    }
+
+    public SMB2Packet(SMB2Dialect dialect, SMB2MessageCommandCode messageType) {
+        header.setDialect(dialect);
         header.setMessageType(messageType);
     }
 

@@ -37,8 +37,7 @@ public class SMB2NegotiateRequest extends SMB2Packet {
      * @param clientGuid
      */
     public SMB2NegotiateRequest(EnumSet<SMB2Dialect> dialects, UUID clientGuid) {
-        super(SMB2MessageCommandCode.SMB2_NEGOTIATE);
-        header.setDialect(SMB2Dialect.UNKNOWN);
+        super(SMB2Dialect.UNKNOWN, SMB2MessageCommandCode.SMB2_NEGOTIATE);
         header.setCreditCost(0);
         header.setTreeId(0);
         header.setSessionId(0);
