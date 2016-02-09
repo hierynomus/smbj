@@ -17,6 +17,8 @@ package com.hierynomus.smbj.connection;
 
 import com.hierynomus.protocol.commons.socket.SocketClient;
 import com.hierynomus.smbj.Config;
+import com.hierynomus.smbj.auth.NtlmAuthenticator;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2Packet;
@@ -26,6 +28,8 @@ import com.hierynomus.smbj.transport.DirectTcpTransport;
 import com.hierynomus.smbj.transport.PacketReader;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.smbj.transport.TransportLayer;
+import com.hierynomus.spnego.NegTokenInit;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +44,7 @@ public class Connection extends SocketClient implements AutoCloseable {
     private ConnectionInfo connectionInfo;
     private Config config;
     private TransportLayer transport;
+    private PacketReader packetReader;
 
     public Connection(Config config, TransportLayer transport) {
         super(transport.getDefaultPort());
@@ -67,6 +72,7 @@ public class Connection extends SocketClient implements AutoCloseable {
     protected void onConnect() throws IOException {
         super.onConnect();
         this.connectionInfo = new ConnectionInfo(getRemoteHostname());
+        packetReader = new PacketReader(getInputStream(), connectionInfo.getSequenceWindow());
         transport.init(getInputStream(), getOutputStream());
         negotiateDialect();
         logger.debug("Connected to: {}", getRemoteHostname());
@@ -82,11 +88,27 @@ public class Connection extends SocketClient implements AutoCloseable {
         return transport.write(packet);
     }
 
+    public SMB2Packet receive() throws TransportException {
+        return packetReader.readPacket();
+    }
+
     /**
-     * Start a new Session on this connection.
-     * @return A
+     * Authenticate the user on this connection in order to start a (new) session.
+     *
+     * @return a (new) Session that is authenticated for the user.
      */
-    public Session startSession() {
+    public Session authenticate(String username, char[] password) {
+        // TODO hardcoded for now
+        NtlmAuthenticator.Factory factory = new NtlmAuthenticator.Factory();
+        try {
+            NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
+            if (negTokenInit.getSupportedMechTypes().contains(new ASN1ObjectIdentifier(factory.getName()))) {
+                NtlmAuthenticator ntlmAuthenticator = factory.create();
+                ntlmAuthenticator.authenticate(this, username, password);
+            }
+        } catch (IOException e) {
+            throw new SMBRuntimeException(e);
+        }
         return null;
     }
 

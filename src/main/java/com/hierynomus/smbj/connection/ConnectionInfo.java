@@ -23,6 +23,10 @@ import java.util.List;
 import java.util.UUID;
 
 public class ConnectionInfo {
+    public byte[] getGssNegotiateToken() {
+        return gssNegotiateToken;
+    }
+
     public enum GlobalCapability {
         SMB2_GLOBAL_CAP_DFS(0x01),
         SMB2_GLOBAL_CAP_LEASING(0x02),

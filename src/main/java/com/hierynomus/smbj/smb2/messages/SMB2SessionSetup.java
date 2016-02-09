@@ -51,7 +51,7 @@ public class SMB2SessionSetup extends SMB2Packet {
         buffer.putByte(securityMode); // SecurityMode (1 byte)
         buffer.putUInt32(clientCapabilities & 0x01); // Capabilities (4 bytes) (only last byte can be set)
         buffer.putReserved4(); // Channel (4 bytes)
-        buffer.putUInt16(SMB2Header.STRUCTURE_SIZE + 25); // SecurityBufferOffset (2 bytes) (header structure size + Session setup structure size)
+        buffer.putUInt16(SMB2Header.STRUCTURE_SIZE + 25 - 1); // SecurityBufferOffset (2 bytes) (header structure size + Session setup structure size - 1)
         buffer.putUInt16(securityBuffer.length); // SecurityBufferLength (2 bytes)
         buffer.putUInt64(previousSessionId); // PreviousSessionId (8 bytes)
         buffer.putRawBytes(securityBuffer); // SecurityBuffer (variable)

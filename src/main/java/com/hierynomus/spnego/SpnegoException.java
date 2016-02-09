@@ -13,13 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.session;
+package com.hierynomus.spnego;
 
-/**
- * A Session
- */
-public class Session {
+import java.io.IOException;
 
-    public Session() {
+public class SpnegoException extends IOException {
+    public SpnegoException(String message) {
+        super(message);
     }
 }

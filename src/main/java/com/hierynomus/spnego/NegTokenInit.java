@@ -16,6 +16,7 @@
 package com.hierynomus.spnego;
 
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.iana.IANAObjectIdentifiers;
@@ -87,10 +88,79 @@ public class NegTokenInit {
             implicitSeqGssApi.add(SPNEGO_OID);
             implicitSeqGssApi.add(negotiationToken);
 
-            DERApplicationSpecific gssApiHeader = new DERApplicationSpecific(0x0, implicitSeqGssApi);
+            ASN1ApplicationSpecific gssApiHeader = new DERApplicationSpecific(0x0, implicitSeqGssApi);
             buffer.putRawBytes(gssApiHeader.getEncoded());
         } catch (IOException e) {
             throw new SMBRuntimeException(e);
+        }
+    }
+
+    public NegTokenInit read(byte[] bytes) throws IOException {
+        return read(new Buffer.PlainBuffer(bytes, Endian.LE));
+    }
+
+    public NegTokenInit read(Buffer<?> buffer) throws IOException {
+        try {
+            ASN1Primitive applicationSpecific = new ASN1InputStream(buffer.asInputStream()).readObject();
+            if (!(applicationSpecific instanceof ASN1ApplicationSpecific)) {
+                throw new SpnegoException("Incorrect GSS-API ASN.1 token received, expected to find an [APPLICATION 0], not: " + applicationSpecific);
+            }
+
+            ASN1Sequence implicitSequence = (ASN1Sequence) ((ASN1ApplicationSpecific) applicationSpecific).getObject(BERTags.SEQUENCE);
+            ASN1Encodable spnegoOid = implicitSequence.getObjectAt(0);
+            if (!(spnegoOid instanceof ASN1ObjectIdentifier)) {
+                throw new SpnegoException("Expected to find the SPNEGO OID (" + SPNEGO_OID + "), not: " + spnegoOid);
+            }
+
+            ASN1Encodable negotiationToken = implicitSequence.getObjectAt(1);
+            if (!(negotiationToken instanceof ASN1TaggedObject) || ((ASN1TaggedObject) negotiationToken).getTagNo() != 0) {
+                throw new SpnegoException("Expected to find the NegTokenInit (CHOICE [0]) header, not: " + negotiationToken);
+            }
+
+            ASN1Primitive negTokenInit = ((ASN1TaggedObject) negotiationToken).getObject();
+            if (!(negTokenInit instanceof ASN1Sequence)) {
+                throw new SpnegoException("Expected a NegTokenInit (SEQUENCE), not: " + negTokenInit);
+            }
+
+            for (ASN1Encodable asn1Encodable : ((ASN1Sequence) negTokenInit)) {
+                if (!(asn1Encodable instanceof ASN1TaggedObject)) {
+                    throw new SpnegoException("Expected an ASN.1 TaggedObject as NegTokenInit contents, not: " + asn1Encodable);
+                }
+                ASN1TaggedObject asn1TaggedObject = (ASN1TaggedObject) asn1Encodable;
+                switch (asn1TaggedObject.getTagNo()) {
+                    case 0:
+                        readMechTypeList(asn1TaggedObject.getObject());
+                        break;
+                    case 2:
+                        readMechToken(asn1TaggedObject.getObject());
+                        break;
+                    default:
+                        throw new SpnegoException("Unknown Object Tag " + asn1TaggedObject.getTagNo() + " encountered.");
+                }
+            }
+
+        } catch (SpnegoException e) {
+            throw new SMBRuntimeException(e);
+        }
+        return this;
+    }
+
+    private void readMechToken(ASN1Primitive mechToken) throws SpnegoException {
+        if (!(mechToken instanceof ASN1OctetString)) {
+            throw new SpnegoException("Expected the MechToken (OCTET_STRING) contents, not: " + mechToken);
+        }
+        this.mechToken = ((ASN1OctetString) mechToken).getOctets();
+    }
+
+    private void readMechTypeList(ASN1Primitive sequence) throws SpnegoException {
+        if (!(sequence instanceof ASN1Sequence)) {
+            throw new SpnegoException("Expected the MechTypeList (SEQUENCE) contents, not: " + sequence);
+        }
+        for (ASN1Encodable mechType : (ASN1Sequence) sequence) {
+            if (!(mechType instanceof ASN1ObjectIdentifier)) {
+                throw new SpnegoException("Expected a MechType (OBJECT IDENTIFIER) as contents of the MechTypeList, not: " + mechType);
+            }
+            mechTypes.add((ASN1ObjectIdentifier) mechType);
         }
     }
 
@@ -119,5 +189,9 @@ public class NegTokenInit {
 
     public void setMechToken(byte[] mechToken) {
         this.mechToken = mechToken;
+    }
+
+    public List<ASN1ObjectIdentifier> getSupportedMechTypes() {
+        return mechTypes;
     }
 }

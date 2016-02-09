@@ -15,9 +15,21 @@
  */
 package com.hierynomus.smbj.auth;
 
-import org.ietf.jgss.*;
+public class SpnegoAuthenticator implements Authenticator {
+    public static class Factory implements com.hierynomus.protocol.commons.Factory.Named<SpnegoAuthenticator> {
 
-public class SpnegoAuthenticator {
+        @Override
+        public String getName() {
+            // The OID for NEGOEX (Extended SPNEGO)
+            return "1.3.6.1.4.1.311.2.2.30";
+        }
+
+        @Override
+        public SpnegoAuthenticator create() {
+            return null;
+        }
+    }
+
 
     public void authenticate(String username, String password, String domain) {
 //        try {

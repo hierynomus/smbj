@@ -13,13 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.session;
+package com.hierynomus.smbj.auth;
 
-/**
- * A Session
- */
-public class Session {
+interface Authenticator {
 
-    public Session() {
-    }
 }

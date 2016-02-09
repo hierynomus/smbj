@@ -19,6 +19,8 @@ import com.hierynomus.protocol.commons.ByteArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 
@@ -671,4 +673,42 @@ public class Buffer<T extends Buffer<T>> {
         return "Buffer [rpos=" + rpos + ", wpos=" + wpos + ", size=" + data.length + "]";
     }
 
+    public InputStream asInputStream() {
+        return new InputStream() {
+            @Override
+            public int read() throws IOException {
+                try {
+                    return Buffer.this.readByte();
+                } catch (BufferException e) {
+                    throw new IOException(e);
+                }
+            }
+
+            @Override
+            public int read(byte[] b) throws IOException {
+                try {
+                    Buffer.this.readRawBytes(b);
+                    return b.length;
+                } catch (BufferException e) {
+                    throw new IOException(e);
+                }
+            }
+
+            @Override
+            public int read(byte[] b, int off, int len) throws IOException {
+                return super.read(b, off, len);
+            }
+
+            @Override
+            public long skip(long n) throws IOException {
+                Buffer.this.rpos((int) n);
+                return n;
+            }
+
+            @Override
+            public int available() throws IOException {
+                return Buffer.this.available();
+            }
+        };
+    }
 }
