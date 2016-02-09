@@ -11,7 +11,7 @@ import spock.lang.Specification
 
 class NegTokenInitTest extends Specification {
 
-    def "should correctly encode ntlm choice InitToken"() {
+    def "should correctly encode ntlm choice negInitToken"() {
         given:
         def initToken = new NegTokenInit()
         def ntlmBuffer = new Buffer.PlainBuffer(Endian.LE)

@@ -23,8 +23,12 @@ idea {
 
 configurations.compile.transitive = false
 
+def bouncycastleVersion = "1.54"
+
 dependencies {
     compile "org.slf4j:slf4j-api:1.7.13"
+    compile "org.bouncycastle:bcprov-jdk15on:$bouncycastleVersion"
+    compile "org.bouncycastle:bcpkix-jdk15on:$bouncycastleVersion"
     testCompile 'org.spockframework:spock-core:1.0-groovy-2.4'
     testRuntime 'ch.qos.logback:logback-classic:1.1.3'
 }

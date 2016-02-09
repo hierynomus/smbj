@@ -1,3 +1,18 @@
+/*
+ * Copyright (C)2016 - Jeroen van Erp <jeroen@hierynomus.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.hierynomus.spnego;
 
 import com.hierynomus.protocol.commons.buffer.Buffer;
@@ -62,25 +77,39 @@ public class NegTokenInit {
 
     public void write(Buffer<?> buffer) {
         try {
+            ASN1EncodableVector negTokenInit = new ASN1EncodableVector();
+            addMechTypeList(negTokenInit);
+            addMechToken(negTokenInit);
+
+            DERTaggedObject negotiationToken = new DERTaggedObject(true, 0x0, new DERSequence(negTokenInit));
+
+            ASN1EncodableVector implicitSeqGssApi = new ASN1EncodableVector();
+            implicitSeqGssApi.add(SPNEGO_OID);
+            implicitSeqGssApi.add(negotiationToken);
+
+            DERApplicationSpecific gssApiHeader = new DERApplicationSpecific(0x0, implicitSeqGssApi);
+            buffer.putRawBytes(gssApiHeader.getEncoded());
+        } catch (IOException e) {
+            throw new SMBRuntimeException(e);
+        }
+    }
+
+    private void addMechToken(ASN1EncodableVector negTokenInit) {
+        if (mechToken != null && mechToken.length > 0) {
+            ASN1Primitive token = new DERTaggedObject(true, 0x02, new DEROctetString(mechToken));
+            negTokenInit.add(token);
+        }
+    }
+
+    private void addMechTypeList(ASN1EncodableVector negTokenInit) {
+        if (mechTypes.size() > 0) {
             ASN1EncodableVector supportedMechVector = new ASN1EncodableVector();
             for (ASN1ObjectIdentifier mechType : mechTypes) {
                 supportedMechVector.add(mechType);
             }
 
             ASN1Primitive asn1Encodables1 = new DERTaggedObject(true, 0x0, new DERSequence(supportedMechVector));
-            ASN1Primitive token = new DERTaggedObject(true, 0x02, new DEROctetString(mechToken));
-            ASN1EncodableVector asn1Encodables = new ASN1EncodableVector();
-            asn1Encodables.add(asn1Encodables1);
-            asn1Encodables.add(token);
-
-            ASN1EncodableVector vector = new ASN1EncodableVector();
-            vector.add(SPNEGO_OID);
-            vector.add(new DERTaggedObject(true, 0x0, new DERSequence(asn1Encodables)));
-
-            DERApplicationSpecific berApplicationSpecific = new DERApplicationSpecific(0x0, vector);
-            buffer.putRawBytes(berApplicationSpecific.getEncoded());
-        } catch (IOException e) {
-            throw new SMBRuntimeException(e);
+            negTokenInit.add(asn1Encodables1);
         }
     }
 
