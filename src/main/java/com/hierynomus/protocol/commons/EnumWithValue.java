@@ -15,8 +15,6 @@
  */
 package com.hierynomus.protocol.commons;
 
-import com.hierynomus.smbj.smb2.SMB2StatusCode;
-
 import java.util.Collection;
 import java.util.EnumSet;
 

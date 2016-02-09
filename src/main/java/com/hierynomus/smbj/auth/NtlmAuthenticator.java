@@ -21,7 +21,6 @@ import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 import com.hierynomus.smbj.smb2.messages.SMB2SessionSetup;
-import com.hierynomus.smbj.transport.PacketReader;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.spnego.NegTokenInit;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;

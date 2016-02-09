@@ -16,7 +16,6 @@
 package com.hierynomus.ntlm.messages;
 
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.buffer.Endian;
 
 import java.nio.charset.Charset;
 import java.util.EnumSet;

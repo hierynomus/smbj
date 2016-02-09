@@ -15,12 +15,11 @@
  */
 package com.hierynomus.smbj.smb2;
 
-import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
-import static com.hierynomus.protocol.commons.EnumWithValue.*;
-import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.*;
+import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils;
+import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 
 /**
  * [MS-SMB2].pdf 2.2.1 SMB2 Packet Header

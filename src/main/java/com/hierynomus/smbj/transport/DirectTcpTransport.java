@@ -15,18 +15,11 @@
  */
 package com.hierynomus.smbj.transport;
 
-import com.hierynomus.smbj.Config;
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.smb2.SMB2Packet;
-import com.hierynomus.smbj.smb2.messages.SMB2NegotiateRequest;
-import com.hierynomus.smbj.smb2.messages.SMB2NegotiateResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A transport layer to do SMB2 over Direct TCP/IP.
