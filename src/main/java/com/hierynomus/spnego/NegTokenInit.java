@@ -19,7 +19,6 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import org.bouncycastle.asn1.*;
-import org.bouncycastle.asn1.iana.IANAObjectIdentifiers;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -30,50 +29,55 @@ import java.util.List;
  *
  * The entire token is an ASN.1 DER encoded sequence of bytes in little endian byte encoding.
  *
- * GSS-API      ::= [APPLICATION 0] IMPLICIT SEQUENCE {
- *     mech             MechType,
- *     negTokenInit     NegotiationToken
+ * The following is the full ASN.1 specification of the token:
+ *
+ * <pre>
+ * GSS-API          ::=  [APPLICATION 0] IMPLICIT SEQUENCE {
+ *   mech                MechType,
+ *   negTokenInit        NegotiationToken
  * }
  *
- * NegotiationToken ::= CHOICE {
- *     negTokenInit [0] NegTokenInit,
- *     negTokenTarg [1] NegTokenTarg
+ * NegotiationToken ::=  CHOICE {
+ *   negTokenInit   [0]  NegTokenInit,
+ *   negTokenTarg   [1]  NegTokenTarg
  * }
+ *
+ * NegTokenInit     ::=  SEQUENCE {
+ *   mechTypes      [0]  MechTypeList  OPTIONAL,
+ *   reqFlags       [1]  ContextFlags  OPTIONAL,
+ *   mechToken      [2]  OCTET STRING  OPTIONAL,
+ *   mechListMIC    [3]  OCTET STRING  OPTIONAL
+ * }
+ *
+ * MechTypeList     ::=  SEQUENCE of MechType
+ *
+ * ContextFlags     ::=  BIT_STRING {
+ *   delegFlag      (0),
+ *   mutualFlag     (1),
+ *   replayFlag     (2),
+ *   sequenceFlag   (3),
+ *   anonFlag       (4),
+ *   confFlag       (5),
+ *   integFlag      (6)
+ * }
+ *
+ * MechType         ::=  OBJECT IDENTIFIER
+ * </pre>
  *
  * In the context of this class only the <em>NegTokenInit</em> is covered.
  *
- * The "mech" field of the GSS-API header is always set to the SPNEGO OID (1.3.6.1.5.5.2)
- *
- * NegTokenInit ::= SEQUENCE {
- *   mechTypes     [0]  MechTypeList  OPTIONAL,
- *   reqFlags      [1]  ContextFlags  OPTIONAL,
- *   mechToken     [2]  OCTET STRING  OPTIONAL,
- *   mechListMIC   [3]  OCTET STRING  OPTIONAL
- * }
- *
- * The negTokenInit will have a lead byte of <code>0xa0</code> (the choice tagged object).
- *
- * MechTypeList ::= SEQUENCE of MechType
- *
- * ContextFlags ::= BIT_STRING {
- *   delegFlag     (0),
- *   mutualFlag    (1),
- *   replayFlag    (2),
- *   sequenceFlag  (3),
- *   anonFlag      (4),
- *   confFlag      (5),
- *   integFlag     (6)
- * }
- *
- * MechType     ::= OBJECT IDENTIFIER
+ * <ul>
+ * <li>The "mech" field of the GSS-API header is always set to the SPNEGO OID (1.3.6.1.5.5.2)</li>
+ * <li>The negTokenInit will have a lead byte of <code>0xa0</code> (the choice tagged object).</li>
+ * </ul>
  */
-public class NegTokenInit {
-    private static final ASN1ObjectIdentifier SPNEGO_OID = IANAObjectIdentifiers.security_mechanisms.branch("2");
+public class NegTokenInit extends NegToken {
 
     private List<ASN1ObjectIdentifier> mechTypes = new ArrayList<>();
     private byte[] mechToken;
 
     public NegTokenInit() {
+        super(0x0, "NegTokenInit");
     }
 
     public void write(Buffer<?> buffer) {
@@ -82,14 +86,7 @@ public class NegTokenInit {
             addMechTypeList(negTokenInit);
             addMechToken(negTokenInit);
 
-            DERTaggedObject negotiationToken = new DERTaggedObject(true, 0x0, new DERSequence(negTokenInit));
-
-            ASN1EncodableVector implicitSeqGssApi = new ASN1EncodableVector();
-            implicitSeqGssApi.add(SPNEGO_OID);
-            implicitSeqGssApi.add(negotiationToken);
-
-            ASN1ApplicationSpecific gssApiHeader = new DERApplicationSpecific(0x0, implicitSeqGssApi);
-            buffer.putRawBytes(gssApiHeader.getEncoded());
+            writeGss(buffer, negTokenInit);
         } catch (IOException e) {
             throw new SMBRuntimeException(e);
         }
@@ -101,48 +98,25 @@ public class NegTokenInit {
 
     public NegTokenInit read(Buffer<?> buffer) throws IOException {
         try {
-            ASN1Primitive applicationSpecific = new ASN1InputStream(buffer.asInputStream()).readObject();
-            if (!(applicationSpecific instanceof ASN1ApplicationSpecific)) {
-                throw new SpnegoException("Incorrect GSS-API ASN.1 token received, expected to find an [APPLICATION 0], not: " + applicationSpecific);
-            }
-
-            ASN1Sequence implicitSequence = (ASN1Sequence) ((ASN1ApplicationSpecific) applicationSpecific).getObject(BERTags.SEQUENCE);
-            ASN1Encodable spnegoOid = implicitSequence.getObjectAt(0);
-            if (!(spnegoOid instanceof ASN1ObjectIdentifier)) {
-                throw new SpnegoException("Expected to find the SPNEGO OID (" + SPNEGO_OID + "), not: " + spnegoOid);
-            }
-
-            ASN1Encodable negotiationToken = implicitSequence.getObjectAt(1);
-            if (!(negotiationToken instanceof ASN1TaggedObject) || ((ASN1TaggedObject) negotiationToken).getTagNo() != 0) {
-                throw new SpnegoException("Expected to find the NegTokenInit (CHOICE [0]) header, not: " + negotiationToken);
-            }
-
-            ASN1Primitive negTokenInit = ((ASN1TaggedObject) negotiationToken).getObject();
-            if (!(negTokenInit instanceof ASN1Sequence)) {
-                throw new SpnegoException("Expected a NegTokenInit (SEQUENCE), not: " + negTokenInit);
-            }
-
-            for (ASN1Encodable asn1Encodable : ((ASN1Sequence) negTokenInit)) {
-                if (!(asn1Encodable instanceof ASN1TaggedObject)) {
-                    throw new SpnegoException("Expected an ASN.1 TaggedObject as NegTokenInit contents, not: " + asn1Encodable);
-                }
-                ASN1TaggedObject asn1TaggedObject = (ASN1TaggedObject) asn1Encodable;
-                switch (asn1TaggedObject.getTagNo()) {
-                    case 0:
-                        readMechTypeList(asn1TaggedObject.getObject());
-                        break;
-                    case 2:
-                        readMechToken(asn1TaggedObject.getObject());
-                        break;
-                    default:
-                        throw new SpnegoException("Unknown Object Tag " + asn1TaggedObject.getTagNo() + " encountered.");
-                }
-            }
-
+            parse(buffer);
         } catch (SpnegoException e) {
             throw new SMBRuntimeException(e);
         }
         return this;
+    }
+
+    @Override
+    protected void parseTagged(ASN1TaggedObject asn1TaggedObject) throws SpnegoException {
+        switch (asn1TaggedObject.getTagNo()) {
+            case 0:
+                readMechTypeList(asn1TaggedObject.getObject());
+                break;
+            case 2:
+                readMechToken(asn1TaggedObject.getObject());
+                break;
+            default:
+                throw new SpnegoException("Unknown Object Tag " + asn1TaggedObject.getTagNo() + " encountered.");
+        }
     }
 
     private void readMechToken(ASN1Primitive mechToken) throws SpnegoException {
