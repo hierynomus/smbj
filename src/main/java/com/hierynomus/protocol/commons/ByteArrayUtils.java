@@ -42,6 +42,17 @@ public class ByteArrayUtils {
     }
 
     /**
+     * Get a hexadecimal representation of the full byte array, with each octet separated by a space.
+     *
+     * @param array
+     *
+     * @return hex string, each octet delimited by a space
+     */
+    public static String printHex(byte[] array) {
+        return printHex(array, 0, array.length);
+    }
+
+    /**
      * Get a hexadecimal representation of a byte array starting at <code>offset</code> index for <code>len</code>
      * bytes, with each octet separated by a space.
      *

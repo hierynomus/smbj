@@ -16,17 +16,26 @@
 package com.hierynomus.smbj.auth;
 
 import com.hierynomus.ntlm.messages.NtlmNegotiate;
+import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.smb2.SMB2Packet;
+import com.hierynomus.smbj.smb2.SMB2StatusCode;
 import com.hierynomus.smbj.smb2.messages.SMB2SessionSetup;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.spnego.NegTokenInit;
+import com.hierynomus.spnego.NegTokenTarg;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.microsoft.MicrosoftObjectIdentifiers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.math.BigInteger;
 
 public class NtlmAuthenticator implements Authenticator {
+    private static final Logger logger = LoggerFactory.getLogger(NtlmAuthenticator.class);
 
     private static final ASN1ObjectIdentifier NTLMSSP = MicrosoftObjectIdentifiers.microsoft.branch("2.2.10");
 
@@ -44,13 +53,26 @@ public class NtlmAuthenticator implements Authenticator {
     }
 
     public long authenticate(Connection connection, String username, char[] password) throws TransportException {
-        SMB2SessionSetup smb2SessionSetup = new SMB2SessionSetup(connection.getNegotiatedDialect());
-        NtlmNegotiate ntlmNegotiate = new NtlmNegotiate();
-        byte[] asn1 = negTokenInit(ntlmNegotiate);
-        smb2SessionSetup.setSecurityBuffer(asn1);
-        connection.send(smb2SessionSetup);
-        SMB2Packet receive = connection.receive();
-        return 0;
+        try {
+            logger.info("Authenticating {} on {} using NTLM", username, connection.getRemoteHostname());
+            SMB2SessionSetup smb2SessionSetup = new SMB2SessionSetup(connection.getNegotiatedDialect());
+            NtlmNegotiate ntlmNegotiate = new NtlmNegotiate();
+            byte[] asn1 = negTokenInit(ntlmNegotiate);
+            smb2SessionSetup.setSecurityBuffer(asn1);
+            connection.send(smb2SessionSetup);
+            SMB2SessionSetup receive = (SMB2SessionSetup) connection.receive();
+            if (receive.getHeader().getStatus() == SMB2StatusCode.STATUS_MORE_PROCESSING_REQUIRED) {
+                logger.debug("More processing required for authentication of {}", username);
+                byte[] securityBuffer = receive.getSecurityBuffer();
+                logger.info("Received token: {}", ByteArrayUtils.printHex(securityBuffer));
+
+                NegTokenTarg negTokenTarg = new NegTokenTarg().read(securityBuffer);
+                BigInteger negotiationResult = negTokenTarg.getNegotiationResult();
+            }
+            return 0;
+        } catch (IOException e) {
+            throw new TransportException(e);
+        }
     }
 
     private byte[] negTokenInit(NtlmNegotiate ntlmNegotiate) {

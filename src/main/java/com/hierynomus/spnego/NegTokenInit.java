@@ -24,15 +24,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.hierynomus.spnego.ObjectIdentifiers.SPNEGO;
+
 /**
  * This class can encode and decode the SPNEGO negTokenInit Token.
- *
+ * <p/>
  * The entire token is an ASN.1 DER encoded sequence of bytes in little endian byte encoding.
- *
+ * <p/>
  * The following is the full ASN.1 specification of the token:
- *
+ * <p/>
  * <pre>
- * GSS-API          ::=  [APPLICATION 0] IMPLICIT SEQUENCE {
+ * GSSAPI          ::=  [APPLICATION 0] IMPLICIT SEQUENCE {
  *   mech                MechType,
  *   negTokenInit        NegotiationToken
  * }
@@ -63,15 +65,16 @@ import java.util.List;
  *
  * MechType         ::=  OBJECT IDENTIFIER
  * </pre>
- *
+ * <p/>
  * In the context of this class only the <em>NegTokenInit</em> is covered.
- *
+ * <p/>
  * <ul>
- * <li>The "mech" field of the GSS-API header is always set to the SPNEGO OID (1.3.6.1.5.5.2)</li>
- * <li>The negTokenInit will have a lead byte of <code>0xa0</code> (the choice tagged object).</li>
+ * <li>When an InitToken is sent, it is prepended by the generic GSSAPI header.</li>
+ * <li>The "mech" field of the GSSAPI header is always set to the SPNEGO OID (1.3.6.1.5.5.2)</li>
+ * <li>The negTokenInit will have a lead byte of <code>0xa0</code> (the CHOICE tagged object).</li>
  * </ul>
  */
-public class NegTokenInit extends NegToken {
+public class NegTokenInit extends SpnegoToken {
 
     private List<ASN1ObjectIdentifier> mechTypes = new ArrayList<>();
     private byte[] mechToken;
@@ -98,7 +101,18 @@ public class NegTokenInit extends NegToken {
 
     public NegTokenInit read(Buffer<?> buffer) throws IOException {
         try {
-            parse(buffer);
+            ASN1Primitive applicationSpecific = new ASN1InputStream(buffer.asInputStream()).readObject();
+            if (!(applicationSpecific instanceof ASN1ApplicationSpecific)) {
+                throw new SpnegoException("Incorrect GSS-API ASN.1 token received, expected to find an [APPLICATION 0], not: " + applicationSpecific);
+            }
+
+            ASN1Sequence implicitSequence = (ASN1Sequence) ((ASN1ApplicationSpecific) applicationSpecific).getObject(BERTags.SEQUENCE);
+            ASN1Encodable spnegoOid = implicitSequence.getObjectAt(0);
+            if (!(spnegoOid instanceof ASN1ObjectIdentifier)) {
+                throw new SpnegoException("Expected to find the SPNEGO OID (" + SPNEGO + "), not: " + spnegoOid);
+            }
+
+            parseSpnegoToken(implicitSequence.getObjectAt(1));
         } catch (SpnegoException e) {
             throw new SMBRuntimeException(e);
         }

@@ -31,11 +31,6 @@ import java.math.BigInteger;
  * The following if the ASN.1 specification of the full structure of the token:
  * <p/>
  * <pre>
- * GSS-API          ::=  [APPLICATION 0] IMPLICIT SEQUENCE {
- *   mech                MechType,
- *   negToken            NegotiationToken
- * }
- *
  * NegotiationToken ::=  CHOICE {
  *   negTokenInit   [0]  NegTokenInit,
  *   negTokenTarg   [1]  NegTokenTarg
@@ -55,10 +50,8 @@ import java.math.BigInteger;
  * </pre>
  * <p/>
  * In the context of this class only the <em>NegTokenTarg</em> is covered.
- * <p/>
- * The "mech" field of the GSS-API header is always set to the SPNEGO OID (1.3.6.1.5.5.2)
  */
-public class NegTokenTarg extends NegToken {
+public class NegTokenTarg extends SpnegoToken {
 
     private BigInteger negotiationResult;
     private ASN1ObjectIdentifier supportedMech;
@@ -98,7 +91,8 @@ public class NegTokenTarg extends NegToken {
 
     public NegTokenTarg read(Buffer<?> buffer) throws IOException {
         try {
-            parse(buffer);
+            ASN1Primitive instance = new ASN1InputStream(buffer.getCompactData()).readObject();
+            parseSpnegoToken(instance);
         } catch (SpnegoException e) {
             throw new SMBRuntimeException(e);
         }
@@ -113,6 +107,7 @@ public class NegTokenTarg extends NegToken {
                 break;
             case 1:
                 readSupportedMech(asn1TaggedObject.getObject());
+                break;
             case 2:
                 readResponseToken(asn1TaggedObject.getObject());
                 break;

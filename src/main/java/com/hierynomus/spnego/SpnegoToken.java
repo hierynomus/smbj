@@ -17,16 +17,20 @@ package com.hierynomus.spnego;
 
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import org.bouncycastle.asn1.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
 import static com.hierynomus.spnego.ObjectIdentifiers.SPNEGO;
 
-abstract class NegToken {
+abstract class SpnegoToken {
+    private static final Logger logger = LoggerFactory.getLogger(SpnegoToken.class);
+
     private int tokenTagNo;
     private String tokenName;
 
-    public NegToken(int tokenTagNo, String tokenName) {
+    public SpnegoToken(int tokenTagNo, String tokenName) {
         this.tokenTagNo = tokenTagNo;
         this.tokenName = tokenName;
     }
@@ -42,24 +46,12 @@ abstract class NegToken {
         buffer.putRawBytes(gssApiHeader.getEncoded());
     }
 
-    protected void parse(Buffer<?> buffer) throws IOException {
-        ASN1Primitive applicationSpecific = new ASN1InputStream(buffer.asInputStream()).readObject();
-        if (!(applicationSpecific instanceof ASN1ApplicationSpecific)) {
-            throw new SpnegoException("Incorrect GSS-API ASN.1 token received, expected to find an [APPLICATION 0], not: " + applicationSpecific);
+    protected void parseSpnegoToken(ASN1Encodable spnegoToken) throws IOException {
+        if (!(spnegoToken instanceof ASN1TaggedObject) || ((ASN1TaggedObject) spnegoToken).getTagNo() != tokenTagNo) {
+            throw new SpnegoException("Expected to find the " + tokenName + " (CHOICE [" + tokenTagNo + "]) header, not: " + spnegoToken);
         }
 
-        ASN1Sequence implicitSequence = (ASN1Sequence) ((ASN1ApplicationSpecific) applicationSpecific).getObject(BERTags.SEQUENCE);
-        ASN1Encodable spnegoOid = implicitSequence.getObjectAt(0);
-        if (!(spnegoOid instanceof ASN1ObjectIdentifier)) {
-            throw new SpnegoException("Expected to find the SPNEGO OID (" + SPNEGO + "), not: " + spnegoOid);
-        }
-
-        ASN1Encodable negotiationToken = implicitSequence.getObjectAt(1);
-        if (!(negotiationToken instanceof ASN1TaggedObject) || ((ASN1TaggedObject) negotiationToken).getTagNo() != tokenTagNo) {
-            throw new SpnegoException("Expected to find the " + tokenName + " (CHOICE [" + tokenTagNo + "]) header, not: " + negotiationToken);
-        }
-
-        ASN1Primitive negToken = ((ASN1TaggedObject) negotiationToken).getObject();
+        ASN1Primitive negToken = ((ASN1TaggedObject) spnegoToken).getObject();
         if (!(negToken instanceof ASN1Sequence)) {
             throw new SpnegoException("Expected a " + tokenName + " (SEQUENCE), not: " + negToken);
         }
