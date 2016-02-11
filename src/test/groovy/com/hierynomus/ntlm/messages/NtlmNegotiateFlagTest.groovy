@@ -32,7 +32,7 @@ class NtlmNegotiateFlagTest extends Specification {
         flags       | flag
         0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_56
         0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_128
-        0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_TARGET_VERSION
+        0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_TARGET_INFO
         0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY
         0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_NTLM
         0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_NTLM

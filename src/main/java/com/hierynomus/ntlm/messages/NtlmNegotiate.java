@@ -28,7 +28,7 @@ import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
 public class NtlmNegotiate extends NtlmPacket {
     private static final long DEFAULT_FLAGS = EnumUtils.toLong(EnumSet.of(NTLMSSP_NEGOTIATE_56,
                     NTLMSSP_NEGOTIATE_128,
-                    NTLMSSP_NEGOTIATE_TARGET_VERSION,
+                    NTLMSSP_NEGOTIATE_TARGET_INFO,
                     NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY,
                     NTLMSSP_NEGOTIATE_NTLM,
                     NTLMSSP_REQUEST_TARGET,
