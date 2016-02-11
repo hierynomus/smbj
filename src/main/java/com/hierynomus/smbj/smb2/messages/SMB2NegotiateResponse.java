@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
+import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
@@ -52,13 +53,13 @@ public class SMB2NegotiateResponse extends SMB2Packet {
         securityMode = buffer.readUInt16(); // SecurityMode (2 bytes)
         dialect = SMB2Dialect.lookup(buffer.readUInt16()); // DialectRevision (2 bytes)
         int negotiateContextCount = readNegotiateContextCount(buffer); // NegotiateContextCount/Reserved (2 bytes)
-        serverGuid = buffer.readGuid(); // ServerGuid (16 bytes)
+        serverGuid = MsDataTypes.readGuid(buffer); // ServerGuid (16 bytes)
         capabilities = buffer.readUInt32(); // Capabilities (16 bytes)
         maxTransactSize = buffer.readUInt32AsInt(); // MaxTransactSize (4 bytes)
         maxReadSize = buffer.readUInt32AsInt(); // MaxReadSize (4 bytes)
         maxWriteSize = buffer.readUInt32AsInt(); // MaxWriteSize (4 bytes)
-        systemTime = buffer.readDate(); // SystemTime (8 bytes)
-        serverStartTime = buffer.readDate(); // ServerStartDate (8 bytes)
+        systemTime = MsDataTypes.readFileTime(buffer); // SystemTime (8 bytes)
+        serverStartTime = MsDataTypes.readFileTime(buffer); // ServerStartDate (8 bytes)
         int securityBufferOffset = buffer.readUInt16(); // SecurityBufferOffset (2 bytes)
         int securityBufferLength = buffer.readUInt16(); // SecurityBufferLength (2 bytes)
         int negotiateContextOffset = readNegotiateContextOffset(buffer); // NegotiateContextOffset/Reserved (2 bytes)

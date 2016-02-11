@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.common
+package com.hierynomus.msdtyp
 
+import com.hierynomus.smbj.common.SMBBuffer
 import spock.lang.Specification
 
-class SMBBufferTest extends Specification {
+class MsDataTypesTest extends Specification {
 
     def "should read/write UUID correctly"() {
         given:
@@ -25,11 +26,11 @@ class SMBBufferTest extends Specification {
         def uuid = UUID.fromString("fbbd1895-af40-48a4-a183-8dabeb1e901a")
 
         when:
-        buffer.putGuid(uuid)
+        MsDataTypes.putGuid(uuid, buffer)
 
 
         then:
         buffer.printHex() == "95 18 bd fb 40 af a4 48 a1 83 8d ab eb 1e 90 1a"
-        buffer.readGuid() == uuid
+        MsDataTypes.readGuid(buffer) == uuid
     }
 }

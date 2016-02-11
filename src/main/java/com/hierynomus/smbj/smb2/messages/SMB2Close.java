@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
+import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
@@ -56,10 +57,10 @@ public class SMB2Close extends SMB2Packet {
         // We set the Flags value 0x01 hardcoded, so the server should also echo that
         buffer.readUInt16(); // Flags (2 bytes)
         buffer.skip(4); // Reserved (4 bytes)
-        creationTime = buffer.readDate(); // CreationTime (8 bytes)
-        lastAccessTime = buffer.readDate(); // LastAccessTime (8 bytes)
-        lastWriteTime = buffer.readDate(); // LastWriteTime (8 bytes)
-        changeTime = buffer.readDate(); // ChangeTime (8 bytes)
+        creationTime = MsDataTypes.readFileTime(buffer); // CreationTime (8 bytes)
+        lastAccessTime = MsDataTypes.readFileTime(buffer); // LastAccessTime (8 bytes)
+        lastWriteTime = MsDataTypes.readFileTime(buffer); // LastWriteTime (8 bytes)
+        changeTime = MsDataTypes.readFileTime(buffer); // ChangeTime (8 bytes)
         allocationSize = buffer.readUInt64(); // AllocationSize (8 bytes)
         size = buffer.readUInt64(); // EndOfFile (8 bytes)
         fileAttributes = buffer.readRawBytes(4); // FileAttributes (4 bytes)

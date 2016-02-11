@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
+import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
@@ -56,7 +57,7 @@ public class SMB2NegotiateRequest extends SMB2Packet {
         buffer.putUInt16(1); // SecurityMode (2 bytes) Hardcoded to enabled.
         buffer.putReserved(2); // Reserved (2 bytes)
         putCapabilities(buffer); // Capabilities (2 bytes)
-        buffer.putGuid(clientGuid); // ClientGuid (16 bytes)
+        MsDataTypes.putGuid(clientGuid, buffer); // ClientGuid (16 bytes)
         putNegotiateStartTime(buffer); // (NegotiateContextOffset/NegotiateContextCount/Reserved2)/ClientStartTime (8 bytes)
         putDialects(buffer); // Dialects (x * 2 bytes)
         int eightByteAlignment = (34 + dialects.size() * 2) % 8;
