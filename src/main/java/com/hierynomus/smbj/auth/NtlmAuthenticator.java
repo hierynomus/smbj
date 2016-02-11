@@ -15,7 +15,9 @@
  */
 package com.hierynomus.smbj.auth;
 
+import com.hierynomus.ntlm.messages.NtlmChallenge;
 import com.hierynomus.ntlm.messages.NtlmNegotiate;
+import com.hierynomus.ntlm.messages.NtlmPacket;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
@@ -68,9 +70,11 @@ public class NtlmAuthenticator implements Authenticator {
 
                 NegTokenTarg negTokenTarg = new NegTokenTarg().read(securityBuffer);
                 BigInteger negotiationResult = negTokenTarg.getNegotiationResult();
+                NtlmChallenge read = (NtlmChallenge) new NtlmChallenge().read(new Buffer.PlainBuffer(negTokenTarg.getResponseToken(), Endian.LE));
+                logger.debug("Received NTLM challenge from: {}", read.getTargetName());
             }
             return 0;
-        } catch (IOException e) {
+        } catch (IOException | Buffer.BufferException e) {
             throw new TransportException(e);
         }
     }

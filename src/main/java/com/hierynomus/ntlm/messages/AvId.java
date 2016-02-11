@@ -15,18 +15,29 @@
  */
 package com.hierynomus.ntlm.messages;
 
-import com.hierynomus.protocol.Packet;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.EnumWithValue;
 
-public class NtlmPacket implements Packet<NtlmPacket, Buffer.PlainBuffer> {
+public enum AvId implements EnumWithValue<AvId> {
+    MsvAvEOL(0x0),
+    MsvAvNbComputerName(0x01),
+    MsvAvNdDomainName(0x02),
+    MsvAvDnsComputerName(0x03),
+    MsvAvDnsDomainName(0x04),
+    MsvAvDnsTreeName(0x05),
+    MsvAvFlags(0x06),
+    MsvAvTimestamp(0x07),
+    MsvAvSingleHost(0x08),
+    MsvAvTargetName(0x09),
+    MsvChannelBindings(0x0a);
 
-    @Override
-    public void write(Buffer.PlainBuffer buffer) {
-        throw new UnsupportedOperationException("Not implemented by base class");
+    private final long value;
+
+    AvId(long i) {
+        this.value = i;
     }
 
     @Override
-    public NtlmPacket read(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
-        throw new UnsupportedOperationException("Not implemented by base class");
+    public long getValue() {
+        return value;
     }
 }
