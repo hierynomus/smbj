@@ -30,6 +30,16 @@ public class SpnegoAuthenticator implements Authenticator {
         }
     }
 
+    /**
+     * Authenticate the user against
+     * @param gssToken
+     * @param context
+     * @return
+     */
+    public byte[] authenticate(byte[] gssToken, AuthenticationContext context) {
+        return null;
+    }
+
 
     public void authenticate(String username, String password, String domain) {
 //        try {

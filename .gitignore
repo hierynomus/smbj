@@ -20,3 +20,5 @@ classes/
 bin/
 test-output/
 .DS_Store
+/smbj/
+*.pcap
