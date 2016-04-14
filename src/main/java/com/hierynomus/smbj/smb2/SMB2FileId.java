@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.smb2;
 
+import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 /**
@@ -25,6 +26,11 @@ public class SMB2FileId {
     private byte[] persistentHandle = new byte[8];
 
     private byte[] volatileHandle = new byte[8];
+
+    public SMB2FileId(byte[] persistentHandle, byte[] volatileHandle) {
+        this.persistentHandle = persistentHandle;
+        this.volatileHandle = volatileHandle;
+    }
 
     public byte[] getPersistentHandle() {
         return persistentHandle;
@@ -38,4 +44,10 @@ public class SMB2FileId {
         buffer.putRawBytes(persistentHandle);
         buffer.putRawBytes(volatileHandle);
     }
+
+    public static SMB2FileId read(SMBBuffer buffer) throws Buffer.BufferException {
+        SMB2FileId fileId = new SMB2FileId(buffer.readRawBytes(8),buffer.readRawBytes(8));
+        return fileId;
+    }
+
 }

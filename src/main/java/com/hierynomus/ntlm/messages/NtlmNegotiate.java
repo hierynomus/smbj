@@ -26,13 +26,18 @@ import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
  * [MS-NLMP].pdf 2.2.1.1 NEGOTIATE_MESSAGE
  */
 public class NtlmNegotiate extends NtlmPacket {
-    private static final long DEFAULT_FLAGS = EnumUtils.toLong(EnumSet.of(NTLMSSP_NEGOTIATE_56,
-                    NTLMSSP_NEGOTIATE_128,
-                    NTLMSSP_NEGOTIATE_TARGET_INFO,
-                    NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY,
-                    NTLMSSP_NEGOTIATE_NTLM,
-                    NTLMSSP_REQUEST_TARGET,
-                    NTLMSSP_NEGOTIATE_UNICODE));
+     static final long DEFAULT_FLAGS = EnumUtils.toLong(EnumSet.of(
+            NTLMSSP_NEGOTIATE_56,
+            NTLMSSP_NEGOTIATE_128,
+            NTLMSSP_NEGOTIATE_TARGET_INFO,
+            NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY,
+            NTLMSSP_NEGOTIATE_SIGN,
+            NTLMSSP_NEGOTIATE_ALWAYS_SIGN,
+            NTLMSSP_NEGOTIATE_KEY_EXCH,
+            NTLMSSP_NEGOTIATE_NTLM,
+            NTLMSSP_NEGOTIATE_NTLM,
+            NTLMSSP_REQUEST_TARGET,
+            NTLMSSP_NEGOTIATE_UNICODE));
 
     private long flags = DEFAULT_FLAGS;
 

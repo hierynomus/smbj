@@ -1,5 +1,4 @@
 /*
- * Copyright (C)2016 - Jeroen van Erp <jeroen@hierynomus.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,24 +12,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.session;
+package com.hierynomus.smbj.smb2.messages;
+
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smbj.smb2.SMB2Packet;
 
 /**
- * A Session
+ * [MS-SMB2].pdf 2.2.10 SMB2 TREE_CONNECT Response
+ *
+ * TODO
  */
-public class Session {
+public class SMB2LogoffResponse extends SMB2Packet {
 
-    long sessionId;
-
-    public Session(long sessionId) {
-        this.sessionId = sessionId;
+    public SMB2LogoffResponse() {
+            super();
     }
 
-    public long getSessionId() {
-        return sessionId;
+    @Override
+    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+        buffer.skip(2); // StructureSize (2 bytes)
+        buffer.readByte(); // Reserved (1 byte)
     }
 
-    public void setSessionId(long sessionId) {
-        this.sessionId = sessionId;
-    }
 }

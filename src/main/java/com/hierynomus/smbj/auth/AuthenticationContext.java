@@ -25,4 +25,16 @@ public class AuthenticationContext {
         this.password = password;
         this.domain = domain;
     }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public char[] getPassword() {
+        return password;
+    }
+
+    public String getDomain() {
+        return domain;
+    }
 }
