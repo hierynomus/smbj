@@ -1,5 +1,4 @@
 /*
- * Copyright (C)2016 - Jeroen van Erp <jeroen@hierynomus.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,24 +12,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.session;
+package com.hierynomus.smbj.smb2;
+
+import com.hierynomus.protocol.commons.EnumWithValue;
 
 /**
- * A Session
+ * SMB2 Create 2.2.13 - SMB2ShareAccess
  */
-public class Session {
+public enum SMB2ShareAccess implements EnumWithValue<SMB2ShareAccess> {
+    FILE_SHARE_READ(0x00000001),
+    FILE_SHARE_WRITE(0x00000002),
+    FILE_SHARE_DELETE(0x00000004);
 
-    long sessionId;
+    private long value;
 
-    public Session(long sessionId) {
-        this.sessionId = sessionId;
+    SMB2ShareAccess(long value) {
+        this.value = value;
     }
 
-    public long getSessionId() {
-        return sessionId;
-    }
-
-    public void setSessionId(long sessionId) {
-        this.sessionId = sessionId;
+    public long getValue() {
+        return value;
     }
 }

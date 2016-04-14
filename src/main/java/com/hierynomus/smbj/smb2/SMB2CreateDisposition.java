@@ -1,5 +1,4 @@
 /*
- * Copyright (C)2016 - Jeroen van Erp <jeroen@hierynomus.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,24 +12,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.session;
+package com.hierynomus.smbj.smb2;
+
+import com.hierynomus.protocol.commons.EnumWithValue;
 
 /**
- * A Session
+ * SMB2 Create 2.2.13 - CreateDisposition
  */
-public class Session {
+public enum SMB2CreateDisposition implements EnumWithValue<SMB2CreateDisposition> {
+    FILE_SUPERSEDE(0x00000000),
+    FILE_OPEN(0x00000001),
+    FILE_CREATE(0x00000002),
+    FILE_OPEN_IF(0x00000003),
+    FILE_OVERWRITE(0x00000004),
+    FILE_OVERWRITE_IF(0x00000005);
 
-    long sessionId;
+    private long value;
 
-    public Session(long sessionId) {
-        this.sessionId = sessionId;
+    SMB2CreateDisposition(long value) {
+        this.value = value;
     }
 
-    public long getSessionId() {
-        return sessionId;
-    }
-
-    public void setSessionId(long sessionId) {
-        this.sessionId = sessionId;
+    public long getValue() {
+        return value;
     }
 }

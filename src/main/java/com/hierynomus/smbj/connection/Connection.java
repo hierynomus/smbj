@@ -17,6 +17,7 @@ package com.hierynomus.smbj.connection;
 
 import com.hierynomus.protocol.commons.socket.SocketClient;
 import com.hierynomus.smbj.Config;
+import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.session.Session;
@@ -97,14 +98,15 @@ public class Connection extends SocketClient implements AutoCloseable {
      *
      * @return a (new) Session that is authenticated for the user.
      */
-    public Session authenticate(String username, char[] password) {
+    public Session authenticate(AuthenticationContext authContext) {
         // TODO hardcoded for now
         NtlmAuthenticator.Factory factory = new NtlmAuthenticator.Factory();
         try {
             NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
             if (negTokenInit.getSupportedMechTypes().contains(new ASN1ObjectIdentifier(factory.getName()))) {
                 NtlmAuthenticator ntlmAuthenticator = factory.create();
-                ntlmAuthenticator.authenticate(this, username, password);
+                long sessionId = ntlmAuthenticator.authenticate(this, authContext);
+                return new Session(sessionId);
             }
         } catch (IOException e) {
             throw new SMBRuntimeException(e);

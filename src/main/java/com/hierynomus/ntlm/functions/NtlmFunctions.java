@@ -16,6 +16,8 @@
 package com.hierynomus.ntlm.functions;
 
 import com.hierynomus.ntlm.NtlmException;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.Endian;
 import org.bouncycastle.jcajce.provider.digest.MD4;
 
 import javax.crypto.BadPaddingException;
@@ -24,9 +26,11 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.SecureRandom;
 import java.util.Arrays;
 
 /**
@@ -35,6 +39,8 @@ import java.util.Arrays;
 public class NtlmFunctions {
 
     static final byte[] LMOWFv1_SECRET = new byte[]{0x4B, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25}; // KGS!@#$%
+
+    public static final SecureRandom RANDOM = new SecureRandom();
 
     /**
      * [MS-NLMP].pdf 3.3.2 NTLM v2 authentication (NTOWF v2).
@@ -48,9 +54,7 @@ public class NtlmFunctions {
         byte[] keyBytes = NTOWFv1(password, username, userDomain);
         byte[] usernameBytes = unicode(username.toUpperCase());
         byte[] userDomainBytes = unicode(userDomain);
-        byte[] messageBytes = Arrays.copyOf(usernameBytes, usernameBytes.length + userDomainBytes.length);
-        System.arraycopy(messageBytes, 0, messageBytes, usernameBytes.length, userDomainBytes.length);
-        return hmac_md5(keyBytes, messageBytes);
+        return hmac_md5(keyBytes, usernameBytes, userDomainBytes);
     }
 
     /**
@@ -101,11 +105,14 @@ public class NtlmFunctions {
      * @param message The bytes of message M
      * @return The 16-byte HMAC-keyed MD5 message digest of the byte string M using the key K
      */
-    public static byte[] hmac_md5(byte[] key, byte[] message) {
+    public static byte[] hmac_md5(byte[] key, byte[]... message) {
         try {
             javax.crypto.Mac hmacMD5 = javax.crypto.Mac.getInstance("HmacMD5");
             hmacMD5.init(new SecretKeySpec(key, "HmacMD5"));
-            return hmacMD5.doFinal(message);
+            for (int i = 0; i < message.length; i++) {
+                hmacMD5.update(message[i]);
+            }
+            return hmacMD5.doFinal();
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new NtlmException(e);
         }
@@ -148,6 +155,77 @@ public class NtlmFunctions {
         }
     }
 
+    /**
+     * [MS-NLMP].pdf 2.2.2.7 NTLM v2: NTLMv2_CLIENT_CHALLENGE
+     *
+     * 3.3.2 NTLM v2 Authentication
+     * Set temp to ConcatenationOf(Responserversion, HiResponserversion, Z(6), Time, ClientChallenge, Z(4), ServerName, Z(4))
+     *
+     * @param challengeFromClient
+     * @param targetInformation
+     * @return
+     */
+    public static byte[] getNTLMv2ClientChallenge(
+                                                  byte[] challengeFromClient,
+                                                  byte[] targetInformation
+                                                  ) {
+        if (challengeFromClient == null) {
+            return null;
+        }
+        long nanos1601 = getTimeStampNanos1601();
+        byte[] l_targetInfo = (targetInformation == null) ? new byte[0] : targetInformation;
+        Buffer.PlainBuffer ccBuf = new Buffer.PlainBuffer(Endian.LE);
+        ccBuf.putByte((byte)0x01); // RespType (1)
+        ccBuf.putByte((byte)0x01); // HiRespType (1)
+        ccBuf.putUInt16(0); // Reserved1 (2)
+        ccBuf.putUInt32(0); // Reserved2 (4)
+        ccBuf.putLong(nanos1601); // Timestamp (8)
+        ccBuf.putRawBytes(challengeFromClient); // ChallengeFromClient (8)
+        ccBuf.putUInt32(0); // Reserver3 (4)
+        ccBuf.putRawBytes(l_targetInfo);
+        ccBuf.putUInt32(0); // Last AV Pair indicator
+
+        return ccBuf.getCompactData();
+    }
+
+    /**
+     *
+     * 3.3.2 NTLM v2 Authentication
+     *
+     * Set NTProofStr to HMAC_MD5(ResponseKeyNT, ConcatenationOf(CHALLENGE_MESSAGE.ServerChallenge,temp))
+     * Set NtChallengeResponse to ConcatenationOf(NTProofStr, temp)
+     *
+     * @param responseKeyNT
+     * @param serverChallenge
+     * @param ntlmv2ClientChallenge (temp from above)
+     * @return
+     */
+    public static byte[] getNTLMv2Response(byte[] responseKeyNT, byte[] serverChallenge, byte[] ntlmv2ClientChallenge) {
+
+        byte[] ntProofStr = hmac_md5(responseKeyNT, serverChallenge, ntlmv2ClientChallenge);
+
+        byte[] ntChallengeResponse = ByteBuffer.allocate(ntProofStr.length + ntlmv2ClientChallenge.length)
+                .put(ntProofStr).put(ntlmv2ClientChallenge).array();
+
+        return ntChallengeResponse;
+    }
+
+    public static byte[] encryptRc4(byte[] key, byte[] val) throws BadPaddingException, IllegalBlockSizeException {
+        Cipher c = getRC4Cipher(key);
+        byte[] enc = c.doFinal(val);
+        return enc;
+    }
+
+    /**
+     * A 64-bit unsigned integer that contains the current system time, represented
+     * as the number of 100 nanosecond ticks elapsed since midnight of January 1, 1601 (UTC)
+     */
+    private static long getTimeStampNanos1601() {
+        final long MILLISECONDS_BETWEEN_1970_AND_1601 = 11644473600000L;
+
+        return (System.currentTimeMillis() + MILLISECONDS_BETWEEN_1970_AND_1601) * 10000L;
+    }
+
     private static byte[] setupKey(byte[] key56) {
         byte[] key = new byte[8];
         key[0] = (byte) ((key56[0] >> 1) & 0xff);
@@ -182,4 +260,17 @@ public class NtlmFunctions {
         }
 
     }
+
+    private static Cipher getRC4Cipher(byte[] key) {
+        try {
+            Cipher bc = Cipher.getInstance("RC4", "BC");
+            SecretKeySpec rc4 = new SecretKeySpec(setupKey(key), "RC4");
+            bc.init(Cipher.ENCRYPT_MODE, rc4);
+            return bc;
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | NoSuchProviderException | InvalidKeyException e) {
+            throw new NtlmException(e);
+        }
+
+    }
+
 }

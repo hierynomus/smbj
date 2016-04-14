@@ -29,4 +29,31 @@ public class NtlmPacket implements Packet<NtlmPacket, Buffer.PlainBuffer> {
     public NtlmPacket read(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
         throw new UnsupportedOperationException("Not implemented by base class");
     }
+
+    protected void writeFields(Buffer.PlainBuffer buffer, int offset, byte[][] bufs, Object[] others) {
+        int numFields = bufs.length;
+        for (int i = 0; i < bufs.length; ++i) {
+            assert (bufs[i] != null);
+            buffer.putUInt16(bufs[i].length); // Offset
+            buffer.putUInt16(bufs[i].length); // Length
+            offset = offset + ((i == 0) ? 0 : bufs[i - 1].length);
+            buffer.putUInt32(offset);
+        }
+        if (others != null) {
+            for (int i = 0; i < others.length; ++i) {
+                if (others[i] instanceof Integer) {
+                    buffer.putUInt16((Integer)others[i]);
+                } else if (others[i] instanceof Long) {
+                    buffer.putUInt32((Long)others[i]);
+                } else {
+                    throw new RuntimeException("Unsupported object type " + others[i]);
+                }
+            }
+        }
+        for (int i = 0; i < bufs.length; ++i) {
+            if (bufs[i].length > 0) {
+                buffer.putRawBytes(bufs[i]);
+            }
+        }
+    }
 }
