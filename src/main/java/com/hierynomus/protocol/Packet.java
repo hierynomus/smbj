@@ -19,8 +19,6 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 
 public interface Packet<P extends Packet<P, T>, T extends Buffer<T>> {
 
-    String UNI_ENCODING = "UTF-16LE";
-
     void write(T buffer);
 
     P read(T buffer) throws Buffer.BufferException;

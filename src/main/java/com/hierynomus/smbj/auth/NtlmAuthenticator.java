@@ -92,11 +92,8 @@ public class NtlmAuthenticator implements Authenticator {
                         context.getUsername(),
                         context.getDomain());
 
-                byte[] challengeFromClient = new byte[8];
-                NtlmFunctions.RANDOM.nextBytes(challengeFromClient);
-
                 byte[] ntlmv2ClientChallenge =
-                        NtlmFunctions.getNTLMv2ClientChallenge(challengeFromClient, challenge.getTargetInfo());
+                        NtlmFunctions.getNTLMv2ClientChallenge(challenge.getTargetInfo());
 
                 byte[] ntlmv2Response = NtlmFunctions.getNTLMv2Response(responseKeyNT, serverChallenge, ntlmv2ClientChallenge);
 
@@ -108,14 +105,10 @@ public class NtlmAuthenticator implements Authenticator {
 
                     if ((challenge.getNegotiateFlags().contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH))) {
                         byte[] masterKey = new byte[16];
-                        NtlmFunctions.RANDOM.nextBytes(masterKey);
+                        NtlmFunctions.getRandom().nextBytes(masterKey);
 
                         byte[] exchangedKey = new byte[0];
-                        try {
-                            exchangedKey = NtlmFunctions.encryptRc4(userSessionKey, masterKey);
-                        } catch (BadPaddingException | IllegalBlockSizeException e) {
-                            throw new NtlmException("Expception while RC4 encryption", e);
-                        }
+                        exchangedKey = NtlmFunctions.encryptRc4(userSessionKey, masterKey);
                         sessionkey = exchangedKey;
                     } else {
                         sessionkey = userSessionKey;
@@ -126,8 +119,8 @@ public class NtlmAuthenticator implements Authenticator {
                 smb2SessionSetup2.getHeader().setSessionId(sessionId);
                 //smb2SessionSetup2.getHeader().setCreditRequest(256);
 
-                NtlmChallengeResponse resp = new NtlmChallengeResponse(new byte[0], ntlmv2Response, sessionkey,
-                        context.getUsername(), context.getDomain(), null);
+                NtlmChallengeResponse resp = new NtlmChallengeResponse(new byte[0], ntlmv2Response,
+                        context.getUsername(), context.getDomain(), null, sessionkey, NtlmNegotiate.DEFAULT_FLAGS);
                 asn1 = negTokenTarg(resp, negTokenTarg.getResponseToken());
                 smb2SessionSetup2.setSecurityBuffer(asn1);
                 connection.send(smb2SessionSetup2);

@@ -1,4 +1,5 @@
 /*
+ * Copyright (C)2016 - SMBJ Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +17,7 @@ package com.hierynomus.smbj.smb2.messages;
 
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.msfscc.FileAttributes;
+import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
@@ -78,7 +80,7 @@ public class SMB2QueryDirectoryResponse extends SMB2Packet {
             buffer.readRawBytes(24); // Shortname
             buffer.readUInt16(); // Reserved2
             fileId = buffer.readRawBytes(8);
-            fileName = buffer.readString(UNI_ENCODING, (int)fileNameLen/2);
+            fileName = buffer.readString(NtlmFunctions.UNICODE, (int)fileNameLen/2);
             System.out.println(fileName);
             _fileInfoList.add(new FileInfo(fileName, fileId, fileAttributes));
             offsetStart += nextEntryOffset;
