@@ -47,6 +47,8 @@ public class SMB2ResponseMessageFactory {
                 return new SMB2CreateResponse().read(buffer);
             case SMB2_CHANGE_NOTIFY: // CREATE_RESPONSE
                 return new SMB2ChangeNotifyResponse().read(buffer);
+            case SMB2_QUERY_DIRECTORY: // CREATE_RESPONSE
+                return new SMB2QueryDirectoryResponse().read(buffer);
             default:
                 throw new TransportException("Unknown SMB2 Message Command type: " + command);
 

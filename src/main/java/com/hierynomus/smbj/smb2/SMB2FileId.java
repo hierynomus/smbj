@@ -28,8 +28,8 @@ public class SMB2FileId {
     private byte[] volatileHandle = new byte[8];
 
     public SMB2FileId(byte[] persistentHandle, byte[] volatileHandle) {
-        this.persistentHandle = persistentHandle;
-        this.volatileHandle = volatileHandle;
+        System.arraycopy(persistentHandle, 0, this.persistentHandle, 0, 8);
+        System.arraycopy(volatileHandle, 0, this.volatileHandle, 0, 8);
     }
 
     public byte[] getPersistentHandle() {
@@ -46,8 +46,7 @@ public class SMB2FileId {
     }
 
     public static SMB2FileId read(SMBBuffer buffer) throws Buffer.BufferException {
-        SMB2FileId fileId = new SMB2FileId(buffer.readRawBytes(8),buffer.readRawBytes(8));
-        return fileId;
+        return new SMB2FileId(buffer.readRawBytes(8),buffer.readRawBytes(8));
     }
 
 }

@@ -22,6 +22,7 @@ import com.hierynomus.smbj.smb2.SMB2CreateDisposition;
 import com.hierynomus.smbj.smb2.SMB2CreateOptions;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2DirectoryAccessMask;
+import com.hierynomus.smbj.smb2.SMB2Header;
 import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 import com.hierynomus.smbj.smb2.SMB2ShareAccess;
@@ -71,15 +72,14 @@ public class SMB2CreateRequest extends SMB2Packet {
         buffer.putByte((byte) 0); // SecurityFlags (1 byte) - Reserved
         buffer.putByte((byte) 0);  // Req OpLock Level (1 byte) - None
         buffer.putUInt32(1); // Impersonation Level (4 bytes) - Identification
-        buffer.putReserved(8); // SmbCreateFlags (8 bytes) - Reserved
+        buffer.putReserved(8); // SmbCreateFlags (8 bytes)
         buffer.putReserved(8); // Reserved (8 bytes)
-        //buffer.putUInt32(0x10000000); // Access Mask (4 bytes) - GENERIC_ALL
         buffer.putUInt32(EnumWithValue.EnumUtils.toLong(directoryAccessMask)); // Access Mask (4 bytes) - GENERIC_ALL
         buffer.putUInt32(EnumWithValue.EnumUtils.toLong(fileAttributes)); // File Attributes (4 bytes)
         buffer.putUInt32(EnumWithValue.EnumUtils.toLong(shareAccess)); // Share Access (4 bytes)
         buffer.putUInt32(createDisposition.getValue()); // Create Disposition (4 bytes)
         buffer.putUInt32(EnumWithValue.EnumUtils.toLong(createOptions)); // Create Options (4 bytes)
-        int offset = 120;
+        int offset = SMB2Header.STRUCTURE_SIZE + 56;
         try {
             byte[] nameBytes = (fileName == null) ? new byte[0] : fileName.getBytes(UNI_ENCODING);
             buffer.putUInt16(offset); // Offset
