@@ -13,28 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.smb2;
+package com.hierynomus.smbj.smb2.messages;
 
-import com.hierynomus.protocol.commons.EnumWithValue;
+import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smbj.smb2.SMB2Dialect;
+import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
+import com.hierynomus.smbj.smb2.SMB2Packet;
 
 /**
- * SMB2 Create 2.2.13 - CreateDisposition
+ * [MS-SMB2].pdf 2.2.28 SMB2 ECHO Request
  */
-public enum SMB2CreateDisposition implements EnumWithValue<SMB2CreateDisposition> {
-    FILE_SUPERSEDE(0x00000000L),
-    FILE_OPEN(0x00000001L),
-    FILE_CREATE(0x00000002L),
-    FILE_OPEN_IF(0x00000003L),
-    FILE_OVERWRITE(0x00000004L),
-    FILE_OVERWRITE_IF(0x00000005L);
+public class SMB2EchoRequest extends SMB2Packet {
 
-    private long value;
-
-    SMB2CreateDisposition(long value) {
-        this.value = value;
+    public SMB2EchoRequest(SMB2Dialect dialect) {
+        super(dialect, SMB2MessageCommandCode.SMB2_ECHO);
     }
 
-    public long getValue() {
-        return value;
+    @Override
+    protected void writeTo(SMBBuffer buffer) {
+        buffer.putUInt16(4); // StructureSize (2 bytes)
+        buffer.putUInt16(0); // Reserved
     }
 }

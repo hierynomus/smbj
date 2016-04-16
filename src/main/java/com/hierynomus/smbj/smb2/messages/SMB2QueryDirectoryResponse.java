@@ -63,6 +63,7 @@ public class SMB2QueryDirectoryResponse extends SMB2Packet {
         String fileName = null;
         long fileAttributes;
         byte[] fileId = null;
+        long fileSize;
         while (nextEntryOffset != 0) {
             nextEntryOffset = (int)buffer.readUInt32();
             fileIndex = buffer.readUInt32();
@@ -70,7 +71,7 @@ public class SMB2QueryDirectoryResponse extends SMB2Packet {
             Date lastAccessTime = MsDataTypes.readFileTime(buffer);
             Date lastWriteTime = MsDataTypes.readFileTime(buffer);
             Date changeTime = MsDataTypes.readFileTime(buffer);
-            buffer.readRawBytes(8); // EndOfFile - Ignored
+            fileSize = buffer.readUInt64(); // EndOfFile - Ignored
             buffer.readRawBytes(8); // AllocationSize - Ignored
             fileAttributes = buffer.readUInt32(); // File Attributes
             fileNameLen = buffer.readUInt32(); // File name length
@@ -82,7 +83,7 @@ public class SMB2QueryDirectoryResponse extends SMB2Packet {
             fileId = buffer.readRawBytes(8);
             fileName = buffer.readString(NtlmFunctions.UNICODE, (int)fileNameLen/2);
             System.out.println(fileName);
-            _fileInfoList.add(new FileInfo(fileName, fileId, fileAttributes));
+            _fileInfoList.add(new FileInfo(fileName, fileId, fileAttributes, fileSize));
             offsetStart += nextEntryOffset;
             buffer.rpos(offsetStart);
         }
@@ -97,12 +98,14 @@ public class SMB2QueryDirectoryResponse extends SMB2Packet {
         byte[] fileId; // This is not the SMB2FileId, but not sure what one can do with this id.
         String fileName;
         long fileAttributes;
+        long fileSize;
 
 
-        public FileInfo(String fileName, byte[] fileId, long fileAttributes) {
+        public FileInfo(String fileName, byte[] fileId, long fileAttributes, long fileSize) {
             this.fileName = fileName;
             this.fileId = fileId;
             this.fileAttributes = fileAttributes;
+            this.fileSize = fileSize;
         }
 
         public byte[] getFileId() {
@@ -121,6 +124,7 @@ public class SMB2QueryDirectoryResponse extends SMB2Packet {
         public String toString() {
             return "FileInfo{" +
                     "fileName='" + fileName + '\'' +
+                    "fileSize='" + fileSize + '\'' +
                     ", fileAttributes=" + EnumWithValue.EnumUtils.toEnumSet(fileAttributes, FileAttributes.class) +
                     '}';
         }

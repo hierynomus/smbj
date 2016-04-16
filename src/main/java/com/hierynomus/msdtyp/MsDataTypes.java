@@ -86,8 +86,6 @@ public class MsDataTypes {
      * as the number of 100 nanosecond ticks elapsed since midnight of January 1, 1601 (UTC)
      */
     public static long nowAsFileTime() {
-        final long MILLISECONDS_BETWEEN_1970_AND_1601 = 11644473600000L;
-
         return System.currentTimeMillis() * NANO100_TO_MILLI + WINDOWS_TO_UNIX_EPOCH;
     }
 
