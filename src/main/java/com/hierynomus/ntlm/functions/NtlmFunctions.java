@@ -19,18 +19,11 @@ import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.ntlm.NtlmException;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
-import org.bouncycastle.jcajce.provider.digest.MD4;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
+import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.UnsupportedEncodingException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SecureRandom;
+import java.security.*;
 import java.util.Arrays;
 
 /**
@@ -82,9 +75,13 @@ public class NtlmFunctions {
      */
     public static byte[] NTOWFv1(String password, String username, String userDomain) {
         byte[] bytes = unicode(password);
-        MD4.Digest digest = new MD4.Digest();
-        digest.update(bytes);
-        return digest.digest();
+        try {
+            MessageDigest digest = MessageDigest.getInstance("MD4", "BC");
+            digest.update(bytes);
+            return digest.digest();
+        } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
+            throw new NtlmException(e);
+        }
     }
 
     /**
@@ -110,13 +107,13 @@ public class NtlmFunctions {
      */
     public static byte[] hmac_md5(byte[] key, byte[]... message) {
         try {
-            javax.crypto.Mac hmacMD5 = javax.crypto.Mac.getInstance("HmacMD5");
+            Mac hmacMD5 = Mac.getInstance("HmacMD5", "BC");
             hmacMD5.init(new SecretKeySpec(key, "HmacMD5"));
             for (int i = 0; i < message.length; i++) {
                 hmacMD5.update(message[i]);
             }
             return hmacMD5.doFinal();
-        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+        } catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchProviderException e) {
             throw new NtlmException(e);
         }
     }
@@ -172,9 +169,6 @@ public class NtlmFunctions {
         byte[] challengeFromClient = new byte[8];
         getRandom().nextBytes(challengeFromClient);
 
-        if (challengeFromClient == null) {
-            return null;
-        }
         long nowAsFileTime = MsDataTypes.nowAsFileTime();
         byte[] l_targetInfo = (targetInformation == null) ? new byte[0] : targetInformation;
         Buffer.PlainBuffer ccBuf = new Buffer.PlainBuffer(Endian.LE);
@@ -218,8 +212,7 @@ public class NtlmFunctions {
     public static byte[] encryptRc4(byte[] key, byte[] val) throws NtlmException {
         try {
             Cipher c = getRC4Cipher(key);
-            byte[] enc = new byte[0];
-            enc = c.doFinal(val);
+            byte[] enc = c.doFinal(val);
             return  enc;
         } catch (BadPaddingException | IllegalBlockSizeException e) {
             throw new NtlmException(e);
