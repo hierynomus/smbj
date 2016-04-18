@@ -62,6 +62,13 @@ public class NegTokenTarg extends SpnegoToken {
         super(0x01, "NegTokenTarg");
     }
 
+    // Override writeGss for NTLMSSP_AUTH since Samba does not like putting the OID for SPNEGO
+    protected void writeGss(Buffer<?> buffer, ASN1EncodableVector negToken) throws IOException {
+        DERTaggedObject negotiationToken = new DERTaggedObject(true, 0x01, new DERSequence(negToken));
+
+        buffer.putRawBytes(negotiationToken.getEncoded());
+    }
+
     public void write(Buffer<?> buffer) {
         try {
             ASN1EncodableVector negTokenTarg = new ASN1EncodableVector();

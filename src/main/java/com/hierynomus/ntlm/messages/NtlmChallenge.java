@@ -37,6 +37,7 @@ public class NtlmChallenge extends NtlmPacket {
     private int targetInfoBufferOffset;
     private String targetName;
     private Map<AvId, Object> targetInfo = new HashMap<>();
+    private byte[] rawTargetInfo; // TODO remove duplicate byte array
 
     @Override
     public NtlmPacket read(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
@@ -55,6 +56,8 @@ public class NtlmChallenge extends NtlmPacket {
 
     private void readTargetInfo(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
         if (targetInfoLen > 0) {
+            buffer.rpos(targetInfoBufferOffset);
+            rawTargetInfo = buffer.readRawBytes(targetInfoLen);
             // Move to where buffer begins
             buffer.rpos(targetInfoBufferOffset);
             AvId avId = null;
@@ -132,5 +135,9 @@ public class NtlmChallenge extends NtlmPacket {
 
     public EnumSet<NtlmNegotiateFlag> getNegotiateFlags() {
         return negotiateFlags;
+    }
+
+    public byte[] getTargetInfo() {
+        return rawTargetInfo;
     }
 }

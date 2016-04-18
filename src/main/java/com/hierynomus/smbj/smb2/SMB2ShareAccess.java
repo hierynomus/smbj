@@ -13,28 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.auth;
+package com.hierynomus.smbj.smb2;
 
-public class AuthenticationContext {
-    private String username;
-    private char[] password;
-    private String domain;
+import com.hierynomus.protocol.commons.EnumWithValue;
 
-    public AuthenticationContext(String username, char[] password, String domain) {
-        this.username = username;
-        this.password = password;
-        this.domain = domain;
+/**
+ * SMB2 Create 2.2.13 - SMB2ShareAccess
+ */
+public enum SMB2ShareAccess implements EnumWithValue<SMB2ShareAccess> {
+    FILE_SHARE_READ(0x00000001L),
+    FILE_SHARE_WRITE(0x00000002L),
+    FILE_SHARE_DELETE(0x00000004L);
+
+    private long value;
+
+    SMB2ShareAccess(long value) {
+        this.value = value;
     }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public char[] getPassword() {
-        return password;
-    }
-
-    public String getDomain() {
-        return domain;
+    public long getValue() {
+        return value;
     }
 }

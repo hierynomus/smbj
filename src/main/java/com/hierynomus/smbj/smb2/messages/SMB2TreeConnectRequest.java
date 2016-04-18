@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
+import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2Header;
@@ -30,17 +31,18 @@ public class SMB2TreeConnectRequest extends SMB2Packet {
     private boolean isClusterReconnect; // SMB 3.1.1 only
     private String smbPath;
 
-    public SMB2TreeConnectRequest(SMB2Dialect dialect) {
+    public SMB2TreeConnectRequest(SMB2Dialect dialect, String smbPath) {
         super(dialect, SMB2MessageCommandCode.SMB2_TREE_CONNECT);
         this.dialect = dialect;
+        this.smbPath = smbPath;
     }
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(9); // StructureSize (2 bytes)
         putFlags(buffer); // Flags (2 bytes)
-        buffer.putUInt16(SMB2Header.STRUCTURE_SIZE + 9); // PathOffset (2 bytes) (header structure size + msg structure size)
-        buffer.putUInt16(smbPath.length());
+        buffer.putUInt16(SMB2Header.STRUCTURE_SIZE + 8); // PathOffset (2 bytes) (header structure size + msg structure size)
+        buffer.putUInt16(NtlmFunctions.unicode(smbPath).length);
         buffer.putString(smbPath);
     }
 

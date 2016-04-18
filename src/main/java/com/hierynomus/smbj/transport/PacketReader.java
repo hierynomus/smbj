@@ -22,6 +22,7 @@ import com.hierynomus.smbj.connection.SequenceWindow;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 import com.hierynomus.smbj.smb2.messages.SMB2ResponseMessageFactory;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.locks.ReentrantLock;
@@ -63,7 +64,14 @@ public class PacketReader {
 
     private SMB2Packet _readSMB2Packet(int packetLength) throws IOException, Buffer.BufferException {
         byte[] smb2Packet = new byte[packetLength];
-        in.read(smb2Packet);
+        int numReadSoFar = 0;
+        while (numReadSoFar < packetLength) {
+            int numReadThisTime = in.read(smb2Packet, numReadSoFar, packetLength - numReadSoFar);
+            if (numReadThisTime < 0)
+                throw new EOFException();
+            numReadSoFar += numReadThisTime;
+        }
+
         SMBBuffer buffer = new SMBBuffer(smb2Packet);
         return SMB2ResponseMessageFactory.read(buffer);
     }

@@ -21,18 +21,15 @@ import com.hierynomus.smbj.smb2.SMB2Packet;
 import com.hierynomus.smbj.smb2.SMB2StatusCode;
 
 /**
- * [MS-SMB2].pdf 2.2.10 SMB2 TREE_CONNECT Response
+ * [MS-SMB2].pdf 2.2.20 SMB2 READ Response
  *
- * TODO
  */
-public class SMB2TreeConnectResponse extends SMB2Packet {
+public class SMB2ReadResponse extends SMB2Packet {
 
-    private byte shareType;
-    private long shareFlags;
-    private long capabilities;
-    private long maximalAccess;
+    private int dataLength;
+    private byte[] data;
 
-    public SMB2TreeConnectResponse() {
+    public SMB2ReadResponse() {
             super();
     }
 
@@ -41,12 +38,19 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         if (header.getStatus() == SMB2StatusCode.STATUS_SUCCESS) {
             buffer.skip(2); // StructureSize (2 bytes)
-            shareType = buffer.readByte(); // shareType (1 byte)
+            byte dataOffset = buffer.readByte(); // Data Offset (1 byte)
             buffer.readByte(); // Reserved (1 byte)
-            shareFlags = buffer.readUInt32();
-            capabilities = buffer.readUInt32(); // Capabilities (16 bytes)
-            maximalAccess = buffer.readUInt32();
+            dataLength = buffer.readUInt32AsInt();
+            buffer.rpos(dataOffset);
+            data = buffer.readRawBytes(dataLength);
         }
     }
 
+    public int getDataLength() {
+        return dataLength;
+    }
+
+    public byte[] getData() {
+        return data;
+    }
 }

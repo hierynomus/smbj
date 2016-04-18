@@ -39,8 +39,14 @@ public class SMB2Close extends SMB2Packet {
     private long size;
     private byte[] fileAttributes;
 
-    public SMB2Close(SMB2Dialect smbDialect) {
+    public SMB2Close() {
+    }
+
+    public SMB2Close(SMB2Dialect smbDialect, SMB2FileId fileId, long sessionId, long treeId) {
         super(smbDialect, SMB2MessageCommandCode.SMB2_CLOSE);
+        getHeader().setSessionId(sessionId);
+        getHeader().setTreeId(treeId);
+        this.fileId = fileId;
     }
 
     @Override
@@ -64,7 +70,6 @@ public class SMB2Close extends SMB2Packet {
         allocationSize = buffer.readUInt64(); // AllocationSize (8 bytes)
         size = buffer.readUInt64(); // EndOfFile (8 bytes)
         fileAttributes = buffer.readRawBytes(4); // FileAttributes (4 bytes)
-        super.readMessage(buffer);
     }
 
     public Date getCreationTime() {

@@ -15,7 +15,10 @@
  */
 package com.hierynomus.ntlm.functions;
 
+import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.ntlm.NtlmException;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.Endian;
 import org.bouncycastle.jcajce.provider.digest.MD4;
 
 import javax.crypto.BadPaddingException;
@@ -27,6 +30,7 @@ import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.SecureRandom;
 import java.util.Arrays;
 
 /**
@@ -35,6 +39,11 @@ import java.util.Arrays;
 public class NtlmFunctions {
 
     static final byte[] LMOWFv1_SECRET = new byte[]{0x4B, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25}; // KGS!@#$%
+
+    public static final String UNICODE = "UTF-16LE";
+
+    private static SecureRandom secureRandom = new SecureRandom();
+
 
     /**
      * [MS-NLMP].pdf 3.3.2 NTLM v2 authentication (NTOWF v2).
@@ -48,9 +57,7 @@ public class NtlmFunctions {
         byte[] keyBytes = NTOWFv1(password, username, userDomain);
         byte[] usernameBytes = unicode(username.toUpperCase());
         byte[] userDomainBytes = unicode(userDomain);
-        byte[] messageBytes = Arrays.copyOf(usernameBytes, usernameBytes.length + userDomainBytes.length);
-        System.arraycopy(messageBytes, 0, messageBytes, usernameBytes.length, userDomainBytes.length);
-        return hmac_md5(keyBytes, messageBytes);
+        return hmac_md5(keyBytes, usernameBytes, userDomainBytes);
     }
 
     /**
@@ -88,7 +95,7 @@ public class NtlmFunctions {
      */
     public static byte[] unicode(String string) {
         try {
-            return string.getBytes("UTF-16LE");
+            return string.getBytes(UNICODE);
         } catch (UnsupportedEncodingException uee) {
             throw new NtlmException(uee);
         }
@@ -101,11 +108,14 @@ public class NtlmFunctions {
      * @param message The bytes of message M
      * @return The 16-byte HMAC-keyed MD5 message digest of the byte string M using the key K
      */
-    public static byte[] hmac_md5(byte[] key, byte[] message) {
+    public static byte[] hmac_md5(byte[] key, byte[]... message) {
         try {
             javax.crypto.Mac hmacMD5 = javax.crypto.Mac.getInstance("HmacMD5");
             hmacMD5.init(new SecretKeySpec(key, "HmacMD5"));
-            return hmacMD5.doFinal(message);
+            for (int i = 0; i < message.length; i++) {
+                hmacMD5.update(message[i]);
+            }
+            return hmacMD5.doFinal();
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new NtlmException(e);
         }
@@ -148,6 +158,84 @@ public class NtlmFunctions {
         }
     }
 
+    /**
+     * [MS-NLMP].pdf 2.2.2.7 NTLM v2: NTLMv2_CLIENT_CHALLENGE
+     *
+     * 3.3.2 NTLM v2 Authentication
+     * Set temp to ConcatenationOf(Responserversion, HiResponserversion, Z(6), Time, ClientChallenge, Z(4), ServerName, Z(4))
+     *
+     * @param targetInformation
+     * @return
+     */
+    public static byte[] getNTLMv2ClientChallenge(byte[] targetInformation) {
+
+        byte[] challengeFromClient = new byte[8];
+        getRandom().nextBytes(challengeFromClient);
+
+        if (challengeFromClient == null) {
+            return null;
+        }
+        long nowAsFileTime = MsDataTypes.nowAsFileTime();
+        byte[] l_targetInfo = (targetInformation == null) ? new byte[0] : targetInformation;
+        Buffer.PlainBuffer ccBuf = new Buffer.PlainBuffer(Endian.LE);
+        ccBuf.putByte((byte)0x01); // RespType (1)
+        ccBuf.putByte((byte)0x01); // HiRespType (1)
+        ccBuf.putUInt16(0); // Reserved1 (2)
+        ccBuf.putUInt32(0); // Reserved2 (4)
+        ccBuf.putLong(nowAsFileTime); // Timestamp (8)
+        ccBuf.putRawBytes(challengeFromClient); // ChallengeFromClient (8)
+        ccBuf.putUInt32(0); // Reserver3 (4)
+        ccBuf.putRawBytes(l_targetInfo);
+        ccBuf.putUInt32(0); // Last AV Pair indicator
+
+        return ccBuf.getCompactData();
+    }
+
+    /**
+     *
+     * 3.3.2 NTLM v2 Authentication
+     *
+     * Set NTProofStr to HMAC_MD5(ResponseKeyNT, ConcatenationOf(CHALLENGE_MESSAGE.ServerChallenge,temp))
+     * Set NtChallengeResponse to ConcatenationOf(NTProofStr, temp)
+     *
+     * @param responseKeyNT
+     * @param serverChallenge
+     * @param ntlmv2ClientChallenge (temp from above)
+     * @return
+     */
+    public static byte[] getNTLMv2Response(byte[] responseKeyNT, byte[] serverChallenge, byte[] ntlmv2ClientChallenge) {
+
+        byte[] ntProofStr = hmac_md5(responseKeyNT, serverChallenge, ntlmv2ClientChallenge);
+
+        byte[] ntChallengeResponse = new byte[ntProofStr.length + ntlmv2ClientChallenge.length];
+        System.arraycopy(ntProofStr, 0, ntChallengeResponse, 0, ntProofStr.length);
+        System.arraycopy(ntlmv2ClientChallenge, 0, ntChallengeResponse, ntProofStr.length, ntlmv2ClientChallenge.length);
+
+        return ntChallengeResponse;
+    }
+
+
+    public static byte[] encryptRc4(byte[] key, byte[] val) throws NtlmException {
+        try {
+            Cipher c = getRC4Cipher(key);
+            byte[] enc = new byte[0];
+            enc = c.doFinal(val);
+            return  enc;
+        } catch (BadPaddingException | IllegalBlockSizeException e) {
+            throw new NtlmException(e);
+        }
+    }
+
+
+    public static SecureRandom getRandom() {
+        return secureRandom;
+    }
+
+    public static void setRandom(SecureRandom sRandom) {
+        if (sRandom != null) secureRandom = sRandom;
+    }
+
+
     private static byte[] setupKey(byte[] key56) {
         byte[] key = new byte[8];
         key[0] = (byte) ((key56[0] >> 1) & 0xff);
@@ -182,4 +270,17 @@ public class NtlmFunctions {
         }
 
     }
+
+    private static Cipher getRC4Cipher(byte[] key) {
+        try {
+            Cipher bc = Cipher.getInstance("RC4", "BC");
+            SecretKeySpec rc4 = new SecretKeySpec(key, "RC4");
+            bc.init(Cipher.ENCRYPT_MODE, rc4);
+            return bc;
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | NoSuchProviderException | InvalidKeyException e) {
+            throw new NtlmException(e);
+        }
+
+    }
+
 }

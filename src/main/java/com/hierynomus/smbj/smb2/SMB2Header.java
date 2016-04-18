@@ -33,6 +33,7 @@ public class SMB2Header {
     private int creditResponse;
     private SMB2MessageCommandCode message;
     private long messageId;
+    private long asyncId;
     private long sessionId;
     private long treeId;
     private SMB2StatusCode status;
@@ -95,11 +96,19 @@ public class SMB2Header {
         return message;
     }
 
+    public long getTreeId() {
+        return treeId;
+    }
+
     public void setTreeId(long treeId) {
         this.treeId = treeId;
     }
 
-    public void setSessionId(int sessionId) {
+    public long getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(long sessionId) {
         this.sessionId = sessionId;
     }
 
@@ -127,6 +136,10 @@ public class SMB2Header {
         return creditResponse;
     }
 
+    public long getAsyncId() {
+        return asyncId;
+    }
+
     public void readFrom(Buffer<?> buffer) throws Buffer.BufferException {
         buffer.skip(4); // ProtocolId (4 bytes) (already verified)
         buffer.skip(2); // StructureSize (2 bytes)
@@ -138,7 +151,7 @@ public class SMB2Header {
         buffer.readRawBytes(4); // NextCommand (4 bytes)
         messageId = buffer.readUInt64(); // MessageId (4 bytes)
         if (isSet(flags, SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
-            throw new UnsupportedOperationException("ASYNC not implemented");
+            asyncId = buffer.readUInt64();
         } else {
             buffer.skip(4); // Reserved (4 bytes)
             treeId = buffer.readUInt32(); // TreeId (4 bytes)

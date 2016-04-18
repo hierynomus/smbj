@@ -13,28 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.auth;
+package com.hierynomus.smbj.smb2;
 
-public class AuthenticationContext {
-    private String username;
-    private char[] password;
-    private String domain;
+import com.hierynomus.protocol.commons.EnumWithValue;
 
-    public AuthenticationContext(String username, char[] password, String domain) {
-        this.username = username;
-        this.password = password;
-        this.domain = domain;
+/**
+ * SMB2 Create 2.2.13 - CreateDisposition
+ */
+public enum SMB2CreateDisposition implements EnumWithValue<SMB2CreateDisposition> {
+    FILE_SUPERSEDE(0x00000000L),
+    FILE_OPEN(0x00000001L),
+    FILE_CREATE(0x00000002L),
+    FILE_OPEN_IF(0x00000003L),
+    FILE_OVERWRITE(0x00000004L),
+    FILE_OVERWRITE_IF(0x00000005L);
+
+    private long value;
+
+    SMB2CreateDisposition(long value) {
+        this.value = value;
     }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public char[] getPassword() {
-        return password;
-    }
-
-    public String getDomain() {
-        return domain;
+    public long getValue() {
+        return value;
     }
 }

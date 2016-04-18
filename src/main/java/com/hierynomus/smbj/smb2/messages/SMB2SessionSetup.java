@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
+import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.common.SMBRuntimeException;
@@ -22,6 +23,8 @@ import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2Header;
 import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
 import com.hierynomus.smbj.smb2.SMB2Packet;
+
+import java.util.EnumSet;
 
 /**
  * [MS-SMB2].pdf 2.2.5 SMB2_SESSTION_SETUP Request / 2.2.6 SMB2_SESSION_SETUP Response
@@ -39,9 +42,10 @@ public class SMB2SessionSetup extends SMB2Packet {
     public SMB2SessionSetup() {
     }
 
-    public SMB2SessionSetup(SMB2Dialect negotiatedDialect) {
+    public SMB2SessionSetup(SMB2Dialect negotiatedDialect, EnumSet<SMB2SecurityMode> securityMode) {
         super(negotiatedDialect, SMB2MessageCommandCode.SMB2_SESSION_SETUP);
         this.negotiatedDialect = negotiatedDialect;
+        this.securityMode = (byte)EnumWithValue.EnumUtils.toLong(securityMode);
     }
 
     @Override
@@ -95,4 +99,20 @@ public class SMB2SessionSetup extends SMB2Packet {
     public byte[] getSecurityBuffer() {
         return securityBuffer;
     }
+
+    public enum SMB2SecurityMode implements EnumWithValue<SMB2SecurityMode> {
+        SMB2_NEGOTIATE_SIGNING_ENABLED(0x00000001),
+        SMB2_NEGOTIATE_SIGNING_REQUIRED(0x00000002);
+
+        private long value;
+
+        SMB2SecurityMode(long value) {
+            this.value = value;
+        }
+
+        public long getValue() {
+            return value;
+        }
+    }
+
 }

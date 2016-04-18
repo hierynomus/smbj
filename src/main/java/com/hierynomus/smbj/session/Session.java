@@ -20,6 +20,17 @@ package com.hierynomus.smbj.session;
  */
 public class Session {
 
-    public Session() {
+    long sessionId;
+
+    public Session(long sessionId) {
+        this.sessionId = sessionId;
+    }
+
+    public long getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(long sessionId) {
+        this.sessionId = sessionId;
     }
 }

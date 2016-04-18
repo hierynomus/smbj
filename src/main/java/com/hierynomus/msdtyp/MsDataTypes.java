@@ -81,5 +81,13 @@ public class MsDataTypes {
         return new Date((windowsTimeStamp - WINDOWS_TO_UNIX_EPOCH) / NANO100_TO_MILLI);
     }
 
+    /**
+     * A 64-bit unsigned integer that contains the current system time, represented
+     * as the number of 100 nanosecond ticks elapsed since midnight of January 1, 1601 (UTC)
+     */
+    public static long nowAsFileTime() {
+        return System.currentTimeMillis() * NANO100_TO_MILLI + WINDOWS_TO_UNIX_EPOCH;
+    }
+
 
 }

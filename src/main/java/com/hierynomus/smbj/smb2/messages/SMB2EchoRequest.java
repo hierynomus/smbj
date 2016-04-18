@@ -13,28 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.auth;
+package com.hierynomus.smbj.smb2.messages;
 
-public class AuthenticationContext {
-    private String username;
-    private char[] password;
-    private String domain;
+import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smbj.smb2.SMB2Dialect;
+import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
+import com.hierynomus.smbj.smb2.SMB2Packet;
 
-    public AuthenticationContext(String username, char[] password, String domain) {
-        this.username = username;
-        this.password = password;
-        this.domain = domain;
+/**
+ * [MS-SMB2].pdf 2.2.28 SMB2 ECHO Request
+ */
+public class SMB2EchoRequest extends SMB2Packet {
+
+    public SMB2EchoRequest(SMB2Dialect dialect) {
+        super(dialect, SMB2MessageCommandCode.SMB2_ECHO);
     }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public char[] getPassword() {
-        return password;
-    }
-
-    public String getDomain() {
-        return domain;
+    @Override
+    protected void writeTo(SMBBuffer buffer) {
+        buffer.putUInt16(4); // StructureSize (2 bytes)
+        buffer.putUInt16(0); // Reserved
     }
 }

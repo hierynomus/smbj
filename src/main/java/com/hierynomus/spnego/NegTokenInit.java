@@ -119,8 +119,14 @@ public class NegTokenInit extends SpnegoToken {
         return this;
     }
 
+    static final String ADS_IGNORE_PRINCIPAL = "not_defined_in_RFC4178@please_ignore";
+
     @Override
     protected void parseTagged(ASN1TaggedObject asn1TaggedObject) throws SpnegoException {
+        if (asn1TaggedObject.getObject().toString().contains(ADS_IGNORE_PRINCIPAL)) {
+            // Ignore
+            return;
+        }
         switch (asn1TaggedObject.getTagNo()) {
             case 0:
                 readMechTypeList(asn1TaggedObject.getObject());
