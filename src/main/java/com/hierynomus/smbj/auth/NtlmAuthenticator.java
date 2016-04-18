@@ -18,15 +18,13 @@ package com.hierynomus.smbj.auth;
 import com.hierynomus.ntlm.NtlmException;
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.ntlm.messages.NtlmChallenge;
-import com.hierynomus.ntlm.messages.NtlmChallengeResponse;
+import com.hierynomus.ntlm.messages.NtlmAuthenticate;
 import com.hierynomus.ntlm.messages.NtlmNegotiate;
 import com.hierynomus.ntlm.messages.NtlmNegotiateFlag;
-import com.hierynomus.ntlm.messages.NtlmPacket;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.smb2.SMB2Packet;
 import com.hierynomus.smbj.smb2.SMB2StatusCode;
 import com.hierynomus.smbj.smb2.messages.SMB2SessionSetup;
 import com.hierynomus.smbj.transport.TransportException;
@@ -37,8 +35,6 @@ import org.bouncycastle.asn1.microsoft.MicrosoftObjectIdentifiers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -119,7 +115,7 @@ public class NtlmAuthenticator implements Authenticator {
                 smb2SessionSetup2.getHeader().setSessionId(sessionId);
                 //smb2SessionSetup2.getHeader().setCreditRequest(256);
 
-                NtlmChallengeResponse resp = new NtlmChallengeResponse(new byte[0], ntlmv2Response,
+                NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
                         context.getUsername(), context.getDomain(), null, sessionkey, NtlmNegotiate.DEFAULT_FLAGS);
                 asn1 = negTokenTarg(resp, negTokenTarg.getResponseToken());
                 smb2SessionSetup2.setSecurityBuffer(asn1);
@@ -146,7 +142,7 @@ public class NtlmAuthenticator implements Authenticator {
         return negTokenBuffer.getCompactData();
     }
 
-    private byte[] negTokenTarg(NtlmChallengeResponse resp, byte[] responseToken) {
+    private byte[] negTokenTarg(NtlmAuthenticate resp, byte[] responseToken) {
         NegTokenTarg targ = new NegTokenTarg();
         targ.setResponseToken(responseToken);
         Buffer.PlainBuffer ntlmBuffer = new Buffer.PlainBuffer(Endian.LE);

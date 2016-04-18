@@ -26,6 +26,9 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * [MS-NLMP].pdf 2.2.1.2 CHALLENGE_MESSAGE
+ */
 public class NtlmChallenge extends NtlmPacket {
     private static final Logger logger = LoggerFactory.getLogger(NtlmChallenge.class);
 
