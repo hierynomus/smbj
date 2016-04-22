@@ -20,9 +20,18 @@ import com.hierynomus.smbj.smb2.SMB2Dialect;
 import java.util.EnumSet;
 import java.util.Random;
 
-public interface Config {
+public class ConfigImpl implements Config {
 
-    Random getRandomProvider();
+    protected EnumSet<SMB2Dialect> dialects;
+    protected Random random;
 
-    EnumSet<SMB2Dialect> getSupportedDialects();
+    @Override
+    public Random getRandomProvider() {
+        return random;
+    }
+
+    @Override
+    public EnumSet<SMB2Dialect> getSupportedDialects() {
+        return dialects;
+    }
 }

@@ -17,11 +17,14 @@ package com.hierynomus.smbj;
 
 import com.hierynomus.smbj.smb2.SMB2Dialect;
 
+import java.security.SecureRandom;
 import java.util.EnumSet;
+import java.util.Random;
 
-public class DefaultConfig implements Config {
-    @Override
-    public EnumSet<SMB2Dialect> getSupportedDialects() {
-        return EnumSet.of(SMB2Dialect.SMB_2_0_2);
+public class DefaultConfig extends ConfigImpl {
+
+    public DefaultConfig() {
+        random = new SecureRandom();
+        dialects = EnumSet.of(SMB2Dialect.SMB_2_0_2);
     }
 }
