@@ -19,7 +19,6 @@ import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Header;
-import com.hierynomus.smbj.smb2.messages.SMB2SetInfoRequest;
 
 import java.util.EnumSet;
 
@@ -60,11 +59,11 @@ public class SecurityDescriptor {
         }
         if (sacl != null) {
             sacl.write(buffer);
-            offset += sacl.aclSize;
+            offset += sacl.getAclSize();
         }
         if (dacl != null) {
             dacl.write(buffer);
-            offset += dacl.aclSize;
+            offset += dacl.getAclSize();
         }
     }
 
@@ -74,8 +73,8 @@ public class SecurityDescriptor {
         control = EnumWithValue.EnumUtils.toEnumSet(buffer.readUInt16(), Control.class);
         int ownerOffset = buffer.readUInt32AsInt();
         int groupOffset = buffer.readUInt32AsInt();
-        int saslOffset = buffer.readUInt32AsInt();
-        int daslOffset = buffer.readUInt32AsInt();
+        int saclOffset = buffer.readUInt32AsInt();
+        int daclOffset = buffer.readUInt32AsInt();
 
         if (ownerOffset > 0) {
             buffer.rpos(ownerOffset);
@@ -87,13 +86,13 @@ public class SecurityDescriptor {
             groupSid = new SID();
             groupSid.read(buffer);
         }
-        if (saslOffset > 0) {
-            buffer.rpos(saslOffset);
+        if (saclOffset > 0) {
+            buffer.rpos(saclOffset);
             sacl = new ACL();
             sacl.read(buffer);
         }
-        if (daslOffset > 0) {
-            buffer.rpos(daslOffset);
+        if (daclOffset > 0) {
+            buffer.rpos(daclOffset);
             dacl = new ACL();
             dacl.read(buffer);
         }
@@ -148,8 +147,7 @@ public class SecurityDescriptor {
         DD(0x00001000L),
         DP(0x00002000L),
         GD(0x00004000L),
-        OD(0x00008000L)
-        ;
+        OD(0x00008000L);
 
         private long value;
 

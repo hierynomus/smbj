@@ -22,6 +22,7 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 
 public class SMBBuffer extends Buffer<SMBBuffer> {
+    private static final byte[] RESERVED_2 = new byte[]{0x0, 0x0};
     private static final byte[] RESERVED_4 = new byte[]{0x0, 0x0, 0x0, 0x0};
 
     public SMBBuffer() {
@@ -42,6 +43,26 @@ public class SMBBuffer extends Buffer<SMBBuffer> {
         byte[] nullBytes = new byte[length];
         Arrays.fill(nullBytes, (byte) 0);
         putRawBytes(nullBytes);
+        return this;
+    }
+
+    /**
+     * Shortcut method for putting 1 reserved byte in the buffer.
+     *
+     * @return this
+     */
+    public Buffer<SMBBuffer> putReserved1() {
+        putByte((byte) 0);
+        return this;
+    }
+
+    /**
+     * Shortcut method for putting 2 reserved bytes in the buffer.
+     *
+     * @return this
+     */
+    public Buffer<SMBBuffer> putReserved2() {
+        putRawBytes(RESERVED_2);
         return this;
     }
 

@@ -15,7 +15,7 @@
  */
 package com.hierynomus.msdtyp;
 
-import com.hierynomus.protocol.commons.ByteArrayUtils;
+import com.hierynomus.msdtyp.ace.ACE;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
@@ -26,32 +26,33 @@ import java.util.Arrays;
  */
 public class ACL {
 
-    byte revision;
-    int aceCount;
-    byte[] sidIdentifierAuthority;
-    long[] subAuthorities;
-    ACE[] aces;
-    int aclSize;
+    private byte revision;
+    private int aceCount;
+    private byte[] sidIdentifierAuthority;
+    private long[] subAuthorities;
+    private ACE[] aces;
+    private int aclSize;
 
     public void write(SMBBuffer buffer) {
-        buffer.putByte(revision);
-        buffer.putByte((byte)0);
+        aces = aces == null ? new ACE[0] : aces;
+        buffer.putByte(revision); // AclRevision (1 byte)
+        buffer.putReserved1(); // Sbz1 (1 byte)
         aclSize = 8;
-        for (int i = 0; i < aces.length; i++) {
-            aclSize += aces[i].getAceHeader().getAceSize();
+        for (ACE ace : aces) {
+            aclSize += ace.getAceHeader().getAceSize();
         }
-        buffer.putUInt16(aclSize);
-        buffer.putUInt16(aces.length);
-        buffer.putUInt16(0);
-        for (int i = 0; i < aces.length; i++) {
-            aces[i].write(buffer);
+        buffer.putUInt16(aclSize); // AclSize (2 bytes)
+        buffer.putUInt16(aces.length); // AceCount (2 bytes)
+        buffer.putReserved2(); // Sbz2 (2 bytes)
+        for (ACE ace : aces) {
+            ace.write(buffer);
         }
     }
 
     public void read(SMBBuffer buffer) throws Buffer.BufferException {
         revision = buffer.readByte(); // AclRevision (1 byte)
         buffer.skip(1); // Sbz1 (1 byte)
-        aclSize = buffer.readUInt16(); // AclSize (1 byte)
+        aclSize = buffer.readUInt16(); // AclSize (2 bytes)
         int aceCount = buffer.readUInt16(); // AceCount (2 bytes)
         buffer.skip(2); // Sbz2 (2 bytes)
         aces = new ACE[aceCount];
