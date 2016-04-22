@@ -15,8 +15,11 @@
  */
 package com.hierynomus.smbj.smb2;
 
+import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
+
+import java.util.Arrays;
 
 /**
  * [MS-SMB2].pdf 2.2.14.1 SMB2_FILEID
@@ -49,4 +52,10 @@ public class SMB2FileId {
         return new SMB2FileId(buffer.readRawBytes(8),buffer.readRawBytes(8));
     }
 
+    @Override
+    public String toString() {
+        return "SMB2FileId{" +
+                "persistentHandle=" + ByteArrayUtils.printHex(persistentHandle) +
+                '}';
+    }
 }

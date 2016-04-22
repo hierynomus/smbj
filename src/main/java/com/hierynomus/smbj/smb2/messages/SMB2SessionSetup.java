@@ -37,7 +37,7 @@ public class SMB2SessionSetup extends SMB2Packet {
     private byte[] securityBuffer;
     private long previousSessionId;
 
-    private int sessionFlags;
+    private EnumSet<SMB2SessionFlags> sessionFlags;
 
     public SMB2SessionSetup() {
     }
@@ -64,7 +64,8 @@ public class SMB2SessionSetup extends SMB2Packet {
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.readUInt16(); // StructureSize (2 bytes) (always 9)
-        buffer.readUInt16(); // SessionFlags (2 bytes)
+        sessionFlags = EnumWithValue.EnumUtils.toEnumSet(
+                buffer.readUInt16(), SMB2SessionFlags.class); // SessionFlags (2 bytes)
         int securityBufferOffset = buffer.readUInt16(); // SecurityBufferOffset (2 bytes)
         int securityBufferLength = buffer.readUInt16(); // SecurityBufferLength (2 bytes)
         securityBuffer = readSecurityBuffer(buffer, securityBufferOffset, securityBufferLength); // SecurityBuffer (variable)
@@ -98,6 +99,22 @@ public class SMB2SessionSetup extends SMB2Packet {
 
     public byte[] getSecurityBuffer() {
         return securityBuffer;
+    }
+
+    public enum SMB2SessionFlags implements EnumWithValue<SMB2SessionFlags> {
+        SMB2_SESSION_FLAG_IS_GUEST(0x0001L),
+        SMB2_SESSION_FLAG_IS_NULL(0x0002L),
+        SMB2_SESSION_FLAG_ENCRYPT_DATA(0x0004L);
+
+        private long value;
+
+        SMB2SessionFlags(long value) {
+            this.value = value;
+        }
+
+        public long getValue() {
+            return value;
+        }
     }
 
     public enum SMB2SecurityMode implements EnumWithValue<SMB2SecurityMode> {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2016 - Jeroen van Erp <jeroen@hierynomus.com>
+ * Copyright (C)2016 - SMBJ Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,12 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
+import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2FileId;
-import com.hierynomus.smbj.smb2.SMB2FileInformationClass;
 import com.hierynomus.smbj.smb2.SMB2Header;
 import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
 import com.hierynomus.smbj.smb2.SMB2Packet;
@@ -35,7 +35,7 @@ public class SMB2QueryDirectoryRequest extends SMB2Packet {
 
     long MAX_OUTPUT_BUFFER_LENGTH = 64 * 1024;
 
-    SMB2FileInformationClass fileInformationClass;
+    FileInformationClass fileInformationClass;
     private final EnumSet<SMB2QueryDirectoryFlags> flags;
     private final long fileIndex;
     private final SMB2FileId fileId;
@@ -44,17 +44,13 @@ public class SMB2QueryDirectoryRequest extends SMB2Packet {
     public SMB2QueryDirectoryRequest(SMB2Dialect smbDialect,
                                      long sessionId, long treeId,
                                      SMB2FileId fileId,
-                                     SMB2FileInformationClass fileInformationClass,
+                                     FileInformationClass fileInformationClass,
                                      EnumSet<SMB2QueryDirectoryFlags> flags,
                                      long fileIndex,
                                      String searchPattern) {
 
         super(smbDialect, SMB2MessageCommandCode.SMB2_QUERY_DIRECTORY);
-        // Currently only MS-FSCC 2.4.17 FileIdBothDirectoryInformation is supported
 
-        if (fileInformationClass != SMB2FileInformationClass.FileIdBothDirectoryInformation) {
-            throw new RuntimeException("Not Implemented");
-        }
         getHeader().setSessionId(sessionId);
         getHeader().setTreeId(treeId);
         this.fileInformationClass = fileInformationClass;

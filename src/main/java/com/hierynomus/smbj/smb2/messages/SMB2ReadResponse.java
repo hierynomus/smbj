@@ -18,22 +18,39 @@ package com.hierynomus.smbj.smb2.messages;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Packet;
+import com.hierynomus.smbj.smb2.SMB2StatusCode;
 
 /**
- * [MS-SMB2].pdf 2.2.10 SMB2 TREE_CONNECT Response
+ * [MS-SMB2].pdf 2.2.20 SMB2 READ Response
  *
- * TODO
  */
-public class SMB2TreeDisconnectResponse extends SMB2Packet {
+public class SMB2ReadResponse extends SMB2Packet {
 
-    public SMB2TreeDisconnectResponse() {
+    private int dataLength;
+    private byte[] data;
+
+    public SMB2ReadResponse() {
             super();
     }
 
+
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
-        buffer.skip(2); // StructureSize (2 bytes)
-        buffer.readByte(); // Reserved (1 byte)
+        if (header.getStatus() == SMB2StatusCode.STATUS_SUCCESS) {
+            buffer.skip(2); // StructureSize (2 bytes)
+            byte dataOffset = buffer.readByte(); // Data Offset (1 byte)
+            buffer.readByte(); // Reserved (1 byte)
+            dataLength = buffer.readUInt32AsInt();
+            buffer.rpos(dataOffset);
+            data = buffer.readRawBytes(dataLength);
+        }
     }
 
+    public int getDataLength() {
+        return dataLength;
+    }
+
+    public byte[] getData() {
+        return data;
+    }
 }

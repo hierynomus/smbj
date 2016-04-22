@@ -15,25 +15,23 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smbj.smb2.SMB2Dialect;
+import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 
 /**
- * [MS-SMB2].pdf 2.2.10 SMB2 TREE_CONNECT Response
- *
- * TODO
+ * [MS-SMB2].pdf 2.2.28 SMB2 ECHO Request
  */
-public class SMB2TreeDisconnectResponse extends SMB2Packet {
+public class SMB2EchoRequest extends SMB2Packet {
 
-    public SMB2TreeDisconnectResponse() {
-            super();
+    public SMB2EchoRequest(SMB2Dialect dialect) {
+        super(dialect, SMB2MessageCommandCode.SMB2_ECHO);
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
-        buffer.skip(2); // StructureSize (2 bytes)
-        buffer.readByte(); // Reserved (1 byte)
+    protected void writeTo(SMBBuffer buffer) {
+        buffer.putUInt16(4); // StructureSize (2 bytes)
+        buffer.putUInt16(0); // Reserved
     }
-
 }

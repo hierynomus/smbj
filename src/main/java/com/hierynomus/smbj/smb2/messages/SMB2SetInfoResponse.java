@@ -20,20 +20,16 @@ import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 
 /**
- * [MS-SMB2].pdf 2.2.10 SMB2 TREE_CONNECT Response
- *
- * TODO
+ * [MS-SMB2].pdf 2.2.7 SMB2 Logoff Request / 2.2.8 SMB Logoff Response
  */
-public class SMB2TreeDisconnectResponse extends SMB2Packet {
+public class SMB2SetInfoResponse extends SMB2Packet {
 
-    public SMB2TreeDisconnectResponse() {
-            super();
+    public SMB2SetInfoResponse() {
+        super();
     }
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.skip(2); // StructureSize (2 bytes)
-        buffer.readByte(); // Reserved (1 byte)
     }
-
 }

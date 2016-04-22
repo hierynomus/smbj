@@ -18,22 +18,34 @@ package com.hierynomus.smbj.smb2.messages;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Packet;
+import com.hierynomus.smbj.smb2.SMB2StatusCode;
 
 /**
- * [MS-SMB2].pdf 2.2.10 SMB2 TREE_CONNECT Response
+ * [MS-SMB2].pdf 2.2.22 SMB2 Write Response
  *
- * TODO
  */
-public class SMB2TreeDisconnectResponse extends SMB2Packet {
+public class SMB2WriteResponse extends SMB2Packet {
 
-    public SMB2TreeDisconnectResponse() {
+    private long bytesWritten;
+
+    public SMB2WriteResponse() {
             super();
     }
 
+
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
-        buffer.skip(2); // StructureSize (2 bytes)
-        buffer.readByte(); // Reserved (1 byte)
+        if (header.getStatus() == SMB2StatusCode.STATUS_SUCCESS) {
+            buffer.skip(2); // StructureSize (2 bytes)
+            buffer.skip(2); // Reserved (2 bytes)
+            bytesWritten = buffer.readUInt32();
+            buffer.skip(4); // Remaining - Reserved (4 bytes)
+            buffer.skip(2); // WriteChannelInfoOffset (2 bytes)
+            buffer.skip(2); // WriteChannelInfoLength (2 bytes)
+        }
     }
 
+    public long getBytesWritten() {
+        return bytesWritten;
+    }
 }
