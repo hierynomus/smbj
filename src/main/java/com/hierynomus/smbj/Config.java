@@ -18,8 +18,11 @@ package com.hierynomus.smbj;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
 
 import java.util.EnumSet;
+import java.util.Random;
 
 public interface Config {
+
+    Random getRandomProvider();
 
     EnumSet<SMB2Dialect> getSupportedDialects();
 }

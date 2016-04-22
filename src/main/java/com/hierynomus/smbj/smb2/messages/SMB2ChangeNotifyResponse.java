@@ -1,4 +1,5 @@
 /*
+ * Copyright (C)2016 - SMBJ Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +16,7 @@
 package com.hierynomus.smbj.smb2.messages;
 
 import com.hierynomus.msfscc.FileNotifyAction;
+import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
@@ -54,7 +56,7 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
             nextEntryOffset = (int)buffer.readUInt32();
             FileNotifyAction action = EnumWithValue.EnumUtils.valueOf(buffer.readUInt32(), FileNotifyAction.class, null);
             fileNameLen = buffer.readUInt32();
-            fileName = buffer.readString(UNI_ENCODING, (int)fileNameLen/2);
+            fileName = buffer.readString(NtlmFunctions.UNICODE, (int)fileNameLen/2);
             notifyInfoList.add(new FileNotifyInfo(action, fileName));
             buffer.rpos(outputBufferOffset + nextEntryOffset);
         }

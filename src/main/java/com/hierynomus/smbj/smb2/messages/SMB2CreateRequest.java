@@ -16,7 +16,7 @@
 package com.hierynomus.smbj.smb2.messages;
 
 import com.hierynomus.msfscc.FileAttributes;
-import com.hierynomus.protocol.commons.EnumWithValue;
+import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2CreateDisposition;
 import com.hierynomus.smbj.smb2.SMB2CreateOptions;
@@ -27,9 +27,11 @@ import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 import com.hierynomus.smbj.smb2.SMB2ShareAccess;
 
+import java.io.File;
 import java.io.UnsupportedEncodingException;
-import java.util.Collection;
 import java.util.EnumSet;
+
+import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
 
 /**
  * [MS-SMB2].pdf 2.2.13 SMB2 CREATE Request
@@ -57,11 +59,15 @@ public class SMB2CreateRequest extends SMB2Packet {
         getHeader().setSessionId(sessionId);
         getHeader().setTreeId(treeId);
         this.dialect = smbDialect;
-        this.directoryAccessMask = directoryAccessMask;
-        this.fileAttributes = fileAttributes;
-        this.shareAccess = shareAccess;
+        this.directoryAccessMask =
+                directoryAccessMask == null ? EnumSet.noneOf(SMB2DirectoryAccessMask.class) : directoryAccessMask;
+        this.fileAttributes =
+                fileAttributes == null ? EnumSet.noneOf(FileAttributes.class) : fileAttributes;
+        this.shareAccess =
+                shareAccess == null ? EnumSet.noneOf(SMB2ShareAccess.class) : shareAccess;
         this.createDisposition = createDisposition;
-        this.createOptions = createOptions;
+        this.createOptions =
+                createOptions == null ? EnumSet.noneOf(SMB2CreateOptions.class) : createOptions;
         this.fileName = fileName;
 
     }
@@ -74,24 +80,20 @@ public class SMB2CreateRequest extends SMB2Packet {
         buffer.putUInt32(1); // Impersonation Level (4 bytes) - Identification
         buffer.putReserved(8); // SmbCreateFlags (8 bytes)
         buffer.putReserved(8); // Reserved (8 bytes)
-        buffer.putUInt32(EnumWithValue.EnumUtils.toLong(directoryAccessMask)); // Access Mask (4 bytes) - GENERIC_ALL
-        buffer.putUInt32(EnumWithValue.EnumUtils.toLong(fileAttributes)); // File Attributes (4 bytes)
-        buffer.putUInt32(EnumWithValue.EnumUtils.toLong(shareAccess)); // Share Access (4 bytes)
-        buffer.putUInt32(createDisposition.getValue()); // Create Disposition (4 bytes)
-        buffer.putUInt32(EnumWithValue.EnumUtils.toLong(createOptions)); // Create Options (4 bytes)
+        buffer.putUInt32(toLong(directoryAccessMask)); // Access Mask (4 bytes)
+        buffer.putUInt32(toLong(fileAttributes)); // File Attributes (4 bytes)
+        buffer.putUInt32(toLong(shareAccess)); // Share Access (4 bytes)
+        buffer.putUInt32(createDisposition == null ? 0 : createDisposition.getValue()); // Create Disposition (4 bytes)
+        buffer.putUInt32(toLong(createOptions)); // Create Options (4 bytes)
         int offset = SMB2Header.STRUCTURE_SIZE + 56;
-        try {
-            byte[] nameBytes = (fileName == null) ? new byte[0] : fileName.getBytes(UNI_ENCODING);
-            buffer.putUInt16(offset); // Offset
-            buffer.putUInt16(nameBytes.length); // Length
+        byte[] nameBytes = (fileName == null) ? new byte[0] : NtlmFunctions.unicode(fileName);
+        buffer.putUInt16(offset); // Offset
+        buffer.putUInt16(nameBytes.length); // Length
 
-            // Create Contexts
-            buffer.putUInt32(0); // Offset
-            buffer.putUInt32(0); // Length
+        // Create Contexts
+        buffer.putUInt32(0); // Offset
+        buffer.putUInt32(0); // Length
 
-            if (nameBytes.length > 0) buffer.putRawBytes(nameBytes);
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("Unexpected exception ", e);
-        }
+        if (nameBytes.length > 0) buffer.putRawBytes(nameBytes);
     }
 }

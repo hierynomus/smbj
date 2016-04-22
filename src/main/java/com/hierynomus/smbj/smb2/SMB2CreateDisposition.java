@@ -1,4 +1,5 @@
 /*
+ * Copyright (C)2016 - SMBJ Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +21,12 @@ import com.hierynomus.protocol.commons.EnumWithValue;
  * SMB2 Create 2.2.13 - CreateDisposition
  */
 public enum SMB2CreateDisposition implements EnumWithValue<SMB2CreateDisposition> {
-    FILE_SUPERSEDE(0x00000000),
-    FILE_OPEN(0x00000001),
-    FILE_CREATE(0x00000002),
-    FILE_OPEN_IF(0x00000003),
-    FILE_OVERWRITE(0x00000004),
-    FILE_OVERWRITE_IF(0x00000005);
+    FILE_SUPERSEDE(0x00000000L),
+    FILE_OPEN(0x00000001L),
+    FILE_CREATE(0x00000002L),
+    FILE_OPEN_IF(0x00000003L),
+    FILE_OVERWRITE(0x00000004L),
+    FILE_OVERWRITE_IF(0x00000005L);
 
     private long value;
 

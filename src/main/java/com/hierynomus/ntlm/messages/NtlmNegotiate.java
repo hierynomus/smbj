@@ -26,7 +26,7 @@ import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
  * [MS-NLMP].pdf 2.2.1.1 NEGOTIATE_MESSAGE
  */
 public class NtlmNegotiate extends NtlmPacket {
-     static final long DEFAULT_FLAGS = EnumUtils.toLong(EnumSet.of(
+     public static final long DEFAULT_FLAGS = EnumUtils.toLong(EnumSet.of(
             NTLMSSP_NEGOTIATE_56,
             NTLMSSP_NEGOTIATE_128,
             NTLMSSP_NEGOTIATE_TARGET_INFO,
@@ -49,7 +49,7 @@ public class NtlmNegotiate extends NtlmPacket {
         buffer.putString("NTLMSSP\0", Charset.forName("UTF-8")); // Signature (8 bytes)
         buffer.putUInt32(0x01); // MessageType (4 bytes)
 
-        // Write the flags as Big Endian, as this is a byte[] in the spec and not an integral value
+        // Write the negotiateFlags as Big Endian, as this is a byte[] in the spec and not an integral value
         buffer.putUInt32(flags); // NegotiateFlags (4 bytes)
 
         // DomainNameFields (8 bytes)

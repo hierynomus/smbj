@@ -7,3 +7,4 @@ Jeroen van Erp
 To get started, have a look at one of the examples. Hopefully you will find the API pleasant to work with :)
 
 image:https://travis-ci.org/hierynomus/smbj.svg?branch=master["Build Status", link="https://travis-ci.org/hierynomus/smbj"]
+image:https://badge.waffle.io/hierynomus/smbj.svg?label=ready&title=Ready["Issues in Ready", link="http://waffle.io/hierynomus/smbj"]

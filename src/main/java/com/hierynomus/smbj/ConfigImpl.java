@@ -13,27 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.smb2.messages;
+package com.hierynomus.smbj;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.smb2.SMB2Packet;
+import com.hierynomus.smbj.smb2.SMB2Dialect;
 
-/**
- * [MS-SMB2].pdf 2.2.10 SMB2 TREE_CONNECT Response
- *
- * TODO
- */
-public class SMB2TreeDisconnectResponse extends SMB2Packet {
+import java.util.EnumSet;
+import java.util.Random;
 
-    public SMB2TreeDisconnectResponse() {
-            super();
+public class ConfigImpl implements Config {
+
+    protected EnumSet<SMB2Dialect> dialects;
+    protected Random random;
+
+    @Override
+    public Random getRandomProvider() {
+        return random;
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
-        buffer.skip(2); // StructureSize (2 bytes)
-        buffer.readByte(); // Reserved (1 byte)
+    public EnumSet<SMB2Dialect> getSupportedDialects() {
+        return dialects;
     }
-
 }

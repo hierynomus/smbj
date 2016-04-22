@@ -1,4 +1,5 @@
 /*
+ * Copyright (C)2016 - SMBJ Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +21,9 @@ import com.hierynomus.protocol.commons.EnumWithValue;
  * SMB2 Create 2.2.13 - SMB2ShareAccess
  */
 public enum SMB2ShareAccess implements EnumWithValue<SMB2ShareAccess> {
-    FILE_SHARE_READ(0x00000001),
-    FILE_SHARE_WRITE(0x00000002),
-    FILE_SHARE_DELETE(0x00000004);
+    FILE_SHARE_READ(0x00000001L),
+    FILE_SHARE_WRITE(0x00000002L),
+    FILE_SHARE_DELETE(0x00000004L);
 
     private long value;
 
