@@ -47,9 +47,9 @@ public class SMB2QueryInfoResponse extends SMB2Packet {
         if (header.getStatus() != SMB2StatusCode.STATUS_SUCCESS) return;
 
         buffer.skip(2); // StructureSize (2 bytes)
-        int outputBufferOffset = buffer.readUInt16(); // Buffer Offset
-        long outBufferLength = buffer.readUInt32(); // Buffer length
-        outputBuffer = buffer.readRawBytes((int)outBufferLength);
+        int outputBufferOffset = buffer.readUInt16(); // OutputBufferOffset (2 bytes)
+        int outBufferLength = buffer.readUInt32AsInt(); // OutputBufferLength (4 bytes)
+        outputBuffer = buffer.readRawBytes(outBufferLength);
     }
 
     public byte[] getOutputBuffer() {

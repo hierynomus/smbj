@@ -20,7 +20,7 @@ import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 
 /**
- * [MS-SMB2].pdf 2.2.7 SMB2 Logoff Request / 2.2.8 SMB Logoff Response
+ * [MS-SMB2].pdf 2.2.40 SMB2 SET_INFO Response
  */
 public class SMB2SetInfoResponse extends SMB2Packet {
 

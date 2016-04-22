@@ -18,14 +18,9 @@ package com.hierynomus.smbj.smb2.messages;
 import com.hierynomus.msdtyp.SecurityInformation;
 import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.msfscc.FileSysemInformationClass;
-import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.smb2.SMB2Dialect;
-import com.hierynomus.smbj.smb2.SMB2FileId;
-import com.hierynomus.smbj.smb2.SMB2Header;
-import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
-import com.hierynomus.smbj.smb2.SMB2Packet;
+import com.hierynomus.smbj.smb2.*;
 
 import java.util.EnumSet;
 
@@ -66,12 +61,12 @@ public class SMB2QueryInfoRequest extends SMB2Packet {
     @Override
     protected void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(41); // StructureSize (2 bytes)
-        buffer.putByte((byte)infoType.getValue());
+        buffer.putByte((byte) infoType.getValue()); // InfoType (1 byte)
         int BUFFER_OFFSET = SMB2Header.STRUCTURE_SIZE + 40;
         int offset = 0;
         switch (infoType) { // FileInfoClass 1 byte
             case SMB2_0_INFO_FILE:
-                buffer.putByte((byte)fileInformationClass.getValue()); // FileInformationClass (1 byte)
+                buffer.putByte((byte) fileInformationClass.getValue()); // FileInformationClass (1 byte)
                 buffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH); // OutputBufferLength (4 bytes)
                 if (fileInformationClass == FileInformationClass.FileFullEaInformation) {
                     buffer.putUInt16(offset); // InputBufferOffset (2 bytes)
@@ -88,7 +83,7 @@ public class SMB2QueryInfoRequest extends SMB2Packet {
                 fileId.write(buffer); // FileId (16 bytes)
                 break;
             case SMB2_0_INFO_FILESYSTEM:
-                buffer.putByte((byte)fileSystemInformationClass.getValue()); // FileSystemInformationClass (1 byte)
+                buffer.putByte((byte) fileSystemInformationClass.getValue()); // FileSystemInformationClass (1 byte)
                 buffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH); // OutputBufferLength (4 bytes)
                 buffer.putUInt16(0); // InputBufferOffset (2 bytes)
                 buffer.putReserved2(); // Reserved (2 bytes)
@@ -98,7 +93,7 @@ public class SMB2QueryInfoRequest extends SMB2Packet {
                 fileId.write(buffer); // FileId (16 bytes)
                 break;
             case SMB2_0_INFO_SECURITY:
-                buffer.putByte((byte)0);
+                buffer.putByte((byte) 0);
                 buffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH); // OutputBufferLength (4 bytes)
                 buffer.putUInt16(0); // InputBufferOffset (2 bytes)
                 buffer.putReserved2(); // Reserved (2 bytes)
@@ -108,7 +103,7 @@ public class SMB2QueryInfoRequest extends SMB2Packet {
                 fileId.write(buffer); // FileId (16 bytes)
                 break;
             case SMB2_0_INFO_QUOTA:
-                buffer.putByte((byte)0);
+                buffer.putByte((byte) 0);
                 buffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH); // OutputBufferLength (4 bytes)
                 buffer.putUInt16(offset); // InputBufferOffset (2 bytes)
                 buffer.putReserved2(); // Reserved (2 bytes)

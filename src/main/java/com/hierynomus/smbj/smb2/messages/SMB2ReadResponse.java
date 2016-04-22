@@ -38,9 +38,11 @@ public class SMB2ReadResponse extends SMB2Packet {
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         if (header.getStatus() == SMB2StatusCode.STATUS_SUCCESS) {
             buffer.skip(2); // StructureSize (2 bytes)
-            byte dataOffset = buffer.readByte(); // Data Offset (1 byte)
-            buffer.readByte(); // Reserved (1 byte)
-            dataLength = buffer.readUInt32AsInt();
+            byte dataOffset = buffer.readByte(); // DataOffset (1 byte)
+            buffer.skip(1); // Reserved (1 byte)
+            dataLength = buffer.readUInt32AsInt(); // DataLength (4 bytes)
+            buffer.readUInt32AsInt(); // DataRemaining (4 bytes)
+            buffer.skip(4); // Reserved2 (4 bytes)
             buffer.rpos(dataOffset);
             data = buffer.readRawBytes(dataLength);
         }

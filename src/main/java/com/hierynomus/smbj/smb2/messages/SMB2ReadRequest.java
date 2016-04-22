@@ -34,9 +34,7 @@ public class SMB2ReadRequest extends SMB2Packet {
     public SMB2ReadRequest(
             SMB2Dialect negotiatedDialect, SMB2FileId fileId,
             long sessionId, long treeId, long offset) {
-        super(negotiatedDialect, SMB2MessageCommandCode.SMB2_READ);
-        getHeader().setSessionId(sessionId);
-        getHeader().setTreeId(treeId);
+        super(negotiatedDialect, SMB2MessageCommandCode.SMB2_READ, sessionId, treeId);
         this.fileId = fileId;
         this.offset = offset;
     }
@@ -46,15 +44,15 @@ public class SMB2ReadRequest extends SMB2Packet {
         buffer.putUInt16(49); // StructureSize (2 bytes)
         buffer.putByte((byte) 0); // Padding (1 byte)
         buffer.putByte((byte) 0); // Flags (1 byte)
-        buffer.putUInt32(READ_SIZE); // Length to read (4 bytes)
+        buffer.putUInt32(READ_SIZE); // Length (4 bytes)
         buffer.putUInt64(offset); // Offset (8 bytes)
-        fileId.write(buffer);  // File Id
-        buffer.putUInt32(1); // Minimum Count (4 bytes)
+        fileId.write(buffer);  // FileId (16 bytes)
+        buffer.putUInt32(1); // MinimumCount (4 bytes)
         buffer.putUInt32(0); // Channel (4 bytes)
         //buffer.putUInt32(READ_SIZE); // Remaining bytes (4 bytes)
-        buffer.putUInt32(0);
-        buffer.putUInt16(0); // Read channel info offset (2 bytes)
-        buffer.putUInt16(0); // Read channel info length (2 bytes)
-        buffer.putByte((byte)0); // Buffer
+        buffer.putUInt32(0); // RemainingBytes (4 bytes)
+        buffer.putUInt16(0); // ReadChannelInfoOffset (2 bytes)
+        buffer.putUInt16(0); // ReadChannelInfoLength (2 bytes)
+        buffer.putByte((byte) 0); // Buffer
     }
 }

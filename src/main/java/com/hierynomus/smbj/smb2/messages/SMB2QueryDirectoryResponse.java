@@ -30,11 +30,10 @@ import java.util.List;
 
 /**
  * [MS-SMB2].pdf 2.2.34 SMB2 QUERY_DIRECTORY Response
- * <p>
-\ */
+ */
 public class SMB2QueryDirectoryResponse extends SMB2Packet {
 
-    List<FileInfo> fileInfoList;
+    private List<FileInfo> fileInfoList;
 
     public SMB2QueryDirectoryResponse() {
         super();
@@ -46,12 +45,12 @@ public class SMB2QueryDirectoryResponse extends SMB2Packet {
         if (header.getStatus() != SMB2StatusCode.STATUS_SUCCESS) return;
 
         buffer.skip(2); // StructureSize (2 bytes)
-        int outputBufferOffset = buffer.readUInt16(); // Buffer Offset
-        int outBufferLength = buffer.readUInt16(); // Buffer length
+        int outputBufferOffset = buffer.readUInt16(); // OutputBufferOffset (2 bytes)
+        int outBufferLength = buffer.readUInt32AsInt(); // OutputBufferLength (4 bytes)
         fileInfoList = readOutputBuffer(buffer, outputBufferOffset, outBufferLength);
     }
 
-    // Assume response is for FileIdBothDirectoryInformation
+    // TODO Check - Assume response is for FileIdBothDirectoryInformation
     private List<FileInfo> readOutputBuffer(SMBBuffer buffer, int outputBufferOffset, int outBufferLength)
             throws Buffer.BufferException {
         List<FileInfo> _fileInfoList = new ArrayList<>();

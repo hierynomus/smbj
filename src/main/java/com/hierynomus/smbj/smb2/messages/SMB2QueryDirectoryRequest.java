@@ -44,15 +44,14 @@ public class SMB2QueryDirectoryRequest extends SMB2Packet {
                                      long fileIndex,
                                      String searchPattern) {
 
-        super(smbDialect, SMB2MessageCommandCode.SMB2_QUERY_DIRECTORY);
-
-        getHeader().setSessionId(sessionId);
-        getHeader().setTreeId(treeId);
+        super(smbDialect, SMB2MessageCommandCode.SMB2_QUERY_DIRECTORY, sessionId, treeId);
         this.fileInformationClass = fileInformationClass;
         this.flags = flags;
         this.fileIndex = fileIndex;
         this.fileId = fileId;
-        this.searchPattern = searchPattern;
+        // The Spec says the searchPattern is optional
+        // but getting invalid parameter status, so use a pattern of "*" if no pattern.
+        this.searchPattern = searchPattern == null ? "*" : searchPattern;
     }
 
     @Override
@@ -63,15 +62,10 @@ public class SMB2QueryDirectoryRequest extends SMB2Packet {
         buffer.putUInt32(fileIndex); // FileIndex (4 bytes)
         fileId.write(buffer); // FileId (16 bytes)
         int offset = SMB2Header.STRUCTURE_SIZE + 32;
-        String finalSearchPattern = searchPattern;
-        // The Spec says the searchPattern is optional
-        // but getting invalid parameter status, so use a pattern of "*" if no pattern.
-        if (finalSearchPattern == null) finalSearchPattern = "*";
         buffer.putUInt16(offset); // FileNameOffset (2 bytes)
-        buffer.putUInt16(finalSearchPattern.length() * 2); // FileNameLength (2 bytes)
-
+        buffer.putUInt16(searchPattern.length() * 2); // FileNameLength (2 bytes)
         buffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH); // OutputBufferLength (4 bytes)
-        buffer.putString(finalSearchPattern);
+        buffer.putString(searchPattern); // Buffer (variable)
     }
 
     public enum SMB2QueryDirectoryFlags implements EnumWithValue<SMB2QueryDirectoryFlags> {

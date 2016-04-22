@@ -74,7 +74,6 @@ public class SMB2SessionSetup extends SMB2Packet {
     private byte[] readSecurityBuffer(SMBBuffer buffer, int securityBufferOffset, int securityBufferLength) throws Buffer.BufferException {
         if (securityBufferLength > 0) {
             // Just to be sure, we should already be there.
-            // TODO might need to subtract one, check!
             buffer.rpos(securityBufferOffset);
             return buffer.readRawBytes(securityBufferLength);
         }

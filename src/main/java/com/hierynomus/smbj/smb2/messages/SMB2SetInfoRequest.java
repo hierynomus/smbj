@@ -42,9 +42,7 @@ public class SMB2SetInfoRequest extends SMB2Packet {
             FileInformationClass fileInfoClass,
             SecurityInformation securityInformation, byte[] buffer
     ) {
-        super(negotiatedDialect, SMB2MessageCommandCode.SMB2_SET_INFO);
-        getHeader().setSessionId(sessionId);
-        getHeader().setTreeId(treeId);
+        super(negotiatedDialect, SMB2MessageCommandCode.SMB2_SET_INFO, sessionId, treeId);
         this.fileId = fileId;
         this.infoType = infoType;
         this.fileInfoClass = fileInfoClass;
@@ -59,15 +57,14 @@ public class SMB2SetInfoRequest extends SMB2Packet {
     @Override
     protected void writeTo(SMBBuffer smbBuffer) {
         smbBuffer.putUInt16(33); // StructureSize (2 bytes)
-        smbBuffer.putByte((byte) infoType.getValue()); // Info Type (1 byte)
+        smbBuffer.putByte((byte) infoType.getValue()); // InfoType (1 byte)
         smbBuffer.putByte((byte) fileInfoClass.getValue()); // FileInfoClass (1 byte)
         int offset = SMB2Header.STRUCTURE_SIZE + 32;
         smbBuffer.putUInt32(buffer.length); // BufferLength (4 bytes)
         smbBuffer.putUInt16(offset); // BufferOffset (2 bytes)
-        smbBuffer.putUInt16(0); // Reserved (2 bytes)
-        smbBuffer.putUInt32(securityInformation == null ? 0 : securityInformation.getValue()); // AdditionalInformation
-        // (SecurityInformation) (4 bytes)
-        fileId.write(smbBuffer);  // File Id
+        smbBuffer.putReserved2(); // Reserved (2 bytes)
+        smbBuffer.putUInt32(securityInformation == null ? 0 : securityInformation.getValue()); // AdditionalInformation (4 bytes)
+        fileId.write(smbBuffer);  // FileId (16 bytes)
         smbBuffer.putRawBytes(buffer);
     }
 
