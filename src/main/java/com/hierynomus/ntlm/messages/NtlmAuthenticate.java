@@ -29,17 +29,17 @@ import static com.hierynomus.ntlm.functions.NtlmFunctions.unicode;
 public class NtlmAuthenticate extends NtlmPacket {
     private static byte[] EMPTY = new byte[0];
 
-    byte[] lmResponse;
-    byte[] ntResponse;
-    byte[] userName;
-    byte[] domainName;
-    byte[] workStation;
-    byte[] encryptedRandomSessionKey;
-    long negotiateFlags = NtlmNegotiate.DEFAULT_FLAGS;
+    private byte[] lmResponse;
+    private byte[] ntResponse;
+    private byte[] userName;
+    private byte[] domainName;
+    private byte[] workstation;
+    private byte[] encryptedRandomSessionKey;
+    private long negotiateFlags = NtlmNegotiate.DEFAULT_FLAGS;
 
     public NtlmAuthenticate(
             byte[] lmResponse, byte[] ntResponse,
-            String userName, String domainName, String workStation,
+            String userName, String domainName, String workstation,
             byte[] encryptedRandomSessionKey, long negotiateFlags
     ) {
         super();
@@ -47,7 +47,7 @@ public class NtlmAuthenticate extends NtlmPacket {
         this.ntResponse = ensureNotNull(ntResponse);
         this.userName = ensureNotNull(userName);
         this.domainName = ensureNotNull(domainName);
-        this.workStation = ensureNotNull(workStation);
+        this.workstation = ensureNotNull(workstation);
         this.encryptedRandomSessionKey = ensureNotNull(encryptedRandomSessionKey);
         this.negotiateFlags = negotiateFlags;
     }
@@ -59,36 +59,16 @@ public class NtlmAuthenticate extends NtlmPacket {
 
         int offset = 80; // for the offset
 
-        buffer.putUInt16(lmResponse.length); // LmChallengeResponseLen (2 bytes)
-        buffer.putUInt16(lmResponse.length); // LmChallengeResponseMaxLen (2 bytes)
-        buffer.putUInt32(offset); // LmChallengeResponseBufferOffset (4 bytes)
-        offset += lmResponse.length;
-
-        buffer.putUInt16(ntResponse.length); // NtChallengeResponseLen (2 bytes)
-        buffer.putUInt16(ntResponse.length); // NtChallengeResponseMaxLen (2 bytes)
-        buffer.putUInt32(offset); // NtChallengeResponseBufferOffset (4 bytes)
-        offset += ntResponse.length;
-
-        buffer.putUInt16(domainName.length); // DomainNameLen (2 bytes)
-        buffer.putUInt16(domainName.length); // DomainNameMaxLen (2 bytes)
-        buffer.putUInt32(offset); // DomainNameBufferOffset (4 bytes)
-        offset += domainName.length;
-
-        buffer.putUInt16(userName.length); // UserNameLen (2 bytes)
-        buffer.putUInt16(userName.length); // UserNameMaxLen (2 bytes)
-        buffer.putUInt32(offset); // UserNameBufferOffset (4 bytes)
-        offset += userName.length;
-
-        buffer.putUInt16(workStation.length); // WorkstationLen (2 bytes)
-        buffer.putUInt16(workStation.length); // WorkstationMaxLen (2 bytes)
-        buffer.putUInt32(offset); // WorkstationBufferOffset (4 bytes)
-        offset += workStation.length;
-
-        byte[] _sessionKey = (encryptedRandomSessionKey == null) ? new byte[0] : encryptedRandomSessionKey;
-        buffer.putUInt16(_sessionKey.length); // EncryptedRandomSessionKeyLen (2 bytes)
-        buffer.putUInt16(_sessionKey.length); // EncryptedRandomSessionKeyMaxLen (2 bytes)
-        buffer.putUInt32(offset); // EncryptedRandomSessionKeyBufferOffset (4 bytes)
-        offset += _sessionKey.length;
+        offset = writeOffsettedByteArrayFields(buffer, lmResponse, offset); // LmChallengeResponseFields (8 bytes)
+        offset = writeOffsettedByteArrayFields(buffer, ntResponse, offset); // NtChallengeResponseFields (8 bytes)
+        offset = writeOffsettedByteArrayFields(buffer, domainName, offset); // DomainNameFields (8 bytes)
+        offset = writeOffsettedByteArrayFields(buffer, userName, offset); // UserNameFields (8 bytes)
+        offset = writeOffsettedByteArrayFields(buffer, workstation, offset); // WorkstationFields (8 bytes)
+        if (EnumWithValue.EnumUtils.isSet(negotiateFlags, NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH)) {
+            offset = writeOffsettedByteArrayFields(buffer, encryptedRandomSessionKey, offset);
+        } else {
+            offset = writeOffsettedByteArrayFields(buffer, EMPTY, offset);
+        }
 
         buffer.putUInt32(negotiateFlags); // NegotiateFlags (4 bytes)
 
@@ -106,8 +86,8 @@ public class NtlmAuthenticate extends NtlmPacket {
         buffer.putRawBytes(ntResponse);
         buffer.putRawBytes(domainName);
         buffer.putRawBytes(userName);
-        buffer.putRawBytes(workStation);
-        buffer.putRawBytes(_sessionKey);
+        buffer.putRawBytes(workstation);
+        buffer.putRawBytes(encryptedRandomSessionKey);
     }
 
     /**
@@ -125,6 +105,15 @@ public class NtlmAuthenticate extends NtlmPacket {
         return plainBuffer.getCompactData();
     }
 
+    private int writeOffsettedByteArrayFields(Buffer.PlainBuffer buffer, byte[] array, int offset) {
+        byte[] _array = array != null ? array : EMPTY;
+        buffer.putUInt16(_array.length); // ArrayLen
+        buffer.putUInt16(_array.length); // ArrayMaxLen
+        buffer.putUInt32(offset); // ArrayOffset
+        return offset + _array.length;
+    }
+
+
     private byte[] ensureNotNull(byte[] possiblyNull) {
         return possiblyNull != null ? possiblyNull : EMPTY;
     }
@@ -133,79 +122,3 @@ public class NtlmAuthenticate extends NtlmPacket {
         return possiblyNull != null ? unicode(possiblyNull) : EMPTY;
     }
 }
-
-//
-//
-///**
-// * [MS-NLMP].pdf 2.2.1.3 AUTHENTICATE_MESSAGE
-// */
-//public class NtlmAuthenticate extends NtlmPacket {
-//    private static byte[] EMPTY = new byte[0];
-//
-//    private byte[] lmResponse;
-//    private byte[] ntResponse;
-//    private String userName;
-//    private String domainName;
-//    private String workstation;
-//    private byte[] encryptedRandomSessionKey;
-//    private final long negotiateFlags;
-//
-//    public NtlmAuthenticate(
-//            byte[] lmResponse, byte[] ntResponse,
-//            String userName, String domainName, String workstation,
-//            byte[] encryptedRandomSessionKey, long negotiateFlags
-//    ) {
-//        super();
-//        this.lmResponse = lmResponse;
-//        this.ntResponse = ntResponse;
-//        this.userName = userName;
-//        this.domainName = domainName;
-//        this.workstation = workstation;
-//        this.encryptedRandomSessionKey = encryptedRandomSessionKey;
-//        this.negotiateFlags = negotiateFlags;
-//    }
-//
-//    public void write(NtlmBuffer buffer) {
-//        buffer.putString("NTLMSSP\0", Charset.forName("UTF-8")); // Signature (8 bytes)
-//        buffer.putUInt32(0x03); // MessageType (4 bytes)
-//
-//        int offset = 80; // for the offset
-//
-//        offset = buffer.putOffsettedByteArray(lmResponse, offset); // LmChallengeFields (8 bytes) + LmChallenge
-//        offset = buffer.putOffsettedByteArray(ntResponse, offset); // NtChallengeResponseFields (8 bytes) + NtChallengeResponse
-//        offset = buffer.putOffsettedString(domainName, offset); // DomainNameFields (8 bytes) + DomainName
-//        offset = buffer.putOffsettedString(userName, offset); // UserNameFields (8 bytes) + UserName
-//        offset = buffer.putOffsettedString(workstation, offset); // WorkstationFields (8 bytes) + Workstation
-//        if (EnumWithValue.EnumUtils.isSet(negotiateFlags, NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH)) {
-//            offset = buffer.putOffsettedByteArray(encryptedRandomSessionKey, offset);
-//        } else {
-//            offset = buffer.putOffsettedByteArray(NtlmBuffer.EMPTY, offset);
-//        }
-//
-//        buffer.putUInt32(negotiateFlags); // Flags
-//
-//        if (EnumWithValue.EnumUtils.isSet(negotiateFlags, NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
-//            buffer.putBuffer(getVersion());
-//        }
-//
-//        // MIC
-//        // TODO Set MIC to HMAC_MD5(ExportedSessionKey, ConcatenationOf( CHALLENGE_MESSAGE, AUTHENTICATE_MESSAGE))
-//        byte[] MIC = new byte[16];
-//        buffer.putRawBytes(MIC);
-//    }
-//
-//    /**
-//     * MS-NLMP 2.2.2.10 VERSION
-//     * @return
-//     */
-//    public Buffer.PlainBuffer getVersion() {
-//        Buffer.PlainBuffer plainBuffer = new Buffer.PlainBuffer(Endian.LE);
-//        plainBuffer.putByte((byte)0x06); // Major Version 6
-//        plainBuffer.putByte((byte)0x01); // Minor Version 1
-//        plainBuffer.putUInt16(7600); // Product Build 7600
-//        byte[] reserved = {(byte)0x00, (byte)0x00, (byte)0x00};
-//        plainBuffer.putRawBytes(reserved); // Reserved (3 bytes)
-//        plainBuffer.putByte((byte)0x0F); // NTLM Revision Current
-//        return plainBuffer;
-//    }
-//}
