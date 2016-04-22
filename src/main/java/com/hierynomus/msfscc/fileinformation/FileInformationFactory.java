@@ -20,8 +20,8 @@ import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
-import com.hierynomus.smbj.common.SMBBuffer;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -37,7 +37,7 @@ public class FileInformationFactory {
         renBuf.skip(7);
         renBuf.putUInt64(0);
         renBuf.putUInt32(newName.length() * 2); // unicode
-        renBuf.putRawBytes(NtlmFunctions.unicode(newName));
+        renBuf.putRawBytes(newName.getBytes(Charset.forName("UTF-16")));
         return renBuf.getCompactData();
     }
 

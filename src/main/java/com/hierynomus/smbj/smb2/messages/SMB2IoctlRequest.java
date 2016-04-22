@@ -44,37 +44,30 @@ public class SMB2IoctlRequest extends SMB2Packet {
             FileInformationClass fileInfoClass,
             SecurityInformation securityInformation, byte[] buffer
     ) {
-        super(negotiatedDialect, SMB2MessageCommandCode.SMB2_IOCTL);
-        getHeader().setSessionId(sessionId);
-        getHeader().setTreeId(treeId);
+        super(negotiatedDialect, SMB2MessageCommandCode.SMB2_IOCTL, sessionId, treeId);
         this.controlCode = controlCode;
         this.fileId = fileId;
         this.inputData = inputData == null ? new byte[0] : buffer;
         this.fsctl = fsctl;
     }
 
-    /**
-     * @param smbBuffer
-     */
     @Override
     protected void writeTo(SMBBuffer smbBuffer) {
         smbBuffer.putUInt16(57); // StructureSize (2 bytes)
-        smbBuffer.putUInt16(0); // Reserved (2 bytes)
-        smbBuffer.putUInt32(controlCode.getValue());
-        fileId.write(smbBuffer);  // File Id
+        smbBuffer.putReserved2(); // Reserved (2 bytes)
+        smbBuffer.putUInt32(controlCode.getValue()); // CtlCode (4 bytes)
+        fileId.write(smbBuffer);  // FileId (16 bytes)
 
         int offset = SMB2Header.STRUCTURE_SIZE + 56;
-        if (inputData.length > 0) {
-            smbBuffer.putUInt32(offset); // InputOffset (4 bytes)
-            smbBuffer.putUInt32(inputData.length); // Input Count (4 bytes)
-        } else {
-            smbBuffer.putUInt32(0); // InputOffset (4 bytes)
-            smbBuffer.putUInt32(0); // Input Count (4 bytes)
-        }
+        smbBuffer.putUInt32(offset); // InputOffset (4 bytes)
+        smbBuffer.putUInt32(inputData.length); // InputCount (4 bytes)
+        smbBuffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH); // MaxInputResponse (4 bytes)
+        smbBuffer.putUInt32(0); // OutputOffset (4 bytes)
+        smbBuffer.putUInt32(0); // OutputCount (4 bytes)
         smbBuffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH); // MaxOutputResponse (4 bytes)
-        if (fsctl) smbBuffer.putUInt32(1);
-        else smbBuffer.putUInt32(0); // Flags (4 bytes)
-        smbBuffer.putUInt32(0); // Reserved (4 bytes)
+
+        smbBuffer.putUInt32(fsctl ? 1 : 0); // Flags (4 bytes)
+        smbBuffer.putReserved4(); // Reserved2 (4 bytes)
         if (inputData.length > 0) {
             smbBuffer.putRawBytes(inputData);
         }

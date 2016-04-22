@@ -26,14 +26,13 @@ import com.hierynomus.smbj.smb2.SMB2Packet;
 import java.util.EnumSet;
 
 /**
- * [MS-SMB2].pdf 2.2.13 SMB2 CREATE Request
+ * [MS-SMB2].pdf 2.2.35 SMB2 CHANGE_NOTIFY Request
  * <p>
  * TODO
  */
 public class SMB2ChangeNotifyRequest extends SMB2Packet {
 
     private static final int SMB2_WATCH_TREE = 0x0001;
-    private final SMB2Dialect dialect;
     private final EnumSet<SMB2CompletionFilter> completionFilter;
     private final SMB2FileId fileId;
     private final long outputBufferLength;
@@ -47,10 +46,7 @@ public class SMB2ChangeNotifyRequest extends SMB2Packet {
                                    long outputBufferLength,
                                    boolean recursive) {
 
-        super(smbDialect, SMB2MessageCommandCode.SMB2_CHANGE_NOTIFY);
-        getHeader().setSessionId(sessionId);
-        getHeader().setTreeId(treeId);
-        this.dialect = smbDialect;
+        super(smbDialect, SMB2MessageCommandCode.SMB2_CHANGE_NOTIFY, sessionId, treeId);
         this.fileId = fileId;
         this.completionFilter = completionFilter;
         this.outputBufferLength = outputBufferLength;
@@ -61,10 +57,10 @@ public class SMB2ChangeNotifyRequest extends SMB2Packet {
     protected void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(32); // StructureSize (2 bytes)
         int flags = (recursive) ? SMB2_WATCH_TREE : 0;
-        buffer.putUInt16(flags);
-        buffer.putUInt32(outputBufferLength);
-        fileId.write(buffer);
-        buffer.putUInt32(EnumWithValue.EnumUtils.toLong(completionFilter));
-        buffer.putUInt32(0);
+        buffer.putUInt16(flags); // Flags (2 bytes)
+        buffer.putUInt32(outputBufferLength); // OutputBufferLength (4 bytes)
+        fileId.write(buffer); // FileId (16 bytes)
+        buffer.putUInt32(EnumWithValue.EnumUtils.toLong(completionFilter)); // CompletionFilter (4 bytes)
+        buffer.putReserved4(); // Reserved (4 bytes)
     }
 }

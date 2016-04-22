@@ -31,7 +31,6 @@ import java.util.EnumSet;
 
 /**
  * [MS-SMB2].pdf 2.2.37 SMB2 QUERY_INFO Request
- * <p>
  */
 public class SMB2QueryInfoRequest extends SMB2Packet {
 
@@ -76,12 +75,12 @@ public class SMB2QueryInfoRequest extends SMB2Packet {
                 buffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH); // OutputBufferLength (4 bytes)
                 if (fileInformationClass == FileInformationClass.FileFullEaInformation) {
                     buffer.putUInt16(offset); // InputBufferOffset (2 bytes)
-                    buffer.putUInt16(0); // Reserved (2 bytes)
+                    buffer.putReserved2(); // Reserved (2 bytes)
                     buffer.putUInt32(inputBuffer.length); // Input Buffer length (4 bytes)
                     offset = BUFFER_OFFSET;
                 } else {
                     buffer.putUInt16(0); // InputBufferOffset (2 bytes)
-                    buffer.putUInt16(0); // Reserved (2 bytes)
+                    buffer.putReserved2(); // Reserved (2 bytes)
                     buffer.putUInt32(0); // Input Buffer length (4 bytes)
                 }
                 buffer.putUInt32(0); // Additional Information (4 bytes)
@@ -92,7 +91,7 @@ public class SMB2QueryInfoRequest extends SMB2Packet {
                 buffer.putByte((byte)fileSystemInformationClass.getValue()); // FileSystemInformationClass (1 byte)
                 buffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH); // OutputBufferLength (4 bytes)
                 buffer.putUInt16(0); // InputBufferOffset (2 bytes)
-                buffer.putUInt16(0); // Reserved (2 bytes)
+                buffer.putReserved2(); // Reserved (2 bytes)
                 buffer.putUInt32(0); // Input Buffer length (4 bytes)
                 buffer.putUInt32(0); // Additional Information (4 bytes)
                 buffer.putUInt32(0); // Flags (4 bytes)
@@ -102,7 +101,7 @@ public class SMB2QueryInfoRequest extends SMB2Packet {
                 buffer.putByte((byte)0);
                 buffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH); // OutputBufferLength (4 bytes)
                 buffer.putUInt16(0); // InputBufferOffset (2 bytes)
-                buffer.putUInt16(0); // Reserved (2 bytes)
+                buffer.putReserved2(); // Reserved (2 bytes)
                 buffer.putUInt32(0); // Input Buffer length (4 bytes)
                 buffer.putUInt32(EnumWithValue.EnumUtils.toLong(securityInformation)); // Additional Information (4 bytes)
                 buffer.putUInt32(0); // Flags (4 bytes)
@@ -112,7 +111,7 @@ public class SMB2QueryInfoRequest extends SMB2Packet {
                 buffer.putByte((byte)0);
                 buffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH); // OutputBufferLength (4 bytes)
                 buffer.putUInt16(offset); // InputBufferOffset (2 bytes)
-                buffer.putUInt16(0); // Reserved (2 bytes)
+                buffer.putReserved2(); // Reserved (2 bytes)
                 buffer.putUInt32(inputBuffer.length); // Input Buffer length (4 bytes)
                 buffer.putUInt32(0); // Additional Information (4 bytes)
                 buffer.putUInt32(0); // Flags (4 bytes)

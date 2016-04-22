@@ -48,20 +48,19 @@ public class SMB2CreateResponse extends SMB2Packet {
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         if (header.getStatus() == SMB2StatusCode.STATUS_SUCCESS) {
-            buffer.readUInt16(); // Structure Size (2 bytes)
-            buffer.readByte(); // OpLock Level (1 byte) - Not used yet
+            buffer.readUInt16(); // StructureSize (2 bytes)
+            buffer.readByte(); // OpLockLevel (1 byte) - Not used yet
             buffer.readByte(); // Flags (1 byte) - Only for 3.x else Reserved
-            buffer.readUInt32(); // Create Action (4 bytes) - Ignored for now
+            buffer.readUInt32(); // CreateAction (4 bytes) - Ignored for now
             creationTime = MsDataTypes.readFileTime(buffer); // CreationTime (8 bytes)
             lastAccessTime = MsDataTypes.readFileTime(buffer); // LastAccessTime (8 bytes)
             lastWriteTime = MsDataTypes.readFileTime(buffer); // LastWriteTime (8 bytes)
             changeTime = MsDataTypes.readFileTime(buffer); // ChangeTime (8 bytes)
-            buffer.readRawBytes(8); // Allocation Size (8 bytes) - Ignore
+            buffer.readRawBytes(8); // AllocationSize (8 bytes) - Ignore
             buffer.readRawBytes(8); // EndOfFile (8 bytes)
-            fileAttributes = EnumWithValue.EnumUtils.toEnumSet(buffer.readUInt32(),
-                    FileAttributes.class);
-            buffer.readUInt32(); // Reserved2 (4 bytes)
-            fileId = SMB2FileId.read(buffer);
+            fileAttributes = EnumWithValue.EnumUtils.toEnumSet(buffer.readUInt32(), FileAttributes.class); // FileAttributes (4 bytes)
+            buffer.skip(2); // Reserved2 (4 bytes)
+            fileId = SMB2FileId.read(buffer); // FileId (16 bytes)
 
             // Ignore create contexts and the buffer.
             buffer.readUInt32(); // CreateContextsOffset (4 bytes)

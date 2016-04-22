@@ -16,14 +16,9 @@
 package com.hierynomus.smbj.smb2.messages;
 
 import com.hierynomus.msfscc.FileInformationClass;
-import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.smb2.SMB2Dialect;
-import com.hierynomus.smbj.smb2.SMB2FileId;
-import com.hierynomus.smbj.smb2.SMB2Header;
-import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
-import com.hierynomus.smbj.smb2.SMB2Packet;
+import com.hierynomus.smbj.smb2.*;
 
 import java.util.EnumSet;
 
@@ -35,7 +30,7 @@ public class SMB2QueryDirectoryRequest extends SMB2Packet {
 
     long MAX_OUTPUT_BUFFER_LENGTH = 64 * 1024;
 
-    FileInformationClass fileInformationClass;
+    private FileInformationClass fileInformationClass;
     private final EnumSet<SMB2QueryDirectoryFlags> flags;
     private final long fileIndex;
     private final SMB2FileId fileId;
@@ -63,7 +58,7 @@ public class SMB2QueryDirectoryRequest extends SMB2Packet {
     @Override
     protected void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(33); // StructureSize (2 bytes)
-        buffer.putByte((byte)fileInformationClass.getValue()); // FileInformationClass (1 byte)
+        buffer.putByte((byte) fileInformationClass.getValue()); // FileInformationClass (1 byte)
         buffer.putByte((byte) EnumWithValue.EnumUtils.toLong(flags)); // Flags (1 byte)
         buffer.putUInt32(fileIndex); // FileIndex (4 bytes)
         fileId.write(buffer); // FileId (16 bytes)
@@ -73,10 +68,10 @@ public class SMB2QueryDirectoryRequest extends SMB2Packet {
         // but getting invalid parameter status, so use a pattern of "*" if no pattern.
         if (finalSearchPattern == null) finalSearchPattern = "*";
         buffer.putUInt16(offset); // FileNameOffset (2 bytes)
-        buffer.putUInt16(finalSearchPattern.length()*2); // FileNameLength (2 bytes)
+        buffer.putUInt16(finalSearchPattern.length() * 2); // FileNameLength (2 bytes)
 
         buffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH); // OutputBufferLength (4 bytes)
-        buffer.putRawBytes(NtlmFunctions.unicode(finalSearchPattern));
+        buffer.putString(finalSearchPattern);
     }
 
     public enum SMB2QueryDirectoryFlags implements EnumWithValue<SMB2QueryDirectoryFlags> {

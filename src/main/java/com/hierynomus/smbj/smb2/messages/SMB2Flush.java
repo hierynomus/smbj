@@ -39,7 +39,7 @@ public class SMB2Flush extends SMB2Packet {
     @Override
     protected void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(24); // StructureSize (2 bytes)
-        buffer.putReserved(2); // Reserved1 (2 bytes)
+        buffer.putReserved2(); // Reserved1 (2 bytes)
         buffer.putReserved4(); // Reserved2 (4 bytes)
         fileId.write(buffer);
     }

@@ -36,8 +36,8 @@ public class SMB2Logoff extends SMB2Packet {
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
-        buffer.putUInt16(4);
-        buffer.putReserved(2);
+        buffer.putUInt16(4); // StructureSize (2 bytes)
+        buffer.putReserved(2); // Reserved (2 bytes)
     }
 
     @Override

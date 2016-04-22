@@ -35,7 +35,7 @@ public class NtlmAuthenticate extends NtlmPacket {
     private byte[] domainName;
     private byte[] workstation;
     private byte[] encryptedRandomSessionKey;
-    private long negotiateFlags = NtlmNegotiate.DEFAULT_FLAGS;
+    private long negotiateFlags;
 
     public NtlmAuthenticate(
             byte[] lmResponse, byte[] ntResponse,

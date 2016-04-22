@@ -22,17 +22,17 @@ import com.hierynomus.protocol.commons.EnumWithValue;
  */
 public enum FileSysemInformationClass implements EnumWithValue<FileSysemInformationClass> {
 
-    FileFsVolumeInformation(0x01),
-    FileFsLabelInformation(0x02),
-    FileFsSizeInformation(0x03),
-    FileFsDeviceInformation(0x04),
-    FileFsAttributeInformation(0x05),
-    FileFsControlInformation(0x06),
-    FileFsFullSizeInformation(0x07),
-    FileFsObjectIdInformation(0x08),
-    FileFsDriverPathInformation(0x09),
-    FileFsVolumeFlagsInformation(0x0A),
-    FileFsSectorSizeInformation(0x0B);
+    FileFsVolumeInformation(0x01L),
+    FileFsLabelInformation(0x02L),
+    FileFsSizeInformation(0x03L),
+    FileFsDeviceInformation(0x04L),
+    FileFsAttributeInformation(0x05L),
+    FileFsControlInformation(0x06L),
+    FileFsFullSizeInformation(0x07L),
+    FileFsObjectIdInformation(0x08L),
+    FileFsDriverPathInformation(0x09L),
+    FileFsVolumeFlagsInformation(0x0AL),
+    FileFsSectorSizeInformation(0x0BL);
 
     private long value;
 

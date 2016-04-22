@@ -42,7 +42,7 @@ public class SMB2ResponseMessageFactory {
             case SMB2_TREE_DISCONNECT: // TREE_DISCONNECT_RESPONSE
                 return new SMB2TreeDisconnectResponse().read(buffer);
             case SMB2_LOGOFF: // SESSION_LOGOFF
-                return new SMB2LogoffResponse().read(buffer);
+                return new SMB2Logoff().read(buffer);
             case SMB2_CREATE: // CREATE_RESPONSE
                 return new SMB2CreateResponse().read(buffer);
             case SMB2_CHANGE_NOTIFY: // CHANGE_NOTIFY_RESPONSE
@@ -50,7 +50,7 @@ public class SMB2ResponseMessageFactory {
             case SMB2_QUERY_DIRECTORY: // QUERY_RESPONSE
                 return new SMB2QueryDirectoryResponse().read(buffer);
             case SMB2_ECHO: // ECHO_RESPONSE
-                return new SMB2EchoResponse().read(buffer);
+                return new SMB2Echo().read(buffer);
             case SMB2_READ: // READ_RESPONSE
                 return new SMB2ReadResponse().read(buffer);
             case SMB2_CLOSE: // READ_RESPONSE

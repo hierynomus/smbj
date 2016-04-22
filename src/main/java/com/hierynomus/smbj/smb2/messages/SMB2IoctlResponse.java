@@ -22,6 +22,8 @@ import com.hierynomus.smbj.smb2.SMB2FileId;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 import com.hierynomus.smbj.smb2.SMB2StatusCode;
 
+import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.valueOf;
+
 /**
  * [MS-SMB2].pdf 2.2.32 SMB2 IOCTL Response
  * <p>
@@ -45,17 +47,14 @@ public class SMB2IoctlResponse extends SMB2Packet {
 
         buffer.skip(2); // StructureSize (2 bytes)
         buffer.skip(2); // Reserved (2 bytes)
-        controlCode = EnumWithValue.EnumUtils.valueOf(buffer.readUInt32(), SMB2IoctlRequest.ControlCode.class, null);
-        fileId = SMB2FileId.read(buffer);
+        controlCode = valueOf(buffer.readUInt32(), SMB2IoctlRequest.ControlCode.class, null); // CtlCode (4 bytes)
+        fileId = SMB2FileId.read(buffer); // FileId (16 bytes)
 
-        int outputBufferOffset = buffer.readUInt16(); // Buffer Offset
-        long outBufferLength = buffer.readUInt32(); // Buffer length
-        outputBuffer = buffer.readRawBytes((int)outBufferLength); // FileId (16 bytes)
         int inputOffset = buffer.readUInt32AsInt(); // Input Offset (4 bytes)
         int inputCount  = buffer.readUInt32AsInt(); // Input Count (4 bytes)
         int outputOffset = buffer.readUInt32AsInt(); // Input Offset (4 bytes)
         int outputCount  = buffer.readUInt32AsInt(); // Input Count (4 bytes)
-        buffer.skip(4); // Flag (4 bytes)
+        buffer.skip(4); // Flags (4 bytes)
         buffer.skip(4); // Reserved2 (4 bytes)
 
         if (inputCount > 0) {

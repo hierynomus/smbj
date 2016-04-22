@@ -13,25 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.smb2.messages;
+package com.hierynomus.smbj.smb2;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.smb2.SMB2Packet;
+import java.nio.charset.Charset;
 
-/**
- * [MS-SMB2].pdf 2.2.29 SMB2 ECHO Response
- *
- */
-public class SMB2EchoResponse extends SMB2Packet {
+public class SMB2Functions {
+    private static final byte[] EMPTY_BYTES = new byte[0];
+    private static final Charset UTF_16 = Charset.forName("UTF-16");
 
-    public SMB2EchoResponse() {
-            super();
+    public static byte[] unicode(String s) {
+        if (s == null) {
+            return EMPTY_BYTES;
+        } else {
+            return s.getBytes(UTF_16);
+        }
     }
-
-
-    @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
-    }
-
 }

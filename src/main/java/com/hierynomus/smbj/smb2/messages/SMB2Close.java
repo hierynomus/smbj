@@ -43,10 +43,8 @@ public class SMB2Close extends SMB2Packet {
     public SMB2Close() {
     }
 
-    public SMB2Close(SMB2Dialect smbDialect, SMB2FileId fileId, long sessionId, long treeId) {
-        super(smbDialect, SMB2MessageCommandCode.SMB2_CLOSE);
-        getHeader().setSessionId(sessionId);
-        getHeader().setTreeId(treeId);
+    public SMB2Close(SMB2Dialect smbDialect, long sessionId, long treeId, SMB2FileId fileId) {
+        super(smbDialect, SMB2MessageCommandCode.SMB2_CLOSE, sessionId, treeId);
         this.fileId = fileId;
     }
 

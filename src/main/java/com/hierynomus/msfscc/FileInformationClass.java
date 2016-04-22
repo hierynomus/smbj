@@ -18,8 +18,8 @@ package com.hierynomus.msfscc;
 import com.hierynomus.protocol.commons.EnumWithValue;
 
 /**
- * MS-FSCC 2.4 File Information Classes
- * SMB2 2.2.33 SMB2 QUERY_DIRECTORY - FileInformationClass
+ * [MS-FSCC].pdf 2.4 File Information Classes
+ * [MS-SMB2].pdf 2.2.33 SMB2 QUERY_DIRECTORY - FileInformationClass
  */
 public enum FileInformationClass implements EnumWithValue<FileInformationClass> {
 
