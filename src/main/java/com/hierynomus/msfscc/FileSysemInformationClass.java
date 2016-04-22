@@ -1,4 +1,5 @@
 /*
+ * Copyright (C)2016 - SMBJ Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,26 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.smb2;
+package com.hierynomus.msfscc;
 
 import com.hierynomus.protocol.commons.EnumWithValue;
 
 /**
- * SMB2 2.2.33 SMB2 QUERY_DIRECTORY - FileInformationClass
- * MS-FSCC 2.4 File Information Classes
+ * MS-FSCC 2.5 File System Information Classes
  */
-public enum SMB2FileInformationClass implements EnumWithValue<SMB2FileInformationClass> {
+public enum FileSysemInformationClass implements EnumWithValue<FileSysemInformationClass> {
 
-    FileDirectoryInformation(0x01),
-    FileFullDirectoryInformation(0x02),
-    FileIdFullDirectoryInformation(0x26),
-    FileBothDirectoryInformation(0x03),
-    FileIdBothDirectoryInformation(0x25),
-    FileNamesInformation(0x0C);
+    FileFsVolumeInformation(0x01),
+    FileFsLabelInformation(0x02),
+    FileFsSizeInformation(0x03),
+    FileFsDeviceInformation(0x04),
+    FileFsAttributeInformation(0x05),
+    FileFsControlInformation(0x06),
+    FileFsFullSizeInformation(0x07),
+    FileFsObjectIdInformation(0x08),
+    FileFsDriverPathInformation(0x09),
+    FileFsVolumeFlagsInformation(0x0A),
+    FileFsSectorSizeInformation(0x0B);
 
     private long value;
 
-    SMB2FileInformationClass(long value) {
+    FileSysemInformationClass(long value) {
         this.value = value;
     }
 
