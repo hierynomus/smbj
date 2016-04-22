@@ -13,16 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj;
+package com.hierynomus.msdtyp
 
-import com.hierynomus.smbj.smb2.SMB2Dialect;
+import spock.lang.Specification
 
-import java.util.EnumSet;
-import java.util.Random;
+class SIDTest extends Specification {
 
-public interface Config {
-
-    Random getRandomProvider();
-
-    EnumSet<SMB2Dialect> getSupportedDialects();
+    def "SID.EVERYONE should be 'S-1-1-0'"() {
+        expect:
+        SID.EVERYONE.toString() == "S-1-1-0"
+    }
 }

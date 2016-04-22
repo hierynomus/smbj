@@ -29,7 +29,7 @@ public class SMB2ReadRequest extends SMB2Packet {
 
     final long READ_SIZE = 64 * 1024;
     private final long offset;
-    private SMB2FileId fileId;
+    private final SMB2FileId fileId;
 
     public SMB2ReadRequest(
             SMB2Dialect negotiatedDialect, SMB2FileId fileId,

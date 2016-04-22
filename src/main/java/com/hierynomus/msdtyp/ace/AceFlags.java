@@ -13,16 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj;
+package com.hierynomus.msdtyp.ace;
 
-import com.hierynomus.smbj.smb2.SMB2Dialect;
+import com.hierynomus.protocol.commons.EnumWithValue;
 
-import java.util.EnumSet;
-import java.util.Random;
+public enum AceFlags implements EnumWithValue<AceFlags> {
+    CONTAINER_INHERIT_ACE(0x02L),
+    FAILED_ACCESS_ACE_FLAG(0x80L),
+    INHERIT_ONLY_ACE(0x08L),
+    INHERITED_ACE(0x10L),
+    NO_PROPAGATE_INHERIT_ACE(0x04L),
+    OBJECT_INHERIT_ACE(0x01L),
+    SUCCESSFUL_ACCESS_ACE_FLAG(0x40L);
 
-public interface Config {
+    private long value;
 
-    Random getRandomProvider();
+    AceFlags(long value) {
+        this.value = value;
+    }
 
-    EnumSet<SMB2Dialect> getSupportedDialects();
+    public long getValue() {
+        return value;
+    }
 }

@@ -43,7 +43,6 @@ public enum SMB2DirectoryAccessMask implements EnumWithValue<SMB2DirectoryAccess
     GENERIC_WRITE(0x40000000L),
     GENERIC_READ(0x80000000L);
 
-
     private long value;
 
     SMB2DirectoryAccessMask(long value) {
