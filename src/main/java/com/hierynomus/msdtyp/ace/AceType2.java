@@ -50,8 +50,16 @@ class AceType2 extends ACE {
     protected void writeTo(SMBBuffer buffer) {
         buffer.putUInt32(accessMask);
         buffer.putUInt32(toLong(flags));
-        MsDataTypes.putGuid(objectType, buffer);
-        MsDataTypes.putGuid(inheritedObjectType, buffer);
+        if (flags.contains(AceObjectFlags.ACE_OBJECT_TYPE_PRESENT)) {
+            MsDataTypes.putGuid(objectType, buffer);
+        } else {
+            buffer.putReserved(16);
+        }
+        if (flags.contains(AceObjectFlags.ACE_INHERITED_OBJECT_TYPE_PRESENT)) {
+            MsDataTypes.putGuid(inheritedObjectType, buffer);
+        } else {
+            buffer.putReserved(16);
+        }
         getSid().write(buffer);
     }
 

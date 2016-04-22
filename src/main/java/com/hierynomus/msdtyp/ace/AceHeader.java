@@ -24,6 +24,9 @@ import java.util.EnumSet;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.valueOf;
 
+/**
+ * [MS-DTYP].pdf 2.4.4.1 ACE_HEADER
+ */
 public class AceHeader {
 
     private AceType aceType;

@@ -17,34 +17,42 @@ package com.hierynomus.msdtyp;
 
 import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.Check;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 /**
  * [MS-DTYP].pdf 2.4.2 SecurityIdentifier SID
  */
 public class SID {
+    public static SID EVERYONE = new SID((byte) 1, new byte[]{0, 0, 0, 0, 0, 1}, new long[]{0});
 
     private byte revision;
-    private int subAuthorityCount;
     private byte[] sidIdentifierAuthority;
     private long[] subAuthorities;
 
+    public SID() {
+    }
+
+    private SID(byte revision, byte[] sidIdentifierAuthority, long[] subAuthorities) {
+        this.revision = revision;
+        this.sidIdentifierAuthority = sidIdentifierAuthority;
+        this.subAuthorities = subAuthorities;
+    }
+
     public void write(SMBBuffer buffer) {
         buffer.putByte(revision); // Revision (1 byte)
-        buffer.putByte((byte) subAuthorityCount); // SubAuthorityCount (1 byte)
+        buffer.putByte((byte) subAuthorities.length); // SubAuthorityCount (1 byte)
         if (sidIdentifierAuthority.length > 6) {
             throw new IllegalArgumentException("The IdentifierAuthority can not be larger than 6 bytes");
         }
         buffer.putRawBytes(sidIdentifierAuthority); // IdentifierAuthority (6 bytes)
-        for (int i = 0; i < subAuthorityCount; i++) {
+        for (int i = 0; i < subAuthorities.length; i++) {
             buffer.putUInt32(subAuthorities[i]); // SubAuthority (variable * 4 bytes)
         }
     }
 
     public void read(SMBBuffer buffer) throws Buffer.BufferException {
         revision = buffer.readByte(); // Revision (1 byte)
-        subAuthorityCount = buffer.readByte(); // SubAuthorityCount (1 byte)
+        int subAuthorityCount = buffer.readByte(); // SubAuthorityCount (1 byte)
         sidIdentifierAuthority = buffer.readRawBytes(6); // IdentifierAuthority (6 bytes)
         subAuthorities = new long[subAuthorityCount];
         for (int i = 0; i < subAuthorityCount; i++) {
@@ -53,7 +61,7 @@ public class SID {
     }
 
     public int byteCount() {
-        return 1 + 1 + 6 + subAuthorityCount * 4;
+        return 1 + 1 + 6 + subAuthorities.length * 4;
     }
 
     /**
@@ -64,7 +72,7 @@ public class SID {
         StringBuilder b = new StringBuilder("S-");
         b.append(revision & 0xFF).append("-");
 
-        if (sidIdentifierAuthority[0] != (byte)0 || sidIdentifierAuthority[1] != (byte)0) {
+        if (sidIdentifierAuthority[0] != (byte) 0 || sidIdentifierAuthority[1] != (byte) 0) {
             b.append("0x");
             b.append(ByteArrayUtils.printHex(sidIdentifierAuthority, 0, 6));
         } else {
@@ -77,7 +85,7 @@ public class SID {
             b.append(id);
         }
 
-        for (int i = 0; i < subAuthorityCount ; i++)
+        for (int i = 0; i < subAuthorities.length; i++)
             b.append("-").append(subAuthorities[i] & 0xFFFFFFFFL);
 
         return b.toString();
