@@ -34,7 +34,7 @@ public class FileInformationFactory {
     public static byte[] getRenameInfo(boolean replaceIfExists, String newName) {
         Buffer.PlainBuffer renBuf = new Buffer.PlainBuffer(Endian.LE);
         renBuf.putByte((byte) (replaceIfExists ? 1 : 0));
-        renBuf.skip(7);
+        renBuf.putRawBytes(new byte[]{0, 0, 0, 0, 0, 0, 0});
         renBuf.putUInt64(0);
         renBuf.putUInt32(newName.length() * 2); // unicode
         renBuf.putRawBytes(newName.getBytes(Charset.forName("UTF-16")));

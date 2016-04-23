@@ -104,7 +104,7 @@ public class NtlmChallenge extends NtlmPacket {
         }
     }
 
-    private void readVersion(Buffer.PlainBuffer buffer) {
+    private void readVersion(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
         if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
             buffer.skip(8); // TODO read version
         } else {
