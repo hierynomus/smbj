@@ -51,15 +51,15 @@ public class SMB2WriteRequest extends SMB2Packet {
     protected void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(49); // StructureSize (2 bytes)
         short dataOffset = SMB2Header.STRUCTURE_SIZE + 48;
-        buffer.putUInt16(dataOffset); // OffSet (2 bytes)
-        buffer.putUInt32(length); // Length of data (4 bytes)
+        buffer.putUInt16(dataOffset); // DataOffSet (2 bytes)
+        buffer.putUInt32(length); // Length (4 bytes)
         buffer.putUInt64(offset); // Offset (8 bytes)
-        fileId.write(buffer);  // File Id
+        fileId.write(buffer);  // FileId (16 bytes)
         buffer.putUInt32(0); // Channel (4 bytes)
-        buffer.putUInt32(remainingBytes); // Remaining bytes (4 bytes)
+        buffer.putUInt32(remainingBytes); // RemainingBytes (4 bytes)
         buffer.putUInt16(0); // WriteChannelInfoOffset (2 bytes)
         buffer.putUInt16(0); // WriteChannelInfoLength (2 bytes)
         buffer.putUInt32(0); // Flags (4 bytes)
-        buffer.putRawBytes(data); // Buffer
+        buffer.putRawBytes(data); // Buffer (variable)
     }
 }

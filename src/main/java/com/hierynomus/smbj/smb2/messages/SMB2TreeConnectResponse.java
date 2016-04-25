@@ -41,11 +41,11 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         if (header.getStatus() == SMB2StatusCode.STATUS_SUCCESS) {
             buffer.skip(2); // StructureSize (2 bytes)
-            shareType = buffer.readByte(); // shareType (1 byte)
+            shareType = buffer.readByte(); // ShareType (1 byte)
             buffer.readByte(); // Reserved (1 byte)
-            shareFlags = buffer.readUInt32();
-            capabilities = buffer.readUInt32(); // Capabilities (16 bytes)
-            maximalAccess = buffer.readUInt32();
+            shareFlags = buffer.readUInt32(); // ShareFlags (4 bytes)
+            capabilities = buffer.readUInt32(); // Capabilities (4 bytes)
+            maximalAccess = buffer.readUInt32(); // MaximalAccess (4 bytes)
         }
     }
 

@@ -33,28 +33,41 @@ public class SMB2ResponseMessageFactory {
         // Reset read position so that the message works.
         buffer.rpos(0);
         switch (command) {
-            case SMB2_NEGOTIATE: // SMB2_NEGOTIATE
+            case SMB2_NEGOTIATE:
                 return new SMB2NegotiateResponse().read(buffer);
-            case SMB2_SESSION_SETUP: // SMB2_SESSION_SETUP
+            case SMB2_SESSION_SETUP:
                 return new SMB2SessionSetup().read(buffer);
-            case SMB2_TREE_CONNECT: // TREE_CONNECT_RESPONSE
+            case SMB2_TREE_CONNECT:
                 return new SMB2TreeConnectResponse().read(buffer);
-            case SMB2_TREE_DISCONNECT: // TREE_DISCONNECT_RESPONSE
-                return new SMB2TreeDisconnectResponse().read(buffer);
-            case SMB2_LOGOFF: // SESSION_LOGOFF
+            case SMB2_TREE_DISCONNECT:
+                return new SMB2TreeDisconnect().read(buffer);
+            case SMB2_LOGOFF:
                 return new SMB2Logoff().read(buffer);
-            case SMB2_CREATE: // CREATE_RESPONSE
+            case SMB2_CREATE:
                 return new SMB2CreateResponse().read(buffer);
-            case SMB2_CHANGE_NOTIFY: // CHANGE_NOTIFY_RESPONSE
+            case SMB2_CHANGE_NOTIFY:
                 return new SMB2ChangeNotifyResponse().read(buffer);
-            case SMB2_QUERY_DIRECTORY: // QUERY_RESPONSE
+            case SMB2_QUERY_DIRECTORY:
                 return new SMB2QueryDirectoryResponse().read(buffer);
-            case SMB2_ECHO: // ECHO_RESPONSE
+            case SMB2_ECHO:
                 return new SMB2Echo().read(buffer);
-            case SMB2_READ: // READ_RESPONSE
+            case SMB2_READ:
                 return new SMB2ReadResponse().read(buffer);
-            case SMB2_CLOSE: // READ_RESPONSE
+            case SMB2_CLOSE:
                 return new SMB2Close().read(buffer);
+            case SMB2_FLUSH:
+                return new SMB2Flush().read(buffer);
+            case SMB2_WRITE:
+                return new SMB2WriteResponse().read(buffer);
+            case SMB2_IOCTL:
+                return new SMB2IoctlResponse().read(buffer);
+            case SMB2_QUERY_INFO:
+                return new SMB2QueryInfoResponse().read(buffer);
+            case SMB2_SET_INFO:
+                return new SMB2SetInfoResponse().read(buffer);
+            case SMB2_LOCK:
+            case SMB2_CANCEL:
+            case SMB2_OPLOCK_BREAK:
             default:
                 throw new TransportException("Unknown SMB2 Message Command type: " + command);
 

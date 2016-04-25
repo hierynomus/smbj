@@ -44,7 +44,7 @@ public class SMB2ReadResponse extends SMB2Packet {
             buffer.readUInt32AsInt(); // DataRemaining (4 bytes)
             buffer.skip(4); // Reserved2 (4 bytes)
             buffer.rpos(dataOffset);
-            data = buffer.readRawBytes(dataLength);
+            data = buffer.readRawBytes(dataLength); // Buffer (variable)
         }
     }
 

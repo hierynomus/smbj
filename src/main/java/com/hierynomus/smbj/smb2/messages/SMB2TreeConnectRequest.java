@@ -17,10 +17,7 @@ package com.hierynomus.smbj.smb2.messages;
 
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.smb2.SMB2Dialect;
-import com.hierynomus.smbj.smb2.SMB2Header;
-import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
-import com.hierynomus.smbj.smb2.SMB2Packet;
+import com.hierynomus.smbj.smb2.*;
 
 /**
  * [MS-SMB2].pdf 2.2.9 SMB2 TREE_CONNECT Request
@@ -42,11 +39,9 @@ public class SMB2TreeConnectRequest extends SMB2Packet {
         buffer.putUInt16(9); // StructureSize (2 bytes)
         putFlags(buffer); // Flags (2 bytes)
         buffer.putUInt16(SMB2Header.STRUCTURE_SIZE + 8); // PathOffset (2 bytes) (header structure size + msg structure size)
-        buffer.putUInt16(NtlmFunctions.unicode(smbPath).length);
-        buffer.putString(smbPath);
+        buffer.putStringLengthUInt16(smbPath); // PathLength (2 bytes)
+        buffer.putString(smbPath); // Buffer (variable)
     }
-
-
 
     private void putFlags(SMBBuffer buffer) {
         if (dialect == SMB2Dialect.SMB_3_1_1 && isClusterReconnect) {

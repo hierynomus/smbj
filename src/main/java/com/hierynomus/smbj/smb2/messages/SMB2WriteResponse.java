@@ -38,10 +38,10 @@ public class SMB2WriteResponse extends SMB2Packet {
         if (header.getStatus() == SMB2StatusCode.STATUS_SUCCESS) {
             buffer.skip(2); // StructureSize (2 bytes)
             buffer.skip(2); // Reserved (2 bytes)
-            bytesWritten = buffer.readUInt32();
-            buffer.skip(4); // Remaining - Reserved (4 bytes)
-            buffer.skip(2); // WriteChannelInfoOffset (2 bytes)
-            buffer.skip(2); // WriteChannelInfoLength (2 bytes)
+            bytesWritten = buffer.readUInt32(); // Count (4 bytes)
+            buffer.skip(4); // Remaining (4 bytes) - Reserved do not use
+            buffer.skip(2); // WriteChannelInfoOffset (2 bytes) - Reserved do not use
+            buffer.skip(2); // WriteChannelInfoLength (2 bytes) - Reserved do not use
         }
     }
 

@@ -65,7 +65,7 @@ public class SMB2SetInfoRequest extends SMB2Packet {
         smbBuffer.putReserved2(); // Reserved (2 bytes)
         smbBuffer.putUInt32(securityInformation == null ? 0 : securityInformation.getValue()); // AdditionalInformation (4 bytes)
         fileId.write(smbBuffer);  // FileId (16 bytes)
-        smbBuffer.putRawBytes(buffer);
+        smbBuffer.putRawBytes(buffer); // Buffer (variable)
     }
 
     public enum SMB2InfoType implements EnumWithValue<SMB2InfoType> {

@@ -49,10 +49,9 @@ public class SMB2ReadRequest extends SMB2Packet {
         fileId.write(buffer);  // FileId (16 bytes)
         buffer.putUInt32(1); // MinimumCount (4 bytes)
         buffer.putUInt32(0); // Channel (4 bytes)
-        //buffer.putUInt32(READ_SIZE); // Remaining bytes (4 bytes)
         buffer.putUInt32(0); // RemainingBytes (4 bytes)
         buffer.putUInt16(0); // ReadChannelInfoOffset (2 bytes)
         buffer.putUInt16(0); // ReadChannelInfoLength (2 bytes)
-        buffer.putByte((byte) 0); // Buffer
+        buffer.putByte((byte) 0); // Buffer (variable)
     }
 }

@@ -26,6 +26,8 @@ import com.hierynomus.smbj.smb2.SMB2Packet;
 
 import java.util.EnumSet;
 
+import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
+
 /**
  * [MS-SMB2].pdf 2.2.5 SMB2_SESSTION_SETUP Request / 2.2.6 SMB2_SESSION_SETUP Response
  */
@@ -64,8 +66,7 @@ public class SMB2SessionSetup extends SMB2Packet {
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.readUInt16(); // StructureSize (2 bytes) (always 9)
-        sessionFlags = EnumWithValue.EnumUtils.toEnumSet(
-                buffer.readUInt16(), SMB2SessionFlags.class); // SessionFlags (2 bytes)
+        sessionFlags = toEnumSet(buffer.readUInt16(), SMB2SessionFlags.class); // SessionFlags (2 bytes)
         int securityBufferOffset = buffer.readUInt16(); // SecurityBufferOffset (2 bytes)
         int securityBufferLength = buffer.readUInt16(); // SecurityBufferLength (2 bytes)
         securityBuffer = readSecurityBuffer(buffer, securityBufferOffset, securityBufferLength); // SecurityBuffer (variable)
