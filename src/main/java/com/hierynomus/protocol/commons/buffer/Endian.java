@@ -231,7 +231,7 @@ public abstract class Endian {
         public <T extends Buffer<T>> long readLong(Buffer<T> buffer) throws Buffer.BufferException {
             long result = 0;
             byte[] bytes = buffer.readRawBytes(8);
-            for (int i = 7; i >= 0; i++) {
+            for (int i = 7; i >= 0; i--) {
                 result <<= 8;
                 result |= (bytes[i] & 0xFF);
             }

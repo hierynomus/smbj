@@ -653,8 +653,10 @@ public class Buffer<T extends Buffer<T>> {
      *
      * @param length The number of bytes to skip
      * @return this
+     * @throws BufferException If this would cause an underflow (less than <code>length</code>) bytes available).
      */
-    public Buffer<T> skip(int length) {
+    public Buffer<T> skip(int length) throws BufferException {
+        ensureAvailable(length);
         rpos += length;
         return this;
     }

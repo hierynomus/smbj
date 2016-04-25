@@ -18,17 +18,17 @@ package com.hierynomus.ntlm.messages;
 import com.hierynomus.protocol.commons.EnumWithValue;
 
 public enum AvId implements EnumWithValue<AvId> {
-    MsvAvEOL(0x0),
-    MsvAvNbComputerName(0x01),
-    MsvAvNdDomainName(0x02),
-    MsvAvDnsComputerName(0x03),
-    MsvAvDnsDomainName(0x04),
-    MsvAvDnsTreeName(0x05),
-    MsvAvFlags(0x06),
-    MsvAvTimestamp(0x07),
-    MsvAvSingleHost(0x08),
-    MsvAvTargetName(0x09),
-    MsvChannelBindings(0x0a);
+    MsvAvEOL(0x00L),
+    MsvAvNbComputerName(0x01L),
+    MsvAvNdDomainName(0x02L),
+    MsvAvDnsComputerName(0x03L),
+    MsvAvDnsDomainName(0x04L),
+    MsvAvDnsTreeName(0x05L),
+    MsvAvFlags(0x06L),
+    MsvAvTimestamp(0x07L),
+    MsvAvSingleHost(0x08L),
+    MsvAvTargetName(0x09L),
+    MsvChannelBindings(0x0AL);
 
     private final long value;
 

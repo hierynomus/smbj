@@ -15,15 +15,10 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
-import com.hierynomus.ntlm.functions.NtlmFunctions;
+import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.smb2.SMB2Dialect;
-import com.hierynomus.smbj.smb2.SMB2FileId;
-import com.hierynomus.smbj.smb2.SMB2FileInformationClass;
-import com.hierynomus.smbj.smb2.SMB2Header;
-import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
-import com.hierynomus.smbj.smb2.SMB2Packet;
+import com.hierynomus.smbj.smb2.*;
 
 import java.util.EnumSet;
 
@@ -35,7 +30,7 @@ public class SMB2QueryDirectoryRequest extends SMB2Packet {
 
     long MAX_OUTPUT_BUFFER_LENGTH = 64 * 1024;
 
-    SMB2FileInformationClass fileInformationClass;
+    private FileInformationClass fileInformationClass;
     private final EnumSet<SMB2QueryDirectoryFlags> flags;
     private final long fileIndex;
     private final SMB2FileId fileId;
@@ -44,43 +39,33 @@ public class SMB2QueryDirectoryRequest extends SMB2Packet {
     public SMB2QueryDirectoryRequest(SMB2Dialect smbDialect,
                                      long sessionId, long treeId,
                                      SMB2FileId fileId,
-                                     SMB2FileInformationClass fileInformationClass,
+                                     FileInformationClass fileInformationClass,
                                      EnumSet<SMB2QueryDirectoryFlags> flags,
                                      long fileIndex,
                                      String searchPattern) {
 
-        super(smbDialect, SMB2MessageCommandCode.SMB2_QUERY_DIRECTORY);
-        // Currently only MS-FSCC 2.4.17 FileIdBothDirectoryInformation is supported
-
-        if (fileInformationClass != SMB2FileInformationClass.FileIdBothDirectoryInformation) {
-            throw new RuntimeException("Not Implemented");
-        }
-        getHeader().setSessionId(sessionId);
-        getHeader().setTreeId(treeId);
+        super(smbDialect, SMB2MessageCommandCode.SMB2_QUERY_DIRECTORY, sessionId, treeId);
         this.fileInformationClass = fileInformationClass;
         this.flags = flags;
         this.fileIndex = fileIndex;
         this.fileId = fileId;
-        this.searchPattern = searchPattern;
+        // The Spec says the searchPattern is optional
+        // but getting invalid parameter status, so use a pattern of "*" if no pattern.
+        this.searchPattern = searchPattern == null ? "*" : searchPattern;
     }
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(33); // StructureSize (2 bytes)
-        buffer.putByte((byte)fileInformationClass.getValue()); // FileInformationClass (1 byte)
+        buffer.putByte((byte) fileInformationClass.getValue()); // FileInformationClass (1 byte)
         buffer.putByte((byte) EnumWithValue.EnumUtils.toLong(flags)); // Flags (1 byte)
         buffer.putUInt32(fileIndex); // FileIndex (4 bytes)
         fileId.write(buffer); // FileId (16 bytes)
         int offset = SMB2Header.STRUCTURE_SIZE + 32;
-        String finalSearchPattern = searchPattern;
-        // The Spec says the searchPattern is optional
-        // but getting invalid parameter status, so use a pattern of "*" if no pattern.
-        if (finalSearchPattern == null) finalSearchPattern = "*";
         buffer.putUInt16(offset); // FileNameOffset (2 bytes)
-        buffer.putUInt16(finalSearchPattern.length()*2); // FileNameLength (2 bytes)
-
+        buffer.putUInt16(searchPattern.length() * 2); // FileNameLength (2 bytes)
         buffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH); // OutputBufferLength (4 bytes)
-        buffer.putRawBytes(NtlmFunctions.unicode(finalSearchPattern));
+        buffer.putString(searchPattern); // Buffer (variable)
     }
 
     public enum SMB2QueryDirectoryFlags implements EnumWithValue<SMB2QueryDirectoryFlags> {

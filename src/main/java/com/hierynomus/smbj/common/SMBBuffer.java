@@ -85,4 +85,17 @@ public class SMBBuffer extends Buffer<SMBBuffer> {
     public Buffer<SMBBuffer> putString(String string) {
         return putString(string, Charset.forName("UTF-16"));
     }
+
+    /**
+     * [MS-SMB2].pdf 2.2 Message Syntax
+     *
+     * @param string the string of which to write the length
+     * @return this
+     */
+    public Buffer<SMBBuffer> putStringLengthUInt16(String string) {
+        if (string == null) {
+            return putUInt16(0);
+        }
+        return putUInt16(string.length() * 2);
+    }
 }

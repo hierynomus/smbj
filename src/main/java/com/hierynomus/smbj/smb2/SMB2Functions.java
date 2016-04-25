@@ -13,27 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.smb2.messages;
+package com.hierynomus.smbj.smb2;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.smb2.SMB2Packet;
+import java.nio.charset.Charset;
 
-/**
- * [MS-SMB2].pdf 2.2.10 SMB2 TREE_CONNECT Response
- *
- * TODO
- */
-public class SMB2TreeDisconnectResponse extends SMB2Packet {
+public class SMB2Functions {
+    private static final byte[] EMPTY_BYTES = new byte[0];
+    private static final Charset UTF_16 = Charset.forName("UTF-16");
 
-    public SMB2TreeDisconnectResponse() {
-            super();
+    public static byte[] unicode(String s) {
+        if (s == null) {
+            return EMPTY_BYTES;
+        } else {
+            return s.getBytes(UTF_16);
+        }
     }
-
-    @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
-        buffer.skip(2); // StructureSize (2 bytes)
-        buffer.readByte(); // Reserved (1 byte)
-    }
-
 }

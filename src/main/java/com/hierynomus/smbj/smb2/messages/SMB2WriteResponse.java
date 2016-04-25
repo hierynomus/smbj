@@ -21,18 +21,14 @@ import com.hierynomus.smbj.smb2.SMB2Packet;
 import com.hierynomus.smbj.smb2.SMB2StatusCode;
 
 /**
- * [MS-SMB2].pdf 2.2.10 SMB2 TREE_CONNECT Response
+ * [MS-SMB2].pdf 2.2.22 SMB2 Write Response
  *
- * TODO
  */
-public class SMB2TreeConnectResponse extends SMB2Packet {
+public class SMB2WriteResponse extends SMB2Packet {
 
-    private byte shareType;
-    private long shareFlags;
-    private long capabilities;
-    private long maximalAccess;
+    private long bytesWritten;
 
-    public SMB2TreeConnectResponse() {
+    public SMB2WriteResponse() {
             super();
     }
 
@@ -41,12 +37,15 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         if (header.getStatus() == SMB2StatusCode.STATUS_SUCCESS) {
             buffer.skip(2); // StructureSize (2 bytes)
-            shareType = buffer.readByte(); // ShareType (1 byte)
-            buffer.readByte(); // Reserved (1 byte)
-            shareFlags = buffer.readUInt32(); // ShareFlags (4 bytes)
-            capabilities = buffer.readUInt32(); // Capabilities (4 bytes)
-            maximalAccess = buffer.readUInt32(); // MaximalAccess (4 bytes)
+            buffer.skip(2); // Reserved (2 bytes)
+            bytesWritten = buffer.readUInt32(); // Count (4 bytes)
+            buffer.skip(4); // Remaining (4 bytes) - Reserved do not use
+            buffer.skip(2); // WriteChannelInfoOffset (2 bytes) - Reserved do not use
+            buffer.skip(2); // WriteChannelInfoLength (2 bytes) - Reserved do not use
         }
     }
 
+    public long getBytesWritten() {
+        return bytesWritten;
+    }
 }

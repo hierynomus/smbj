@@ -22,6 +22,7 @@ import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2FileId;
 import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
 import com.hierynomus.smbj.smb2.SMB2Packet;
+import com.hierynomus.smbj.smb2.SMB2StatusCode;
 
 import java.util.Date;
 
@@ -42,10 +43,8 @@ public class SMB2Close extends SMB2Packet {
     public SMB2Close() {
     }
 
-    public SMB2Close(SMB2Dialect smbDialect, SMB2FileId fileId, long sessionId, long treeId) {
-        super(smbDialect, SMB2MessageCommandCode.SMB2_CLOSE);
-        getHeader().setSessionId(sessionId);
-        getHeader().setTreeId(treeId);
+    public SMB2Close(SMB2Dialect smbDialect, long sessionId, long treeId, SMB2FileId fileId) {
+        super(smbDialect, SMB2MessageCommandCode.SMB2_CLOSE, sessionId, treeId);
         this.fileId = fileId;
     }
 
@@ -59,17 +58,19 @@ public class SMB2Close extends SMB2Packet {
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
-        buffer.readUInt16(); // StructureSize (2 bytes)
-        // We set the Flags value 0x01 hardcoded, so the server should also echo that
-        buffer.readUInt16(); // Flags (2 bytes)
-        buffer.skip(4); // Reserved (4 bytes)
-        creationTime = MsDataTypes.readFileTime(buffer); // CreationTime (8 bytes)
-        lastAccessTime = MsDataTypes.readFileTime(buffer); // LastAccessTime (8 bytes)
-        lastWriteTime = MsDataTypes.readFileTime(buffer); // LastWriteTime (8 bytes)
-        changeTime = MsDataTypes.readFileTime(buffer); // ChangeTime (8 bytes)
-        allocationSize = buffer.readUInt64(); // AllocationSize (8 bytes)
-        size = buffer.readUInt64(); // EndOfFile (8 bytes)
-        fileAttributes = buffer.readRawBytes(4); // FileAttributes (4 bytes)
+        if (getHeader().getStatus() == SMB2StatusCode.STATUS_SUCCESS) {
+            buffer.readUInt16(); // StructureSize (2 bytes)
+            // We set the Flags value 0x01 hardcoded, so the server should also echo that
+            buffer.readUInt16(); // Flags (2 bytes)
+            buffer.skip(4); // Reserved (4 bytes)
+            creationTime = MsDataTypes.readFileTime(buffer); // CreationTime (8 bytes)
+            lastAccessTime = MsDataTypes.readFileTime(buffer); // LastAccessTime (8 bytes)
+            lastWriteTime = MsDataTypes.readFileTime(buffer); // LastWriteTime (8 bytes)
+            changeTime = MsDataTypes.readFileTime(buffer); // ChangeTime (8 bytes)
+            allocationSize = buffer.readUInt64(); // AllocationSize (8 bytes)
+            size = buffer.readUInt64(); // EndOfFile (8 bytes)
+            fileAttributes = buffer.readRawBytes(4); // FileAttributes (4 bytes)
+        }
     }
 
     public Date getCreationTime() {

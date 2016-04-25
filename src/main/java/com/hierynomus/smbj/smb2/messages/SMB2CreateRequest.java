@@ -18,14 +18,7 @@ package com.hierynomus.smbj.smb2.messages;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.smb2.SMB2CreateDisposition;
-import com.hierynomus.smbj.smb2.SMB2CreateOptions;
-import com.hierynomus.smbj.smb2.SMB2Dialect;
-import com.hierynomus.smbj.smb2.SMB2DirectoryAccessMask;
-import com.hierynomus.smbj.smb2.SMB2Header;
-import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
-import com.hierynomus.smbj.smb2.SMB2Packet;
-import com.hierynomus.smbj.smb2.SMB2ShareAccess;
+import com.hierynomus.smbj.smb2.*;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
@@ -40,7 +33,6 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
  */
 public class SMB2CreateRequest extends SMB2Packet {
 
-    private final SMB2Dialect dialect;
     private final EnumSet<FileAttributes> fileAttributes;
     private final EnumSet<SMB2ShareAccess> shareAccess;
     private final SMB2CreateDisposition createDisposition;
@@ -55,10 +47,7 @@ public class SMB2CreateRequest extends SMB2Packet {
                              EnumSet<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition,
                              EnumSet<SMB2CreateOptions> createOptions, String fileName) {
 
-        super(smbDialect, SMB2MessageCommandCode.SMB2_CREATE);
-        getHeader().setSessionId(sessionId);
-        getHeader().setTreeId(treeId);
-        this.dialect = smbDialect;
+        super(smbDialect, SMB2MessageCommandCode.SMB2_CREATE, sessionId, treeId);
         this.directoryAccessMask =
                 directoryAccessMask == null ? EnumSet.noneOf(SMB2DirectoryAccessMask.class) : directoryAccessMask;
         this.fileAttributes =
@@ -76,24 +65,24 @@ public class SMB2CreateRequest extends SMB2Packet {
     protected void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(57); // StructureSize (2 bytes)
         buffer.putByte((byte) 0); // SecurityFlags (1 byte) - Reserved
-        buffer.putByte((byte) 0);  // Req OpLock Level (1 byte) - None
-        buffer.putUInt32(1); // Impersonation Level (4 bytes) - Identification
+        buffer.putByte((byte) 0);  // RequestedOpLockLevel (1 byte) - None
+        buffer.putUInt32(1); // ImpersonationLevel (4 bytes) - Identification
         buffer.putReserved(8); // SmbCreateFlags (8 bytes)
         buffer.putReserved(8); // Reserved (8 bytes)
-        buffer.putUInt32(toLong(directoryAccessMask)); // Access Mask (4 bytes)
-        buffer.putUInt32(toLong(fileAttributes)); // File Attributes (4 bytes)
-        buffer.putUInt32(toLong(shareAccess)); // Share Access (4 bytes)
-        buffer.putUInt32(createDisposition == null ? 0 : createDisposition.getValue()); // Create Disposition (4 bytes)
-        buffer.putUInt32(toLong(createOptions)); // Create Options (4 bytes)
+        buffer.putUInt32(toLong(directoryAccessMask)); // DesiredAccess (4 bytes)
+        buffer.putUInt32(toLong(fileAttributes)); // FileAttributes (4 bytes)
+        buffer.putUInt32(toLong(shareAccess)); // ShareAccess (4 bytes)
+        buffer.putUInt32(createDisposition == null ? 0 : createDisposition.getValue()); // CreateDisposition (4 bytes)
+        buffer.putUInt32(toLong(createOptions)); // CreateOptions (4 bytes)
         int offset = SMB2Header.STRUCTURE_SIZE + 56;
-        byte[] nameBytes = (fileName == null) ? new byte[0] : NtlmFunctions.unicode(fileName);
-        buffer.putUInt16(offset); // Offset
-        buffer.putUInt16(nameBytes.length); // Length
+        byte[] nameBytes = SMB2Functions.unicode(fileName);
+        buffer.putUInt16(offset); // NameOffset (4 bytes)
+        buffer.putUInt16(nameBytes.length); // NameLength (4 bytes)
 
         // Create Contexts
-        buffer.putUInt32(0); // Offset
-        buffer.putUInt32(0); // Length
+        buffer.putUInt32(0); // CreateContextsOffset (4 bytes)
+        buffer.putUInt32(0); // CreateContextsLength (4 bytes)
 
-        if (nameBytes.length > 0) buffer.putRawBytes(nameBytes);
+        buffer.putRawBytes(nameBytes);
     }
 }

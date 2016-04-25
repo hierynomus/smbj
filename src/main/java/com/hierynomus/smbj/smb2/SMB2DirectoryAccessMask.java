@@ -18,7 +18,7 @@ package com.hierynomus.smbj.smb2;
 import com.hierynomus.protocol.commons.EnumWithValue;
 
 /**
- * SMB2 Create 2.2.13 - SMB2ShareAccess
+ * SMB2 2.2.13.1.2 - Create - Access Mask Encoding - Directory Access Mask Encoding
  */
 public enum SMB2DirectoryAccessMask implements EnumWithValue<SMB2DirectoryAccessMask> {
     FILE_LIST_DIRECTORY(0x00000001L),
@@ -30,6 +30,7 @@ public enum SMB2DirectoryAccessMask implements EnumWithValue<SMB2DirectoryAccess
     FILE_DELETE_CHILD(0x00000040L),
     FILE_READ_ATTRIBUTES(0x00000080L),
     FILE_WRITE_ATTRIBUTES(0x00000100L),
+
     DELETE(0x00010000L),
     READ_CONTROL(0x00020000L),
     WRITE_DAC(0x00040000L),
@@ -41,7 +42,6 @@ public enum SMB2DirectoryAccessMask implements EnumWithValue<SMB2DirectoryAccess
     GENERIC_EXECUTE(0x20000000L),
     GENERIC_WRITE(0x40000000L),
     GENERIC_READ(0x80000000L);
-
 
     private long value;
 
