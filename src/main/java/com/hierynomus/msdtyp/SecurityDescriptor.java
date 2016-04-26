@@ -48,7 +48,7 @@ public class SecurityDescriptor {
         buffer.putByte((byte)1); // Revision (1 byte)
         buffer.putByte((byte)0); // Sbz1 (1 byte)
         buffer.putUInt16((int) EnumWithValue.EnumUtils.toLong(control)); // Control (2 bytes)
-        int offset = SMB2Header.STRUCTURE_SIZE + 20;
+        int offset = SMB2Header.STRUCTURE_SIZE + 20; // TODO break cyclic package dep!
         if (ownerSid != null) {
             buffer.putUInt32(offset);
             offset += ownerSid.byteCount();

@@ -15,16 +15,24 @@
  */
 package com.hierynomus.smbj
 
+import com.hierynomus.smbj.auth.AuthenticationContext
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import spock.lang.Specification
+
+import java.security.Security
 
 class IntegrationTest extends Specification {
 
     def "should connect"() {
         given:
+        if (!Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)) {
+            Security.addProvider(new BouncyCastleProvider())
+        }
         def client = new SMBClient()
 
         when:
-        def connection = client.connect("172.16.37.141")
+        def connection = client.connect("172.16.37.149")
+        connection.authenticate(new AuthenticationContext("Administrator", "xeb1aLabs".toCharArray(), ""))
 
         then:
         connection.connected

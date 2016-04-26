@@ -17,8 +17,8 @@ package com.hierynomus.smbj.auth;
 
 import com.hierynomus.ntlm.NtlmException;
 import com.hierynomus.ntlm.functions.NtlmFunctions;
-import com.hierynomus.ntlm.messages.NtlmChallenge;
 import com.hierynomus.ntlm.messages.NtlmAuthenticate;
+import com.hierynomus.ntlm.messages.NtlmChallenge;
 import com.hierynomus.ntlm.messages.NtlmNegotiate;
 import com.hierynomus.ntlm.messages.NtlmNegotiateFlag;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
@@ -39,6 +39,8 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.EnumSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 public class NtlmAuthenticator implements Authenticator {
     private static final Logger logger = LoggerFactory.getLogger(NtlmAuthenticator.class);
@@ -68,8 +70,8 @@ public class NtlmAuthenticator implements Authenticator {
             NtlmNegotiate ntlmNegotiate = new NtlmNegotiate();
             byte[] asn1 = negTokenInit(ntlmNegotiate);
             smb2SessionSetup.setSecurityBuffer(asn1);
-            connection.send(smb2SessionSetup);
-            SMB2SessionSetup receive = (SMB2SessionSetup) connection.receive();
+            Future<SMB2SessionSetup> future = connection.send(smb2SessionSetup);
+            SMB2SessionSetup receive = future.get();
             long sessionId = receive.getHeader().getSessionId();
             if (receive.getHeader().getStatus() == SMB2StatusCode.STATUS_MORE_PROCESSING_REQUIRED) {
                 logger.debug("More processing required for authentication of {}", context.getUsername());
@@ -119,14 +121,17 @@ public class NtlmAuthenticator implements Authenticator {
                         context.getUsername(), context.getDomain(), null, sessionkey, NtlmNegotiate.DEFAULT_FLAGS);
                 asn1 = negTokenTarg(resp, negTokenTarg.getResponseToken());
                 smb2SessionSetup2.setSecurityBuffer(asn1);
-                connection.send(smb2SessionSetup2);
-                SMB2SessionSetup setupResponse = (SMB2SessionSetup) connection.receive();
+                Future<SMB2SessionSetup> send = connection.send(smb2SessionSetup2);
+                SMB2SessionSetup setupResponse = send.get();
                 if (setupResponse.getHeader().getStatus() != SMB2StatusCode.STATUS_SUCCESS) {
                     throw new NtlmException("Setup failed with " + setupResponse.getHeader().getStatus());
                 }
             }
             return sessionId;
-        } catch (IOException | Buffer.BufferException e) {
+        } catch (IOException | Buffer.BufferException | ExecutionException e) {
+            throw new TransportException(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new TransportException(e);
         }
     }

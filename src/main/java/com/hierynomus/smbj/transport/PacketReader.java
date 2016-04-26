@@ -15,64 +15,59 @@
  */
 package com.hierynomus.smbj.transport;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.buffer.Endian;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.protocol.commons.concurrent.Promise;
 import com.hierynomus.smbj.connection.SequenceWindow;
 import com.hierynomus.smbj.smb2.SMB2Packet;
-import com.hierynomus.smbj.smb2.messages.SMB2ResponseMessageFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.EOFException;
-import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class PacketReader {
+public abstract class PacketReader implements Runnable {
+    private static final Logger logger = LoggerFactory.getLogger(PacketReader.class);
 
-    private InputStream in;
+    protected InputStream in;
     private SequenceWindow sequenceWindow;
-
-    private ReentrantLock lock = new ReentrantLock();
+    private ConcurrentHashMap<Long, Promise<SMB2Packet, ?>> promises = new ConcurrentHashMap<>();
 
     public PacketReader(InputStream in, SequenceWindow sequenceWindow) {
         this.in = in;
         this.sequenceWindow = sequenceWindow;
     }
 
-    public SMB2Packet readPacket() throws TransportException {
-        lock.lock();
-        try {
-            SMB2Packet smb2Packet = _readTcpPacket();
-            // Grant the credits from the response.
-            sequenceWindow.creditsGranted(smb2Packet.getHeader().getCreditResponse());
-            return smb2Packet;
-        } catch (IOException | Buffer.BufferException e) {
-            throw new TransportException(e);
-        } finally {
-            lock.unlock();
+    @Override
+    public void run() {
+        while (!Thread.currentThread().isInterrupted()) {
+            try {
+                readPacket();
+            } catch (TransportException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
-    private SMB2Packet _readTcpPacket() throws IOException, Buffer.BufferException {
-        byte[] tcpHeader = new byte[4];
-        in.read(tcpHeader);
-        Buffer.PlainBuffer plainBuffer = new Buffer.PlainBuffer(tcpHeader, Endian.BE);
-        plainBuffer.readByte();
-        int packetLength = plainBuffer.readUInt24();
-        return _readSMB2Packet(packetLength);
+    public void expectResponse(long messageId, Promise<SMB2Packet, ?> promise) {
+        promises.put(messageId, promise);
     }
 
-    private SMB2Packet _readSMB2Packet(int packetLength) throws IOException, Buffer.BufferException {
-        byte[] smb2Packet = new byte[packetLength];
-        int numReadSoFar = 0;
-        while (numReadSoFar < packetLength) {
-            int numReadThisTime = in.read(smb2Packet, numReadSoFar, packetLength - numReadSoFar);
-            if (numReadThisTime < 0)
-                throw new EOFException();
-            numReadSoFar += numReadThisTime;
+    private void readPacket() throws TransportException {
+        SMB2Packet smb2Packet = doRead();
+        logger.debug("Received packet << {} >>", smb2Packet);
+        // Grant the credits from the response.
+        sequenceWindow.creditsGranted(smb2Packet.getHeader().getCreditResponse());
+        Promise<SMB2Packet, ?> smb2PacketPromise = promises.get(smb2Packet.getSequenceNumber());
+        if (smb2PacketPromise == null) {
+            throw new TransportException(String.format("Unexpected packet with sequence number << %s >> received", smb2Packet.getSequenceNumber()));
         }
-
-        SMBBuffer buffer = new SMBBuffer(smb2Packet);
-        return SMB2ResponseMessageFactory.read(buffer);
+        smb2PacketPromise.deliver(smb2Packet);
     }
+
+    /**
+     * Read the actual SMB2 Packet from the {@link InputStream}
+     * @return the read SMB2Packet
+     * @throws TransportException
+     */
+    protected abstract SMB2Packet doRead() throws TransportException;
 }

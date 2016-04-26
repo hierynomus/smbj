@@ -15,9 +15,22 @@
  */
 package com.hierynomus.smbj.common;
 
+import com.hierynomus.protocol.commons.concurrent.ExceptionWrapper;
+
 public class SMBRuntimeException extends RuntimeException {
-    public SMBRuntimeException(Exception e) {
-        super(e);
+    public static ExceptionWrapper<SMBRuntimeException> Wrapper = new ExceptionWrapper<SMBRuntimeException>() {
+        @Override
+        public SMBRuntimeException wrap(Throwable throwable) {
+            if (throwable instanceof SMBRuntimeException) {
+                return (SMBRuntimeException) throwable;
+            } else {
+                return new SMBRuntimeException(throwable);
+            }
+        }
+    };
+
+    public SMBRuntimeException(Throwable t) {
+        super(t);
     }
 
     public SMBRuntimeException(String msg) {

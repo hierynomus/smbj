@@ -27,6 +27,10 @@ public class ConnectionInfo {
         return gssNegotiateToken;
     }
 
+    public List<Void> getOutstandingRequests() {
+        return outstandingRequests;
+    }
+
     public enum GlobalCapability {
         SMB2_GLOBAL_CAP_DFS(0x01),
         SMB2_GLOBAL_CAP_LEASING(0x02),

@@ -15,11 +15,11 @@
  */
 package com.hierynomus.msdtyp.ace;
 
+import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SID;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.smb2.SMB2DirectoryAccessMask;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.valueOf;
 
@@ -118,7 +118,7 @@ public abstract class ACE {
     public String toString() {
         return "ACE{" +
                 "aceHeader=" + aceHeader +
-                ", accessMask=" + EnumWithValue.EnumUtils.toEnumSet(accessMask, SMB2DirectoryAccessMask.class) +
+                ", accessMask=" + EnumWithValue.EnumUtils.toEnumSet(accessMask, AccessMask.class) +
                 ", sid=" + sid +
                 '}';
     }

@@ -40,19 +40,18 @@ public abstract class BaseTransport implements TransportLayer {
     }
 
     @Override
-    public long write(SMB2Packet packet) throws TransportException {
+    public void write(SMB2Packet packet) throws TransportException {
         writeLock.lock();
         try {
             try {
                 SMBBuffer buffer = new SMBBuffer();
                 packet.write(buffer);
-                logger.trace("Writing packet {}, sequence number {}", packet.getHeader().getMessage(), packet.getSequenceNumber());
+                logger.trace("Writing packet << {} >>, sequence number << {} >>", packet.getHeader().getMessage(), packet.getSequenceNumber());
                 doWrite(buffer);
                 out.flush();
             } catch (IOException ioe) {
                 throw new TransportException(ioe);
             }
-            return packet.getSequenceNumber();
         } finally {
             writeLock.unlock();
         }

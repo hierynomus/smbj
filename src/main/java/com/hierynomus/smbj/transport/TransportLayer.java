@@ -41,5 +41,5 @@ public interface TransportLayer {
      * @param packet The packet to write.
      * @return The sequence number of the packet.
      */
-    long write(SMB2Packet packet) throws TransportException;
+    void write(SMB2Packet packet) throws TransportException;
 }

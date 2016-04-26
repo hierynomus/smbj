@@ -25,7 +25,8 @@ import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 import com.hierynomus.smbj.smb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.smbj.smb2.messages.SMB2NegotiateResponse;
-import com.hierynomus.smbj.transport.DirectTcpTransport;
+import com.hierynomus.smbj.transport.tcp.DirectTcpPacketReader;
+import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
 import com.hierynomus.smbj.transport.PacketReader;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.smbj.transport.TransportLayer;
@@ -35,6 +36,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 /**
  * A connection to a server.
@@ -46,6 +50,7 @@ public class Connection extends SocketClient implements AutoCloseable {
     private Config config;
     private TransportLayer transport;
     private PacketReader packetReader;
+    private Thread packetReaderThread;
 
     public Connection(Config config, TransportLayer transport) {
         super(transport.getDefaultPort());
@@ -56,8 +61,16 @@ public class Connection extends SocketClient implements AutoCloseable {
     private void negotiateDialect() throws TransportException {
         logger.info("Negotiating dialects {} with server {}", config.getSupportedDialects(), getRemoteHostname());
         SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid());
-        send(negotiatePacket);
-        SMB2Packet negotiateResponse = new PacketReader(getInputStream(), connectionInfo.getSequenceWindow()).readPacket();
+        Future<SMB2Packet> send = send(negotiatePacket);
+        SMB2Packet negotiateResponse = null;
+        try {
+            negotiateResponse = send.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new TransportException(e);
+        } catch (ExecutionException e) {
+            throw new TransportException(e);
+        }
         if (!(negotiateResponse instanceof SMB2NegotiateResponse)) {
             throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + negotiateResponse.getHeader().getMessageId());
         }
@@ -73,7 +86,9 @@ public class Connection extends SocketClient implements AutoCloseable {
     protected void onConnect() throws IOException {
         super.onConnect();
         this.connectionInfo = new ConnectionInfo(getRemoteHostname());
-        packetReader = new PacketReader(getInputStream(), connectionInfo.getSequenceWindow());
+        packetReader = new DirectTcpPacketReader(getInputStream(), connectionInfo.getSequenceWindow());
+        packetReaderThread = new Thread(packetReader);
+        packetReaderThread.start();
         transport.init(getInputStream(), getOutputStream());
         negotiateDialect();
         logger.debug("Connected to: {}", getRemoteHostname());
@@ -84,13 +99,13 @@ public class Connection extends SocketClient implements AutoCloseable {
         super.disconnect();
     }
 
-    public long send(SMB2Packet packet) throws TransportException {
-        packet.getHeader().setMessageId(connectionInfo.getSequenceWindow().get());
-        return transport.write(packet);
-    }
-
-    public SMB2Packet receive() throws TransportException {
-        return packetReader.readPacket();
+    public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
+        long messageId = connectionInfo.getSequenceWindow().get();
+        packet.getHeader().setMessageId(messageId);
+        Request request = new Request(messageId, UUID.randomUUID());
+        packetReader.expectResponse(messageId, request.getPromise());
+        transport.write(packet);
+        return request.getFuture(null); // TODO cancel callback
     }
 
     /**

@@ -16,7 +16,7 @@
 package com.hierynomus.smbj;
 
 import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.transport.DirectTcpTransport;
+import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
 
 import java.io.IOException;
 
