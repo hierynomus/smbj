@@ -43,6 +43,9 @@ public abstract class PacketReader implements Runnable {
             try {
                 readPacket();
             } catch (TransportException e) {
+                for (Promise<SMB2Packet, ?> smb2PacketPromise : promises.values()) {
+                    smb2PacketPromise.deliverError(e);
+                }
                 throw new RuntimeException(e);
             }
         }
@@ -57,7 +60,7 @@ public abstract class PacketReader implements Runnable {
         logger.debug("Received packet << {} >>", smb2Packet);
         // Grant the credits from the response.
         sequenceWindow.creditsGranted(smb2Packet.getHeader().getCreditResponse());
-        Promise<SMB2Packet, ?> smb2PacketPromise = promises.get(smb2Packet.getSequenceNumber());
+        Promise<SMB2Packet, ?> smb2PacketPromise = promises.remove(smb2Packet.getSequenceNumber());
         if (smb2PacketPromise == null) {
             throw new TransportException(String.format("Unexpected packet with sequence number << %s >> received", smb2Packet.getSequenceNumber()));
         }

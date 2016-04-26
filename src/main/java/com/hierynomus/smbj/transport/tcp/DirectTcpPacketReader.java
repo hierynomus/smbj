@@ -35,16 +35,17 @@ public class DirectTcpPacketReader extends PacketReader {
     }
 
     private SMB2Packet _readSMB2Packet(int packetLength) throws IOException, Buffer.BufferException {
-        byte[] smb2Packet = new byte[packetLength];
-        int numReadSoFar = 0;
-        while (numReadSoFar < packetLength) {
-            int numReadThisTime = in.read(smb2Packet, numReadSoFar, packetLength - numReadSoFar);
-            if (numReadThisTime < 0)
-                throw new EOFException();
-            numReadSoFar += numReadThisTime;
+        byte[] buf = new byte[packetLength];
+        int count = 0;
+        int read = 0;
+        while (count < packetLength && ((read = in.read(buf, count, packetLength - count)) != -1)) {
+            count += read;
+        }
+        if (read == -1) {
+            throw new TransportException("EOF while reading packet");
         }
 
-        SMBBuffer buffer = new SMBBuffer(smb2Packet);
+        SMBBuffer buffer = new SMBBuffer(buf);
         return SMB2ResponseMessageFactory.read(buffer);
     }
 
