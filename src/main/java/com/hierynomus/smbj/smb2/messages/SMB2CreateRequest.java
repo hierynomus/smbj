@@ -16,14 +16,12 @@
 package com.hierynomus.smbj.smb2.messages;
 
 import com.hierynomus.msfscc.FileAttributes;
-import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.*;
 
-import java.io.File;
-import java.io.UnsupportedEncodingException;
 import java.util.EnumSet;
 
+import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.ensureNotNull;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
 
 /**
@@ -48,15 +46,11 @@ public class SMB2CreateRequest extends SMB2Packet {
                              EnumSet<SMB2CreateOptions> createOptions, String fileName) {
 
         super(smbDialect, SMB2MessageCommandCode.SMB2_CREATE, sessionId, treeId);
-        this.directoryAccessMask =
-                directoryAccessMask == null ? EnumSet.noneOf(SMB2DirectoryAccessMask.class) : directoryAccessMask;
-        this.fileAttributes =
-                fileAttributes == null ? EnumSet.noneOf(FileAttributes.class) : fileAttributes;
-        this.shareAccess =
-                shareAccess == null ? EnumSet.noneOf(SMB2ShareAccess.class) : shareAccess;
+        this.directoryAccessMask = ensureNotNull(directoryAccessMask, SMB2DirectoryAccessMask.class);
+        this.fileAttributes = ensureNotNull(fileAttributes, FileAttributes.class);
+        this.shareAccess = ensureNotNull(shareAccess, SMB2ShareAccess.class);
         this.createDisposition = createDisposition;
-        this.createOptions =
-                createOptions == null ? EnumSet.noneOf(SMB2CreateOptions.class) : createOptions;
+        this.createOptions = ensureNotNull(createOptions, SMB2CreateOptions.class);
         this.fileName = fileName;
 
     }

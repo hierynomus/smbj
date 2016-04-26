@@ -62,6 +62,13 @@ public interface EnumWithValue<E extends Enum<E>> {
 
             return defaultValue;
         }
-    }
 
+        public static <E extends Enum<E>> EnumSet<E> ensureNotNull(EnumSet<E> set, Class<E> clazz) {
+            if (set == null) {
+                return EnumSet.<E>noneOf(clazz);
+            } else {
+                return set;
+            }
+        }
+    }
 }
