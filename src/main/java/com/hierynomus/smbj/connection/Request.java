@@ -35,17 +35,36 @@ public class Request {
     private final Promise<SMB2Packet, SMBRuntimeException> promise;
     private final long messageId;
     private final UUID cancelId;
+    private SMB2Packet requestPacket;
     private final Date timestamp;
+    private long asyncId;
 
-    public Request(long messageId, UUID cancelId) {
+    public long getAsyncId() {
+        return asyncId;
+    }
+
+    public void setAsyncId(long asyncId) {
+        this.asyncId = asyncId;
+    }
+
+    public Request(long messageId, UUID cancelId, SMB2Packet requestPacket) {
         this.messageId = messageId;
         this.cancelId = cancelId;
+        this.requestPacket = requestPacket;
         timestamp = new Date();
         this.promise = new Promise<>(String.valueOf(messageId), SMBRuntimeException.Wrapper);
     }
 
     public Promise<SMB2Packet, SMBRuntimeException> getPromise() {
         return promise;
+    }
+
+    public SMB2Packet getRequestPacket() {
+        return requestPacket;
+    }
+
+    public long getMessageId() {
+        return messageId;
     }
 
     public <T extends SMB2Packet> Future<T> getFuture(final CancelCallback callback) {

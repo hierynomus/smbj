@@ -15,26 +15,21 @@
  */
 package com.hierynomus.smbj.transport;
 
-import com.hierynomus.protocol.commons.concurrent.Promise;
-import com.hierynomus.smbj.connection.SequenceWindow;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class PacketReader implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(PacketReader.class);
 
     protected InputStream in;
-    private SequenceWindow sequenceWindow;
-    private ConcurrentHashMap<Long, Promise<SMB2Packet, ?>> promises = new ConcurrentHashMap<>();
+    private PacketHandler handler;
 
-    public PacketReader(InputStream in, SequenceWindow sequenceWindow) {
+    public PacketReader(InputStream in, PacketHandler handler) {
         this.in = in;
-        this.sequenceWindow = sequenceWindow;
+        this.handler = handler;
     }
 
     @Override
@@ -43,28 +38,16 @@ public abstract class PacketReader implements Runnable {
             try {
                 readPacket();
             } catch (TransportException e) {
-                for (Promise<SMB2Packet, ?> smb2PacketPromise : promises.values()) {
-                    smb2PacketPromise.deliverError(e);
-                }
+                handler.handleError(e);
                 throw new RuntimeException(e);
             }
         }
     }
 
-    public void expectResponse(long messageId, Promise<SMB2Packet, ?> promise) {
-        promises.put(messageId, promise);
-    }
-
     private void readPacket() throws TransportException {
         SMB2Packet smb2Packet = doRead();
         logger.debug("Received packet << {} >>", smb2Packet);
-        // Grant the credits from the response.
-        sequenceWindow.creditsGranted(smb2Packet.getHeader().getCreditResponse());
-        Promise<SMB2Packet, ?> smb2PacketPromise = promises.remove(smb2Packet.getSequenceNumber());
-        if (smb2PacketPromise == null) {
-            throw new TransportException(String.format("Unexpected packet with sequence number << %s >> received", smb2Packet.getSequenceNumber()));
-        }
-        smb2PacketPromise.deliver(smb2Packet);
+        handler.handle(smb2Packet);
     }
 
     /**

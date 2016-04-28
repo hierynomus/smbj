@@ -15,6 +15,9 @@
  */
 package com.hierynomus.smbj.connection;
 
+import com.hierynomus.protocol.commons.EnumWithValue;
+import com.hierynomus.protocol.commons.concurrent.Futures;
+import com.hierynomus.protocol.commons.concurrent.Promise;
 import com.hierynomus.protocol.commons.socket.SocketClient;
 import com.hierynomus.smbj.Config;
 import com.hierynomus.smbj.auth.AuthenticationContext;
@@ -22,9 +25,12 @@ import com.hierynomus.smbj.auth.NtlmAuthenticator;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
+import com.hierynomus.smbj.smb2.SMB2MessageFlag;
 import com.hierynomus.smbj.smb2.SMB2Packet;
+import com.hierynomus.smbj.smb2.SMB2StatusCode;
 import com.hierynomus.smbj.smb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.smbj.smb2.messages.SMB2NegotiateResponse;
+import com.hierynomus.smbj.transport.PacketHandler;
 import com.hierynomus.smbj.transport.tcp.DirectTcpPacketReader;
 import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
 import com.hierynomus.smbj.transport.PacketReader;
@@ -36,14 +42,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+
+import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 
 /**
  * A connection to a server.
  */
-public class Connection extends SocketClient implements AutoCloseable {
+public class Connection extends SocketClient implements AutoCloseable, PacketHandler {
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
 
     private ConnectionInfo connectionInfo;
@@ -51,6 +61,8 @@ public class Connection extends SocketClient implements AutoCloseable {
     private TransportLayer transport;
     private PacketReader packetReader;
     private Thread packetReaderThread;
+    private ConcurrentHashMap<Long, Request> outstandingRequests = new ConcurrentHashMap<>();
+
 
     public Connection(Config config, TransportLayer transport) {
         super(transport.getDefaultPort());
@@ -62,15 +74,7 @@ public class Connection extends SocketClient implements AutoCloseable {
         logger.info("Negotiating dialects {} with server {}", config.getSupportedDialects(), getRemoteHostname());
         SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid());
         Future<SMB2Packet> send = send(negotiatePacket);
-        SMB2Packet negotiateResponse = null;
-        try {
-            negotiateResponse = send.get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new TransportException(e);
-        } catch (ExecutionException e) {
-            throw new TransportException(e);
-        }
+        SMB2Packet negotiateResponse = Futures.get(send, TransportException.Wrapper);
         if (!(negotiateResponse instanceof SMB2NegotiateResponse)) {
             throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + negotiateResponse.getHeader().getMessageId());
         }
@@ -86,7 +90,7 @@ public class Connection extends SocketClient implements AutoCloseable {
     protected void onConnect() throws IOException {
         super.onConnect();
         this.connectionInfo = new ConnectionInfo(getRemoteHostname());
-        packetReader = new DirectTcpPacketReader(getInputStream(), connectionInfo.getSequenceWindow());
+        packetReader = new DirectTcpPacketReader(getInputStream(), this);
         packetReaderThread = new Thread(packetReader);
         packetReaderThread.start();
         transport.init(getInputStream(), getOutputStream());
@@ -102,8 +106,8 @@ public class Connection extends SocketClient implements AutoCloseable {
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
         long messageId = connectionInfo.getSequenceWindow().get();
         packet.getHeader().setMessageId(messageId);
-        Request request = new Request(messageId, UUID.randomUUID());
-        packetReader.expectResponse(messageId, request.getPromise());
+        Request request = new Request(messageId, UUID.randomUUID(), packet);
+        outstandingRequests.put(messageId, request);
         transport.write(packet);
         return request.getFuture(null); // TODO cancel callback
     }
@@ -136,5 +140,43 @@ public class Connection extends SocketClient implements AutoCloseable {
      */
     public SMB2Dialect getNegotiatedDialect() {
         return connectionInfo.getDialect();
+    }
+
+    @Override
+    public void handle(SMB2Packet packet) throws TransportException {
+        long messageId = packet.getSequenceNumber();
+        if (!outstandingRequests.containsKey(messageId)) {
+            throw new TransportException("Received response with unknown sequence number <<" + messageId + ">>");
+        }
+
+        // [MS-SMB2].pdf 3.2.5.1.4 Granting Message Credits
+        connectionInfo.getSequenceWindow().creditsGranted(packet.getHeader().getCreditResponse());
+
+        Request request = outstandingRequests.get(messageId);
+
+        // [MS-SMB2].pdf 3.2.5.1.5 Handling Asynchronous Responses
+        if (isSet(request.getRequestPacket().getHeader().getFlags(), SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
+            if (packet.getHeader().getStatus() == SMB2StatusCode.STATUS_PENDING) {
+                request.setAsyncId(packet.getHeader().getAsyncId());
+                // TODO Expiration timer
+                return;
+            }
+        }
+
+        // [MS-SMB2].pdf 3.2.5.1.6 Handling Session Expiration
+        if (packet.getHeader().getStatus() == SMB2StatusCode.STATUS_NETWORK_SESSION_EXPIRED) {
+            // TODO reauthenticate session!
+            return;
+        }
+
+        // [MS-SMB2].pdf 3.2.5.1.8 Processing the Response
+        outstandingRequests.remove(messageId).getPromise().deliver(packet);
+    }
+
+    @Override
+    public void handleError(Throwable t) {
+        for (Long id : new HashSet<>(outstandingRequests.keySet())) {
+            outstandingRequests.remove(id).getPromise().deliverError(t);
+        }
     }
 }

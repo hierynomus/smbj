@@ -15,22 +15,10 @@
  */
 package com.hierynomus.smbj.transport;
 
-import com.hierynomus.protocol.commons.concurrent.ExceptionWrapper;
-import com.hierynomus.smbj.common.SMBException;
+import com.hierynomus.smbj.smb2.SMB2Packet;
 
-public class TransportException extends SMBException {
-    public static final ExceptionWrapper<TransportException> Wrapper = new ExceptionWrapper<TransportException>() {
-        @Override
-        public TransportException wrap(Throwable throwable) {
-            return new TransportException(throwable);
-        }
-    };
+public interface PacketHandler {
+    void handle(SMB2Packet packet) throws TransportException;
 
-    public TransportException(Throwable ioe) {
-        super(ioe);
-    }
-
-    public TransportException(String s) {
-        super(s);
-    }
+    void handleError(Throwable t);
 }
