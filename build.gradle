@@ -30,6 +30,7 @@ dependencies {
     compile "org.bouncycastle:bcprov-jdk15on:$bouncycastleVersion"
     compile "org.bouncycastle:bcpkix-jdk15on:$bouncycastleVersion"
     testCompile 'org.spockframework:spock-core:1.0-groovy-2.4'
+    testCompile 'commons-io:commons-io:2.5'
     testRuntime 'ch.qos.logback:logback-classic:1.1.3'
 }
 
