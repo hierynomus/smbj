@@ -24,6 +24,7 @@ import com.hierynomus.ntlm.messages.NtlmNegotiateFlag;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
+import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.smb2.SMB2StatusCode;
 import com.hierynomus.smbj.smb2.messages.SMB2SessionSetup;
@@ -39,7 +40,6 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.EnumSet;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 public class NtlmAuthenticator implements Authenticator {
@@ -71,7 +71,7 @@ public class NtlmAuthenticator implements Authenticator {
             byte[] asn1 = negTokenInit(ntlmNegotiate);
             smb2SessionSetup.setSecurityBuffer(asn1);
             Future<SMB2SessionSetup> future = connection.send(smb2SessionSetup);
-            SMB2SessionSetup receive = future.get();
+            SMB2SessionSetup receive = Futures.get(future, TransportException.Wrapper);
             long sessionId = receive.getHeader().getSessionId();
             if (receive.getHeader().getStatus() == SMB2StatusCode.STATUS_MORE_PROCESSING_REQUIRED) {
                 logger.debug("More processing required for authentication of {}", context.getUsername());
@@ -122,16 +122,13 @@ public class NtlmAuthenticator implements Authenticator {
                 asn1 = negTokenTarg(resp, negTokenTarg.getResponseToken());
                 smb2SessionSetup2.setSecurityBuffer(asn1);
                 Future<SMB2SessionSetup> send = connection.send(smb2SessionSetup2);
-                SMB2SessionSetup setupResponse = send.get();
+                SMB2SessionSetup setupResponse = Futures.get(send, TransportException.Wrapper);
                 if (setupResponse.getHeader().getStatus() != SMB2StatusCode.STATUS_SUCCESS) {
                     throw new NtlmException("Setup failed with " + setupResponse.getHeader().getStatus());
                 }
             }
             return sessionId;
-        } catch (IOException | Buffer.BufferException | ExecutionException e) {
-            throw new TransportException(e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+        } catch (IOException | Buffer.BufferException e) {
             throw new TransportException(e);
         }
     }
