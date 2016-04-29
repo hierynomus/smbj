@@ -22,7 +22,7 @@ import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Packet;
-import com.hierynomus.smbj.smb2.SMB2StatusCode;
+import com.hierynomus.mserref.NtStatus;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -42,7 +42,7 @@ public class SMB2QueryDirectoryResponse extends SMB2Packet {
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         // TODO how to handle errors correctly
-        if (header.getStatus() != SMB2StatusCode.STATUS_SUCCESS) return;
+        if (header.getStatus() != NtStatus.STATUS_SUCCESS) return;
 
         buffer.skip(2); // StructureSize (2 bytes)
         int outputBufferOffset = buffer.readUInt16(); // OutputBufferOffset (2 bytes)

@@ -15,9 +15,7 @@
  */
 package com.hierynomus.smbj.connection;
 
-import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.protocol.commons.concurrent.Promise;
 import com.hierynomus.protocol.commons.socket.SocketClient;
 import com.hierynomus.smbj.Config;
 import com.hierynomus.smbj.auth.AuthenticationContext;
@@ -27,7 +25,7 @@ import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2MessageFlag;
 import com.hierynomus.smbj.smb2.SMB2Packet;
-import com.hierynomus.smbj.smb2.SMB2StatusCode;
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.smbj.smb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.smbj.smb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.smbj.transport.PacketHandler;
@@ -45,7 +43,6 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
@@ -156,7 +153,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketHan
 
         // [MS-SMB2].pdf 3.2.5.1.5 Handling Asynchronous Responses
         if (isSet(request.getRequestPacket().getHeader().getFlags(), SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
-            if (packet.getHeader().getStatus() == SMB2StatusCode.STATUS_PENDING) {
+            if (packet.getHeader().getStatus() == NtStatus.STATUS_PENDING) {
                 request.setAsyncId(packet.getHeader().getAsyncId());
                 // TODO Expiration timer
                 return;
@@ -164,7 +161,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketHan
         }
 
         // [MS-SMB2].pdf 3.2.5.1.6 Handling Session Expiration
-        if (packet.getHeader().getStatus() == SMB2StatusCode.STATUS_NETWORK_SESSION_EXPIRED) {
+        if (packet.getHeader().getStatus() == NtStatus.STATUS_NETWORK_SESSION_EXPIRED) {
             // TODO reauthenticate session!
             return;
         }

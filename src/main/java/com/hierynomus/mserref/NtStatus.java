@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.smb2;
+package com.hierynomus.mserref;
 
 import com.hierynomus.protocol.commons.EnumWithValue;
 
@@ -22,7 +22,7 @@ import com.hierynomus.protocol.commons.EnumWithValue;
  *
  * Subset of the possible values which are useful for SMB2 communication
  */
-public enum SMB2StatusCode implements EnumWithValue<SMB2StatusCode> {
+public enum NtStatus implements EnumWithValue<NtStatus> {
     STATUS_SUCCESS(0x00000000L),
     STATUS_TIMEOUT(0x00000102L),
     STATUS_PENDING(0x00000103L),
@@ -74,12 +74,20 @@ public enum SMB2StatusCode implements EnumWithValue<SMB2StatusCode> {
 
     private long value;
 
-    SMB2StatusCode(long val) {
+    NtStatus(long val) {
         value = val;
     }
 
     @Override
     public long getValue() {
         return value;
+    }
+
+    public boolean isSuccess() {
+        return (value >>> 30) == 0;
+    }
+
+    public boolean isError() {
+        return (value >>> 30) == 0x3;
     }
 }

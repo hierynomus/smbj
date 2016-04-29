@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.smb2;
 
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
@@ -36,7 +37,7 @@ public class SMB2Header {
     private long asyncId;
     private long sessionId;
     private long treeId;
-    private SMB2StatusCode status;
+    private NtStatus status;
     private long statusCode;
     private long flags;
     private long nextCommandOffset;
@@ -147,7 +148,7 @@ public class SMB2Header {
         buffer.skip(2); // StructureSize (2 bytes)
         creditCost = buffer.readUInt16(); // CreditCharge (2 bytes)
         statusCode = buffer.readUInt32();
-        status = EnumUtils.valueOf(statusCode, SMB2StatusCode.class, SMB2StatusCode.UNKNOWN); // Status (4 bytes)
+        status = EnumUtils.valueOf(statusCode, NtStatus.class, NtStatus.UNKNOWN); // Status (4 bytes)
         message = SMB2MessageCommandCode.lookup(buffer.readUInt16()); // Command (2 bytes)
         creditResponse = buffer.readUInt16(); // CreditRequest/CreditResponse (2 bytes)
         flags = buffer.readUInt32(); // Flags (4 bytes)
@@ -163,7 +164,7 @@ public class SMB2Header {
         buffer.readRawBytes(16); // Signature (16 bytes)
     }
 
-    public SMB2StatusCode getStatus() {
+    public NtStatus getStatus() {
         return status;
     }
 

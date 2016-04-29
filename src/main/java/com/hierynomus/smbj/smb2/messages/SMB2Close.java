@@ -22,7 +22,7 @@ import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2FileId;
 import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
 import com.hierynomus.smbj.smb2.SMB2Packet;
-import com.hierynomus.smbj.smb2.SMB2StatusCode;
+import com.hierynomus.mserref.NtStatus;
 
 import java.util.Date;
 
@@ -58,7 +58,7 @@ public class SMB2Close extends SMB2Packet {
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
-        if (getHeader().getStatus() == SMB2StatusCode.STATUS_SUCCESS) {
+        if (getHeader().getStatus() == NtStatus.STATUS_SUCCESS) {
             buffer.readUInt16(); // StructureSize (2 bytes)
             // We set the Flags value 0x01 hardcoded, so the server should also echo that
             buffer.readUInt16(); // Flags (2 bytes)

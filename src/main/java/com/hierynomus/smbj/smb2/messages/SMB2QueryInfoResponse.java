@@ -15,19 +15,10 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
-import com.hierynomus.msdtyp.MsDataTypes;
-import com.hierynomus.msfscc.FileAttributes;
-import com.hierynomus.ntlm.functions.NtlmFunctions;
-import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Packet;
-import com.hierynomus.smbj.smb2.SMB2StatusCode;
-
-import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import com.hierynomus.mserref.NtStatus;
 
 /**
  * [MS-SMB2].pdf 2.2.38 SMB2 QUERY_INFO Response
@@ -44,7 +35,7 @@ public class SMB2QueryInfoResponse extends SMB2Packet {
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         // TODO how to handle errors correctly
-        if (header.getStatus() != SMB2StatusCode.STATUS_SUCCESS) return;
+        if (header.getStatus() != NtStatus.STATUS_SUCCESS) return;
 
         buffer.skip(2); // StructureSize (2 bytes)
         int outputBufferOffset = buffer.readUInt16(); // OutputBufferOffset (2 bytes)

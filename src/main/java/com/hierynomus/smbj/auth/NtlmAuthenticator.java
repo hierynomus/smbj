@@ -26,7 +26,7 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.smb2.SMB2StatusCode;
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.smbj.smb2.messages.SMB2SessionSetup;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.spnego.NegTokenInit;
@@ -73,7 +73,7 @@ public class NtlmAuthenticator implements Authenticator {
             Future<SMB2SessionSetup> future = connection.send(smb2SessionSetup);
             SMB2SessionSetup receive = Futures.get(future, TransportException.Wrapper);
             long sessionId = receive.getHeader().getSessionId();
-            if (receive.getHeader().getStatus() == SMB2StatusCode.STATUS_MORE_PROCESSING_REQUIRED) {
+            if (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
                 logger.debug("More processing required for authentication of {}", context.getUsername());
                 byte[] securityBuffer = receive.getSecurityBuffer();
                 logger.info("Received token: {}", ByteArrayUtils.printHex(securityBuffer));
@@ -123,7 +123,7 @@ public class NtlmAuthenticator implements Authenticator {
                 smb2SessionSetup2.setSecurityBuffer(asn1);
                 Future<SMB2SessionSetup> send = connection.send(smb2SessionSetup2);
                 SMB2SessionSetup setupResponse = Futures.get(send, TransportException.Wrapper);
-                if (setupResponse.getHeader().getStatus() != SMB2StatusCode.STATUS_SUCCESS) {
+                if (setupResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
                     throw new NtlmException("Setup failed with " + setupResponse.getHeader().getStatus());
                 }
             }

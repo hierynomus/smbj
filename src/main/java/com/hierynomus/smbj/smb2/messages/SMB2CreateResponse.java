@@ -22,9 +22,8 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2FileId;
 import com.hierynomus.smbj.smb2.SMB2Packet;
-import com.hierynomus.smbj.smb2.SMB2StatusCode;
+import com.hierynomus.mserref.NtStatus;
 
-import java.util.Collection;
 import java.util.Date;
 import java.util.EnumSet;
 
@@ -47,7 +46,7 @@ public class SMB2CreateResponse extends SMB2Packet {
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
-        if (header.getStatus() == SMB2StatusCode.STATUS_SUCCESS) {
+        if (header.getStatus() == NtStatus.STATUS_SUCCESS) {
             buffer.readUInt16(); // StructureSize (2 bytes)
             buffer.readByte(); // OpLockLevel (1 byte) - Not used yet
             buffer.readByte(); // Flags (1 byte) - Only for 3.x else Reserved

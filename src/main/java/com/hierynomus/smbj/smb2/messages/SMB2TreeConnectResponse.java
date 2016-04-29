@@ -18,7 +18,7 @@ package com.hierynomus.smbj.smb2.messages;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Packet;
-import com.hierynomus.smbj.smb2.SMB2StatusCode;
+import com.hierynomus.mserref.NtStatus;
 
 /**
  * [MS-SMB2].pdf 2.2.10 SMB2 TREE_CONNECT Response
@@ -39,7 +39,7 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
-        if (header.getStatus() == SMB2StatusCode.STATUS_SUCCESS) {
+        if (header.getStatus() == NtStatus.STATUS_SUCCESS) {
             buffer.skip(2); // StructureSize (2 bytes)
             shareType = buffer.readByte(); // ShareType (1 byte)
             buffer.readByte(); // Reserved (1 byte)
