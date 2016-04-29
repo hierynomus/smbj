@@ -3,7 +3,7 @@ plugins {
     id "groovy"
     id "idea"
     id "maven"
-    id "org.ajoberstar.release-opinion" version "1.4.0-rc.1"
+    id "org.ajoberstar.release-opinion" version "1.4.2"
     id "com.github.hierynomus.license" version "0.12.1"
 }
 
