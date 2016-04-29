@@ -89,7 +89,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketHan
     @Override
     protected void onConnect() throws IOException {
         super.onConnect();
-        this.connectionInfo = new ConnectionInfo(getRemoteHostname());
+        this.connectionInfo = new ConnectionInfo(config.getClientGuid(), getRemoteHostname());
         packetReader = new DirectTcpPacketReader(getInputStream(), this);
         packetReaderThread = new Thread(packetReader);
         packetReaderThread.start();

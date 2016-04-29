@@ -19,11 +19,13 @@ import com.hierynomus.smbj.smb2.SMB2Dialect;
 
 import java.util.EnumSet;
 import java.util.Random;
+import java.util.UUID;
 
 public class ConfigImpl implements Config {
 
     protected EnumSet<SMB2Dialect> dialects;
     protected Random random;
+    protected UUID clientGuid;
 
     @Override
     public Random getRandomProvider() {
@@ -33,5 +35,10 @@ public class ConfigImpl implements Config {
     @Override
     public EnumSet<SMB2Dialect> getSupportedDialects() {
         return dialects;
+    }
+
+    @Override
+    public UUID getClientGuid() {
+        return clientGuid;
     }
 }

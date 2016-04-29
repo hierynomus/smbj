@@ -19,10 +19,13 @@ import com.hierynomus.smbj.smb2.SMB2Dialect;
 
 import java.util.EnumSet;
 import java.util.Random;
+import java.util.UUID;
 
 public interface Config {
 
     Random getRandomProvider();
 
     EnumSet<SMB2Dialect> getSupportedDialects();
+
+    UUID getClientGuid();
 }

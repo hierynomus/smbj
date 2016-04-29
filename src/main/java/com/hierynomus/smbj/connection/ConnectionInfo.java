@@ -15,12 +15,15 @@
  */
 package com.hierynomus.smbj.connection;
 
+import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.messages.SMB2NegotiateResponse;
 
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
+
+import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
 public class ConnectionInfo {
     public byte[] getGssNegotiateToken() {
@@ -31,29 +34,23 @@ public class ConnectionInfo {
         return outstandingRequests;
     }
 
-    public enum GlobalCapability {
-        SMB2_GLOBAL_CAP_DFS(0x01),
-        SMB2_GLOBAL_CAP_LEASING(0x02),
-        SMB2_GLOBAL_CAP_LARGE_MTU(0x04), // Multi-Credit support
-        SMB2_GLOBAL_CAP_MULTI_CHANNEL(0x08),
-        SMB2_GLOBAL_CAP_PERSISTENT_HANDLES(0x10),
-        SMB2_GLOBAL_CAP_DIRECTORY_LEASING(0x20),
-        SMB2_GLOBAL_CAP_ENCRYPTION(0x40);
+    public enum GlobalCapability implements EnumWithValue<GlobalCapability> {
+        SMB2_GLOBAL_CAP_DFS(0x01L),
+        SMB2_GLOBAL_CAP_LEASING(0x02L),
+        SMB2_GLOBAL_CAP_LARGE_MTU(0x04L), // Multi-Credit support
+        SMB2_GLOBAL_CAP_MULTI_CHANNEL(0x08L),
+        SMB2_GLOBAL_CAP_PERSISTENT_HANDLES(0x10L),
+        SMB2_GLOBAL_CAP_DIRECTORY_LEASING(0x20L),
+        SMB2_GLOBAL_CAP_ENCRYPTION(0x40L);
 
-        private int i;
+        private long i;
 
-        GlobalCapability(int i) {
+        GlobalCapability(long i) {
             this.i = i;
         }
 
-        public static EnumSet<GlobalCapability> allIn(long v) {
-            EnumSet<GlobalCapability> capabilities = EnumSet.noneOf(GlobalCapability.class);
-            for (GlobalCapability capability : values()) {
-                if ((v & capability.i) > 0) {
-                    capabilities.add(capability);
-                }
-            }
-            return capabilities;
+        public long getValue() {
+            return i;
         }
     }
 
@@ -85,9 +82,10 @@ public class ConnectionInfo {
     private String cipherId;
 
 
-    public ConnectionInfo(String serverName) {
+    public ConnectionInfo(UUID clientGuid, String serverName) {
         // new SessionTable
         // new OutstandingRequests
+        this.clientGuid = clientGuid;
         this.sequenceWindow = new SequenceWindow();
         this.gssNegotiateToken = new byte[0];
         this.dialect = SMB2Dialect.UNKNOWN;
@@ -101,7 +99,7 @@ public class ConnectionInfo {
         maxWriteSize = response.getMaxWriteSize();
         serverGuid = response.getServerGuid();
         dialect = response.getDialect();
-        serverCapabilities = GlobalCapability.allIn(response.getCapabilities());
+        serverCapabilities = toEnumSet(response.getCapabilities(), GlobalCapability.class);
         serverSecurityMode = response.getSecurityMode();
     }
 
