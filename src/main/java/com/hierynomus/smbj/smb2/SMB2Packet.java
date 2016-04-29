@@ -21,16 +21,19 @@ import com.hierynomus.smbj.common.SMBBuffer;
 
 public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
     protected final SMB2Header header = new SMB2Header();
+    protected int structureSize;
 
     public SMB2Packet() {
     }
 
-    public SMB2Packet(SMB2Dialect dialect, SMB2MessageCommandCode messageType) {
+    public SMB2Packet(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType) {
+        this.structureSize = structureSize;
         header.setDialect(dialect);
         header.setMessageType(messageType);
     }
 
-    public SMB2Packet(SMB2Dialect dialect, SMB2MessageCommandCode messageType, long sessionId, long treeId) {
+    public SMB2Packet(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType, long sessionId, long treeId) {
+        this.structureSize = structureSize;
         header.setDialect(dialect);
         header.setMessageType(messageType);
         header.setSessionId(sessionId);
@@ -45,11 +48,19 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
         return header.getMessageId();
     }
 
+    public int getStructureSize() {
+        return structureSize;
+    }
+
     public final void write(SMBBuffer buffer) {
         header.writeTo(buffer);
         writeTo(buffer);
     }
 
+    /**
+     * Write the message fields into the buffer, as specified in the [MS-SMB2].pdf specification.
+     * @param buffer
+     */
     protected void writeTo(SMBBuffer buffer) {
         throw new UnsupportedOperationException("Should be implemented by specific message type");
     }

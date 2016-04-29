@@ -44,7 +44,7 @@ public class SMB2IoctlRequest extends SMB2Packet {
             FileInformationClass fileInfoClass,
             SecurityInformation securityInformation, byte[] buffer
     ) {
-        super(negotiatedDialect, SMB2MessageCommandCode.SMB2_IOCTL, sessionId, treeId);
+        super(57, negotiatedDialect, SMB2MessageCommandCode.SMB2_IOCTL, sessionId, treeId);
         this.controlCode = controlCode;
         this.fileId = fileId;
         this.inputData = inputData == null ? new byte[0] : buffer;
@@ -53,7 +53,7 @@ public class SMB2IoctlRequest extends SMB2Packet {
 
     @Override
     protected void writeTo(SMBBuffer smbBuffer) {
-        smbBuffer.putUInt16(57); // StructureSize (2 bytes)
+        smbBuffer.putUInt16(structureSize); // StructureSize (2 bytes)
         smbBuffer.putReserved2(); // Reserved (2 bytes)
         smbBuffer.putUInt32(controlCode.getValue()); // CtlCode (4 bytes)
         fileId.write(smbBuffer);  // FileId (16 bytes)

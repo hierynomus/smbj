@@ -45,7 +45,7 @@ public class SMB2CreateRequest extends SMB2Packet {
                              EnumSet<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition,
                              EnumSet<SMB2CreateOptions> createOptions, String fileName) {
 
-        super(smbDialect, SMB2MessageCommandCode.SMB2_CREATE, sessionId, treeId);
+        super(57, smbDialect, SMB2MessageCommandCode.SMB2_CREATE, sessionId, treeId);
         this.directoryAccessMask = ensureNotNull(directoryAccessMask, SMB2DirectoryAccessMask.class);
         this.fileAttributes = ensureNotNull(fileAttributes, FileAttributes.class);
         this.shareAccess = ensureNotNull(shareAccess, SMB2ShareAccess.class);
@@ -57,7 +57,7 @@ public class SMB2CreateRequest extends SMB2Packet {
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
-        buffer.putUInt16(57); // StructureSize (2 bytes)
+        buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putByte((byte) 0); // SecurityFlags (1 byte) - Reserved
         buffer.putByte((byte) 0);  // RequestedOpLockLevel (1 byte) - None
         buffer.putUInt32(1); // ImpersonationLevel (4 bytes) - Identification

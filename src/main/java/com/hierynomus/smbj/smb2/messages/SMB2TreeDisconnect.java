@@ -31,12 +31,12 @@ public class SMB2TreeDisconnect extends SMB2Packet {
     }
 
     public SMB2TreeDisconnect(SMB2Dialect smbDialect) {
-        super(smbDialect, SMB2MessageCommandCode.SMB2_TREE_DISCONNECT);
+        super(4, smbDialect, SMB2MessageCommandCode.SMB2_TREE_DISCONNECT);
     }
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
-        buffer.putUInt16(4); // StructureSize (2 bytes)
+        buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putReserved(2); // Reserved (2 bytes)
     }
 

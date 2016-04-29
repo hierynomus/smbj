@@ -37,9 +37,7 @@ public class SMB2WriteRequest extends SMB2Packet {
     public SMB2WriteRequest(
             SMB2Dialect negotiatedDialect, SMB2FileId fileId,
             long sessionId, long treeId, byte data[], long length, long offset, long remainingBytes) {
-        super(negotiatedDialect, SMB2MessageCommandCode.SMB2_WRITE);
-        getHeader().setSessionId(sessionId);
-        getHeader().setTreeId(treeId);
+        super(49, negotiatedDialect, SMB2MessageCommandCode.SMB2_WRITE, sessionId, treeId);
         this.fileId = fileId;
         this.data = data;
         this.length = length;
@@ -49,7 +47,7 @@ public class SMB2WriteRequest extends SMB2Packet {
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
-        buffer.putUInt16(49); // StructureSize (2 bytes)
+        buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         short dataOffset = SMB2Header.STRUCTURE_SIZE + 48;
         buffer.putUInt16(dataOffset); // DataOffSet (2 bytes)
         buffer.putUInt32(length); // Length (4 bytes)

@@ -31,12 +31,12 @@ public class SMB2Echo extends SMB2Packet {
     }
 
     public SMB2Echo(SMB2Dialect dialect) {
-        super(dialect, SMB2MessageCommandCode.SMB2_ECHO);
+        super(4, dialect, SMB2MessageCommandCode.SMB2_ECHO);
     }
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
-        buffer.putUInt16(4); // StructureSize (2 bytes)
+        buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putUInt16(0); // Reserved
     }
 

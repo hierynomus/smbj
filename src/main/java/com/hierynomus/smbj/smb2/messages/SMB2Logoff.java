@@ -31,12 +31,12 @@ public class SMB2Logoff extends SMB2Packet {
     }
 
     public SMB2Logoff(SMB2Dialect smbDialect) {
-        super(smbDialect, SMB2MessageCommandCode.SMB2_LOGOFF);
+        super(4, smbDialect, SMB2MessageCommandCode.SMB2_LOGOFF);
     }
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
-        buffer.putUInt16(4); // StructureSize (2 bytes)
+        buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putReserved(2); // Reserved (2 bytes)
     }
 

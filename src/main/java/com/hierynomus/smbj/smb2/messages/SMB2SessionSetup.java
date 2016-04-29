@@ -45,14 +45,14 @@ public class SMB2SessionSetup extends SMB2Packet {
     }
 
     public SMB2SessionSetup(SMB2Dialect negotiatedDialect, EnumSet<SMB2SecurityMode> securityMode) {
-        super(negotiatedDialect, SMB2MessageCommandCode.SMB2_SESSION_SETUP);
+        super(25, negotiatedDialect, SMB2MessageCommandCode.SMB2_SESSION_SETUP);
         this.negotiatedDialect = negotiatedDialect;
         this.securityMode = (byte)EnumWithValue.EnumUtils.toLong(securityMode);
     }
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
-        buffer.putUInt16(25); // StructureSize (2 bytes)
+        buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         putFlags(buffer); // Flags (1 byte)
         buffer.putByte(securityMode); // SecurityMode (1 byte)
         buffer.putUInt32(clientCapabilities & 0x01); // Capabilities (4 bytes) (only last byte can be set)

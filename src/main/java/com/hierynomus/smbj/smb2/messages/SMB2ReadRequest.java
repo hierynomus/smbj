@@ -34,14 +34,14 @@ public class SMB2ReadRequest extends SMB2Packet {
     public SMB2ReadRequest(
             SMB2Dialect negotiatedDialect, SMB2FileId fileId,
             long sessionId, long treeId, long offset) {
-        super(negotiatedDialect, SMB2MessageCommandCode.SMB2_READ, sessionId, treeId);
+        super(49, negotiatedDialect, SMB2MessageCommandCode.SMB2_READ, sessionId, treeId);
         this.fileId = fileId;
         this.offset = offset;
     }
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
-        buffer.putUInt16(49); // StructureSize (2 bytes)
+        buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putByte((byte) 0); // Padding (1 byte)
         buffer.putByte((byte) 0); // Flags (1 byte)
         buffer.putUInt32(READ_SIZE); // Length (4 bytes)

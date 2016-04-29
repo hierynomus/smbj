@@ -38,7 +38,7 @@ public class SMB2NegotiateRequest extends SMB2Packet {
      * @param clientGuid
      */
     public SMB2NegotiateRequest(EnumSet<SMB2Dialect> dialects, UUID clientGuid) {
-        super(SMB2Dialect.UNKNOWN, SMB2MessageCommandCode.SMB2_NEGOTIATE, 0, 0);
+        super(36, SMB2Dialect.UNKNOWN, SMB2MessageCommandCode.SMB2_NEGOTIATE, 0, 0);
         header.setCreditCost(0);
         this.dialects = dialects;
         this.clientGuid = clientGuid;
@@ -50,7 +50,7 @@ public class SMB2NegotiateRequest extends SMB2Packet {
      */
     @Override
     protected void writeTo(SMBBuffer buffer) {
-        buffer.putUInt16(36); // StructureSize (2 bytes)
+        buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putUInt16(dialects.size()); // DialectCount (2 bytes)
         buffer.putUInt16(1); // SecurityMode (2 bytes) Hardcoded to enabled.
         buffer.putReserved(2); // Reserved (2 bytes)

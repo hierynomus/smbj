@@ -44,7 +44,7 @@ public class SMB2QueryDirectoryRequest extends SMB2Packet {
                                      long fileIndex,
                                      String searchPattern) {
 
-        super(smbDialect, SMB2MessageCommandCode.SMB2_QUERY_DIRECTORY, sessionId, treeId);
+        super(33, smbDialect, SMB2MessageCommandCode.SMB2_QUERY_DIRECTORY, sessionId, treeId);
         this.fileInformationClass = fileInformationClass;
         this.flags = flags;
         this.fileIndex = fileIndex;
@@ -56,7 +56,7 @@ public class SMB2QueryDirectoryRequest extends SMB2Packet {
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
-        buffer.putUInt16(33); // StructureSize (2 bytes)
+        buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putByte((byte) fileInformationClass.getValue()); // FileInformationClass (1 byte)
         buffer.putByte((byte) EnumWithValue.EnumUtils.toLong(flags)); // Flags (1 byte)
         buffer.putUInt32(fileIndex); // FileIndex (4 bytes)

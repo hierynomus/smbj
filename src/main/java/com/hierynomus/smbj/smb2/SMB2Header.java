@@ -90,7 +90,7 @@ public class SMB2Header {
         this.messageId = messageId;
     }
 
-    public void setMessageType(SMB2MessageCommandCode messageType) {
+    void setMessageType(SMB2MessageCommandCode messageType) {
         this.message = messageType;
     }
 

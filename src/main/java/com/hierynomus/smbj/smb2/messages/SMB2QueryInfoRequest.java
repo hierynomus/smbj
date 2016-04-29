@@ -46,9 +46,7 @@ public class SMB2QueryInfoRequest extends SMB2Packet {
                                 byte[] inputBuffer,
                                 EnumSet<SecurityInformation> securityInformation) {
 
-        super(smbDialect, SMB2MessageCommandCode.SMB2_QUERY_INFO);
-        getHeader().setSessionId(sessionId);
-        getHeader().setTreeId(treeId);
+        super(41, smbDialect, SMB2MessageCommandCode.SMB2_QUERY_INFO, sessionId, treeId);
         this.infoType = infoType;
         this.fileInformationClass = fileInformationClass;
         this.fileSystemInformationClass = fileSysemInformationClass;
@@ -60,7 +58,7 @@ public class SMB2QueryInfoRequest extends SMB2Packet {
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
-        buffer.putUInt16(41); // StructureSize (2 bytes)
+        buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putByte((byte) infoType.getValue()); // InfoType (1 byte)
         int BUFFER_OFFSET = SMB2Header.STRUCTURE_SIZE + 40;
         int offset = 0;

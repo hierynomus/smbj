@@ -28,15 +28,15 @@ public class SMB2TreeConnectRequest extends SMB2Packet {
     private boolean isClusterReconnect; // SMB 3.1.1 only
     private String smbPath;
 
-    public SMB2TreeConnectRequest(SMB2Dialect dialect, String smbPath) {
-        super(dialect, SMB2MessageCommandCode.SMB2_TREE_CONNECT);
+    public SMB2TreeConnectRequest(SMB2Dialect dialect, String smbPath, long sessionId) {
+        super(9, dialect, SMB2MessageCommandCode.SMB2_TREE_CONNECT, sessionId, 0);
         this.dialect = dialect;
         this.smbPath = smbPath;
     }
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
-        buffer.putUInt16(9); // StructureSize (2 bytes)
+        buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         putFlags(buffer); // Flags (2 bytes)
         buffer.putUInt16(SMB2Header.STRUCTURE_SIZE + 8); // PathOffset (2 bytes) (header structure size + msg structure size)
         buffer.putStringLengthUInt16(smbPath); // PathLength (2 bytes)
@@ -47,7 +47,7 @@ public class SMB2TreeConnectRequest extends SMB2Packet {
         if (dialect == SMB2Dialect.SMB_3_1_1 && isClusterReconnect) {
             buffer.putUInt16(0x01);
         } else {
-            buffer.putReserved(2);
+            buffer.putReserved2();
         }
     }
 }

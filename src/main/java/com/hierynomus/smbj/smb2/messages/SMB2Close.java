@@ -44,13 +44,13 @@ public class SMB2Close extends SMB2Packet {
     }
 
     public SMB2Close(SMB2Dialect smbDialect, long sessionId, long treeId, SMB2FileId fileId) {
-        super(smbDialect, SMB2MessageCommandCode.SMB2_CLOSE, sessionId, treeId);
+        super(24, smbDialect, SMB2MessageCommandCode.SMB2_CLOSE, sessionId, treeId);
         this.fileId = fileId;
     }
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
-        buffer.putUInt16(24); // StructureSize (2 bytes)
+        buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putUInt16(0x01); // Flags (2 bytes) (SMB2_CLOSE_FLAGS_POSTQUERY_ATTRIB)
         buffer.putReserved4(); // Reserved (4 bytes)
         fileId.write(buffer); // FileId (16 bytes)

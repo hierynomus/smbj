@@ -33,12 +33,12 @@ public class SMB2Flush extends SMB2Packet {
     }
 
     public SMB2Flush(SMB2Dialect smbDialect) {
-        super(smbDialect, SMB2MessageCommandCode.SMB2_FLUSH);
+        super(24, smbDialect, SMB2MessageCommandCode.SMB2_FLUSH);
     }
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
-        buffer.putUInt16(24); // StructureSize (2 bytes)
+        buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putReserved2(); // Reserved1 (2 bytes)
         buffer.putReserved4(); // Reserved2 (4 bytes)
         fileId.write(buffer);

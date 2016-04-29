@@ -46,7 +46,7 @@ public class SMB2ChangeNotifyRequest extends SMB2Packet {
                                    long outputBufferLength,
                                    boolean recursive) {
 
-        super(smbDialect, SMB2MessageCommandCode.SMB2_CHANGE_NOTIFY, sessionId, treeId);
+        super(32, smbDialect, SMB2MessageCommandCode.SMB2_CHANGE_NOTIFY, sessionId, treeId);
         this.fileId = fileId;
         this.completionFilter = completionFilter;
         this.outputBufferLength = outputBufferLength;
@@ -55,7 +55,7 @@ public class SMB2ChangeNotifyRequest extends SMB2Packet {
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
-        buffer.putUInt16(32); // StructureSize (2 bytes)
+        buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         int flags = (recursive) ? SMB2_WATCH_TREE : 0;
         buffer.putUInt16(flags); // Flags (2 bytes)
         buffer.putUInt32(outputBufferLength); // OutputBufferLength (4 bytes)

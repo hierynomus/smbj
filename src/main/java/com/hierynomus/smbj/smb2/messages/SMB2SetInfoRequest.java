@@ -42,7 +42,7 @@ public class SMB2SetInfoRequest extends SMB2Packet {
             FileInformationClass fileInfoClass,
             SecurityInformation securityInformation, byte[] buffer
     ) {
-        super(negotiatedDialect, SMB2MessageCommandCode.SMB2_SET_INFO, sessionId, treeId);
+        super(33, negotiatedDialect, SMB2MessageCommandCode.SMB2_SET_INFO, sessionId, treeId);
         this.fileId = fileId;
         this.infoType = infoType;
         this.fileInfoClass = fileInfoClass;
@@ -56,7 +56,7 @@ public class SMB2SetInfoRequest extends SMB2Packet {
      */
     @Override
     protected void writeTo(SMBBuffer smbBuffer) {
-        smbBuffer.putUInt16(33); // StructureSize (2 bytes)
+        smbBuffer.putUInt16(structureSize); // StructureSize (2 bytes)
         smbBuffer.putByte((byte) infoType.getValue()); // InfoType (1 byte)
         smbBuffer.putByte((byte) fileInfoClass.getValue()); // FileInfoClass (1 byte)
         int offset = SMB2Header.STRUCTURE_SIZE + 32;
