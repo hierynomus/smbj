@@ -19,12 +19,20 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Server Message Block Client API.
  */
 public class SMBClient {
+    /**
+     * The default TCP port for SMB
+     */
     public static final int DEFAULT_PORT = 445;
+
+    private Map<String, Connection> connectionTable = new ConcurrentHashMap<>();
+
     private Config config;
 
     public SMBClient() {
@@ -35,9 +43,26 @@ public class SMBClient {
         this.config = config;
     }
 
+    /**
+     * Connect to the host at <pre>hostname</pre> on the default port (445)
+     * @param hostname The hostname to connect to.
+     * @return An established connection.
+     * @throws IOException If the connection could not be established.
+     */
     public Connection connect(String hostname) throws IOException {
-        Connection connection = new Connection(config, new DirectTcpTransport());
-        connection.connect(hostname);
-        return connection;
+        return getEstablishedOrConnect(hostname, DEFAULT_PORT);
+    }
+
+
+    private Connection getEstablishedOrConnect(String hostname, int port) throws IOException {
+        synchronized (this) {
+            if (!connectionTable.containsKey(hostname)) {
+                Connection connection = new Connection(config, new DirectTcpTransport());
+                connection.connect(hostname, port);
+                connectionTable.put(hostname, connection);
+                return connection;
+            }
+            return connectionTable.get(hostname);
+        }
     }
 }

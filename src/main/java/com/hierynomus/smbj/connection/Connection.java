@@ -122,7 +122,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketHan
             if (negTokenInit.getSupportedMechTypes().contains(new ASN1ObjectIdentifier(factory.getName()))) {
                 NtlmAuthenticator ntlmAuthenticator = factory.create();
                 long sessionId = ntlmAuthenticator.authenticate(this, authContext);
-                return new Session(sessionId);
+                return new Session(sessionId, this);
             }
         } catch (IOException e) {
             throw new SMBRuntimeException(e);

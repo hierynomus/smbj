@@ -15,10 +15,16 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
+import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.smbj.smb2.SMB2ShareCapabilities;
+
+import java.util.EnumSet;
+
+import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
 /**
  * [MS-SMB2].pdf 2.2.10 SMB2 TREE_CONNECT Response
@@ -29,7 +35,7 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
 
     private byte shareType;
     private long shareFlags;
-    private long capabilities;
+    private EnumSet<SMB2ShareCapabilities> capabilities;
     private long maximalAccess;
 
     public SMB2TreeConnectResponse() {
@@ -44,20 +50,40 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
             shareType = buffer.readByte(); // ShareType (1 byte)
             buffer.readByte(); // Reserved (1 byte)
             shareFlags = buffer.readUInt32(); // ShareFlags (4 bytes)
-            capabilities = buffer.readUInt32(); // Capabilities (4 bytes)
+            capabilities = toEnumSet(buffer.readUInt32(), SMB2ShareCapabilities.class); // Capabilities (4 bytes)
             maximalAccess = buffer.readUInt32(); // MaximalAccess (4 bytes)
         }
     }
 
-    public byte getShareType() {
-        return shareType;
+    /**
+     * Whether the ShareType returned is SMB2_SHARE_TYPE_DISK (0x01)
+     * @return true if the ShareType returned is SMB2_SHARE_TYPE_DISK (0x01)
+     */
+    public boolean isDiskShare() {
+        return shareType == 0x01;
+    }
+
+    /**
+     * Whether the ShareType returned is SMB2_SHARE_TYPE_PIPE (0x02)
+     * @return true if the ShareType returned is SMB2_SHARE_TYPE_PIPE (0x02)
+     */
+    public boolean isNamedPipe() {
+        return shareType == 0x02;
+    }
+
+    /**
+     * Whether the ShareType returned is SMB2_SHARE_TYPE_PRINT (0x03)
+     * @return true if the ShareType returned is SMB2_SHARE_TYPE_PRINT (0x03)
+     */
+    public boolean isPrinterShare() {
+        return shareType == 0x03;
     }
 
     public long getShareFlags() {
         return shareFlags;
     }
 
-    public long getCapabilities() {
+    public EnumSet<SMB2ShareCapabilities> getCapabilities() {
         return capabilities;
     }
 
