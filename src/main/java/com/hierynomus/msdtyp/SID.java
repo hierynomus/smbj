@@ -32,7 +32,7 @@ public class SID {
     public SID() {
     }
 
-    private SID(byte revision, byte[] sidIdentifierAuthority, long[] subAuthorities) {
+    public SID(byte revision, byte[] sidIdentifierAuthority, long[] subAuthorities) {
         this.revision = revision;
         this.sidIdentifierAuthority = sidIdentifierAuthority;
         this.subAuthorities = subAuthorities;
@@ -89,5 +89,17 @@ public class SID {
             b.append("-").append(subAuthorities[i] & 0xFFFFFFFFL);
 
         return b.toString();
+    }
+
+    public byte getRevision() {
+        return revision;
+    }
+
+    public byte[] getSidIdentifierAuthority() {
+        return sidIdentifierAuthority;
+    }
+
+    public long[] getSubAuthorities() {
+        return subAuthorities;
     }
 }
