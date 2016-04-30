@@ -38,5 +38,6 @@ class SMB2QueryDirectoryResponseTest extends Specification {
         then:
         fileInfoList.size() == 16
         fileInfoList.get(0).fileName == "2"
+        fileInfoList.get(6).fileName == "䐀䔀嘀尀樀甀渀椀琀开琀攀猀琀猀洀戀樀愀瀀椀"
     }
 }
