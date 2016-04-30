@@ -49,4 +49,19 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
         }
     }
 
+    public byte getShareType() {
+        return shareType;
+    }
+
+    public long getShareFlags() {
+        return shareFlags;
+    }
+
+    public long getCapabilities() {
+        return capabilities;
+    }
+
+    public long getMaximalAccess() {
+        return maximalAccess;
+    }
 }

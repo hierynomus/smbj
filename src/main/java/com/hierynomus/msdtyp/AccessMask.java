@@ -39,7 +39,12 @@ public enum AccessMask implements EnumWithValue<AccessMask> {
     ADS_RIGHT_DS_DELETE_CHILD(0X00000002L),
     ADS_RIGHT_DS_READ_PROP(0x00000010L),
     ADS_RIGHT_DS_WRITE_PROP(0x00000020L),
-    ADS_RIGHT_DS_SELF(0x00000008L);
+    ADS_RIGHT_DS_SELF(0x00000008L),
+
+    // Object specific Access Mask (MS-DTYP 2.4.3 - Second Para
+    FILE_READ_ACCESS(0x00000001L),
+    FILE_WRITE_ACCESS(0x00000002L),
+    FILE_APPEND_ACCESS(0x00000004L);
 
     private long value;
 

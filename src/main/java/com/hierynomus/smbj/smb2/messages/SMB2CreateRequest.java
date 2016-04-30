@@ -27,7 +27,6 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
 /**
  * [MS-SMB2].pdf 2.2.13 SMB2 CREATE Request
  * <p>
- * TODO
  */
 public class SMB2CreateRequest extends SMB2Packet {
 
@@ -36,17 +35,17 @@ public class SMB2CreateRequest extends SMB2Packet {
     private final SMB2CreateDisposition createDisposition;
     private final EnumSet<SMB2CreateOptions> createOptions;
     private final String fileName; // Null to indicate the root of share
-    private final EnumSet<SMB2DirectoryAccessMask> directoryAccessMask;
+    private final long accessMask;
 
     public SMB2CreateRequest(SMB2Dialect smbDialect,
                              long sessionId, long treeId,
-                             EnumSet<SMB2DirectoryAccessMask> directoryAccessMask,
+                             long accessMask,
                              EnumSet<FileAttributes> fileAttributes,
                              EnumSet<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition,
                              EnumSet<SMB2CreateOptions> createOptions, String fileName) {
 
         super(57, smbDialect, SMB2MessageCommandCode.SMB2_CREATE, sessionId, treeId);
-        this.directoryAccessMask = ensureNotNull(directoryAccessMask, SMB2DirectoryAccessMask.class);
+        this.accessMask = accessMask;
         this.fileAttributes = ensureNotNull(fileAttributes, FileAttributes.class);
         this.shareAccess = ensureNotNull(shareAccess, SMB2ShareAccess.class);
         this.createDisposition = createDisposition;
@@ -63,15 +62,26 @@ public class SMB2CreateRequest extends SMB2Packet {
         buffer.putUInt32(1); // ImpersonationLevel (4 bytes) - Identification
         buffer.putReserved(8); // SmbCreateFlags (8 bytes)
         buffer.putReserved(8); // Reserved (8 bytes)
-        buffer.putUInt32(toLong(directoryAccessMask)); // DesiredAccess (4 bytes)
+        buffer.putUInt32(accessMask); // DesiredAccess (4 bytes)
         buffer.putUInt32(toLong(fileAttributes)); // FileAttributes (4 bytes)
         buffer.putUInt32(toLong(shareAccess)); // ShareAccess (4 bytes)
         buffer.putUInt32(createDisposition == null ? 0 : createDisposition.getValue()); // CreateDisposition (4 bytes)
         buffer.putUInt32(toLong(createOptions)); // CreateOptions (4 bytes)
         int offset = SMB2Header.STRUCTURE_SIZE + 56;
-        byte[] nameBytes = SMB2Functions.unicode(fileName);
-        buffer.putUInt16(offset); // NameOffset (4 bytes)
-        buffer.putUInt16(nameBytes.length); // NameLength (4 bytes)
+
+        byte[] nameBytes = new byte[0];
+        if (fileName == null || fileName.trim().length() == 0) {
+            buffer.putUInt16(offset); // Name Offset (4 bytes)
+            buffer.putUInt16(nameBytes.length); // Name Length (4 bytes)
+            // For empty names(root directory) Windows requires
+            // us to use a offset and in that offset have atleast a byte, since it affects alignment
+            // set the variable later.
+            nameBytes = new byte[1];
+        } else {
+            nameBytes = SMB2Functions.unicode(fileName);
+            buffer.putUInt16(offset); // Name Offset (4 bytes)
+            buffer.putUInt16(nameBytes.length); // Name Length (4 bytes)
+        }
 
         // Create Contexts
         buffer.putUInt32(0); // CreateContextsOffset (4 bytes)
