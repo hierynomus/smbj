@@ -18,7 +18,7 @@ package com.hierynomus.smbj.smb2;
 import java.nio.charset.Charset;
 
 public class SMB2Functions {
-    private static final byte[] EMPTY_BYTES = new byte[1];
+    private static final byte[] EMPTY_BYTES = new byte[0];
     public static final Charset UTF_16LE = Charset.forName("UTF-16LE");
 
     public static byte[] unicode(String s) {
