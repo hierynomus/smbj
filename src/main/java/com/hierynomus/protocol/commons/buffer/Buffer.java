@@ -680,7 +680,7 @@ public class Buffer<T extends Buffer<T>> {
             @Override
             public int read() throws IOException {
                 try {
-                    return Buffer.this.readByte();
+                    return Buffer.this.readByte() & 0xFF;
                 } catch (BufferException e) {
                     throw new IOException(e);
                 }
