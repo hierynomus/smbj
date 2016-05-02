@@ -44,4 +44,7 @@ public class Share implements AutoCloseable {
         return !disconnected.get();
     }
 
+    public TreeConnect getTreeConnect() {
+        return treeConnect;
+    }
 }

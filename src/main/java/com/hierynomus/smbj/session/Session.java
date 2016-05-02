@@ -137,4 +137,8 @@ public class Session implements AutoCloseable {
     public void close() throws IOException {
         logoff();
     }
+
+    public Connection getConnection() {
+        return connection;
+    }
 }

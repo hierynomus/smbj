@@ -28,7 +28,11 @@ public class SmbPath {
     @Override
     public String toString() {
         StringBuilder b = new StringBuilder("\\\\");
-        b.append(hostname).append("\\").append(shareName);
+        b.append(hostname);
+        // Clients can either pass \share or share
+        if (shareName.charAt(0) != '\\')
+            b.append("\\");
+        b.append(shareName);
         if (path != null) {
             b.append("\\").append(path);
         }
