@@ -33,9 +33,9 @@ class SMB2TreeConnectResponseTest extends Specification {
         tcResponse.read(new SMBBuffer(bytes1))
 
         then:
-        tcResponse.getCapabilities() == 0x00L
+        tcResponse.getCapabilities() == EnumSet.noneOf(SMB2ShareCapabilities.class)
         tcResponse.getMaximalAccess() == 0x001f01ffL;
         tcResponse.getShareFlags() == 0x800L;
-        tcResponse.getShareType() == 0x01L
+        tcResponse.isDiskShare()
     }
 }
