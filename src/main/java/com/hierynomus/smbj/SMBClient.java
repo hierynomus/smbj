@@ -16,7 +16,13 @@
 package com.hierynomus.smbj;
 
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.event.SMBEvent;
+import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
+import net.engio.mbassy.bus.MBassador;
+import net.engio.mbassy.bus.SyncMessageBus;
+import net.engio.mbassy.bus.config.BusConfiguration;
+import net.engio.mbassy.bus.config.Feature;
 
 import java.io.IOException;
 import java.util.Map;
@@ -35,12 +41,15 @@ public class SMBClient {
 
     private Config config;
 
+    private SMBEventBus bus;
+
     public SMBClient() {
         this(new DefaultConfig());
     }
 
     public SMBClient(Config config) {
         this.config = config;
+        bus = new SMBEventBus();
     }
 
     /**
@@ -57,7 +66,7 @@ public class SMBClient {
     private Connection getEstablishedOrConnect(String hostname, int port) throws IOException {
         synchronized (this) {
             if (!connectionTable.containsKey(hostname)) {
-                Connection connection = new Connection(config, new DirectTcpTransport());
+                Connection connection = new Connection(config, new DirectTcpTransport(), bus);
                 connection.connect(hostname, port);
                 connectionTable.put(hostname, connection);
                 return connection;

@@ -13,12 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.share;
+package com.hierynomus.smbj.common;
 
-import com.hierynomus.smbj.common.SmbPath;
+public class SmbPath {
+    private String hostname;
+    private String shareName;
+    private String path;
 
-public class NamedPipe extends Share {
-    public NamedPipe(SmbPath smbPath, TreeConnect treeConnect) {
-        super(smbPath, treeConnect);
+    public SmbPath(String hostname, String shareName) {
+        this.shareName = shareName;
+        this.hostname = hostname;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder b = new StringBuilder("\\\\");
+        b.append(hostname).append("\\").append(shareName);
+        if (path != null) {
+            b.append("\\").append(path);
+        }
+        return b.toString();
     }
 }

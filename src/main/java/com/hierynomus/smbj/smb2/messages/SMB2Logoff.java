@@ -30,8 +30,8 @@ public class SMB2Logoff extends SMB2Packet {
         super();
     }
 
-    public SMB2Logoff(SMB2Dialect smbDialect) {
-        super(4, smbDialect, SMB2MessageCommandCode.SMB2_LOGOFF);
+    public SMB2Logoff(SMB2Dialect smbDialect, long sessionId) {
+        super(4, smbDialect, SMB2MessageCommandCode.SMB2_LOGOFF, sessionId, 0);
     }
 
     @Override

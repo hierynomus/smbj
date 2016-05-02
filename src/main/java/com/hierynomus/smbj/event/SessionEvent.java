@@ -13,12 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.share;
+package com.hierynomus.smbj.event;
 
-import com.hierynomus.smbj.common.SmbPath;
+abstract class SessionEvent implements SMBEvent {
+    private long sessionId;
 
-public class NamedPipe extends Share {
-    public NamedPipe(SmbPath smbPath, TreeConnect treeConnect) {
-        super(smbPath, treeConnect);
+    public SessionEvent(long sessionId) {
+        this.sessionId = sessionId;
+    }
+
+    public long getSessionId() {
+        return sessionId;
     }
 }

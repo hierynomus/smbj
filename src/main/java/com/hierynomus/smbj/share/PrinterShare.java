@@ -15,9 +15,11 @@
  */
 package com.hierynomus.smbj.share;
 
+import com.hierynomus.smbj.common.SmbPath;
+
 public class PrinterShare extends Share {
 
-    public PrinterShare(TreeConnect treeConnect) {
-        super(treeConnect);
+    public PrinterShare(SmbPath smbPath, TreeConnect treeConnect) {
+        super(smbPath, treeConnect);
     }
 }

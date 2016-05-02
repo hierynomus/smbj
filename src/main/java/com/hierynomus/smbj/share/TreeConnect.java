@@ -15,10 +15,21 @@
  */
 package com.hierynomus.smbj.share;
 
+import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.commons.concurrent.Futures;
+import com.hierynomus.smbj.common.SMBApiException;
+import com.hierynomus.smbj.common.SmbPath;
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.event.SMBEventBus;
+import com.hierynomus.smbj.event.TreeDisconnected;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.smb2.SMB2Packet;
 import com.hierynomus.smbj.smb2.SMB2ShareCapabilities;
+import com.hierynomus.smbj.smb2.messages.SMB2TreeDisconnect;
+import com.hierynomus.smbj.transport.TransportException;
 
 import java.util.EnumSet;
+import java.util.concurrent.Future;
 
 /**
  *
@@ -26,16 +37,48 @@ import java.util.EnumSet;
 public class TreeConnect {
 
     private long treeId;
+    private SmbPath smbPath;
     private Session session;
     private final boolean isDfsShare;
     private final boolean isCAShare;
     private final boolean isScaleoutShare;
+    private final EnumSet<SMB2ShareCapabilities> capabilities;
+    private Connection connection;
+    private final SMBEventBus bus;
+    private Share handle;
 
-    public TreeConnect(long treeId, Session session, EnumSet<SMB2ShareCapabilities> capabilities) {
+    public TreeConnect(long treeId, SmbPath smbPath, Session session, EnumSet<SMB2ShareCapabilities> capabilities, Connection connection, SMBEventBus bus) {
         this.treeId = treeId;
+        this.smbPath = smbPath;
         this.session = session;
         this.isDfsShare = capabilities.contains(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS);
         this.isCAShare = capabilities.contains(SMB2ShareCapabilities.SMB2_SHARE_CAP_CONTINUOUS_AVAILABILITY);
         this.isScaleoutShare = capabilities.contains(SMB2ShareCapabilities.SMB2_SHARE_CAP_SCALEOUT);
+        this.capabilities = capabilities;
+        this.connection = connection;
+        this.bus = bus;
+    }
+
+    Connection getConnection() {
+        return connection;
+    }
+
+    void close(Share share) throws TransportException {
+        SMB2TreeDisconnect disconnect = new SMB2TreeDisconnect(connection.getNegotiatedDialect(), session.getSessionId(), treeId);
+        Future<SMB2Packet> send = connection.send(disconnect);
+        SMB2Packet smb2Packet = Futures.get(send, TransportException.Wrapper);
+        if (!smb2Packet.getHeader().getStatus().isSuccess()) {
+            throw new SMBApiException(smb2Packet.getHeader().getStatus(), "Error closing connection to " + smbPath);
+        }
+        share.disconnect();
+        bus.publish(new TreeDisconnected(session.getSessionId(), treeId));
+    }
+
+    void setHandle(Share handle) {
+        this.handle = handle;
+    }
+
+    public Share getHandle() {
+        return handle;
     }
 }

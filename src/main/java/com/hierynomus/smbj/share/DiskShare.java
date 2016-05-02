@@ -15,9 +15,11 @@
  */
 package com.hierynomus.smbj.share;
 
+import com.hierynomus.smbj.common.SmbPath;
+
 public class DiskShare extends Share {
 
-    public DiskShare(TreeConnect treeConnect) {
-        super(treeConnect);
+    public DiskShare(SmbPath smbPath, TreeConnect treeConnect) {
+        super(smbPath, treeConnect);
     }
 }

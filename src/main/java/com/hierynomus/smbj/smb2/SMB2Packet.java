@@ -32,6 +32,10 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
         header.setMessageType(messageType);
     }
 
+    public SMB2Packet(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType, long sessionId) {
+        this(structureSize, dialect, messageType, sessionId, 0);
+    }
+
     public SMB2Packet(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType, long sessionId, long treeId) {
         this.structureSize = structureSize;
         header.setDialect(dialect);

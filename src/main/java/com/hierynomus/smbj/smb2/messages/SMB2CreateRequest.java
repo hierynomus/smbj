@@ -67,20 +67,20 @@ public class SMB2CreateRequest extends SMB2Packet {
         buffer.putUInt32(toLong(shareAccess)); // ShareAccess (4 bytes)
         buffer.putUInt32(createDisposition == null ? 0 : createDisposition.getValue()); // CreateDisposition (4 bytes)
         buffer.putUInt32(toLong(createOptions)); // CreateOptions (4 bytes)
-        int offset = SMB2Header.STRUCTURE_SIZE + 56;
+        int offset = SMB2Header.STRUCTURE_SIZE + structureSize - 1; // The structureSize is including the minimum of 1 byte for the fileName
 
-        byte[] nameBytes = new byte[0];
+        byte[] nameBytes;
         if (fileName == null || fileName.trim().length() == 0) {
-            buffer.putUInt16(offset); // Name Offset (4 bytes)
-            buffer.putUInt16(nameBytes.length); // Name Length (4 bytes)
+            buffer.putUInt16(offset); // NameOffset (4 bytes)
+            buffer.putUInt16(0); // NameLength (4 bytes)
             // For empty names(root directory) Windows requires
             // us to use a offset and in that offset have atleast a byte, since it affects alignment
             // set the variable later.
             nameBytes = new byte[1];
         } else {
             nameBytes = SMB2Functions.unicode(fileName);
-            buffer.putUInt16(offset); // Name Offset (4 bytes)
-            buffer.putUInt16(nameBytes.length); // Name Length (4 bytes)
+            buffer.putUInt16(offset); // NameOffset (4 bytes)
+            buffer.putUInt16(nameBytes.length); // NameLength (4 bytes)
         }
 
         // Create Contexts

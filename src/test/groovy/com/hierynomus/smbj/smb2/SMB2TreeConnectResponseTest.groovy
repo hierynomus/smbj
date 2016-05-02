@@ -26,6 +26,7 @@ class SMB2TreeConnectResponseTest extends Specification {
     def "should parse tree connects"() {
         given:
         String hexString1 = "fe534d42400000000000000003000100010000000000000003000000000000000000000001000000010400d40058000000000000000000000000000000000000100001000008000000000000ff011f00";
+
         byte[] bytes1 = DatatypeConverter.parseHexBinary(hexString1);
         SMB2TreeConnectResponse tcResponse = new SMB2TreeConnectResponse();
 

@@ -13,12 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.share;
+package com.hierynomus.smbj.event;
 
-import com.hierynomus.smbj.common.SmbPath;
-
-public class NamedPipe extends Share {
-    public NamedPipe(SmbPath smbPath, TreeConnect treeConnect) {
-        super(smbPath, treeConnect);
-    }
+/**
+ * Base class for SMB events that need to be handled by event handlers (observers)
+ */
+public interface SMBEvent {
 }

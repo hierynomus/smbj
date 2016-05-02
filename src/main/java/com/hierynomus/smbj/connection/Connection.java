@@ -21,6 +21,9 @@ import com.hierynomus.smbj.Config;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.event.SMBEvent;
+import com.hierynomus.smbj.event.SMBEventBus;
+import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2MessageFlag;
@@ -35,6 +38,8 @@ import com.hierynomus.smbj.transport.PacketReader;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.smbj.transport.TransportLayer;
 import com.hierynomus.spnego.NegTokenInit;
+import net.engio.mbassy.bus.SyncMessageBus;
+import net.engio.mbassy.listener.Handler;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,20 +57,24 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
  */
 public class Connection extends SocketClient implements AutoCloseable, PacketHandler {
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
-
     private ConnectionInfo connectionInfo;
+
     private Config config;
     private TransportLayer transport;
+    private final SMBEventBus bus;
     private PacketReader packetReader;
     private Thread packetReaderThread;
     private ConcurrentHashMap<Long, Request> outstandingRequests = new ConcurrentHashMap<>();
 
 
-    public Connection(Config config, TransportLayer transport) {
+    public Connection(Config config, TransportLayer transport, SMBEventBus bus) {
         super(transport.getDefaultPort());
         this.config = config;
         this.transport = transport;
+        this.bus = bus;
+        bus.subscribe(this);
     }
+
 
     private void negotiateDialect() throws TransportException {
         logger.info("Negotiating dialects {} with server {}", config.getSupportedDialects(), getRemoteHostname());
@@ -122,7 +131,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketHan
             if (negTokenInit.getSupportedMechTypes().contains(new ASN1ObjectIdentifier(factory.getName()))) {
                 NtlmAuthenticator ntlmAuthenticator = factory.create();
                 long sessionId = ntlmAuthenticator.authenticate(this, authContext);
-                return new Session(sessionId, this);
+                return new Session(sessionId, this, bus);
             }
         } catch (IOException e) {
             throw new SMBRuntimeException(e);
@@ -175,5 +184,12 @@ public class Connection extends SocketClient implements AutoCloseable, PacketHan
         for (Long id : new HashSet<>(outstandingRequests.keySet())) {
             outstandingRequests.remove(id).getPromise().deliverError(t);
         }
+    }
+
+
+    @Handler
+    private void sessionLogoff(SessionLoggedOff loggedOff) {
+        // TODO keep track of the current sessions.
+        logger.info("Session logged off");
     }
 }

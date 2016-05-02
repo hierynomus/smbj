@@ -30,8 +30,8 @@ public class SMB2TreeDisconnect extends SMB2Packet {
         super();
     }
 
-    public SMB2TreeDisconnect(SMB2Dialect smbDialect) {
-        super(4, smbDialect, SMB2MessageCommandCode.SMB2_TREE_DISCONNECT);
+    public SMB2TreeDisconnect(SMB2Dialect smbDialect, long sessionId, long treeId) {
+        super(4, smbDialect, SMB2MessageCommandCode.SMB2_TREE_DISCONNECT, sessionId, treeId);
     }
 
     @Override

@@ -18,15 +18,25 @@ package com.hierynomus.smbj.session;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.event.SMBEventBus;
+import com.hierynomus.smbj.event.SessionLoggedOff;
+import com.hierynomus.smbj.event.TreeDisconnected;
 import com.hierynomus.smbj.share.*;
+import com.hierynomus.smbj.smb2.SMB2Packet;
 import com.hierynomus.smbj.smb2.SMB2ShareCapabilities;
+import com.hierynomus.smbj.smb2.messages.SMB2Logoff;
 import com.hierynomus.smbj.smb2.messages.SMB2TreeConnectRequest;
 import com.hierynomus.smbj.smb2.messages.SMB2TreeConnectResponse;
 import com.hierynomus.smbj.transport.TransportException;
+import net.engio.mbassy.listener.Filter;
+import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -34,15 +44,18 @@ import java.util.concurrent.Future;
 /**
  * A Session
  */
-public class Session {
+public class Session implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(Session.class);
     long sessionId;
     private Connection connection;
+    private SMBEventBus bus;
     private Map<Long, TreeConnect> treeConnectTable = new ConcurrentHashMap<>();
 
-    public Session(long sessionId, Connection connection) {
+    public Session(long sessionId, Connection connection, SMBEventBus bus) {
         this.sessionId = sessionId;
         this.connection = connection;
+        this.bus = bus;
+        bus.subscribe(this);
     }
 
     public long getSessionId() {
@@ -64,7 +77,7 @@ public class Session {
      */
     public Share connectShare(String shareName) {
         String remoteHostname = connection.getRemoteHostname();
-        String smbPath = "\\\\" + remoteHostname + "\\" + shareName;
+        SmbPath smbPath = new SmbPath(remoteHostname, shareName);
         logger.info("Connection to {} on session {}", smbPath, sessionId);
         try {
             Future<SMB2TreeConnectResponse> send = connection.send(new SMB2TreeConnectRequest(connection.getNegotiatedDialect(), smbPath, sessionId));
@@ -78,19 +91,50 @@ public class Session {
             }
 
             long treeId = response.getHeader().getTreeId();
-            TreeConnect treeConnect = new TreeConnect(treeId, this, response.getCapabilities());
+            TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), connection, bus);
             treeConnectTable.put(treeId, treeConnect);
             if (response.isDiskShare()) {
-                return new DiskShare(treeConnect);
+                return new DiskShare(smbPath, treeConnect);
             } else if (response.isNamedPipe()) {
-                return new NamedPipe(treeConnect);
+                return new NamedPipe(smbPath, treeConnect);
             } else if (response.isPrinterShare()) {
-                return new PrinterShare(treeConnect);
+                return new PrinterShare(smbPath, treeConnect);
             } else {
                 throw new SMBRuntimeException("Unknown ShareType returned in the TREE_CONNECT Response");
             }
         } catch (TransportException e) {
             throw new SMBRuntimeException(e);
         }
+    }
+
+    @Handler
+    private void disconnectTree(TreeDisconnected disconnectEvent) {
+        if (disconnectEvent.getSessionId() == sessionId) {
+            logger.debug("Notified of TreeDisconnected <<" + disconnectEvent.getTreeId() + ">>");
+            treeConnectTable.remove(disconnectEvent.getTreeId());
+        }
+    }
+
+    public void logoff() throws TransportException {
+        logger.info("Logging off session " + sessionId + " from host " + connection.getRemoteHostname());
+        for (TreeConnect treeConnect : new ArrayList<>(treeConnectTable.values())) {
+            try {
+                treeConnect.getHandle().close();
+            } catch (IOException e) {
+                // TODO
+            }
+        }
+        SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedDialect(), sessionId);
+        SMB2Logoff response = Futures.get(connection.<SMB2Logoff>send(logoff), TransportException.Wrapper);
+        if (!response.getHeader().getStatus().isSuccess()) {
+            throw new SMBApiException(response.getHeader().getStatus(), "Could not logoff session <<" + sessionId + ">>");
+        }
+        bus.publish(new SessionLoggedOff(sessionId));
+    }
+
+
+    @Override
+    public void close() throws IOException {
+        logoff();
     }
 }

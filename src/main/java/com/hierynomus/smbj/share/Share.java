@@ -15,10 +15,33 @@
  */
 package com.hierynomus.smbj.share;
 
-public class Share {
-    protected final TreeConnect treeConnect;
+import com.hierynomus.smbj.common.SmbPath;
 
-    public Share(TreeConnect treeConnect) {
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+public class Share implements AutoCloseable {
+    protected final TreeConnect treeConnect;
+    private AtomicBoolean disconnected = new AtomicBoolean(false);
+
+    public Share(SmbPath smbPath, TreeConnect treeConnect) {
         this.treeConnect = treeConnect;
+        treeConnect.setHandle(this);
     }
+
+    @Override
+    public void close() throws IOException {
+        if (!disconnected.get()) {
+            treeConnect.close(this);
+        }
+    }
+
+    void disconnect() {
+        disconnected.set(true);
+    }
+
+    public boolean isConnected() {
+        return !disconnected.get();
+    }
+
 }
