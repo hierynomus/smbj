@@ -59,10 +59,10 @@ public class SMB2IoctlRequest extends SMB2Packet {
         int offset = SMB2Header.STRUCTURE_SIZE + 56;
         if (inputData.length > 0) {
             smbBuffer.putUInt32(offset); // InputOffset (4 bytes)
-            smbBuffer.putUInt32(inputData.length); // Input Count (4 bytes)
+            smbBuffer.putUInt32(inputData.length); // InputCount (4 bytes)
         } else {
             smbBuffer.putUInt32(0); // InputOffset (4 bytes)
-            smbBuffer.putUInt32(0); // Input Count (4 bytes)
+            smbBuffer.putUInt32(0); // InputCount (4 bytes)
         }
         smbBuffer.putUInt32(0); // MaxInputResponse (4 bytes)
         smbBuffer.putUInt32(0); // OutputOffset (4 bytes)
@@ -74,7 +74,7 @@ public class SMB2IoctlRequest extends SMB2Packet {
         // To make it work in 2.0.2, subtract the (inputdata length + 8).
         smbBuffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH - (inputData.length + 8)); // MaxOutputResponse (4 bytes)
         smbBuffer.putUInt32(fsctl ? 1 : 0); // Flags (4 bytes)
-        smbBuffer.putUInt32(0); // Reserved (4 bytes)
+        smbBuffer.putReserved4(); // Reserved (4 bytes)
         if (inputData.length > 0) {
             smbBuffer.putRawBytes(inputData);
         }
