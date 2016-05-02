@@ -19,13 +19,13 @@ import java.nio.charset.Charset;
 
 public class SMB2Functions {
     private static final byte[] EMPTY_BYTES = new byte[0];
-    private static final Charset UTF_16 = Charset.forName("UTF-16");
+    public static final Charset UTF_16LE = Charset.forName("UTF-16LE");
 
     public static byte[] unicode(String s) {
         if (s == null) {
             return EMPTY_BYTES;
         } else {
-            return s.getBytes(UTF_16);
+            return s.getBytes(UTF_16LE);
         }
     }
 }

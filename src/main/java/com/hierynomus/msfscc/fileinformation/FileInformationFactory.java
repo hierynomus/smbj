@@ -54,14 +54,12 @@ public class FileInformationFactory {
      * [MS-SMB2] 2.2.34 SMB2 QUERY_DIRECTORY Response for FileInformationClass->FileIdBothDirectoryInformation
      *
      * @param data
-     * @param outputBufferOffset
-     * @param outBufferLength
      * @param fileInformationClass
      * @return
      * @throws Buffer.BufferException
      */
     public static List<FileInfo> parseFileInformationList(
-            byte[] data, int outputBufferOffset, int outBufferLength, FileInformationClass fileInformationClass)
+            byte[] data, FileInformationClass fileInformationClass)
             throws Buffer.BufferException {
 
         Buffer.PlainBuffer buffer = new Buffer.PlainBuffer(data, Endian.LE);
@@ -72,7 +70,17 @@ public class FileInformationFactory {
         do  {
             nextEntryOffset = (int)buffer.readUInt32();
             fileIndex = buffer.readUInt32();
-            FileInfo fileInfo = FileInformationFactory.parseFileIdBothDirectoryInformation(buffer);
+            FileInfo fileInfo = null;
+            switch (fileInformationClass) {
+                case FileIdBothDirectoryInformation:
+                    fileInfo = parseFileIdBothDirectoryInformation(buffer);
+                    break;
+                case FileAllInformation:
+                    fileInfo = parseFileAllInformation(buffer);
+                    break;
+                default:
+                    throw new IllegalArgumentException("FileInformationClass not supported - " + fileInformationClass);
+            }
             if (!(".".equals(fileInfo.getFileName()) || "..".equals(fileInfo.getFileName()))) {
                 _fileInfoList.add(fileInfo);
             }

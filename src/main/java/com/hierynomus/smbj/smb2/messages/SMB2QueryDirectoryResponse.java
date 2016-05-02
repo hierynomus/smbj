@@ -15,25 +15,17 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
-import com.hierynomus.msdtyp.MsDataTypes;
-import com.hierynomus.msfscc.FileAttributes;
-import com.hierynomus.ntlm.functions.NtlmFunctions;
-import com.hierynomus.protocol.commons.EnumWithValue;
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2Packet;
-import com.hierynomus.mserref.NtStatus;
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 
 /**
  * [MS-SMB2].pdf 2.2.34 SMB2 QUERY_DIRECTORY Response
  */
 public class SMB2QueryDirectoryResponse extends SMB2Packet {
 
-    private List<FileInfo> fileInfoList;
+    byte[] outputBuffer;
 
     public SMB2QueryDirectoryResponse() {
         super();
@@ -47,85 +39,12 @@ public class SMB2QueryDirectoryResponse extends SMB2Packet {
         buffer.skip(2); // StructureSize (2 bytes)
         int outputBufferOffset = buffer.readUInt16(); // OutputBufferOffset (2 bytes)
         int outBufferLength = buffer.readUInt32AsInt(); // OutputBufferLength (4 bytes)
-        fileInfoList = readOutputBuffer(buffer, outputBufferOffset, outBufferLength);
-    }
-
-    // TODO Check - Assume response is for FileIdBothDirectoryInformation
-    private List<FileInfo> readOutputBuffer(SMBBuffer buffer, int outputBufferOffset, int outBufferLength)
-            throws Buffer.BufferException {
-        List<FileInfo> _fileInfoList = new ArrayList<>();
         buffer.rpos(outputBufferOffset);
-        int offsetStart = outputBufferOffset;
-        int nextEntryOffset = offsetStart;
-        long fileNameLen = 0;
-        long fileIndex = 0;
-        String fileName = null;
-        long fileAttributes;
-        byte[] fileId = null;
-        long fileSize;
-        while (nextEntryOffset != 0) {
-            nextEntryOffset = (int)buffer.readUInt32();
-            fileIndex = buffer.readUInt32();
-            Date creationTime = MsDataTypes.readFileTime(buffer);
-            Date lastAccessTime = MsDataTypes.readFileTime(buffer);
-            Date lastWriteTime = MsDataTypes.readFileTime(buffer);
-            Date changeTime = MsDataTypes.readFileTime(buffer);
-            fileSize = buffer.readUInt64(); // EndOfFile - Ignored
-            buffer.readRawBytes(8); // AllocationSize - Ignored
-            fileAttributes = buffer.readUInt32(); // File Attributes
-            fileNameLen = buffer.readUInt32(); // File name length
-            buffer.readUInt32(); // EaSize - Ignored
-            buffer.readByte(); // Shortname length (1)
-            buffer.readByte(); // Reserved1 (1)
-            buffer.readRawBytes(24); // Shortname
-            buffer.readUInt16(); // Reserved2
-            fileId = buffer.readRawBytes(8);
-            fileName = buffer.readString(NtlmFunctions.UNICODE, (int)fileNameLen/2);
-            System.out.println(fileName);
-            _fileInfoList.add(new FileInfo(fileName, fileId, fileAttributes, fileSize));
-            offsetStart += nextEntryOffset;
-            buffer.rpos(offsetStart);
-        }
-        return _fileInfoList;
+        outputBuffer = buffer.readRawBytes(outBufferLength);
     }
 
-    public List<FileInfo> getFileInfoList() {
-        return fileInfoList;
+    public byte[] getOutputBuffer() {
+        return outputBuffer;
     }
 
-    public static class FileInfo {
-        byte[] fileId; // This is not the SMB2FileId, but not sure what one can do with this id.
-        String fileName;
-        long fileAttributes;
-        long fileSize;
-
-
-        public FileInfo(String fileName, byte[] fileId, long fileAttributes, long fileSize) {
-            this.fileName = fileName;
-            this.fileId = fileId;
-            this.fileAttributes = fileAttributes;
-            this.fileSize = fileSize;
-        }
-
-        public byte[] getFileId() {
-            return fileId;
-        }
-
-        public String getFileName() {
-            return fileName;
-        }
-
-        public long getFileAttributes() {
-            return fileAttributes;
-        }
-
-        @Override
-        public String toString() {
-            return "FileInfo{" +
-                    "fileName='" + fileName + '\'' +
-                    "fileSize='" + fileSize + '\'' +
-                    ", fileAttributes=" + EnumWithValue.EnumUtils.toEnumSet(fileAttributes, FileAttributes.class) +
-                    '}';
-        }
-    }
 }

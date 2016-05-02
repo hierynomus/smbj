@@ -15,11 +15,13 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileNotifyAction;
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smbj.smb2.SMB2Functions;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 
 import java.util.ArrayList;
@@ -31,7 +33,7 @@ import java.util.List;
 \ */
 public class SMB2ChangeNotifyResponse extends SMB2Packet {
 
-    List<FileNotifyInfo> fileNotifyInfoList;
+    List<FileNotifyInfo> fileNotifyInfoList = new ArrayList<>();
 
     public SMB2ChangeNotifyResponse() {
         super();
@@ -42,24 +44,30 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
         buffer.skip(2); // StructureSize (2 bytes)
         int outputBufferOffset = buffer.readUInt16(); // OutputBufferOffset (2 bytes)
         int outBufferLength = buffer.readUInt32AsInt(); // OutputBufferLength (4 bytes)
-        fileNotifyInfoList = readFileNotifyInfo(buffer, outputBufferOffset, outBufferLength);
+        if (getHeader().getStatus() == NtStatus.STATUS_SUCCESS) {
+            fileNotifyInfoList = readFileNotifyInfo(buffer, outputBufferOffset, outBufferLength);
+        }
     }
 
     private List<FileNotifyInfo> readFileNotifyInfo(SMBBuffer buffer, int outputBufferOffset, int outBufferLength)
             throws Buffer.BufferException {
         List<FileNotifyInfo> notifyInfoList = new ArrayList<>();
         buffer.rpos(outputBufferOffset);
-        int nextEntryOffset = outputBufferOffset;
+        int currentPos = buffer.rpos();
+        int nextEntryOffset = 0;
         long fileNameLen = 0;
         String fileName = null;
-        while (nextEntryOffset != 0) {
+
+        do  {
             nextEntryOffset = (int)buffer.readUInt32();
             FileNotifyAction action = EnumWithValue.EnumUtils.valueOf(buffer.readUInt32(), FileNotifyAction.class, null);
             fileNameLen = buffer.readUInt32();
-            fileName = buffer.readString(NtlmFunctions.UNICODE, (int)fileNameLen/2);
+            fileName = buffer.readString(SMB2Functions.UTF_16LE, (int)fileNameLen/2);
             notifyInfoList.add(new FileNotifyInfo(action, fileName));
-            buffer.rpos(outputBufferOffset + nextEntryOffset);
-        }
+            currentPos += nextEntryOffset;
+            buffer.rpos(currentPos);
+        } while (nextEntryOffset != 0);
+
         return notifyInfoList;
     }
 

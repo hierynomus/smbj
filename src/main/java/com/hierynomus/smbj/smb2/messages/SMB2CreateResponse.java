@@ -15,17 +15,19 @@
  */
 package com.hierynomus.smbj.smb2.messages;
 
+import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.MsDataTypes;
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
-import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.smb2.SMB2FileId;
 import com.hierynomus.smbj.smb2.SMB2Packet;
-import com.hierynomus.mserref.NtStatus;
 
 import java.util.Date;
 import java.util.EnumSet;
+
+import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
 /**
  * [MS-SMB2].pdf 2.2.14 SMB2 CREATE Response
@@ -57,13 +59,13 @@ public class SMB2CreateResponse extends SMB2Packet {
             changeTime = MsDataTypes.readFileTime(buffer); // ChangeTime (8 bytes)
             buffer.readRawBytes(8); // AllocationSize (8 bytes) - Ignore
             buffer.readRawBytes(8); // EndOfFile (8 bytes)
-            fileAttributes = EnumWithValue.EnumUtils.toEnumSet(buffer.readUInt32(), FileAttributes.class); // FileAttributes (4 bytes)
-            buffer.skip(2); // Reserved2 (4 bytes)
+            fileAttributes = toEnumSet(buffer.readUInt32(), FileAttributes.class); // FileAttributes (4 bytes)
+            buffer.skip(4); // Reserved2 (4 bytes)
             fileId = SMB2FileId.read(buffer); // FileId (16 bytes)
 
             // Ignore create contexts and the buffer.
-            buffer.readUInt32(); // CreateContextsOffset (4 bytes)
-            buffer.readUInt32(); // CreateContextsLength (4 bytes)
+            buffer.readUInt32();// CreateContextsOffset (4 bytes)
+            buffer.readUInt32();// CreateContextsLength (4 bytes)
         }
     }
 
@@ -90,4 +92,5 @@ public class SMB2CreateResponse extends SMB2Packet {
     public SMB2FileId getFileId() {
         return fileId;
     }
+
 }
