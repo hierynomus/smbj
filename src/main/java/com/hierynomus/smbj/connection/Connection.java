@@ -161,7 +161,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketHan
         Request request = outstandingRequests.get(messageId);
 
         // [MS-SMB2].pdf 3.2.5.1.5 Handling Asynchronous Responses
-        if (isSet(request.getRequestPacket().getHeader().getFlags(), SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
+        if (isSet(packet.getHeader().getFlags(), SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
             if (packet.getHeader().getStatus() == NtStatus.STATUS_PENDING) {
                 request.setAsyncId(packet.getHeader().getAsyncId());
                 // TODO Expiration timer
