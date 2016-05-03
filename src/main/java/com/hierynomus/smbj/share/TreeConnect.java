@@ -81,4 +81,13 @@ public class TreeConnect {
     public Share getHandle() {
         return handle;
     }
+
+    public long getTreeId() {
+        return treeId;
+    }
+
+    public Session getSession() {
+        return session;
+    }
+
 }

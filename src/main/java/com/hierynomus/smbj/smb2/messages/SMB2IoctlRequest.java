@@ -40,14 +40,12 @@ public class SMB2IoctlRequest extends SMB2Packet {
     public SMB2IoctlRequest(
             SMB2Dialect negotiatedDialect, long sessionId, long treeId,
             ControlCode controlCode, SMB2FileId fileId,
-            byte[] inputData, boolean fsctl,
-            FileInformationClass fileInfoClass,
-            SecurityInformation securityInformation, byte[] buffer
+            byte[] inputData, boolean fsctl
     ) {
         super(57, negotiatedDialect, SMB2MessageCommandCode.SMB2_IOCTL, sessionId, treeId);
         this.controlCode = controlCode;
         this.fileId = fileId;
-        this.inputData = inputData == null ? new byte[0] : buffer;
+        this.inputData = inputData == null ? new byte[0] : inputData;
         this.fsctl = fsctl;
     }
 
@@ -59,15 +57,24 @@ public class SMB2IoctlRequest extends SMB2Packet {
         fileId.write(smbBuffer);  // FileId (16 bytes)
 
         int offset = SMB2Header.STRUCTURE_SIZE + 56;
-        smbBuffer.putUInt32(offset); // InputOffset (4 bytes)
-        smbBuffer.putUInt32(inputData.length); // InputCount (4 bytes)
-        smbBuffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH); // MaxInputResponse (4 bytes)
+        if (inputData.length > 0) {
+            smbBuffer.putUInt32(offset); // InputOffset (4 bytes)
+            smbBuffer.putUInt32(inputData.length); // InputCount (4 bytes)
+        } else {
+            smbBuffer.putUInt32(0); // InputOffset (4 bytes)
+            smbBuffer.putUInt32(0); // InputCount (4 bytes)
+        }
+        smbBuffer.putUInt32(0); // MaxInputResponse (4 bytes)
         smbBuffer.putUInt32(0); // OutputOffset (4 bytes)
         smbBuffer.putUInt32(0); // OutputCount (4 bytes)
-        smbBuffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH); // MaxOutputResponse (4 bytes)
-
+        // TODO 3.3.5.15 Receiving an SMB2 IOCTL Request
+        // Spent days on the INVALID_PARAMETER error which turns out
+        // due to the validation specified in the above section, but not sure which one.
+        // If dialect is 3.x then setting to MAX_OUTPUT_BUFFER_LENGTH works else it fails with INVALID_PARAMETER
+        // To make it work in 2.0.2, subtract the (inputdata length + 8).
+        smbBuffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH - (inputData.length + 8)); // MaxOutputResponse (4 bytes)
         smbBuffer.putUInt32(fsctl ? 1 : 0); // Flags (4 bytes)
-        smbBuffer.putReserved4(); // Reserved2 (4 bytes)
+        smbBuffer.putReserved4(); // Reserved (4 bytes)
         if (inputData.length > 0) {
             smbBuffer.putRawBytes(inputData);
         }

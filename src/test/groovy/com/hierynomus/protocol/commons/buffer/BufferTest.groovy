@@ -138,4 +138,16 @@ class BufferTest extends Specification {
         Endian.LE | "UTF-16LE" | "ab会意字" | "61 00 62 00 1a 4f 0f 61 57 5b"
         Endian.LE | "UTF-16BE" | "ab会意字" | "00 61 00 62 4f 1a 61 0f 5b 57"
     }
+
+    def "should read a unsigned byte correctly through the inputstream"() {
+        given:
+        def buffer = new Buffer.PlainBuffer([100, 150] as byte[], Endian.LE);
+
+        when:
+        InputStream is = buffer.asInputStream()
+
+        then:
+        is.read() == 100
+        is.read() == 150
+    }
 }

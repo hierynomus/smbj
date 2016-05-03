@@ -75,7 +75,7 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
         return fileNotifyInfoList;
     }
 
-    class FileNotifyInfo {
+    public class FileNotifyInfo {
         FileNotifyAction action;
         String fileName;
 
