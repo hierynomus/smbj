@@ -22,6 +22,7 @@ import org.bouncycastle.asn1.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 
 import static com.hierynomus.spnego.ObjectIdentifiers.SPNEGO;
@@ -102,11 +103,18 @@ public class NegTokenInit extends SpnegoToken {
     public NegTokenInit read(Buffer<?> buffer) throws IOException {
         try {
             ASN1Primitive applicationSpecific = new ASN1InputStream(buffer.asInputStream()).readObject();
-            if (!(applicationSpecific instanceof ASN1ApplicationSpecific)) {
+            if (!(applicationSpecific instanceof BERApplicationSpecific || applicationSpecific instanceof DERApplicationSpecific)) {
+                throw new SpnegoException("Incorrect GSS-API ASN.1 token received, expected to find an [APPLICATION 0], not: " + applicationSpecific);
+            }
+            ASN1Sequence implicitSequence = null;
+            if (applicationSpecific instanceof BERApplicationSpecific) {
+                implicitSequence = (ASN1Sequence) ((BERApplicationSpecific) applicationSpecific).getObject(BERTags.SEQUENCE);
+            } else if (applicationSpecific instanceof DERApplicationSpecific) {
+                implicitSequence = (ASN1Sequence) ((DERApplicationSpecific) applicationSpecific).getObject(BERTags.SEQUENCE);
+            } else {
                 throw new SpnegoException("Incorrect GSS-API ASN.1 token received, expected to find an [APPLICATION 0], not: " + applicationSpecific);
             }
 
-            ASN1Sequence implicitSequence = (ASN1Sequence) ((ASN1ApplicationSpecific) applicationSpecific).getObject(BERTags.SEQUENCE);
             ASN1Encodable spnegoOid = implicitSequence.getObjectAt(0);
             if (!(spnegoOid instanceof ASN1ObjectIdentifier)) {
                 throw new SpnegoException("Expected to find the SPNEGO OID (" + SPNEGO + "), not: " + spnegoOid);
@@ -150,7 +158,9 @@ public class NegTokenInit extends SpnegoToken {
         if (!(sequence instanceof ASN1Sequence)) {
             throw new SpnegoException("Expected the MechTypeList (SEQUENCE) contents, not: " + sequence);
         }
-        for (ASN1Encodable mechType : (ASN1Sequence) sequence) {
+        Enumeration mechTypeElems = ((ASN1Sequence) sequence).getObjects();
+        while (mechTypeElems.hasMoreElements()) {
+            ASN1Encodable mechType = (ASN1Encodable) mechTypeElems.nextElement();
             if (!(mechType instanceof ASN1ObjectIdentifier)) {
                 throw new SpnegoException("Expected a MechType (OBJECT IDENTIFIER) as contents of the MechTypeList, not: " + mechType);
             }

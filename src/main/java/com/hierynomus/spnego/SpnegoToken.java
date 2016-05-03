@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Enumeration;
 
 import static com.hierynomus.spnego.ObjectIdentifiers.SPNEGO;
 
@@ -42,7 +43,7 @@ abstract class SpnegoToken {
         implicitSeqGssApi.add(SPNEGO);
         implicitSeqGssApi.add(negotiationToken);
 
-        ASN1ApplicationSpecific gssApiHeader = new DERApplicationSpecific(0x0, implicitSeqGssApi);
+        DERApplicationSpecific gssApiHeader = new DERApplicationSpecific(0x0, implicitSeqGssApi);
         buffer.putRawBytes(gssApiHeader.getEncoded());
     }
 
@@ -56,7 +57,9 @@ abstract class SpnegoToken {
             throw new SpnegoException("Expected a " + tokenName + " (SEQUENCE), not: " + negToken);
         }
 
-        for (ASN1Encodable asn1Encodable : ((ASN1Sequence) negToken)) {
+        Enumeration tokenObjects = ((ASN1Sequence) negToken).getObjects();
+        while(tokenObjects.hasMoreElements()) {
+            ASN1Encodable asn1Encodable = (ASN1Encodable)tokenObjects.nextElement();
             if (!(asn1Encodable instanceof ASN1TaggedObject)) {
                 throw new SpnegoException("Expected an ASN.1 TaggedObject as " + tokenName + " contents, not: " + asn1Encodable);
             }
