@@ -23,6 +23,21 @@ import com.hierynomus.smbj.common.SMBBuffer;
  * [MS-DTYP].pdf 2.4.2 SecurityIdentifier SID
  */
 public class SID {
+
+    public static final int SID_TYPE_NONE = 0;
+    public static final int SID_TYPE_USER = 1;
+    public static final int SID_TYPE_DOM_GRP = 2;
+    public static final int SID_TYPE_DOMAIN = 3;
+    public static final int SID_TYPE_ALIAS = 4;
+    public static final int SID_TYPE_WKN_GRP = 5;
+    public static final int SID_TYPE_DELETED = 6;
+    public static final int SID_TYPE_INVALID = 7;
+    public static final int SID_TYPE_UNKNOWN = 8;
+    public static final int SID_TYPE_COMPUTER = 8;
+    public static final int SID_TYPE_LABEL = 10;
+
+    static final String[] SID_TYPE_NAMES = new String[]{"0", "User", "Domain group", "Domain", "Local group", "Builtin group", "Deleted", "Invalid", "Unknown", "Computer", "Label"};
+
     public static SID EVERYONE = new SID((byte) 1, new byte[]{0, 0, 0, 0, 0, 1}, new long[]{0});
 
     private byte revision;
