@@ -251,7 +251,8 @@ public class SMBFile {
     /**
      * Write the given input stream to the given path
      */
-    public static void write(TreeConnect treeConnect, String path, boolean overWrite, InputStream srcStream)
+    public static void write(TreeConnect treeConnect, String path, boolean overWrite,
+                             InputStream srcStream, ProgressListener progressListener)
             throws SMBApiException, IOException {
         logger.info("Write {},{}", path, overWrite);
         SMB2CreateDisposition createDisposition = SMB2CreateDisposition.FILE_OVERWRITE_IF;
@@ -260,7 +261,7 @@ public class SMBFile {
                 openFile(treeConnect, path, EnumSet.of(AccessMask.GENERIC_WRITE), createDisposition);
 
         try {
-            fileHandle.write(srcStream);
+            fileHandle.write(srcStream, progressListener);
         } finally {
             fileHandle.close();
         }
@@ -269,14 +270,15 @@ public class SMBFile {
     /**
      * Read the file at the given path and write the data to the given output stream
      */
-    public static void read(TreeConnect treeConnect, String path, OutputStream destStream)
+    public static void read(TreeConnect treeConnect, String path,
+                            OutputStream destStream, ProgressListener progressListener)
             throws SMBApiException, IOException {
         logger.info("Read {}", path);
         SMBFile fileHandle = openFile(treeConnect, path,
                 EnumSet.of(AccessMask.GENERIC_READ), SMB2CreateDisposition.FILE_OPEN);
 
         try {
-            fileHandle.read(destStream);
+            fileHandle.read(destStream, progressListener);
         } finally {
             fileHandle.close();
         }
@@ -575,7 +577,7 @@ public class SMBFile {
                 '}';
     }
 
-    public void write(InputStream srcStream) throws IOException, SMBApiException {
+    public void write(InputStream srcStream, ProgressListener progressListener) throws IOException, SMBApiException {
         byte[] buf = new byte[8192];
         int numRead = -1;
         int offset = 0;
@@ -596,10 +598,11 @@ public class SMBFile {
                 throw new SMBApiException(wresp.getHeader().getStatus(), "Write failed for " + this);
             }
             offset += numRead;
+            if (progressListener != null) progressListener.onProgressChanged(offset, -1);
         }
     }
 
-    public void read(OutputStream destStream) throws IOException,
+    public void read(OutputStream destStream, ProgressListener progressListener) throws IOException,
             SMBApiException {
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
@@ -619,6 +622,7 @@ public class SMBFile {
                     session.getSessionId(), treeConnect.getTreeId(), offset);
             readResponseFuture = connection.send(rreq);
             rresp = Futures.get(readResponseFuture, TransportException.Wrapper);
+            if (progressListener != null) progressListener.onProgressChanged(offset, -1);
         }
 
         if (rresp.getHeader().getStatus() != NtStatus.STATUS_END_OF_FILE) {
