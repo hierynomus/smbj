@@ -133,7 +133,9 @@ public abstract class ACE {
         return sid;
     }
 
-
+    public long getAccessMask() {
+        return accessMask;
+    }
 }
 
 
