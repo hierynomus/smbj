@@ -97,6 +97,7 @@ tasks.withType(Test) {
 license {
     header rootProject.file('LICENSE')
     strictCheck true
+    excludes(['**/*.txt', '**/*.properties'])
 }
 
 project.tasks.compileGroovy.onlyIf { false }

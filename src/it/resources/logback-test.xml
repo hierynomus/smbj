@@ -27,7 +27,7 @@
         <appender-ref ref="STDOUT"/>
     </root>
 
-    <logger name="com.hierynomus" level="trace"/>
-    <logger name="com.hierynomus.smbj.transport" level="trace" />
+    <logger name="com.hierynomus" level="info"/>
+    <logger name="com.hierynomus.smbj.transport" level="info" />
 
 </configuration>

@@ -1,0 +1,1282 @@
+                  db_rec                   : NULL
+                  local_id                 : 0xbe7e161d (3195934237)
+                  global                   : *
+                      global: struct smbXsrv_tcon_global0
+                          db_rec                   : NULL
+                          tcon_global_id           : 0xbe7e161d (3195934237)
+                          tcon_wire_id             : 0xbe7e161d (3195934237)
+                          server_id: struct server_id
+                              pid                      : 0x0000000000000292 (658)
+                              task_id                  : 0x00000000 (0)
+                              vnn                      : 0xffffffff (4294967295)
+                              unique_id                : 0x870b2f504b083010 (-8715820631942746096)
+                          creation_time            : Sat Apr 16 01:58:28 2016 UTC
+                          share_name               : 'public'
+                          encryption_required      : 0x00 (0)
+                          session_global_id        : 0xaabdf7ca (2864576458)
+                  status                   : NT_STATUS_OK
+                  idle_time                : Sat Apr 16 01:58:28 2016 UTC
+                  compat                   : *
+[2016/04/16 01:58:28.073023, 10, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/smb2_server.c:2587(smbd_smb2_request_done_ex)
+  smbd_smb2_request_done_ex: idx[1] status[NT_STATUS_OK] body[16] dyn[no:0] at ../source3/smbd/smb2_tcon.c:162
+[2016/04/16 01:58:28.073036, 10, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/smb2_server.c:898(smb2_set_operation_credit)
+  smb2_set_operation_credit: requested 1, charge 1, granted 1, current possible/max 512/512, total granted/max/low/range 1/8192/4/1
+[2016/04/16 01:58:28.075649, 10, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/smb2_server.c:3454(smbd_smb2_io_handler)
+  smbd_smb2_request idx[1] of 5 vectors
+[2016/04/16 01:58:28.075694, 10, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/smb2_server.c:646(smb2_validate_sequence_number)
+  smb2_validate_sequence_number: clearing id 4 (position 4) from bitmap
+[2016/04/16 01:58:28.075707, 10, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/smb2_server.c:1953(smbd_smb2_request_dispatch)
+  smbd_smb2_request_dispatch: opcode[SMB2_OP_CREATE] mid = 4
+[2016/04/16 01:58:28.075725,  4, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/sec_ctx.c:316(set_sec_ctx)
+  setting sec ctx (1000, 100) - sec_ctx_stack_ndx = 0
+[2016/04/16 01:58:28.075738,  5, pid=658, effective(0, 0), real(0, 0)] ../libcli/security/security_token.c:63(security_token_debug)
+  Security token SIDs (7):
+    SID[  0]: S-1-5-21-1511776816-1851315286-2761546358-1000
+    SID[  1]: S-1-5-21-1511776816-1851315286-2761546358-513
+    SID[  2]: S-1-22-2-100
+    SID[  3]: S-1-1-0
+    SID[  4]: S-1-5-2
+    SID[  5]: S-1-5-11
+    SID[  6]: S-1-22-1-1000
+   Privileges (0x               0):
+   Rights (0x               0):
+[2016/04/16 01:58:28.075775,  5, pid=658, effective(0, 0), real(0, 0)] ../source3/auth/token_util.c:639(debug_unix_user_token)
+  UNIX token of user 1000
+  Primary group is 100 and contains 1 supplementary groups
+  Group[  0]: 100
+[2016/04/16 01:58:28.075798,  5, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/uid.c:363(change_to_user_internal)
+  Impersonated user: uid=(1000,1000), gid=(0,100)
+[2016/04/16 01:58:28.075812,  4, pid=658, effective(1000, 100), real(1000, 0), class=vfs] ../source3/smbd/vfs.c:844(vfs_ChDir)
+  vfs_ChDir to /public
+[2016/04/16 01:58:28.075834,  4, pid=658, effective(1000, 100), real(1000, 0), class=vfs] ../source3/smbd/vfs.c:855(vfs_ChDir)
+  vfs_ChDir got /public
+[2016/04/16 01:58:28.075849, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smb2_create.c:501(smbd_smb2_create_send)
+  smbd_smb2_create: name[2]
+[2016/04/16 01:58:28.075861, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smb2_create.c:911(smbd_smb2_create_send)
+  smbd_smb2_create_send: open execution phase
+[2016/04/16 01:58:28.075880,  5, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/filename.c:258(unix_convert)
+  unix_convert called on file "2"
+[2016/04/16 01:58:28.075899, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/statcache.c:244(stat_cache_lookup)
+  stat_cache_lookup: lookup failed for name [2]
+[2016/04/16 01:58:28.075911,  5, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/filename.c:421(unix_convert)
+  unix_convert begin: name = 2, dirpath = , start = 2
+[2016/04/16 01:58:28.075924,  5, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/statcache.c:143(stat_cache_add)
+  stat_cache_add: Added entry (5641529a1de0:size 1) 2 -> 2
+[2016/04/16 01:58:28.075934,  5, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/filename.c:444(unix_convert)
+  conversion of base_name finished 2 -> 2
+[2016/04/16 01:58:28.075945,  3, pid=658, effective(1000, 100), real(1000, 0), class=vfs] ../source3/smbd/vfs.c:1147(check_reduced_name)
+  check_reduced_name [2] [/public]
+[2016/04/16 01:58:28.075958, 10, pid=658, effective(1000, 100), real(1000, 0), class=vfs] ../source3/smbd/vfs.c:1207(check_reduced_name)
+  check_reduced_name realpath [2] -> [/public/2]
+[2016/04/16 01:58:28.075968,  3, pid=658, effective(1000, 100), real(1000, 0), class=vfs] ../source3/smbd/vfs.c:1280(check_reduced_name)
+  check_reduced_name: 2 reduced to /public/2
+[2016/04/16 01:58:28.075979, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/open.c:4955(create_file_default)
+  create_file: access_mask = 0x80000000 file_attributes = 0x0, share_access = 0x1, create_disposition = 0x1 create_options = 0x4 oplock_request = 0x0 private_flags = 0x0 root_dir_fid = 0x0, ea_list = 0x(nil), sd = 0x(nil), fname = 2
+[2016/04/16 01:58:28.075992, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/open.c:4428(create_file_unixpath)
+  create_file_unixpath: access_mask = 0x80000000 file_attributes = 0x0, share_access = 0x1, create_disposition = 0x1 create_options = 0x4 oplock_request = 0x0 private_flags = 0x0 ea_list = 0x(nil), sd = 0x(nil), fname = 2
+[2016/04/16 01:58:28.076009,  5, pid=658, effective(1000, 100), real(1000, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 1 for /var/lib/samba/smbXsrv_open_global.tdb
+[2016/04/16 01:58:28.076020, 10, pid=658, effective(1000, 100), real(1000, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:/var/lib/samba/smbXsrv_open_global.tdb 2:<none> 3:<none>
+[2016/04/16 01:58:28.076032, 10, pid=658, effective(1000, 100), real(1000, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 852AEB57
+[2016/04/16 01:58:28.076051, 10, pid=658, effective(1000, 100), real(1000, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x5641529a06a0
+[2016/04/16 01:58:28.076062, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smbXsrv_open.c:584(smbXsrv_open_global_verify_record)
+  smbXsrv_open_global_verify_record: empty value
+[2016/04/16 01:58:28.076112, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smbXsrv_open.c:702(smbXsrv_open_global_store)
+  smbXsrv_open_global_store: key '852AEB57' stored
+[2016/04/16 01:58:28.076129,  1, pid=658, effective(1000, 100), real(1000, 0)] ../librpc/ndr/ndr.c:402(ndr_print_debug)
+       &global_blob: struct smbXsrv_open_globalB
+          version                  : SMBXSRV_VERSION_0 (0)
+          seqnum                   : 0x00000001 (1)
+          info                     : union smbXsrv_open_globalU(case 0)
+          info0                    : *
+              info0: struct smbXsrv_open_global0
+                  db_rec                   : *
+                  server_id: struct server_id
+                      pid                      : 0x0000000000000292 (658)
+                      task_id                  : 0x00000000 (0)
+                      vnn                      : 0xffffffff (4294967295)
+                      unique_id                : 0x870b2f504b083010 (-8715820631942746096)
+                  open_global_id           : 0x852aeb57 (2234182487)
+                  open_persistent_id       : 0x00000000852aeb57 (2234182487)
+                  open_volatile_id         : 0x00000000a7ead70c (2817185548)
+                  open_owner               : S-1-5-21-1511776816-1851315286-2761546358-1000
+                  open_time                : Sat Apr 16 01:58:28 2016 UTC
+                  create_guid              : 00000000-0000-0000-0000-000000000000
+                  client_guid              : 7c175991-9eb1-4a3a-8dc6-5f3066a5e580
+                  app_instance_id          : 00000000-0000-0000-0000-000000000000
+                  disconnect_time          : NTTIME(0)
+                  durable_timeout_msec     : 0x00000000 (0)
+                  durable                  : 0x00 (0)
+                  backend_cookie           : DATA_BLOB length=0
+[2016/04/16 01:58:28.076229, 10, pid=658, effective(1000, 100), real(1000, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 852AEB57
+[2016/04/16 01:58:28.076241,  5, pid=658, effective(1000, 100), real(1000, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 1 for /var/lib/samba/smbXsrv_open_global.tdb
+[2016/04/16 01:58:28.076251, 10, pid=658, effective(1000, 100), real(1000, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:28.076261, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smbXsrv_open.c:876(smbXsrv_open_create)
+  smbXsrv_open_create: global_id (0x852aeb57) stored
+[2016/04/16 01:58:28.076271,  1, pid=658, effective(1000, 100), real(1000, 0)] ../librpc/ndr/ndr.c:402(ndr_print_debug)
+       &open_blob: struct smbXsrv_openB
+          version                  : SMBXSRV_VERSION_0 (0)
+          reserved                 : 0x00000000 (0)
+          info                     : union smbXsrv_openU(case 0)
+          info0                    : *
+              info0: struct smbXsrv_open
+                  table                    : *
+                  db_rec                   : NULL
+                  local_id                 : 0xa7ead70c (2817185548)
+                  global                   : *
+                      global: struct smbXsrv_open_global0
+                          db_rec                   : NULL
+                          server_id: struct server_id
+                              pid                      : 0x0000000000000292 (658)
+                              task_id                  : 0x00000000 (0)
+                              vnn                      : 0xffffffff (4294967295)
+                              unique_id                : 0x870b2f504b083010 (-8715820631942746096)
+                          open_global_id           : 0x852aeb57 (2234182487)
+                          open_persistent_id       : 0x00000000852aeb57 (2234182487)
+                          open_volatile_id         : 0x00000000a7ead70c (2817185548)
+                          open_owner               : S-1-5-21-1511776816-1851315286-2761546358-1000
+                          open_time                : Sat Apr 16 01:58:28 2016 UTC
+                          create_guid              : 00000000-0000-0000-0000-000000000000
+                          client_guid              : 7c175991-9eb1-4a3a-8dc6-5f3066a5e580
+                          app_instance_id          : 00000000-0000-0000-0000-000000000000
+                          disconnect_time          : NTTIME(0)
+                          durable_timeout_msec     : 0x00000000 (0)
+                          durable                  : 0x00 (0)
+                          backend_cookie           : DATA_BLOB length=0
+                  status                   : NT_STATUS_OK
+                  idle_time                : Sat Apr 16 01:58:28 2016 UTC
+                  compat                   : NULL
+[2016/04/16 01:58:28.076388,  5, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/files.c:129(file_new)
+  allocated file structure fnum 2817185548 (1 used)
+[2016/04/16 01:58:28.076401, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/files.c:744(file_name_hash)
+  file_name_hash: /public/2 hash 0x3c28fc54
+[2016/04/16 01:58:28.076416,  3, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/dosmode.c:196(unix_mode)
+  unix_mode(2) returning 0744
+[2016/04/16 01:58:28.076427, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/open.c:2478(open_file_ntcreate)
+  open_file_ntcreate: fname=2, dos_attrs=0x0 access_mask=0x80000000 share_access=0x1 create_disposition = 0x1 create_options=0x4 unix mode=0744 oplock_request=0 private_flags = 0x0
+[2016/04/16 01:58:28.076439,  8, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/dosmode.c:600(dos_mode)
+  dos_mode: 2
+[2016/04/16 01:58:28.076450,  8, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/dosmode.c:242(dos_mode_from_sbuf)
+  dos_mode_from_sbuf returning 
+[2016/04/16 01:58:28.076460,  8, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/dosmode.c:36(dos_mode_debug_print)
+  dos_mode returning 
+[2016/04/16 01:58:28.076471, 10, pid=658, effective(1000, 100), real(1000, 0)] ../libcli/security/access_check.c:58(se_map_generic)
+  se_map_generic(): mapped mask 0x80000000 to 0x00120089
+[2016/04/16 01:58:28.076481, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/open.c:2636(open_file_ntcreate)
+  open_file_ntcreate: fname=2, after mapping access_mask=0x120089
+[2016/04/16 01:58:28.076491,  4, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/open.c:2726(open_file_ntcreate)
+  calling open_file with flags=0x0 flags2=0x0 mode=0744, access_mask = 0x120089, open_access_mask = 0x120089
+[2016/04/16 01:58:28.076503, 10, pid=658, effective(1000, 100), real(1000, 0), class=acls] ../source3/smbd/posix_acls.c:3521(posix_get_nt_acl)
+  posix_get_nt_acl: called for file 2
+[2016/04/16 01:58:28.076577, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/passdb/lookup_sid.c:1208(uid_to_sid)
+  uid 1000 -> sid S-1-5-21-1511776816-1851315286-2761546358-1000
+[2016/04/16 01:58:28.076603,  5, pid=658, effective(1000, 100), real(1000, 0)] ../source3/passdb/lookup_sid.c:1249(gid_to_sid)
+  gid_to_sid: winbind failed to find a sid for gid 100
+[2016/04/16 01:58:28.076615,  4, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/sec_ctx.c:216(push_sec_ctx)
+  push_sec_ctx(1000, 100) : sec_ctx_stack_ndx = 1
+[2016/04/16 01:58:28.076627,  4, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/uid.c:491(push_conn_ctx)
+  push_conn_ctx(2864576458) : conn_ctx_stack_ndx = 0
+[2016/04/16 01:58:28.076637,  4, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/sec_ctx.c:316(set_sec_ctx)
+  setting sec ctx (0, 0) - sec_ctx_stack_ndx = 1
+[2016/04/16 01:58:28.076646,  5, pid=658, effective(1000, 100), real(1000, 0)] ../libcli/security/security_token.c:53(security_token_debug)
+  Security token: (NULL)
+[2016/04/16 01:58:28.076655,  5, pid=658, effective(1000, 100), real(1000, 0)] ../source3/auth/token_util.c:639(debug_unix_user_token)
+  UNIX token of user 0
+  Primary group is 0 and contains 0 supplementary groups
+[2016/04/16 01:58:28.076685,  4, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/sec_ctx.c:421(pop_sec_ctx)
+  pop_sec_ctx (1000, 100) - sec_ctx_stack_ndx = 0
+[2016/04/16 01:58:28.076697, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/passdb/lookup_sid.c:1112(legacy_gid_to_sid)
+  LEGACY: gid 100 -> sid S-1-22-2-100
+[2016/04/16 01:58:28.076709, 10, pid=658, effective(1000, 100), real(1000, 0), class=acls] ../source3/smbd/posix_acls.c:2724(canonicalise_acl)
+  canonicalise_acl: Access ace entries before arrange :
+[2016/04/16 01:58:28.076719, 10, pid=658, effective(1000, 100), real(1000, 0), class=acls] ../source3/smbd/posix_acls.c:2737(canonicalise_acl)
+  canon_ace index 0. Type = allow SID = S-1-1-0 other SMB_ACL_OTHER ace_flags = 0x0 perms r--
+[2016/04/16 01:58:28.076731, 10, pid=658, effective(1000, 100), real(1000, 0), class=acls] ../source3/smbd/posix_acls.c:2737(canonicalise_acl)
+  canon_ace index 1. Type = allow SID = S-1-22-2-100 gid 100 (users) SMB_ACL_GROUP_OBJ ace_flags = 0x0 perms r--
+[2016/04/16 01:58:28.076780, 10, pid=658, effective(1000, 100), real(1000, 0), class=acls] ../source3/smbd/posix_acls.c:2737(canonicalise_acl)
+  canon_ace index 2. Type = allow SID = S-1-5-21-1511776816-1851315286-2761546358-1000 uid 1000 (vera) SMB_ACL_USER_OBJ ace_flags = 0x0 perms rw-
+[2016/04/16 01:58:28.076828, 10, pid=658, effective(1000, 100), real(1000, 0), class=acls] ../source3/smbd/posix_acls.c:848(print_canon_ace_list)
+  print_canon_ace_list: canonicalise_acl: ace entries after arrange
+  canon_ace index 0. Type = allow SID = S-1-5-21-1511776816-1851315286-2761546358-1000 uid 1000 (vera) SMB_ACL_USER_OBJ ace_flags = 0x0 perms rw-
+  canon_ace index 1. Type = allow SID = S-1-22-2-100 gid 100 (users) SMB_ACL_GROUP_OBJ ace_flags = 0x0 perms r--
+  canon_ace index 2. Type = allow SID = S-1-1-0 other SMB_ACL_OTHER ace_flags = 0x0 perms r--
+[2016/04/16 01:58:28.076896, 10, pid=658, effective(1000, 100), real(1000, 0), class=acls] ../source3/smbd/posix_acls.c:1110(map_canon_ace_perms)
+  map_canon_ace_perms: Mapped (UNIX) 180 to (NT) 12019f
+[2016/04/16 01:58:28.076909, 10, pid=658, effective(1000, 100), real(1000, 0), class=acls] ../source3/smbd/posix_acls.c:1110(map_canon_ace_perms)
+  map_canon_ace_perms: Mapped (UNIX) 100 to (NT) 120089
+[2016/04/16 01:58:28.076919, 10, pid=658, effective(1000, 100), real(1000, 0), class=acls] ../source3/smbd/posix_acls.c:1110(map_canon_ace_perms)
+  map_canon_ace_perms: Mapped (UNIX) 100 to (NT) 120089
+[2016/04/16 01:58:28.076933, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/open.c:174(smbd_check_access_rights)
+  smbd_check_access_rights: file 2 requesting 0x120089 returning 0x120009 (NT_STATUS_OK)
+[2016/04/16 01:58:28.076949, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/open.c:408(fd_open)
+  fd_open: name 2, flags = 00 mode = 0744, fd = 7. 
+[2016/04/16 01:58:28.076961,  2, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/open.c:1005(open_file)
+  vera opened file 2 read=Yes write=No (numopen=1)
+[2016/04/16 01:58:28.076977,  5, pid=658, effective(1000, 100), real(1000, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 1 for /var/lib/samba/locking.tdb
+[2016/04/16 01:58:28.076987, 10, pid=658, effective(1000, 100), real(1000, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:/var/lib/samba/locking.tdb 2:<none> 3:<none>
+[2016/04/16 01:58:28.077000, 10, pid=658, effective(1000, 100), real(1000, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 20000000000000009201
+[2016/04/16 01:58:28.077031, 10, pid=658, effective(1000, 100), real(1000, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x56415299e010
+[2016/04/16 01:58:28.077053, 10, pid=658, effective(1000, 100), real(1000, 0), class=locking] ../source3/locking/brlock.c:2023(brl_get_locks_readonly)
+  seqnum=0, fsp->brlock_seqnum=0
+[2016/04/16 01:58:28.077074,  5, pid=658, effective(1000, 100), real(1000, 0), class=locking] ../source3/smbd/oplock.c:86(set_file_oplock)
+  set_file_oplock: granted oplock on file 2, 20:192:0/2119019882, tv_sec = 57119c44, tv_usec = 128e4
+[2016/04/16 01:58:28.077089, 10, pid=658, effective(1000, 100), real(1000, 0), class=locking] ../source3/locking/brlock.c:2023(brl_get_locks_readonly)
+  seqnum=0, fsp->brlock_seqnum=0
+[2016/04/16 01:58:28.077099, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/open.c:1873(grant_fsp_oplock_type)
+  grant_fsp_oplock_type: oplock type 0x0 on file 2
+[2016/04/16 01:58:28.077110, 10, pid=658, effective(1000, 100), real(1000, 0), class=locking] ../source3/locking/share_mode_lock.c:187(unparse_share_modes)
+  unparse_share_modes:
+[2016/04/16 01:58:28.077120,  1, pid=658, effective(1000, 100), real(1000, 0)] ../librpc/ndr/ndr.c:402(ndr_print_debug)
+       d: struct share_mode_data
+          servicepath              : *
+              servicepath              : '/public'
+          base_name                : *
+              base_name                : '2'
+          stream_name              : NULL
+          num_share_modes          : 0x00000001 (1)
+          share_modes: ARRAY(1)
+              share_modes: struct share_mode_entry
+                  pid: struct server_id
+                      pid                      : 0x0000000000000292 (658)
+                      task_id                  : 0x00000000 (0)
+                      vnn                      : 0xffffffff (4294967295)
+                      unique_id                : 0x870b2f504b083010 (-8715820631942746096)
+                  op_mid                   : 0x0000000000000004 (4)
+                  op_type                  : 0x0000 (0)
+                  lease_idx                : 0xffffffff (4294967295)
+                  access_mask              : 0x00120089 (1179785)
+                  share_access             : 0x00000001 (1)
+                  private_options          : 0x00000000 (0)
+                  time                     : Sat Apr 16 01:58:28 2016 UTC.76004
+                  id: struct file_id
+                      devid                    : 0x0000000000000020 (32)
+                      inode                    : 0x0000000000000192 (402)
+                      extid                    : 0x0000000000000000 (0)
+                  share_file_id            : 0x000000007e4dad6a (2119019882)
+                  uid                      : 0x000003e8 (1000)
+                  flags                    : 0x0000 (0)
+                  name_hash                : 0x3c28fc54 (1009318996)
+                  stale                    : 0x00 (0)
+                  lease                    : NULL
+          num_leases               : 0x00000000 (0)
+          leases: ARRAY(0)
+          num_delete_tokens        : 0x00000000 (0)
+          delete_tokens: ARRAY(0)
+          old_write_time           : Sat Apr 16 01:50:04 2016 UTC.391683747
+          changed_write_time       : Thu Jan  1 00:00:00 1970 UTC.0
+          fresh                    : 0x01 (1)
+          modified                 : 0x01 (1)
+          record                   : *
+[2016/04/16 01:58:28.077299, 10, pid=658, effective(1000, 100), real(1000, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 20000000000000009201
+[2016/04/16 01:58:28.077314,  5, pid=658, effective(1000, 100), real(1000, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 1 for /var/lib/samba/locking.tdb
+[2016/04/16 01:58:28.077324, 10, pid=658, effective(1000, 100), real(1000, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:28.077335, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/open.c:4764(create_file_unixpath)
+  create_file_unixpath: info=1
+[2016/04/16 01:58:28.077345, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/open.c:5043(create_file_default)
+  create_file: info=1
+[2016/04/16 01:58:28.077354, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smb2_create.c:1092(smbd_smb2_create_send)
+  smbd_smb2_create_send: response construction phase
+[2016/04/16 01:58:28.077364,  8, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/dosmode.c:600(dos_mode)
+  dos_mode: 2
+[2016/04/16 01:58:28.077374,  8, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/dosmode.c:242(dos_mode_from_sbuf)
+  dos_mode_from_sbuf returning 
+[2016/04/16 01:58:28.077384,  8, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/dosmode.c:36(dos_mode_debug_print)
+  dos_mode returning 
+[2016/04/16 01:58:28.077397, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smb2_create.c:1273(smbd_smb2_create_send)
+  smbd_smb2_create_send: 2 - fnum 2817185548
+[2016/04/16 01:58:28.077412, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smb2_server.c:2587(smbd_smb2_request_done_ex)
+  smbd_smb2_request_done_ex: idx[1] status[NT_STATUS_OK] body[88] dyn[yes:0] at ../source3/smbd/smb2_create.c:364
+[2016/04/16 01:58:28.077424, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smb2_server.c:898(smb2_set_operation_credit)
+  smb2_set_operation_credit: requested 1, charge 1, granted 1, current possible/max 512/512, total granted/max/low/range 1/8192/5/1
+[2016/04/16 01:58:28.078667, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smb2_server.c:3454(smbd_smb2_io_handler)
+  smbd_smb2_request idx[1] of 5 vectors
+[2016/04/16 01:58:28.078710, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smb2_server.c:646(smb2_validate_sequence_number)
+  smb2_validate_sequence_number: clearing id 5 (position 5) from bitmap
+[2016/04/16 01:58:28.078724, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smb2_server.c:1953(smbd_smb2_request_dispatch)
+  smbd_smb2_request_dispatch: opcode[SMB2_OP_READ] mid = 5
+[2016/04/16 01:58:28.078737,  4, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/uid.c:384(change_to_user)
+  Skipping user change - already user
+[2016/04/16 01:58:28.078750, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smb2_server.c:1846(smbd_smb2_request_verify_creditcharge)
+  mid 5, CreditCharge: 1, NeededCharge: 1
+[2016/04/16 01:58:28.078762, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smb2_read.c:451(smbd_smb2_read_send)
+  smbd_smb2_read: 2 - fnum 2817185548
+[2016/04/16 01:58:28.078775, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/aio.c:705(schedule_smb2_aio_read)
+  smb2: read size (65536) too small for minimum aio_read of 0
+[2016/04/16 01:58:28.078787, 10, pid=658, effective(1000, 100), real(1000, 0), class=locking] ../source3/locking/brlock.c:2023(brl_get_locks_readonly)
+  seqnum=0, fsp->brlock_seqnum=0
+[2016/04/16 01:58:28.078799, 10, pid=658, effective(1000, 100), real(1000, 0), class=locking] ../source3/locking/posix.c:305(is_posix_locked)
+  is_posix_locked: File 2, offset = 0, count = 65536, type = READ
+[2016/04/16 01:58:28.078816, 10, pid=658, effective(1000, 100), real(1000, 0), class=locking] ../source3/locking/posix.c:169(posix_lock_in_range)
+  posix_lock_in_range: offset_out = 0, count_out = 65536
+[2016/04/16 01:58:28.078826,  8, pid=658, effective(1000, 100), real(1000, 0), class=locking] ../source3/locking/posix.c:252(posix_fcntl_getlock)
+  posix_fcntl_getlock 7 0 65536 0
+[2016/04/16 01:58:28.078837,  8, pid=658, effective(1000, 100), real(1000, 0), class=locking] ../source3/lib/util.c:1156(fcntl_getlock)
+  fcntl_getlock fd=7 offset=0 count=65536 type=0
+[2016/04/16 01:58:28.078852,  3, pid=658, effective(1000, 100), real(1000, 0), class=locking] ../source3/lib/util.c:1180(fcntl_getlock)
+  fcntl_getlock: fd 7 is returned info 2 pid 0
+[2016/04/16 01:58:28.078862,  8, pid=658, effective(1000, 100), real(1000, 0), class=locking] ../source3/locking/posix.c:284(posix_fcntl_getlock)
+  posix_fcntl_getlock: Lock query call successful
+[2016/04/16 01:58:28.078872, 10, pid=658, effective(1000, 100), real(1000, 0), class=locking] ../source3/locking/brlock.c:1413(brl_locktest)
+  brl_locktest: posix start=0 len=65536 unlocked for fnum 2817185548 file 2
+[2016/04/16 01:58:28.078882, 10, pid=658, effective(1000, 100), real(1000, 0), class=locking] ../source3/locking/locking.c:157(strict_lock_default)
+  strict_lock_default: flavour = WINDOWS_LOCK brl start=0 len=65536 unlocked for fnum 2817185548 file 2
+[2016/04/16 01:58:28.078901, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/fileio.c:98(read_file)
+  read_file (2): pos = 0, size = 65536, returned 10
+[2016/04/16 01:58:28.078914, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smb2_read.c:569(smbd_smb2_read_send)
+  smbd_smb2_read: file 2, fnum 2817185548, offset=0 len=65536 returned 10
+[2016/04/16 01:58:28.078925,  3, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smb2_read.c:403(smb2_read_complete)
+  smbd_smb2_read: fnum 2817185548, file 2, length=65536 offset=0 read=10
+[2016/04/16 01:58:28.078938, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smb2_server.c:2587(smbd_smb2_request_done_ex)
+  smbd_smb2_request_done_ex: idx[1] status[NT_STATUS_OK] body[16] dyn[yes:10] at ../source3/smbd/smb2_read.c:155
+[2016/04/16 01:58:28.078951, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smb2_server.c:898(smb2_set_operation_credit)
+  smb2_set_operation_credit: requested 1, charge 1, granted 1, current possible/max 512/512, total granted/max/low/range 1/8192/6/1
+[2016/04/16 01:58:28.451752, 10, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/smb2_server.c:1049(smbd_server_connection_terminate_ex)
+  smbd_server_connection_terminate_ex: reason[NT_STATUS_END_OF_FILE] at ../source3/smbd/smb2_server.c:3506
+[2016/04/16 01:58:28.451886,  4, pid=658, effective(1000, 100), real(1000, 0)] ../source3/smbd/sec_ctx.c:316(set_sec_ctx)
+  setting sec ctx (0, 0) - sec_ctx_stack_ndx = 0
+[2016/04/16 01:58:28.451921,  5, pid=658, effective(1000, 100), real(1000, 0)] ../libcli/security/security_token.c:53(security_token_debug)
+  Security token: (NULL)
+[2016/04/16 01:58:28.451937,  5, pid=658, effective(1000, 100), real(1000, 0)] ../source3/auth/token_util.c:639(debug_unix_user_token)
+  UNIX token of user 0
+  Primary group is 0 and contains 0 supplementary groups
+[2016/04/16 01:58:28.451972,  5, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/uid.c:425(smbd_change_to_root_user)
+  change_to_root_user: now uid=(0,0) gid=(0,0)
+[2016/04/16 01:58:28.451990,  4, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/sec_ctx.c:316(set_sec_ctx)
+  setting sec ctx (0, 0) - sec_ctx_stack_ndx = 0
+[2016/04/16 01:58:28.452004,  5, pid=658, effective(0, 0), real(0, 0)] ../libcli/security/security_token.c:53(security_token_debug)
+  Security token: (NULL)
+[2016/04/16 01:58:28.452016,  5, pid=658, effective(0, 0), real(0, 0)] ../source3/auth/token_util.c:639(debug_unix_user_token)
+  UNIX token of user 0
+  Primary group is 0 and contains 0 supplementary groups
+[2016/04/16 01:58:28.452036,  5, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/uid.c:425(smbd_change_to_root_user)
+  change_to_root_user: now uid=(0,0) gid=(0,0)
+[2016/04/16 01:58:28.452050,  4, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/sec_ctx.c:316(set_sec_ctx)
+  setting sec ctx (0, 0) - sec_ctx_stack_ndx = 0
+[2016/04/16 01:58:28.452063,  5, pid=658, effective(0, 0), real(0, 0)] ../libcli/security/security_token.c:53(security_token_debug)
+  Security token: (NULL)
+[2016/04/16 01:58:28.452075,  5, pid=658, effective(0, 0), real(0, 0)] ../source3/auth/token_util.c:639(debug_unix_user_token)
+  UNIX token of user 0
+  Primary group is 0 and contains 0 supplementary groups
+[2016/04/16 01:58:28.452093,  5, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/uid.c:425(smbd_change_to_root_user)
+  change_to_root_user: now uid=(0,0) gid=(0,0)
+[2016/04/16 01:58:28.452113,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 1 for /var/lib/samba/smbXsrv_session_global.tdb
+[2016/04/16 01:58:28.452128, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:/var/lib/samba/smbXsrv_session_global.tdb 2:<none> 3:<none>
+[2016/04/16 01:58:28.452146, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key AABDF7CA
+[2016/04/16 01:58:28.452171, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x5641529a2370
+[2016/04/16 01:58:28.452200, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key AABDF7CA
+[2016/04/16 01:58:28.452216,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 1 for /var/lib/samba/smbXsrv_session_global.tdb
+[2016/04/16 01:58:28.452229, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:28.452248,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 1 for /var/lib/samba/locking.tdb
+[2016/04/16 01:58:28.452261, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:/var/lib/samba/locking.tdb 2:<none> 3:<none>
+[2016/04/16 01:58:28.452276, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 20000000000000009201
+[2016/04/16 01:58:28.452301, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x5641529937f0
+[2016/04/16 01:58:28.452332, 10, pid=658, effective(0, 0), real(0, 0), class=locking] ../source3/locking/share_mode_lock.c:167(parse_share_modes)
+  parse_share_modes:
+[2016/04/16 01:58:28.452347,  1, pid=658, effective(0, 0), real(0, 0)] ../librpc/ndr/ndr.c:402(ndr_print_debug)
+       d: struct share_mode_data
+          servicepath              : *
+              servicepath              : '/public'
+          base_name                : *
+              base_name                : '2'
+          stream_name              : NULL
+          num_share_modes          : 0x00000001 (1)
+          share_modes: ARRAY(1)
+              share_modes: struct share_mode_entry
+                  pid: struct server_id
+                      pid                      : 0x0000000000000292 (658)
+                      task_id                  : 0x00000000 (0)
+                      vnn                      : 0xffffffff (4294967295)
+                      unique_id                : 0x870b2f504b083010 (-8715820631942746096)
+                  op_mid                   : 0x0000000000000004 (4)
+                  op_type                  : 0x0000 (0)
+                  lease_idx                : 0xffffffff (4294967295)
+                  access_mask              : 0x00120089 (1179785)
+                  share_access             : 0x00000001 (1)
+                  private_options          : 0x00000000 (0)
+                  time                     : Sat Apr 16 01:58:28 2016 UTC.76004
+                  id: struct file_id
+                      devid                    : 0x0000000000000020 (32)
+                      inode                    : 0x0000000000000192 (402)
+                      extid                    : 0x0000000000000000 (0)
+                  share_file_id            : 0x000000007e4dad6a (2119019882)
+                  uid                      : 0x000003e8 (1000)
+                  flags                    : 0x0000 (0)
+                  name_hash                : 0x3c28fc54 (1009318996)
+                  stale                    : 0x00 (0)
+                  lease                    : NULL
+          num_leases               : 0x00000000 (0)
+          leases: ARRAY(0)
+          num_delete_tokens        : 0x00000000 (0)
+          delete_tokens: ARRAY(0)
+          old_write_time           : Sat Apr 16 01:50:04 2016 UTC.391683747
+          changed_write_time       : Thu Jan  1 00:00:00 1970 UTC.0
+          fresh                    : 0x00 (0)
+          modified                 : 0x00 (0)
+          record                   : NULL
+[2016/04/16 01:58:28.452538, 10, pid=658, effective(0, 0), real(0, 0), class=locking] ../source3/locking/locking.c:1219(find_delete_on_close_token)
+  find_delete_on_close_token: name_hash = 0x3c28fc54
+[2016/04/16 01:58:28.452557, 10, pid=658, effective(0, 0), real(0, 0), class=locking] ../source3/locking/share_mode_lock.c:187(unparse_share_modes)
+  unparse_share_modes:
+[2016/04/16 01:58:28.452570,  1, pid=658, effective(0, 0), real(0, 0)] ../librpc/ndr/ndr.c:402(ndr_print_debug)
+       d: struct share_mode_data
+          servicepath              : *
+              servicepath              : '/public'
+          base_name                : *
+              base_name                : '2'
+          stream_name              : NULL
+          num_share_modes          : 0x00000000 (0)
+          share_modes: ARRAY(0)
+          num_leases               : 0x00000000 (0)
+          leases: ARRAY(0)
+          num_delete_tokens        : 0x00000000 (0)
+          delete_tokens: ARRAY(0)
+          old_write_time           : Sat Apr 16 01:50:04 2016 UTC.391683747
+          changed_write_time       : Thu Jan  1 00:00:00 1970 UTC.0
+          fresh                    : 0x00 (0)
+          modified                 : 0x01 (1)
+          record                   : *
+[2016/04/16 01:58:28.452659, 10, pid=658, effective(0, 0), real(0, 0), class=locking] ../source3/locking/share_mode_lock.c:194(unparse_share_modes)
+  No used share mode found
+[2016/04/16 01:58:28.452681, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 20000000000000009201
+[2016/04/16 01:58:28.452696,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 1 for /var/lib/samba/locking.tdb
+[2016/04/16 01:58:28.452709, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:28.452758, 10, pid=658, effective(0, 0), real(0, 0), class=locking] ../source3/locking/posix.c:492(delete_windows_lock_ref_count)
+  delete_windows_lock_ref_count for file 2
+[2016/04/16 01:58:28.452781,  2, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/close.c:780(close_normal_file)
+  vera closed file 2 (numopen=0) NT_STATUS_OK
+[2016/04/16 01:58:28.452795,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 1 for /var/lib/samba/smbXsrv_open_global.tdb
+[2016/04/16 01:58:28.452958, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:/var/lib/samba/smbXsrv_open_global.tdb 2:<none> 3:<none>
+[2016/04/16 01:58:28.452985, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 852AEB57
+[2016/04/16 01:58:28.453006, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x5641529a2090
+[2016/04/16 01:58:28.453030, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 852AEB57
+[2016/04/16 01:58:28.453043,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 1 for /var/lib/samba/smbXsrv_open_global.tdb
+[2016/04/16 01:58:28.453054, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:28.453071,  5, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/files.c:555(file_free)
+  freed files structure 2817185548 (0 used)
+[2016/04/16 01:58:28.453085,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 1 for /var/lib/samba/smbXsrv_tcon_global.tdb
+[2016/04/16 01:58:28.453096, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:/var/lib/samba/smbXsrv_tcon_global.tdb 2:<none> 3:<none>
+[2016/04/16 01:58:28.453108, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key BE7E161D
+[2016/04/16 01:58:28.453121, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x56415299a140
+[2016/04/16 01:58:28.453136, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key BE7E161D
+[2016/04/16 01:58:28.453148,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 1 for /var/lib/samba/smbXsrv_tcon_global.tdb
+[2016/04/16 01:58:28.453162, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:28.453286,  4, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/sec_ctx.c:316(set_sec_ctx)
+  setting sec ctx (0, 0) - sec_ctx_stack_ndx = 0
+[2016/04/16 01:58:28.453325,  5, pid=658, effective(0, 0), real(0, 0)] ../libcli/security/security_token.c:53(security_token_debug)
+  Security token: (NULL)
+[2016/04/16 01:58:28.453338,  5, pid=658, effective(0, 0), real(0, 0)] ../source3/auth/token_util.c:639(debug_unix_user_token)
+  UNIX token of user 0
+  Primary group is 0 and contains 0 supplementary groups
+[2016/04/16 01:58:28.453359,  5, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/uid.c:425(smbd_change_to_root_user)
+  change_to_root_user: now uid=(0,0) gid=(0,0)
+[2016/04/16 01:58:28.453379,  2, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/service.c:1138(close_cnum)
+   (ipv4:192.168.99.1:61715) closed connection to service public
+[2016/04/16 01:58:28.453402,  4, pid=658, effective(0, 0), real(0, 0), class=vfs] ../source3/smbd/vfs.c:844(vfs_ChDir)
+  vfs_ChDir to /
+[2016/04/16 01:58:28.453433,  4, pid=658, effective(0, 0), real(0, 0), class=vfs] ../source3/smbd/vfs.c:855(vfs_ChDir)
+  vfs_ChDir got /
+[2016/04/16 01:58:28.453447,  4, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/sec_ctx.c:316(set_sec_ctx)
+  setting sec ctx (0, 0) - sec_ctx_stack_ndx = 0
+[2016/04/16 01:58:28.453458,  5, pid=658, effective(0, 0), real(0, 0)] ../libcli/security/security_token.c:53(security_token_debug)
+  Security token: (NULL)
+[2016/04/16 01:58:28.453468,  5, pid=658, effective(0, 0), real(0, 0)] ../source3/auth/token_util.c:639(debug_unix_user_token)
+  UNIX token of user 0
+  Primary group is 0 and contains 0 supplementary groups
+[2016/04/16 01:58:28.453484,  5, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/uid.c:425(smbd_change_to_root_user)
+  change_to_root_user: now uid=(0,0) gid=(0,0)
+[2016/04/16 01:58:28.453505,  4, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/sec_ctx.c:316(set_sec_ctx)
+  setting sec ctx (0, 0) - sec_ctx_stack_ndx = 0
+[2016/04/16 01:58:28.453516,  5, pid=658, effective(0, 0), real(0, 0)] ../libcli/security/security_token.c:53(security_token_debug)
+  Security token: (NULL)
+[2016/04/16 01:58:28.453526,  5, pid=658, effective(0, 0), real(0, 0)] ../source3/auth/token_util.c:639(debug_unix_user_token)
+  UNIX token of user 0
+  Primary group is 0 and contains 0 supplementary groups
+[2016/04/16 01:58:28.453542,  5, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/uid.c:425(smbd_change_to_root_user)
+  change_to_root_user: now uid=(0,0) gid=(0,0)
+[2016/04/16 01:58:28.453557, 10, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/notify_internal.c:181(notify_context_destructor)
+  notify_context_destructor called
+[2016/04/16 01:58:28.453569,  5, pid=658, effective(0, 0), real(0, 0)] ../source3/lib/messages.c:431(messaging_deregister)
+  Deregistering messaging pointer for type 784 - private_data=0x5641529a30e0
+[2016/04/16 01:58:28.453726,  3, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/server_exit.c:249(exit_server_common)
+  Server exit (NT_STATUS_END_OF_FILE)
+[2016/04/16 01:58:59.201394, 10, pid=493, effective(0, 0), real(0, 0)] ../source3/lib/events.c:437(smbd_idle_event_handler)
+  smbd_idle_event_handler: idle_evt(housekeeping) (nil) rescheduled
+[2016/04/16 01:59:03.320886, 10, pid=116, effective(0, 0), real(0, 0)] ../source3/lib/events.c:437(smbd_idle_event_handler)
+  smbd_idle_event_handler: idle_evt(housekeeping) (nil) rescheduled
+[2016/04/16 01:59:21.326512, 10, pid=74, effective(0, 0), real(0, 0)] ../source3/lib/events.c:437(smbd_idle_event_handler)
+  smbd_idle_event_handler: idle_evt(housekeeping) (nil) rescheduled
+[2016/04/16 01:57:42.892675,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:57:42.893462, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:57:42.893565, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9002000000000000FFFF
+[2016/04/16 01:57:42.893603, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152992340
+[2016/04/16 01:57:42.893647, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9002000000000000FFFF
+[2016/04/16 01:57:42.893664,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:57:42.893676, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:57:51.908111,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 657 -- ignoring
+[2016/04/16 01:58:27.456409,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:27.456462, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:58:27.456487, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9202000000000000FFFF
+[2016/04/16 01:58:27.456508, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152984e10
+[2016/04/16 01:58:27.456531, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9202000000000000FFFF
+[2016/04/16 01:58:27.456543,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:27.456554, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:27.456581,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/util/util_net.c:890(print_socket_options)
+  Socket options:
+  	SO_KEEPALIVE = 1
+  	SO_REUSEADDR = 1
+  	SO_BROADCAST = 0
+  	TCP_NODELAY = 1
+  	TCP_KEEPCNT = 9
+  	TCP_KEEPIDLE = 7200
+  	TCP_KEEPINTVL = 75
+  	IPTOS_LOWDELAY = 0
+  	IPTOS_THROUGHPUT = 0
+  	SO_REUSEPORT = 1
+  	SO_SNDBUF = 87040
+  	SO_RCVBUF = 369280
+  	SO_SNDLOWAT = 1
+  	SO_RCVLOWAT = 1
+  	SO_SNDTIMEO = 0
+  	SO_RCVTIMEO = 0
+  	TCP_QUICKACK = 1
+  	TCP_DEFER_ACCEPT = 0
+[2016/04/16 01:58:27.456645,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/util/util_net.c:890(print_socket_options)
+  Socket options:
+  	SO_KEEPALIVE = 1
+  	SO_REUSEADDR = 1
+  	SO_BROADCAST = 0
+  	TCP_NODELAY = 1
+  	TCP_KEEPCNT = 9
+  	TCP_KEEPIDLE = 7200
+  	TCP_KEEPINTVL = 75
+  	IPTOS_LOWDELAY = 0
+  	IPTOS_THROUGHPUT = 0
+  	SO_REUSEPORT = 1
+  	SO_SNDBUF = 87040
+  	SO_RCVBUF = 369280
+  	SO_SNDLOWAT = 1
+  	SO_RCVLOWAT = 1
+  	SO_SNDTIMEO = 0
+  	SO_RCVTIMEO = 0
+  	TCP_QUICKACK = 1
+  	TCP_DEFER_ACCEPT = 0
+[2016/04/16 01:58:27.456742,  3, pid=658, effective(0, 0), real(0, 0)] ../source3/lib/access.c:338(allow_access)
+  Allowed connection from 192.168.99.1 (192.168.99.1)
+[2016/04/16 01:58:27.456756, 10, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/process.c:3718(smbd_add_connection)
+  Connection allowed from ipv4:192.168.99.1:61715 to ipv4:172.17.0.2:445
+[2016/04/16 01:58:28.458317,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:28.459208, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:58:28.459351, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9202000000000000FFFF
+[2016/04/16 01:58:28.459436, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152992420
+[2016/04/16 01:58:28.459551, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9202000000000000FFFF
+[2016/04/16 01:58:28.459595,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:28.459626, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:51.935148,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 659 -- ignoring
+[2016/04/16 01:57:42.892675,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:57:42.893462, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:57:42.893565, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9002000000000000FFFF
+[2016/04/16 01:57:42.893603, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152992340
+[2016/04/16 01:57:42.893647, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9002000000000000FFFF
+[2016/04/16 01:57:42.893664,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:57:42.893676, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:57:51.908111,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 657 -- ignoring
+[2016/04/16 01:58:27.456409,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:27.456462, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:58:27.456487, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9202000000000000FFFF
+[2016/04/16 01:58:27.456508, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152984e10
+[2016/04/16 01:58:27.456531, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9202000000000000FFFF
+[2016/04/16 01:58:27.456543,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:27.456554, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:27.456581,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/util/util_net.c:890(print_socket_options)
+  Socket options:
+  	SO_KEEPALIVE = 1
+  	SO_REUSEADDR = 1
+  	SO_BROADCAST = 0
+  	TCP_NODELAY = 1
+  	TCP_KEEPCNT = 9
+  	TCP_KEEPIDLE = 7200
+  	TCP_KEEPINTVL = 75
+  	IPTOS_LOWDELAY = 0
+  	IPTOS_THROUGHPUT = 0
+  	SO_REUSEPORT = 1
+  	SO_SNDBUF = 87040
+  	SO_RCVBUF = 369280
+  	SO_SNDLOWAT = 1
+  	SO_RCVLOWAT = 1
+  	SO_SNDTIMEO = 0
+  	SO_RCVTIMEO = 0
+  	TCP_QUICKACK = 1
+  	TCP_DEFER_ACCEPT = 0
+[2016/04/16 01:58:27.456645,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/util/util_net.c:890(print_socket_options)
+  Socket options:
+  	SO_KEEPALIVE = 1
+  	SO_REUSEADDR = 1
+  	SO_BROADCAST = 0
+  	TCP_NODELAY = 1
+  	TCP_KEEPCNT = 9
+  	TCP_KEEPIDLE = 7200
+  	TCP_KEEPINTVL = 75
+  	IPTOS_LOWDELAY = 0
+  	IPTOS_THROUGHPUT = 0
+  	SO_REUSEPORT = 1
+  	SO_SNDBUF = 87040
+  	SO_RCVBUF = 369280
+  	SO_SNDLOWAT = 1
+  	SO_RCVLOWAT = 1
+  	SO_SNDTIMEO = 0
+  	SO_RCVTIMEO = 0
+  	TCP_QUICKACK = 1
+  	TCP_DEFER_ACCEPT = 0
+[2016/04/16 01:58:27.456742,  3, pid=658, effective(0, 0), real(0, 0)] ../source3/lib/access.c:338(allow_access)
+  Allowed connection from 192.168.99.1 (192.168.99.1)
+[2016/04/16 01:58:27.456756, 10, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/process.c:3718(smbd_add_connection)
+  Connection allowed from ipv4:192.168.99.1:61715 to ipv4:172.17.0.2:445
+[2016/04/16 01:58:28.458317,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:28.459208, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:58:28.459351, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9202000000000000FFFF
+[2016/04/16 01:58:28.459436, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152992420
+[2016/04/16 01:58:28.459551, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9202000000000000FFFF
+[2016/04/16 01:58:28.459595,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:28.459626, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:51.935148,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 659 -- ignoring
+[2016/04/16 01:59:51.998531,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 664 -- ignoring
+[2016/04/16 01:57:42.892675,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:57:42.893462, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:57:42.893565, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9002000000000000FFFF
+[2016/04/16 01:57:42.893603, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152992340
+[2016/04/16 01:57:42.893647, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9002000000000000FFFF
+[2016/04/16 01:57:42.893664,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:57:42.893676, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:57:51.908111,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 657 -- ignoring
+[2016/04/16 01:58:27.456409,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:27.456462, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:58:27.456487, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9202000000000000FFFF
+[2016/04/16 01:58:27.456508, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152984e10
+[2016/04/16 01:58:27.456531, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9202000000000000FFFF
+[2016/04/16 01:58:27.456543,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:27.456554, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:27.456581,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/util/util_net.c:890(print_socket_options)
+  Socket options:
+  	SO_KEEPALIVE = 1
+  	SO_REUSEADDR = 1
+  	SO_BROADCAST = 0
+  	TCP_NODELAY = 1
+  	TCP_KEEPCNT = 9
+  	TCP_KEEPIDLE = 7200
+  	TCP_KEEPINTVL = 75
+  	IPTOS_LOWDELAY = 0
+  	IPTOS_THROUGHPUT = 0
+  	SO_REUSEPORT = 1
+  	SO_SNDBUF = 87040
+  	SO_RCVBUF = 369280
+  	SO_SNDLOWAT = 1
+  	SO_RCVLOWAT = 1
+  	SO_SNDTIMEO = 0
+  	SO_RCVTIMEO = 0
+  	TCP_QUICKACK = 1
+  	TCP_DEFER_ACCEPT = 0
+[2016/04/16 01:58:27.456645,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/util/util_net.c:890(print_socket_options)
+  Socket options:
+  	SO_KEEPALIVE = 1
+  	SO_REUSEADDR = 1
+  	SO_BROADCAST = 0
+  	TCP_NODELAY = 1
+  	TCP_KEEPCNT = 9
+  	TCP_KEEPIDLE = 7200
+  	TCP_KEEPINTVL = 75
+  	IPTOS_LOWDELAY = 0
+  	IPTOS_THROUGHPUT = 0
+  	SO_REUSEPORT = 1
+  	SO_SNDBUF = 87040
+  	SO_RCVBUF = 369280
+  	SO_SNDLOWAT = 1
+  	SO_RCVLOWAT = 1
+  	SO_SNDTIMEO = 0
+  	SO_RCVTIMEO = 0
+  	TCP_QUICKACK = 1
+  	TCP_DEFER_ACCEPT = 0
+[2016/04/16 01:58:27.456742,  3, pid=658, effective(0, 0), real(0, 0)] ../source3/lib/access.c:338(allow_access)
+  Allowed connection from 192.168.99.1 (192.168.99.1)
+[2016/04/16 01:58:27.456756, 10, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/process.c:3718(smbd_add_connection)
+  Connection allowed from ipv4:192.168.99.1:61715 to ipv4:172.17.0.2:445
+[2016/04/16 01:58:28.458317,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:28.459208, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:58:28.459351, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9202000000000000FFFF
+[2016/04/16 01:58:28.459436, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152992420
+[2016/04/16 01:58:28.459551, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9202000000000000FFFF
+[2016/04/16 01:58:28.459595,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:28.459626, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:51.935148,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 659 -- ignoring
+[2016/04/16 01:59:51.998531,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 664 -- ignoring
+[2016/04/16 01:57:42.892675,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:57:42.893462, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:57:42.893565, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9002000000000000FFFF
+[2016/04/16 01:57:42.893603, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152992340
+[2016/04/16 01:57:42.893647, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9002000000000000FFFF
+[2016/04/16 01:57:42.893664,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:57:42.893676, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:57:51.908111,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 657 -- ignoring
+[2016/04/16 01:58:27.456409,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:27.456462, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:58:27.456487, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9202000000000000FFFF
+[2016/04/16 01:58:27.456508, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152984e10
+[2016/04/16 01:58:27.456531, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9202000000000000FFFF
+[2016/04/16 01:58:27.456543,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:27.456554, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:27.456581,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/util/util_net.c:890(print_socket_options)
+  Socket options:
+  	SO_KEEPALIVE = 1
+  	SO_REUSEADDR = 1
+  	SO_BROADCAST = 0
+  	TCP_NODELAY = 1
+  	TCP_KEEPCNT = 9
+  	TCP_KEEPIDLE = 7200
+  	TCP_KEEPINTVL = 75
+  	IPTOS_LOWDELAY = 0
+  	IPTOS_THROUGHPUT = 0
+  	SO_REUSEPORT = 1
+  	SO_SNDBUF = 87040
+  	SO_RCVBUF = 369280
+  	SO_SNDLOWAT = 1
+  	SO_RCVLOWAT = 1
+  	SO_SNDTIMEO = 0
+  	SO_RCVTIMEO = 0
+  	TCP_QUICKACK = 1
+  	TCP_DEFER_ACCEPT = 0
+[2016/04/16 01:58:27.456645,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/util/util_net.c:890(print_socket_options)
+  Socket options:
+  	SO_KEEPALIVE = 1
+  	SO_REUSEADDR = 1
+  	SO_BROADCAST = 0
+  	TCP_NODELAY = 1
+  	TCP_KEEPCNT = 9
+  	TCP_KEEPIDLE = 7200
+  	TCP_KEEPINTVL = 75
+  	IPTOS_LOWDELAY = 0
+  	IPTOS_THROUGHPUT = 0
+  	SO_REUSEPORT = 1
+  	SO_SNDBUF = 87040
+  	SO_RCVBUF = 369280
+  	SO_SNDLOWAT = 1
+  	SO_RCVLOWAT = 1
+  	SO_SNDTIMEO = 0
+  	SO_RCVTIMEO = 0
+  	TCP_QUICKACK = 1
+  	TCP_DEFER_ACCEPT = 0
+[2016/04/16 01:58:27.456742,  3, pid=658, effective(0, 0), real(0, 0)] ../source3/lib/access.c:338(allow_access)
+  Allowed connection from 192.168.99.1 (192.168.99.1)
+[2016/04/16 01:58:27.456756, 10, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/process.c:3718(smbd_add_connection)
+  Connection allowed from ipv4:192.168.99.1:61715 to ipv4:172.17.0.2:445
+[2016/04/16 01:58:28.458317,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:28.459208, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:58:28.459351, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9202000000000000FFFF
+[2016/04/16 01:58:28.459436, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152992420
+[2016/04/16 01:58:28.459551, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9202000000000000FFFF
+[2016/04/16 01:58:28.459595,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:28.459626, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:51.935148,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 659 -- ignoring
+[2016/04/16 01:59:51.998531,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 664 -- ignoring
+[2016/04/16 01:57:42.892675,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:57:42.893462, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:57:42.893565, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9002000000000000FFFF
+[2016/04/16 01:57:42.893603, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152992340
+[2016/04/16 01:57:42.893647, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9002000000000000FFFF
+[2016/04/16 01:57:42.893664,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:57:42.893676, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:57:51.908111,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 657 -- ignoring
+[2016/04/16 01:58:27.456409,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:27.456462, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:58:27.456487, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9202000000000000FFFF
+[2016/04/16 01:58:27.456508, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152984e10
+[2016/04/16 01:58:27.456531, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9202000000000000FFFF
+[2016/04/16 01:58:27.456543,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:27.456554, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:27.456581,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/util/util_net.c:890(print_socket_options)
+  Socket options:
+  	SO_KEEPALIVE = 1
+  	SO_REUSEADDR = 1
+  	SO_BROADCAST = 0
+  	TCP_NODELAY = 1
+  	TCP_KEEPCNT = 9
+  	TCP_KEEPIDLE = 7200
+  	TCP_KEEPINTVL = 75
+  	IPTOS_LOWDELAY = 0
+  	IPTOS_THROUGHPUT = 0
+  	SO_REUSEPORT = 1
+  	SO_SNDBUF = 87040
+  	SO_RCVBUF = 369280
+  	SO_SNDLOWAT = 1
+  	SO_RCVLOWAT = 1
+  	SO_SNDTIMEO = 0
+  	SO_RCVTIMEO = 0
+  	TCP_QUICKACK = 1
+  	TCP_DEFER_ACCEPT = 0
+[2016/04/16 01:58:27.456645,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/util/util_net.c:890(print_socket_options)
+  Socket options:
+  	SO_KEEPALIVE = 1
+  	SO_REUSEADDR = 1
+  	SO_BROADCAST = 0
+  	TCP_NODELAY = 1
+  	TCP_KEEPCNT = 9
+  	TCP_KEEPIDLE = 7200
+  	TCP_KEEPINTVL = 75
+  	IPTOS_LOWDELAY = 0
+  	IPTOS_THROUGHPUT = 0
+  	SO_REUSEPORT = 1
+  	SO_SNDBUF = 87040
+  	SO_RCVBUF = 369280
+  	SO_SNDLOWAT = 1
+  	SO_RCVLOWAT = 1
+  	SO_SNDTIMEO = 0
+  	SO_RCVTIMEO = 0
+  	TCP_QUICKACK = 1
+  	TCP_DEFER_ACCEPT = 0
+[2016/04/16 01:58:27.456742,  3, pid=658, effective(0, 0), real(0, 0)] ../source3/lib/access.c:338(allow_access)
+  Allowed connection from 192.168.99.1 (192.168.99.1)
+[2016/04/16 01:58:27.456756, 10, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/process.c:3718(smbd_add_connection)
+  Connection allowed from ipv4:192.168.99.1:61715 to ipv4:172.17.0.2:445
+[2016/04/16 01:58:28.458317,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:28.459208, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:58:28.459351, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9202000000000000FFFF
+[2016/04/16 01:58:28.459436, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152992420
+[2016/04/16 01:58:28.459551, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9202000000000000FFFF
+[2016/04/16 01:58:28.459595,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:28.459626, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:51.935148,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 659 -- ignoring
+[2016/04/16 01:59:51.998531,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 664 -- ignoring
+[2016/04/16 01:57:42.892675,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:57:42.893462, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:57:42.893565, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9002000000000000FFFF
+[2016/04/16 01:57:42.893603, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152992340
+[2016/04/16 01:57:42.893647, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9002000000000000FFFF
+[2016/04/16 01:57:42.893664,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:57:42.893676, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:57:51.908111,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 657 -- ignoring
+[2016/04/16 01:58:27.456409,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:27.456462, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:58:27.456487, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9202000000000000FFFF
+[2016/04/16 01:58:27.456508, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152984e10
+[2016/04/16 01:58:27.456531, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9202000000000000FFFF
+[2016/04/16 01:58:27.456543,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:27.456554, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:27.456581,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/util/util_net.c:890(print_socket_options)
+  Socket options:
+  	SO_KEEPALIVE = 1
+  	SO_REUSEADDR = 1
+  	SO_BROADCAST = 0
+  	TCP_NODELAY = 1
+  	TCP_KEEPCNT = 9
+  	TCP_KEEPIDLE = 7200
+  	TCP_KEEPINTVL = 75
+  	IPTOS_LOWDELAY = 0
+  	IPTOS_THROUGHPUT = 0
+  	SO_REUSEPORT = 1
+  	SO_SNDBUF = 87040
+  	SO_RCVBUF = 369280
+  	SO_SNDLOWAT = 1
+  	SO_RCVLOWAT = 1
+  	SO_SNDTIMEO = 0
+  	SO_RCVTIMEO = 0
+  	TCP_QUICKACK = 1
+  	TCP_DEFER_ACCEPT = 0
+[2016/04/16 01:58:27.456645,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/util/util_net.c:890(print_socket_options)
+  Socket options:
+  	SO_KEEPALIVE = 1
+  	SO_REUSEADDR = 1
+  	SO_BROADCAST = 0
+  	TCP_NODELAY = 1
+  	TCP_KEEPCNT = 9
+  	TCP_KEEPIDLE = 7200
+  	TCP_KEEPINTVL = 75
+  	IPTOS_LOWDELAY = 0
+  	IPTOS_THROUGHPUT = 0
+  	SO_REUSEPORT = 1
+  	SO_SNDBUF = 87040
+  	SO_RCVBUF = 369280
+  	SO_SNDLOWAT = 1
+  	SO_RCVLOWAT = 1
+  	SO_SNDTIMEO = 0
+  	SO_RCVTIMEO = 0
+  	TCP_QUICKACK = 1
+  	TCP_DEFER_ACCEPT = 0
+[2016/04/16 01:58:27.456742,  3, pid=658, effective(0, 0), real(0, 0)] ../source3/lib/access.c:338(allow_access)
+  Allowed connection from 192.168.99.1 (192.168.99.1)
+[2016/04/16 01:58:27.456756, 10, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/process.c:3718(smbd_add_connection)
+  Connection allowed from ipv4:192.168.99.1:61715 to ipv4:172.17.0.2:445
+[2016/04/16 01:58:28.458317,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:28.459208, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:58:28.459351, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9202000000000000FFFF
+[2016/04/16 01:58:28.459436, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152992420
+[2016/04/16 01:58:28.459551, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9202000000000000FFFF
+[2016/04/16 01:58:28.459595,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:28.459626, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:51.935148,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 659 -- ignoring
+[2016/04/16 01:59:51.998531,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 664 -- ignoring
+[2016/04/16 01:57:42.892675,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:57:42.893462, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:57:42.893565, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9002000000000000FFFF
+[2016/04/16 01:57:42.893603, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152992340
+[2016/04/16 01:57:42.893647, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9002000000000000FFFF
+[2016/04/16 01:57:42.893664,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:57:42.893676, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:57:51.908111,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 657 -- ignoring
+[2016/04/16 01:58:27.456409,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:27.456462, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:58:27.456487, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9202000000000000FFFF
+[2016/04/16 01:58:27.456508, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152984e10
+[2016/04/16 01:58:27.456531, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9202000000000000FFFF
+[2016/04/16 01:58:27.456543,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:27.456554, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:27.456581,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/util/util_net.c:890(print_socket_options)
+  Socket options:
+  	SO_KEEPALIVE = 1
+  	SO_REUSEADDR = 1
+  	SO_BROADCAST = 0
+  	TCP_NODELAY = 1
+  	TCP_KEEPCNT = 9
+  	TCP_KEEPIDLE = 7200
+  	TCP_KEEPINTVL = 75
+  	IPTOS_LOWDELAY = 0
+  	IPTOS_THROUGHPUT = 0
+  	SO_REUSEPORT = 1
+  	SO_SNDBUF = 87040
+  	SO_RCVBUF = 369280
+  	SO_SNDLOWAT = 1
+  	SO_RCVLOWAT = 1
+  	SO_SNDTIMEO = 0
+  	SO_RCVTIMEO = 0
+  	TCP_QUICKACK = 1
+  	TCP_DEFER_ACCEPT = 0
+[2016/04/16 01:58:27.456645,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/util/util_net.c:890(print_socket_options)
+  Socket options:
+  	SO_KEEPALIVE = 1
+  	SO_REUSEADDR = 1
+  	SO_BROADCAST = 0
+  	TCP_NODELAY = 1
+  	TCP_KEEPCNT = 9
+  	TCP_KEEPIDLE = 7200
+  	TCP_KEEPINTVL = 75
+  	IPTOS_LOWDELAY = 0
+  	IPTOS_THROUGHPUT = 0
+  	SO_REUSEPORT = 1
+  	SO_SNDBUF = 87040
+  	SO_RCVBUF = 369280
+  	SO_SNDLOWAT = 1
+  	SO_RCVLOWAT = 1
+  	SO_SNDTIMEO = 0
+  	SO_RCVTIMEO = 0
+  	TCP_QUICKACK = 1
+  	TCP_DEFER_ACCEPT = 0
+[2016/04/16 01:58:27.456742,  3, pid=658, effective(0, 0), real(0, 0)] ../source3/lib/access.c:338(allow_access)
+  Allowed connection from 192.168.99.1 (192.168.99.1)
+[2016/04/16 01:58:27.456756, 10, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/process.c:3718(smbd_add_connection)
+  Connection allowed from ipv4:192.168.99.1:61715 to ipv4:172.17.0.2:445
+[2016/04/16 01:58:28.458317,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:28.459208, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:58:28.459351, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9202000000000000FFFF
+[2016/04/16 01:58:28.459436, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152992420
+[2016/04/16 01:58:28.459551, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9202000000000000FFFF
+[2016/04/16 01:58:28.459595,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:28.459626, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:51.935148,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 659 -- ignoring
+[2016/04/16 01:59:51.998531,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 664 -- ignoring
+[2016/04/16 01:57:42.892675,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:57:42.893462, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:57:42.893565, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9002000000000000FFFF
+[2016/04/16 01:57:42.893603, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152992340
+[2016/04/16 01:57:42.893647, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9002000000000000FFFF
+[2016/04/16 01:57:42.893664,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:57:42.893676, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:57:51.908111,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 657 -- ignoring
+[2016/04/16 01:58:27.456409,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:27.456462, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:58:27.456487, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9202000000000000FFFF
+[2016/04/16 01:58:27.456508, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152984e10
+[2016/04/16 01:58:27.456531, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9202000000000000FFFF
+[2016/04/16 01:58:27.456543,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:27.456554, 10, pid=658, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:27.456581,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/util/util_net.c:890(print_socket_options)
+  Socket options:
+  	SO_KEEPALIVE = 1
+  	SO_REUSEADDR = 1
+  	SO_BROADCAST = 0
+  	TCP_NODELAY = 1
+  	TCP_KEEPCNT = 9
+  	TCP_KEEPIDLE = 7200
+  	TCP_KEEPINTVL = 75
+  	IPTOS_LOWDELAY = 0
+  	IPTOS_THROUGHPUT = 0
+  	SO_REUSEPORT = 1
+  	SO_SNDBUF = 87040
+  	SO_RCVBUF = 369280
+  	SO_SNDLOWAT = 1
+  	SO_RCVLOWAT = 1
+  	SO_SNDTIMEO = 0
+  	SO_RCVTIMEO = 0
+  	TCP_QUICKACK = 1
+  	TCP_DEFER_ACCEPT = 0
+[2016/04/16 01:58:27.456645,  5, pid=658, effective(0, 0), real(0, 0)] ../lib/util/util_net.c:890(print_socket_options)
+  Socket options:
+  	SO_KEEPALIVE = 1
+  	SO_REUSEADDR = 1
+  	SO_BROADCAST = 0
+  	TCP_NODELAY = 1
+  	TCP_KEEPCNT = 9
+  	TCP_KEEPIDLE = 7200
+  	TCP_KEEPINTVL = 75
+  	IPTOS_LOWDELAY = 0
+  	IPTOS_THROUGHPUT = 0
+  	SO_REUSEPORT = 1
+  	SO_SNDBUF = 87040
+  	SO_RCVBUF = 369280
+  	SO_SNDLOWAT = 1
+  	SO_RCVLOWAT = 1
+  	SO_SNDTIMEO = 0
+  	SO_RCVTIMEO = 0
+  	TCP_QUICKACK = 1
+  	TCP_DEFER_ACCEPT = 0
+[2016/04/16 01:58:27.456742,  3, pid=658, effective(0, 0), real(0, 0)] ../source3/lib/access.c:338(allow_access)
+  Allowed connection from 192.168.99.1 (192.168.99.1)
+[2016/04/16 01:58:27.456756, 10, pid=658, effective(0, 0), real(0, 0)] ../source3/smbd/process.c:3718(smbd_add_connection)
+  Connection allowed from ipv4:192.168.99.1:61715 to ipv4:172.17.0.2:445
+[2016/04/16 01:58:28.458317,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:178(dbwrap_check_lock_order)
+  check lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:28.459208, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:/var/lib/samba/serverid.tdb 3:<none>
+[2016/04/16 01:58:28.459351, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Locking key 9202000000000000FFFF
+[2016/04/16 01:58:28.459436, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:144(db_tdb_fetch_locked_internal)
+  Allocated locked data 0x0x564152992420
+[2016/04/16 01:58:28.459551, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap_tdb.c:60(db_tdb_log_key)
+  Unlocking key 9202000000000000FFFF
+[2016/04/16 01:58:28.459595,  5, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:146(dbwrap_lock_order_state_destructor)
+  release lock order 2 for /var/lib/samba/serverid.tdb
+[2016/04/16 01:58:28.459626, 10, pid=17, effective(0, 0), real(0, 0)] ../lib/dbwrap/dbwrap.c:133(debug_lock_order)
+  lock order:  1:<none> 2:<none> 3:<none>
+[2016/04/16 01:58:51.935148,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 659 -- ignoring
+[2016/04/16 01:59:51.998531,  2, pid=17, effective(0, 0), real(0, 0)] ../source3/smbd/server.c:443(remove_child_pid)
+  Could not find child 664 -- ignoring
