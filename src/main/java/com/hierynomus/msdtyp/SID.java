@@ -16,6 +16,7 @@
 package com.hierynomus.msdtyp;
 
 import com.hierynomus.protocol.commons.ByteArrayUtils;
+import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
@@ -23,6 +24,37 @@ import com.hierynomus.smbj.common.SMBBuffer;
  * [MS-DTYP].pdf 2.4.2 SecurityIdentifier SID
  */
 public class SID {
+
+    public enum SidType implements EnumWithValue<SidType> {
+        SID_TYPE_NONE(0, "0"),
+        SID_TYPE_USER(1, "User"),
+        SID_TYPE_DOM_GRP(2, "Domain group"),
+        SID_TYPE_DOMAIN(3, "Domain"),
+        SID_TYPE_ALIAS(4, "Local group"),
+        SID_TYPE_WKN_GRP(5, "Builtin group"),
+        SID_TYPE_DELETED(6, "Deleted"),
+        SID_TYPE_INVALID(7, "Invalid"),
+        SID_TYPE_UNKNOWN(8, "Unknown"),
+        SID_TYPE_COMPUTER(9, "Computer"),
+        SID_TYPE_LABEL(10, "Label");
+
+        private long value;
+        private String name;
+
+        SidType(long value, String name) {
+            this.value = value;
+            this.name = name;
+        }
+
+        public long getValue() {
+            return value;
+        }
+
+        public String getName() {
+            return name;
+        }
+    }
+
     public static SID EVERYONE = new SID((byte) 1, new byte[]{0, 0, 0, 0, 0, 1}, new long[]{0});
 
     private byte revision;

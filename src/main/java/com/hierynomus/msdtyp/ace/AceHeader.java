@@ -62,6 +62,14 @@ public class AceHeader {
         this.aceSize = aceSize;
     }
 
+    public AceType getAceType() {
+        return aceType;
+    }
+
+    public EnumSet<AceFlags> getAceFlags() {
+        return aceFlags;
+    }
+
     @Override
     public String toString() {
         return "AceHeader{" +

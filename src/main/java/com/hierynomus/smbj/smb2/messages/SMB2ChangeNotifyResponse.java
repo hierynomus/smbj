@@ -84,6 +84,14 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
             this.fileName = fileName;
         }
 
+        public FileNotifyAction getAction() {
+            return action;
+        }
+
+        public String getFileName() {
+            return fileName;
+        }
+
         @Override
         public String toString() {
             return "FileNotifyInfo{" +
