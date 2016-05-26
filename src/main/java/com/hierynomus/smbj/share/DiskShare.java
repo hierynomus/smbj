@@ -174,6 +174,24 @@ public class DiskShare extends Share {
     }
 
     /**
+     * Get information for a given fileId
+     **/
+    public FileInfo getFileInformation(SMB2FileId fileId)
+            throws SMBApiException, TransportException {
+
+        byte[] outputBuffer = queryInfoCommon(fileId,
+                SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILE, null,
+                FileInformationClass.FileAllInformation);
+
+        try {
+            return FileInformationFactory.parseFileAllInformation(
+                    new Buffer.PlainBuffer(outputBuffer, Endian.LE));
+        } catch (Buffer.BufferException e) {
+            throw new TransportException(e);
+        }
+    }
+
+    /**
      * Remove the directory at the given path.
      */
     public void rmdir(String path, boolean recursive)
@@ -264,6 +282,24 @@ public class DiskShare extends Share {
             throws SMBApiException, TransportException {
 
         byte[] outputBuffer = queryInfoCommon(path,
+                SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_SECURITY, securityInfo, null);
+        SecurityDescriptor sd = new SecurityDescriptor();
+        try {
+            sd.read(new SMBBuffer(outputBuffer));
+        } catch (Buffer.BufferException e) {
+            throw new TransportException(e);
+        }
+        return sd;
+    }
+
+    /**
+     * The SecurityDescriptor(MS-DTYP 2.4.6 SECURITY_DESCRIPTOR) for the Given FileId
+     */
+    public SecurityDescriptor getSecurityInfo(
+            SMB2FileId fileId, EnumSet<SecurityInformation> securityInfo)
+            throws SMBApiException, TransportException {
+
+        byte[] outputBuffer = queryInfoCommon(fileId,
                 SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_SECURITY, securityInfo, null);
         SecurityDescriptor sd = new SecurityDescriptor();
         try {
@@ -406,61 +442,4 @@ public class DiskShare extends Share {
         }
         return qresp.getOutputBuffer();
     }
-
-    private void close(SMB2FileId fileId) throws TransportException, SMBApiException {
-        Connection connection = treeConnect.getSession().getConnection();
-        SMB2Close closeReq = new SMB2Close(
-                connection.getNegotiatedDialect(),
-                treeConnect.getSession().getSessionId(), treeConnect.getTreeId(), fileId);
-        Future<SMB2Close> closeFuture = connection.send(closeReq);
-        SMB2Close closeResp = Futures.get(closeFuture, TransportException.Wrapper);
-
-        if (closeResp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(closeResp.getHeader().getStatus(), "Close failed for " + fileId);
-        }
-    }
-
-    private SMB2FileId open(
-            String path, long accessMask,
-            EnumSet<FileAttributes> fileAttributes, EnumSet<SMB2ShareAccess> shareAccess,
-            SMB2CreateDisposition createDisposition, EnumSet<SMB2CreateOptions> createOptions)
-            throws TransportException, SMBApiException {
-        logger.info("open {},{}", path);
-
-        Session session = treeConnect.getSession();
-        Connection connection = session.getConnection();
-        SMB2CreateRequest cr = openFileRequest(
-                treeConnect, path, accessMask, shareAccess, fileAttributes, createDisposition, createOptions);
-        Future<SMB2CreateResponse> responseFuture = connection.send(cr);
-        SMB2CreateResponse cresponse = Futures.get(responseFuture, TransportException.Wrapper);
-
-        if (cresponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(cresponse.getHeader().getStatus(), "Create failed for " + path);
-        }
-
-        return cresponse.getFileId();
-    }
-
-
-    private static SMB2CreateRequest openFileRequest(
-            TreeConnect treeConnect, String path,
-            long accessMask,
-            EnumSet<SMB2ShareAccess> shareAccess,
-            EnumSet<FileAttributes> fileAttributes,
-            SMB2CreateDisposition createDisposition,
-            EnumSet<SMB2CreateOptions> createOptions) {
-
-        Session session = treeConnect.getSession();
-        SMB2CreateRequest cr = new SMB2CreateRequest(
-                session.getConnection().getNegotiatedDialect(),
-                session.getSessionId(), treeConnect.getTreeId(),
-                accessMask,
-                fileAttributes,
-                shareAccess,
-                createDisposition,
-                createOptions, path);
-        return cr;
-    }
-
-
 }
