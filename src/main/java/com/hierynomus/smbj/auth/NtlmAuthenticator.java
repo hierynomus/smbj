@@ -76,7 +76,7 @@ public class NtlmAuthenticator implements Authenticator {
             if (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
                 logger.debug("More processing required for authentication of {}", context.getUsername());
                 byte[] securityBuffer = receive.getSecurityBuffer();
-                logger.info("Received token: {}", ByteArrayUtils.printHex(securityBuffer));
+                logger.debug("Received token: {}", ByteArrayUtils.printHex(securityBuffer));
 
                 NegTokenTarg negTokenTarg = new NegTokenTarg().read(securityBuffer);
                 BigInteger negotiationResult = negTokenTarg.getNegotiationResult();
@@ -84,17 +84,9 @@ public class NtlmAuthenticator implements Authenticator {
                 logger.debug("Received NTLM challenge from: {}", challenge.getTargetName());
 
                 byte[] serverChallenge = challenge.getServerChallenge();
-
-                byte[] responseKeyNT = NtlmFunctions.NTOWFv2(
-                        String.valueOf(context.getPassword()),
-                        context.getUsername(),
-                        context.getDomain());
-
-                byte[] ntlmv2ClientChallenge =
-                        NtlmFunctions.getNTLMv2ClientChallenge(challenge.getTargetInfo());
-
+                byte[] responseKeyNT = NtlmFunctions.NTOWFv2(String.valueOf(context.getPassword()), context.getUsername(), context.getDomain());
+                byte[] ntlmv2ClientChallenge = NtlmFunctions.getNTLMv2ClientChallenge(challenge.getTargetInfo());
                 byte[] ntlmv2Response = NtlmFunctions.getNTLMv2Response(responseKeyNT, serverChallenge, ntlmv2ClientChallenge);
-
                 byte[] sessionkey = null;
 
                 if (challenge.getNegotiateFlags().contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SIGN)) {
@@ -104,10 +96,7 @@ public class NtlmAuthenticator implements Authenticator {
                     if ((challenge.getNegotiateFlags().contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH))) {
                         byte[] masterKey = new byte[16];
                         NtlmFunctions.getRandom().nextBytes(masterKey);
-
-                        byte[] exchangedKey = new byte[0];
-                        exchangedKey = NtlmFunctions.encryptRc4(userSessionKey, masterKey);
-                        sessionkey = exchangedKey;
+                        sessionkey = NtlmFunctions.encryptRc4(userSessionKey, masterKey);
                     } else {
                         sessionkey = userSessionKey;
                     }

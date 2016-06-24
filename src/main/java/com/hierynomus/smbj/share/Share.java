@@ -15,16 +15,8 @@
  */
 package com.hierynomus.smbj.share;
 
-import com.hierynomus.msdtyp.AccessMask;
-import com.hierynomus.msdtyp.SecurityInformation;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
-import com.hierynomus.msfscc.FileInformationClass;
-import com.hierynomus.msfscc.fileinformation.FileInfo;
-import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
-import com.hierynomus.protocol.commons.EnumWithValue;
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SmbPath;
@@ -37,8 +29,6 @@ import com.hierynomus.smbj.smb2.SMB2ShareAccess;
 import com.hierynomus.smbj.smb2.messages.SMB2Close;
 import com.hierynomus.smbj.smb2.messages.SMB2CreateRequest;
 import com.hierynomus.smbj.smb2.messages.SMB2CreateResponse;
-import com.hierynomus.smbj.smb2.messages.SMB2QueryInfoRequest;
-import com.hierynomus.smbj.smb2.messages.SMB2QueryInfoResponse;
 import com.hierynomus.smbj.transport.TransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +51,7 @@ public class Share implements AutoCloseable {
 
     @Override
     public void close() throws IOException {
-        if (!disconnected.get()) {
+        if (!disconnected.getAndSet(true)) {
             treeConnect.close(this);
         }
     }
