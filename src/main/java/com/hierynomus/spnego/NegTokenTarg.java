@@ -15,10 +15,15 @@
  */
 package com.hierynomus.spnego;
 
+import com.hierynomus.asn1.ASN1InputStream;
+import com.hierynomus.asn1.types.ASN1Object;
+import com.hierynomus.asn1.types.constructed.ASN1TaggedObject;
+import com.hierynomus.asn1.types.primitive.ASN1Enumerated;
+import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
+import com.hierynomus.asn1.types.string.ASN1OctetString;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.smbj.common.SMBRuntimeException;
-import org.bouncycastle.asn1.*;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -98,7 +103,7 @@ public class NegTokenTarg extends SpnegoToken {
 
     public NegTokenTarg read(Buffer<?> buffer) throws IOException {
         try {
-            ASN1Primitive instance = new ASN1InputStream(buffer.getCompactData()).readObject();
+            ASN1Object instance = new ASN1InputStream(buffer.getCompactData()).readObject();
             parseSpnegoToken(instance);
         } catch (SpnegoException e) {
             throw new SMBRuntimeException(e);
@@ -108,7 +113,7 @@ public class NegTokenTarg extends SpnegoToken {
 
     @Override
     protected void parseTagged(ASN1TaggedObject asn1TaggedObject) throws SpnegoException {
-        switch (asn1TaggedObject.getTagNo()) {
+        switch (asn1TaggedObject.getTag().getTag()) {
             case 0:
                 readNegResult(asn1TaggedObject.getObject());
                 break;
@@ -124,23 +129,23 @@ public class NegTokenTarg extends SpnegoToken {
 
     }
 
-    private void readResponseToken(ASN1Primitive responseToken) throws SpnegoException {
+    private void readResponseToken(ASN1Object responseToken) throws SpnegoException {
         if (!(responseToken instanceof ASN1OctetString)) {
             throw new SpnegoException("Expected the responseToken (OCTET_STRING) contents, not: " + responseToken);
         }
-        this.responseToken = ((ASN1OctetString) responseToken).getOctets();
+        this.responseToken = ((ASN1OctetString) responseToken).getValue();
 
     }
 
-    private void readMechListMIC(ASN1Primitive mic) throws SpnegoException {
+    private void readMechListMIC(ASN1Object mic) throws SpnegoException {
         if (!(mic instanceof ASN1OctetString)) {
             throw new SpnegoException("Expected the responseToken (OCTET_STRING) contents, not: " + mic);
         }
-        this.mechListMic = ((ASN1OctetString) mic).getOctets();
+        this.mechListMic = ((ASN1OctetString) mic).getValue();
 
     }
 
-    private void readSupportedMech(ASN1Primitive supportedMech) throws SpnegoException {
+    private void readSupportedMech(ASN1Object supportedMech) throws SpnegoException {
         if (!(supportedMech instanceof ASN1ObjectIdentifier)) {
             throw new SpnegoException("Expected the supportedMech (OBJECT IDENTIFIER) contents, not: " + supportedMech);
         }
@@ -148,7 +153,7 @@ public class NegTokenTarg extends SpnegoToken {
 
     }
 
-    private void readNegResult(ASN1Primitive object) throws SpnegoException {
+    private void readNegResult(ASN1Object object) throws SpnegoException {
         if (!(object instanceof ASN1Enumerated)) {
             throw new SpnegoException("Expected the negResult (ENUMERATED) contents, not: " + supportedMech);
         }

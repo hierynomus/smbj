@@ -9,6 +9,7 @@ plugins {
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 sourceCompatibility = 1.7
@@ -27,6 +28,7 @@ def bouncycastleVersion = "1.54"
 
 dependencies {
     compile "org.slf4j:slf4j-api:1.7.13"
+    compile "com.hierynomus.asn-one:asn-one:0.0.1-dev.6.uncommitted+2740c45"
     compile "org.bouncycastle:bcprov-jdk15on:$bouncycastleVersion"
     compile "org.bouncycastle:bcpkix-jdk15on:$bouncycastleVersion"
     compile 'net.engio:mbassador:1.2.4.2'

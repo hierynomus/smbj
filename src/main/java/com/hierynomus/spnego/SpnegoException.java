@@ -21,4 +21,8 @@ public class SpnegoException extends IOException {
     public SpnegoException(String message) {
         super(message);
     }
+
+    public SpnegoException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }
