@@ -23,6 +23,8 @@ import com.hierynomus.protocol.commons.buffer.Endian;
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.util.Arrays;
 
@@ -33,7 +35,7 @@ public class NtlmFunctions {
 
     static final byte[] LMOWFv1_SECRET = new byte[]{0x4B, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25}; // KGS!@#$%
 
-    public static final String UNICODE = "UTF-16LE";
+    public static final Charset UNICODE = StandardCharsets.UTF_16LE;
 
     private static SecureRandom secureRandom = new SecureRandom();
 
@@ -91,11 +93,7 @@ public class NtlmFunctions {
      * @return The 2-byte little endian byte order encoding of the Unicode UTF-16 representation of the string.
      */
     public static byte[] unicode(String string) {
-        try {
-            return string.getBytes(UNICODE);
-        } catch (UnsupportedEncodingException uee) {
-            throw new NtlmException(uee);
-        }
+        return string == null ? new byte[0] : string.getBytes(UNICODE);
     }
 
     /**

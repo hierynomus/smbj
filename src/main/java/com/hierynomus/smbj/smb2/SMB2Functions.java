@@ -15,17 +15,16 @@
  */
 package com.hierynomus.smbj.smb2;
 
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 public class SMB2Functions {
     private static final byte[] EMPTY_BYTES = new byte[0];
-    public static final Charset UTF_16LE = Charset.forName("UTF-16LE");
 
     public static byte[] unicode(String s) {
         if (s == null) {
             return EMPTY_BYTES;
         } else {
-            return s.getBytes(UTF_16LE);
+            return s.getBytes(StandardCharsets.UTF_16LE);
         }
     }
 }

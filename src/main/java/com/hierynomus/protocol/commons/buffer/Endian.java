@@ -15,7 +15,7 @@
  */
 package com.hierynomus.protocol.commons.buffer;
 
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Buffer helper class to read/write bytes in correct endian order.
@@ -124,12 +124,12 @@ public abstract class Endian {
         public <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException {
             byte[] stringBytes = new byte[length * 2];
             buffer.readRawBytes(stringBytes);
-            return new String(stringBytes, Charset.forName("UTF-16BE"));
+            return new String(stringBytes, StandardCharsets.UTF_16BE);
         }
 
         @Override
         public <T extends Buffer<T>> void writeUtf16String(Buffer<T> buffer, String string) {
-            byte[] bytes = string.getBytes(Charset.forName("UTF-16BE"));
+            byte[] bytes = string.getBytes(StandardCharsets.UTF_16BE);
             buffer.putRawBytes(bytes);
         }
 
@@ -243,12 +243,12 @@ public abstract class Endian {
         public <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException {
             byte[] stringBytes = new byte[length * 2];
             buffer.readRawBytes(stringBytes);
-            return new String(stringBytes, Charset.forName("UTF-16LE"));
+            return new String(stringBytes, StandardCharsets.UTF_16LE);
         }
 
         @Override
         public <T extends Buffer<T>> void writeUtf16String(Buffer<T> buffer, String string) {
-            byte[] bytes = string.getBytes(Charset.forName("UTF-16LE"));
+            byte[] bytes = string.getBytes(StandardCharsets.UTF_16LE);
             buffer.putRawBytes(bytes);
         }
 

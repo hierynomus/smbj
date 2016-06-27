@@ -20,13 +20,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.nio.charset.Charset;
 
 public class IOUtils {
 
     private static final Logger LOG = LoggerFactory.getLogger(IOUtils.class);
-
-    public static final Charset UTF8 = Charset.forName("UTF-8");
 
     public static void closeQuietly(Closeable... closeables) {
         for (Closeable c : closeables)

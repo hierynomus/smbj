@@ -21,7 +21,7 @@ import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -37,7 +37,7 @@ public class FileInformationFactory {
         renBuf.putRawBytes(new byte[]{0, 0, 0, 0, 0, 0, 0});
         renBuf.putUInt64(0);
         renBuf.putUInt32(newName.length() * 2); // unicode
-        renBuf.putRawBytes(newName.getBytes(Charset.forName("UTF-16")));
+        renBuf.putRawBytes(newName.getBytes(StandardCharsets.UTF_16));
         return renBuf.getCompactData();
     }
 
@@ -133,7 +133,7 @@ public class FileInformationFactory {
 
         // FileNameInformation
         long fileNameLen = buffer.readUInt32(); // File name length
-        String fileName = buffer.readString(NtlmFunctions.UNICODE, (int) fileNameLen / 2);
+        String fileName = buffer.readString(StandardCharsets.UTF_16LE, (int) fileNameLen / 2);
         FileInfo fi = new FileInfo(fileName, fileId, fileAttributes, fileSize, accessMask);
         return fi;
     }
@@ -156,7 +156,7 @@ public class FileInformationFactory {
         buffer.readRawBytes(24); // Shortname
         buffer.readUInt16(); // Reserved2
         byte[] fileId = buffer.readRawBytes(8);
-        String fileName = buffer.readString(NtlmFunctions.UNICODE, (int) fileNameLen / 2);
+        String fileName = buffer.readString(StandardCharsets.UTF_16LE, (int) fileNameLen / 2);
         FileInfo fi = new FileInfo(fileName, fileId, fileAttributes, fileSize, 0);
         return fi;
     }

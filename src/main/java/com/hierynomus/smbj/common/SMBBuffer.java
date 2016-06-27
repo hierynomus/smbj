@@ -19,6 +19,7 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class SMBBuffer extends Buffer<SMBBuffer> {
@@ -83,7 +84,7 @@ public class SMBBuffer extends Buffer<SMBBuffer> {
      * @return this
      */
     public Buffer<SMBBuffer> putString(String string) {
-        return putString(string, Charset.forName("UTF-16"));
+        return putString(string, StandardCharsets.UTF_16);
     }
 
     /**

@@ -18,7 +18,7 @@ package com.hierynomus.protocol.commons.backport;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Socket wrapper that supports pre-Java8 HTTP CONNECT proxies
@@ -51,7 +51,7 @@ public class Jdk7HttpProxySocket extends Socket {
         }
         InetSocketAddress isa = (InetSocketAddress) endpoint;
         String httpConnect = "CONNECT " + isa.getHostName() + ":" + isa.getPort() + " HTTP/1.0\n\n";
-        getOutputStream().write(httpConnect.getBytes(Charset.forName("UTF-8")));
+        getOutputStream().write(httpConnect.getBytes(StandardCharsets.UTF_8));
         checkAndFlushProxyResponse();
     }
 

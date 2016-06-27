@@ -19,7 +19,7 @@ import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import static com.hierynomus.ntlm.functions.NtlmFunctions.unicode;
 
@@ -54,7 +54,7 @@ public class NtlmAuthenticate extends NtlmPacket {
 
     @Override
     public void write(Buffer.PlainBuffer buffer) {
-        buffer.putString("NTLMSSP\0", Charset.forName("UTF-8")); // Signature (8 bytes)
+        buffer.putString("NTLMSSP\0", StandardCharsets.UTF_8); // Signature (8 bytes)
         buffer.putUInt32(0x03); // MessageType (4 bytes)
 
         int offset = 80; // for the offset
