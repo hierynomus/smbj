@@ -41,10 +41,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class Share implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(Share.class);
 
+    protected SmbPath smbPath;
     protected final TreeConnect treeConnect;
     private AtomicBoolean disconnected = new AtomicBoolean(false);
 
     public Share(SmbPath smbPath, TreeConnect treeConnect) {
+        this.smbPath = smbPath;
         this.treeConnect = treeConnect;
         treeConnect.setHandle(this);
     }
@@ -113,8 +115,8 @@ public class Share implements AutoCloseable {
     public void close(SMB2FileId fileId) throws TransportException, SMBApiException {
         Connection connection = treeConnect.getSession().getConnection();
         SMB2Close closeReq = new SMB2Close(
-                connection.getNegotiatedDialect(),
-                treeConnect.getSession().getSessionId(), treeConnect.getTreeId(), fileId);
+            connection.getNegotiatedDialect(),
+            treeConnect.getSession().getSessionId(), treeConnect.getTreeId(), fileId);
         Future<SMB2Close> closeFuture = connection.send(closeReq);
         SMB2Close closeResp = Futures.get(closeFuture, TransportException.Wrapper);
 

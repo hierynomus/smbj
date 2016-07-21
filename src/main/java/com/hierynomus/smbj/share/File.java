@@ -15,16 +15,13 @@
  */
 package com.hierynomus.smbj.share;
 
-import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.smb2.SMB2CreateDisposition;
 import com.hierynomus.smbj.smb2.SMB2FileId;
-import com.hierynomus.smbj.smb2.messages.SMB2Close;
 import com.hierynomus.smbj.smb2.messages.SMB2ReadRequest;
 import com.hierynomus.smbj.smb2.messages.SMB2ReadResponse;
 import com.hierynomus.smbj.smb2.messages.SMB2WriteRequest;
@@ -36,28 +33,14 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.EnumSet;
 import java.util.concurrent.Future;
 
-public class File {
+public class File extends DiskEntry {
 
     private static final Logger logger = LoggerFactory.getLogger(File.class);
 
-    SMB2FileId fileId;
-    TreeConnect treeConnect;
-    String fileName;
-
-    EnumSet<AccessMask> accessMask; // The Access the current user has on the file.
-    SMB2CreateDisposition createDisposition;
-
-    public File(
-            SMB2FileId fileId, TreeConnect treeConnect, String fileName, EnumSet<AccessMask> accessMask,
-            SMB2CreateDisposition createDisposition) {
-        this.fileId = fileId;
-        this.treeConnect = treeConnect;
-        this.fileName = fileName;
-        this.accessMask = accessMask;
-        this.createDisposition = createDisposition;
+    public File(SMB2FileId fileId, TreeConnect treeConnect, String fileName) {
+        super(treeConnect, fileId, fileName);
     }
 
     public void write(InputStream srcStream, ProgressListener progressListener) throws IOException, SMBApiException {
@@ -110,31 +93,6 @@ public class File {
 
         if (rresp.getHeader().getStatus() != NtStatus.STATUS_END_OF_FILE) {
             throw new SMBApiException(rresp.getHeader().getStatus(), "Read failed for " + this);
-        }
-    }
-
-    public SMB2FileId getFileId() {
-        return fileId;
-    }
-
-    public void close() throws TransportException, SMBApiException {
-        Connection connection = treeConnect.getSession().getConnection();
-        SMB2Close closeReq = new SMB2Close(
-                connection.getNegotiatedDialect(),
-                treeConnect.getSession().getSessionId(), treeConnect.getTreeId(), fileId);
-        Future<SMB2Close> closeFuture = connection.send(closeReq);
-        SMB2Close closeResp = Futures.get(closeFuture, TransportException.Wrapper);
-
-        if (closeResp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(closeResp.getHeader().getStatus(), "Close failed for " + fileId);
-        }
-    }
-
-    public void closeSilently() {
-        try {
-            close();
-        } catch (Exception e) {
-            logger.warn("File close failed for {},{},{}", fileName, treeConnect, fileId, e);
         }
     }
 

@@ -15,9 +15,7 @@
  */
 package com.hierynomus.smbj.share;
 
-import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.msfscc.fileinformation.FileInfo;
 import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
@@ -26,11 +24,7 @@ import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.smb2.SMB2CreateDisposition;
-import com.hierynomus.smbj.smb2.SMB2CreateOptions;
 import com.hierynomus.smbj.smb2.SMB2FileId;
-import com.hierynomus.smbj.smb2.SMB2ShareAccess;
-import com.hierynomus.smbj.smb2.messages.SMB2Close;
 import com.hierynomus.smbj.smb2.messages.SMB2QueryDirectoryRequest;
 import com.hierynomus.smbj.smb2.messages.SMB2QueryDirectoryResponse;
 import com.hierynomus.smbj.transport.TransportException;
@@ -41,27 +35,12 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.Future;
 
-public class Directory {
+public class Directory extends DiskEntry {
 
     private static final Logger logger = LoggerFactory.getLogger(Directory.class);
 
-    SMB2FileId fileId;
-    TreeConnect treeConnect;
-    String fileName;
-
-    EnumSet<AccessMask> accessMask; // The Access the current user has on the file.
-    EnumSet<SMB2ShareAccess> shareAccess;
-    SMB2CreateDisposition createDisposition;
-
-    public Directory(
-            SMB2FileId fileId, TreeConnect treeConnect, String fileName, EnumSet<AccessMask> accessMask,
-            EnumSet<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition) {
-        this.fileId = fileId;
-        this.treeConnect = treeConnect;
-        this.fileName = fileName;
-        this.accessMask = accessMask;
-        this.shareAccess = shareAccess;
-        this.createDisposition = createDisposition;
+    public Directory(SMB2FileId fileId, TreeConnect treeConnect, String fileName) {
+        super(treeConnect, fileId, fileName);
     }
 
     public List<FileInfo> list() throws TransportException, SMBApiException {
@@ -95,19 +74,6 @@ public class Directory {
 
     public SMB2FileId getFileId() {
         return fileId;
-    }
-
-    public void close() throws TransportException, SMBApiException {
-        Connection connection = treeConnect.getSession().getConnection();
-        SMB2Close closeReq = new SMB2Close(
-                connection.getNegotiatedDialect(),
-                treeConnect.getSession().getSessionId(), treeConnect.getTreeId(), fileId);
-        Future<SMB2Close> closeFuture = connection.send(closeReq);
-        SMB2Close closeResp = Futures.get(closeFuture, TransportException.Wrapper);
-
-        if (closeResp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(closeResp.getHeader().getStatus(), "Close failed for " + fileId);
-        }
     }
 
     public void closeSilently() {

@@ -100,8 +100,7 @@ public class DiskShare extends Share {
 
         SMB2FileId fileId = open(path, toLong(accessMask), EnumSet.of(FileAttributes.FILE_ATTRIBUTE_DIRECTORY),
                 shareAccess, createDisposition, EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE));
-        return new Directory(
-                fileId, treeConnect, path, null, shareAccess, createDisposition);
+        return new Directory(fileId, treeConnect, path);
 
     }
 
@@ -116,8 +115,7 @@ public class DiskShare extends Share {
 
         SMB2FileId fileId = open(path, toLong(accessMask), null,
                 EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ), createDisposition, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
-        return new File(
-                fileId, treeConnect, path, null, createDisposition);
+        return new File(fileId, treeConnect, path);
     }
 
     /**
@@ -134,7 +132,7 @@ public class DiskShare extends Share {
      */
     public boolean folderExists(String path)
             throws SMBApiException, TransportException {
-        logger.info("folder exists {}", path);
+        logger.info("Checking existence of Directory '{}' on {}", path, smbPath);
         return exists(path, EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE));
     }
 
