@@ -31,10 +31,6 @@ public class ConnectionInfo {
         return gssNegotiateToken;
     }
 
-    public OutstandingRequests getOutstandingRequests() {
-        return outstandingRequests;
-    }
-
     public enum GlobalCapability implements EnumWithValue<GlobalCapability> {
         SMB2_GLOBAL_CAP_DFS(0x01L),
         SMB2_GLOBAL_CAP_LEASING(0x02L),
@@ -138,6 +134,10 @@ public class ConnectionInfo {
 
     public SMB2Dialect getDialect() {
         return dialect;
+    }
+
+    public OutstandingRequests getOutstandingRequests() {
+        return outstandingRequests;
     }
 
     public boolean supports(GlobalCapability capability) {
