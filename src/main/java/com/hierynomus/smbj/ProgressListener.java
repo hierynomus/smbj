@@ -15,9 +15,6 @@
  */
 package com.hierynomus.smbj;
 
-/**
- * Created by saravanan on 5/9/16.
- */
 public interface ProgressListener {
 
     /**
