@@ -19,6 +19,7 @@ import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.messages.SMB2NegotiateResponse;
 
+import java.io.OutputStream;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
@@ -30,7 +31,7 @@ public class ConnectionInfo {
         return gssNegotiateToken;
     }
 
-    public List<Void> getOutstandingRequests() {
+    public OutstandingRequests getOutstandingRequests() {
         return outstandingRequests;
     }
 
@@ -57,7 +58,7 @@ public class ConnectionInfo {
     // All SMB2 Dialect
     private List<Void> sessionTable;
     private List<Void> preauthSessionTable;
-    private List<Void> outstandingRequests;
+    private OutstandingRequests outstandingRequests = new OutstandingRequests();
     private SequenceWindow sequenceWindow;
     private byte[] gssNegotiateToken;
     private int maxTransactSize;

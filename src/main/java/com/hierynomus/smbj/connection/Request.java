@@ -30,7 +30,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class Request {
+class Request {
 
     private final Promise<SMB2Packet, SMBRuntimeException> promise;
     private final long messageId;
@@ -55,19 +55,19 @@ public class Request {
         this.promise = new Promise<>(String.valueOf(messageId), SMBRuntimeException.Wrapper);
     }
 
-    public Promise<SMB2Packet, SMBRuntimeException> getPromise() {
+    Promise<SMB2Packet, SMBRuntimeException> getPromise() {
         return promise;
     }
 
-    public SMB2Packet getRequestPacket() {
+    SMB2Packet getRequestPacket() {
         return requestPacket;
     }
 
-    public long getMessageId() {
+    long getMessageId() {
         return messageId;
     }
 
-    public <T extends SMB2Packet> Future<T> getFuture(final CancelCallback callback) {
+    <T extends SMB2Packet> Future<T> getFuture(final CancelCallback callback) {
         return new Future<T>() {
             private final Logger logger = LoggerFactory.getLogger(Request.class);
             private final AtomicBoolean cancelled = new AtomicBoolean(false);
@@ -125,6 +125,10 @@ public class Request {
                 return (T) promise.retrieve(timeout, unit);
             }
         };
+    }
+
+    UUID getCancelId() {
+        return cancelId;
     }
 
     interface CancelCallback {

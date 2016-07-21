@@ -15,39 +15,35 @@
  */
 package com.hierynomus.smbj.connection;
 
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.commons.socket.SocketClient;
 import com.hierynomus.smbj.Config;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
 import com.hierynomus.smbj.common.SMBRuntimeException;
-import com.hierynomus.smbj.event.SMBEvent;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2MessageFlag;
 import com.hierynomus.smbj.smb2.SMB2Packet;
-import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.smbj.smb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.smbj.smb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.smbj.transport.PacketHandler;
-import com.hierynomus.smbj.transport.tcp.DirectTcpPacketReader;
-import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
 import com.hierynomus.smbj.transport.PacketReader;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.smbj.transport.TransportLayer;
+import com.hierynomus.smbj.transport.tcp.DirectTcpPacketReader;
+import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
 import com.hierynomus.spnego.NegTokenInit;
-import net.engio.mbassy.bus.SyncMessageBus;
 import net.engio.mbassy.listener.Handler;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
@@ -64,8 +60,6 @@ public class Connection extends SocketClient implements AutoCloseable, PacketHan
     private final SMBEventBus bus;
     private PacketReader packetReader;
     private Thread packetReaderThread;
-    private ConcurrentHashMap<Long, Request> outstandingRequests = new ConcurrentHashMap<>();
-
 
     public Connection(Config config, TransportLayer transport, SMBEventBus bus) {
         super(transport.getDefaultPort());
@@ -113,7 +107,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketHan
         long messageId = connectionInfo.getSequenceWindow().get();
         packet.getHeader().setMessageId(messageId);
         Request request = new Request(messageId, UUID.randomUUID(), packet);
-        outstandingRequests.put(messageId, request);
+        connectionInfo.getOutstandingRequests().registerOutstanding(request);
         transport.write(packet);
         return request.getFuture(null); // TODO cancel callback
     }
@@ -151,14 +145,14 @@ public class Connection extends SocketClient implements AutoCloseable, PacketHan
     @Override
     public void handle(SMB2Packet packet) throws TransportException {
         long messageId = packet.getSequenceNumber();
-        if (!outstandingRequests.containsKey(messageId)) {
+        if (!connectionInfo.getOutstandingRequests().isOutstanding(messageId)) {
             throw new TransportException("Received response with unknown sequence number <<" + messageId + ">>");
         }
 
         // [MS-SMB2].pdf 3.2.5.1.4 Granting Message Credits
         connectionInfo.getSequenceWindow().creditsGranted(packet.getHeader().getCreditResponse());
 
-        Request request = outstandingRequests.get(messageId);
+        Request request = connectionInfo.getOutstandingRequests().getRequestByMessageId(messageId);
 
         // [MS-SMB2].pdf 3.2.5.1.5 Handling Asynchronous Responses
         if (isSet(packet.getHeader().getFlags(), SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
@@ -176,14 +170,12 @@ public class Connection extends SocketClient implements AutoCloseable, PacketHan
         }
 
         // [MS-SMB2].pdf 3.2.5.1.8 Processing the Response
-        outstandingRequests.remove(messageId).getPromise().deliver(packet);
+        connectionInfo.getOutstandingRequests().receivedResponseFor(messageId).getPromise().deliver(packet);
     }
 
     @Override
     public void handleError(Throwable t) {
-        for (Long id : new HashSet<>(outstandingRequests.keySet())) {
-            outstandingRequests.remove(id).getPromise().deliverError(t);
-        }
+        connectionInfo.getOutstandingRequests().handleError(t);
     }
 
 
