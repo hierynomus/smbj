@@ -55,7 +55,7 @@ public class SID {
         }
     }
 
-    public static SID EVERYONE = new SID((byte) 1, new byte[]{0, 0, 0, 0, 0, 1}, new long[]{0});
+    public static final SID EVERYONE = new SID((byte) 1, new byte[]{0, 0, 0, 0, 0, 1}, new long[]{0});
 
     private byte revision;
     private byte[] sidIdentifierAuthority;

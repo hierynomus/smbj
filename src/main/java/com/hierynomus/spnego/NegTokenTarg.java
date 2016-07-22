@@ -96,9 +96,9 @@ public class NegTokenTarg extends SpnegoToken {
         return read(new Buffer.PlainBuffer(bytes, Endian.LE));
     }
 
-    public NegTokenTarg read(Buffer<?> buffer) throws IOException {
-        try {
-            ASN1Primitive instance = new ASN1InputStream(buffer.getCompactData()).readObject();
+    private NegTokenTarg read(Buffer<?> buffer) throws IOException {
+        try (ASN1InputStream is = new ASN1InputStream(buffer.asInputStream())) {
+            ASN1Primitive instance = is.readObject();
             parseSpnegoToken(instance);
         } catch (SpnegoException e) {
             throw new SMBRuntimeException(e);

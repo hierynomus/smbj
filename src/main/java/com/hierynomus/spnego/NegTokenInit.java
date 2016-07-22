@@ -76,6 +76,7 @@ import static com.hierynomus.spnego.ObjectIdentifiers.SPNEGO;
  * </ul>
  */
 public class NegTokenInit extends SpnegoToken {
+    private static final String ADS_IGNORE_PRINCIPAL = "not_defined_in_RFC4178@please_ignore";
 
     private List<ASN1ObjectIdentifier> mechTypes = new ArrayList<>();
     private byte[] mechToken;
@@ -100,21 +101,13 @@ public class NegTokenInit extends SpnegoToken {
         return read(new Buffer.PlainBuffer(bytes, Endian.LE));
     }
 
-    public NegTokenInit read(Buffer<?> buffer) throws IOException {
-        try {
-            ASN1Primitive applicationSpecific = new ASN1InputStream(buffer.asInputStream()).readObject();
+    private NegTokenInit read(Buffer<?> buffer) throws IOException {
+        try(ASN1InputStream is = new ASN1InputStream(buffer.asInputStream())) {
+            ASN1Primitive applicationSpecific = is.readObject();
             if (!(applicationSpecific instanceof BERApplicationSpecific || applicationSpecific instanceof DERApplicationSpecific)) {
                 throw new SpnegoException("Incorrect GSS-API ASN.1 token received, expected to find an [APPLICATION 0], not: " + applicationSpecific);
             }
-            ASN1Sequence implicitSequence = null;
-            if (applicationSpecific instanceof BERApplicationSpecific) {
-                implicitSequence = (ASN1Sequence) ((BERApplicationSpecific) applicationSpecific).getObject(BERTags.SEQUENCE);
-            } else if (applicationSpecific instanceof DERApplicationSpecific) {
-                implicitSequence = (ASN1Sequence) ((DERApplicationSpecific) applicationSpecific).getObject(BERTags.SEQUENCE);
-            } else {
-                throw new SpnegoException("Incorrect GSS-API ASN.1 token received, expected to find an [APPLICATION 0], not: " + applicationSpecific);
-            }
-
+            ASN1Sequence implicitSequence = (ASN1Sequence) ((ASN1ApplicationSpecific) applicationSpecific).getObject(BERTags.SEQUENCE);
             ASN1Encodable spnegoOid = implicitSequence.getObjectAt(0);
             if (!(spnegoOid instanceof ASN1ObjectIdentifier)) {
                 throw new SpnegoException("Expected to find the SPNEGO OID (" + SPNEGO + "), not: " + spnegoOid);
@@ -126,8 +119,6 @@ public class NegTokenInit extends SpnegoToken {
         }
         return this;
     }
-
-    static final String ADS_IGNORE_PRINCIPAL = "not_defined_in_RFC4178@please_ignore";
 
     @Override
     protected void parseTagged(ASN1TaggedObject asn1TaggedObject) throws SpnegoException {
