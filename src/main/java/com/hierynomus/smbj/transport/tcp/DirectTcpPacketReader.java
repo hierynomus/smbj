@@ -15,14 +15,14 @@
  */
 package com.hierynomus.smbj.transport.tcp;
 
+import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.connection.SequenceWindow;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 import com.hierynomus.smbj.smb2.messages.SMB2ResponseMessageFactory;
-import com.hierynomus.smbj.transport.PacketHandler;
 import com.hierynomus.smbj.transport.PacketReader;
+import com.hierynomus.smbj.transport.PacketReceiver;
 import com.hierynomus.smbj.transport.TransportException;
 
 import java.io.IOException;
@@ -30,7 +30,7 @@ import java.io.InputStream;
 
 public class DirectTcpPacketReader extends PacketReader {
 
-    public DirectTcpPacketReader(InputStream in, PacketHandler handler) {
+    public DirectTcpPacketReader(InputStream in, PacketReceiver handler) {
         super(in, handler);
     }
 
@@ -50,7 +50,7 @@ public class DirectTcpPacketReader extends PacketReader {
     }
 
     @Override
-    protected SMB2Packet doRead() throws TransportException {
+    protected Packet doRead() throws TransportException {
         try {
             int smb2PacketLength = _readTcpHeader();
             return _readSMB2Packet(smb2PacketLength);

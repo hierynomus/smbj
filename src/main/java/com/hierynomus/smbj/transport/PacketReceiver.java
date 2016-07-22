@@ -15,10 +15,10 @@
  */
 package com.hierynomus.smbj.transport;
 
-import com.hierynomus.smbj.smb2.SMB2Packet;
+import com.hierynomus.protocol.Packet;
 
-public interface PacketHandler {
-    void handle(SMB2Packet packet) throws TransportException;
+public interface PacketReceiver<P extends Packet<P, ?>> {
+    void handle(P packet) throws TransportException;
 
     void handleError(Throwable t);
 }

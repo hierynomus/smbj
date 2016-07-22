@@ -17,7 +17,6 @@ package com.hierynomus.msfscc.fileinformation;
 
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.msfscc.FileInformationClass;
-import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 

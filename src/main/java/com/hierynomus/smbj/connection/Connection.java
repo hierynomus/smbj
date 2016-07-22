@@ -30,8 +30,8 @@ import com.hierynomus.smbj.smb2.SMB2MessageFlag;
 import com.hierynomus.smbj.smb2.SMB2Packet;
 import com.hierynomus.smbj.smb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.smbj.smb2.messages.SMB2NegotiateResponse;
-import com.hierynomus.smbj.transport.PacketHandler;
 import com.hierynomus.smbj.transport.PacketReader;
+import com.hierynomus.smbj.transport.PacketReceiver;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.smbj.transport.TransportLayer;
 import com.hierynomus.smbj.transport.tcp.DirectTcpPacketReader;
@@ -51,7 +51,7 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 /**
  * A connection to a server.
  */
-public class Connection extends SocketClient implements AutoCloseable, PacketHandler {
+public class Connection extends SocketClient implements AutoCloseable, PacketReceiver<SMB2Packet> {
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
     private ConnectionInfo connectionInfo;
 

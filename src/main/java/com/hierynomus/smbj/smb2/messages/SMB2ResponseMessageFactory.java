@@ -18,13 +18,13 @@ package com.hierynomus.smbj.smb2.messages;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.Check;
 import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
 import com.hierynomus.smbj.smb2.SMB2Packet;
-import com.hierynomus.smbj.transport.TransportException;
 
 public class SMB2ResponseMessageFactory {
 
-    public static SMB2Packet read(SMBBuffer buffer) throws Buffer.BufferException, TransportException {
+    public static SMB2Packet read(SMBBuffer buffer) throws Buffer.BufferException {
         // Check we see a valid header start
         Check.ensureEquals(buffer.readRawBytes(4), new byte[] {(byte) 0xFE, 'S', 'M', 'B'}, "Could not find SMB2 Packet header");
         // Skip until Command
@@ -69,7 +69,7 @@ public class SMB2ResponseMessageFactory {
             case SMB2_CANCEL:
             case SMB2_OPLOCK_BREAK:
             default:
-                throw new TransportException("Unknown SMB2 Message Command type: " + command);
+                throw new SMBRuntimeException("Unknown SMB2 Message Command type: " + command);
 
         }
     }

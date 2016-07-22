@@ -18,7 +18,6 @@ package com.hierynomus.msdtyp;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.smb2.SMB2Header;
 
 import java.util.EnumSet;
 
@@ -36,35 +35,35 @@ public class SecurityDescriptor {
     public SecurityDescriptor() {
     }
 
-    public SecurityDescriptor(EnumSet<Control> control, SID ownerSid, SID groupSid, ACL sacl, ACL dacl) {
-        this.control = control;
-        this.ownerSid = ownerSid;
-        this.groupSid = groupSid;
-        this.sacl = sacl;
-        this.dacl = dacl;
-    }
-
+//    public SecurityDescriptor(EnumSet<Control> control, SID ownerSid, SID groupSid, ACL sacl, ACL dacl) {
+//        this.control = control;
+//        this.ownerSid = ownerSid;
+//        this.groupSid = groupSid;
+//        this.sacl = sacl;
+//        this.dacl = dacl;
+//    }
+//
     public void write(SMBBuffer buffer) {
-        buffer.putByte((byte)1); // Revision (1 byte)
-        buffer.putByte((byte)0); // Sbz1 (1 byte)
-        buffer.putUInt16((int) EnumWithValue.EnumUtils.toLong(control)); // Control (2 bytes)
-        int offset = SMB2Header.STRUCTURE_SIZE + 20; // TODO break cyclic package dep!
-        if (ownerSid != null) {
-            buffer.putUInt32(offset);
-            offset += ownerSid.byteCount();
-        }
-        if (groupSid != null) {
-            buffer.putUInt32(offset);
-            offset += groupSid.byteCount();
-        }
-        if (sacl != null) {
-            sacl.write(buffer);
-            offset += sacl.getAclSize();
-        }
-        if (dacl != null) {
-            dacl.write(buffer);
-            offset += dacl.getAclSize();
-        }
+//        buffer.putByte((byte)1); // Revision (1 byte)
+//        buffer.putByte((byte)0); // Sbz1 (1 byte)
+//        buffer.putUInt16((int) EnumWithValue.EnumUtils.toLong(control)); // Control (2 bytes)
+//        int offset = SMB2Header.STRUCTURE_SIZE + 20; // TODO break cyclic package dep!
+//        if (ownerSid != null) {
+//            buffer.putUInt32(offset);
+//            offset += ownerSid.byteCount();
+//        }
+//        if (groupSid != null) {
+//            buffer.putUInt32(offset);
+//            offset += groupSid.byteCount();
+//        }
+//        if (sacl != null) {
+//            sacl.write(buffer);
+//            offset += sacl.getAclSize();
+//        }
+//        if (dacl != null) {
+//            dacl.write(buffer);
+//            offset += dacl.getAclSize();
+//        }
     }
 
     public void read(SMBBuffer buffer) throws Buffer.BufferException {
