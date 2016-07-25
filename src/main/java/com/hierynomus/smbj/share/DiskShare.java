@@ -122,7 +122,7 @@ public class DiskShare extends Share {
      * File in the given path exists or not
      */
     public boolean fileExists(String path)
-            throws SMBApiException, TransportException {
+            throws SMBApiException {
         logger.info("file exists {}", path);
         return exists(path, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
     }
@@ -131,7 +131,7 @@ public class DiskShare extends Share {
      * Folder in the given path exists or not.
      */
     public boolean folderExists(String path)
-            throws SMBApiException, TransportException {
+            throws SMBApiException {
         logger.info("Checking existence of Directory '{}' on {}", path, smbPath);
         return exists(path, EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE));
     }
@@ -360,7 +360,7 @@ public class DiskShare extends Share {
     }
 
     private boolean exists(String path, EnumSet<SMB2CreateOptions> createOptions)
-            throws TransportException, SMBApiException {
+            throws SMBApiException {
         logger.info("exists {}", path);
 
         SMB2FileId fileId = null;

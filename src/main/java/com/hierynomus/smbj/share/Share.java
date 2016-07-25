@@ -19,6 +19,7 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.common.SMBApiException;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
@@ -74,21 +75,25 @@ public class Share implements AutoCloseable {
             String path, long accessMask,
             EnumSet<FileAttributes> fileAttributes, EnumSet<SMB2ShareAccess> shareAccess,
             SMB2CreateDisposition createDisposition, EnumSet<SMB2CreateOptions> createOptions)
-            throws TransportException, SMBApiException {
+            throws SMBApiException {
         logger.info("open {},{}", path);
 
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
         SMB2CreateRequest cr = openFileRequest(
                 treeConnect, path, accessMask, shareAccess, fileAttributes, createDisposition, createOptions);
-        Future<SMB2CreateResponse> responseFuture = connection.send(cr);
-        SMB2CreateResponse cresponse = Futures.get(responseFuture, TransportException.Wrapper);
+        try {
+            Future<SMB2CreateResponse> responseFuture = connection.send(cr);
+            SMB2CreateResponse cresponse = Futures.get(responseFuture, SMBRuntimeException.Wrapper);
+            if (cresponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+                throw new SMBApiException(cresponse.getHeader().getStatus(), "Create failed for " + path);
+            }
 
-        if (cresponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(cresponse.getHeader().getStatus(), "Create failed for " + path);
+            return cresponse.getFileId();
+        } catch (TransportException e) {
+            throw SMBRuntimeException.Wrapper.wrap(e);
         }
 
-        return cresponse.getFileId();
     }
 
 
