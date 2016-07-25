@@ -62,10 +62,6 @@ public class Session implements AutoCloseable {
         return sessionId;
     }
 
-    public void setSessionId(long sessionId) {
-        this.sessionId = sessionId;
-    }
-
     /**
      * Connect to a share on the remote machine over the authenticated session.
      * <p/>
