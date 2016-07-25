@@ -7,6 +7,9 @@ plugins {
     id "com.github.hierynomus.license" version "0.12.1"
 }
 
+group = "com.hierynomus"
+defaultTasks "build"
+
 repositories {
     mavenCentral()
 }
