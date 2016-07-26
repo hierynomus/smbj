@@ -429,7 +429,7 @@ public class DiskShare extends Share {
         Connection connection = session.getConnection();
 
         SMB2QueryInfoRequest qreq = new SMB2QueryInfoRequest(
-                connection.getNegotiatedDialect(), session.getSessionId(), treeConnect.getTreeId(),
+            connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
                 fileId, infoType,
                 fileInformationClass, null, null, securityInfo);
         Future<SMB2QueryInfoResponse> qiResponseFuture = connection.send(qreq);
