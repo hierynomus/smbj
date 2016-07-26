@@ -336,7 +336,7 @@ public class DiskShare extends Share {
         try {
             byte[] dispoInfo = FileInformationFactory.getFileDispositionInfo(true);
             SMB2SetInfoRequest si_req = new SMB2SetInfoRequest(
-                    connection.getNegotiatedDialect(), session.getSessionId(), treeConnect.getTreeId(),
+                connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
                     SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE, fileId,
                     FileInformationClass.FileDispositionInformation, null, dispoInfo);
 
@@ -347,7 +347,7 @@ public class DiskShare extends Share {
                 throw new SMBApiException(response.getHeader().getStatus(), "SetInfo failed for " + path);
             }
         } finally {
-            SMB2Close closeReq = new SMB2Close(connection.getNegotiatedDialect(),
+            SMB2Close closeReq = new SMB2Close(connection.getNegotiatedProtocol().getDialect(),
                     session.getSessionId(), treeConnect.getTreeId(), fileId);
             Future<SMB2Close> closeFuture = connection.send(closeReq);
             SMB2Close closeResponse = Futures.get(closeFuture, TransportException.Wrapper);
