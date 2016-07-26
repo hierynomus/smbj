@@ -20,12 +20,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(PacketReader.class);
 
     protected InputStream in;
     private PacketReceiver<P> handler;
+
+    private AtomicBoolean stopped = new AtomicBoolean(false);
 
     public PacketReader(InputStream in, PacketReceiver<P> handler) {
         this.in = in;
@@ -34,14 +37,23 @@ public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
 
     @Override
     public void run() {
-        while (!Thread.currentThread().isInterrupted()) {
+        while (!Thread.currentThread().isInterrupted() && !stopped.get()) {
             try {
                 readPacket();
             } catch (TransportException e) {
+                if (stopped.get()) {
+                    logger.info("PacketReader stopped.");
+                    return;
+                }
                 handler.handleError(e);
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    public void stop() {
+        logger.debug("Stopping PacketReader...");
+        stopped.set(true);
     }
 
     private void readPacket() throws TransportException {

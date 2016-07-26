@@ -100,6 +100,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
     @Override
     public void close() throws Exception {
+        packetReader.stop();
         super.disconnect();
     }
 
