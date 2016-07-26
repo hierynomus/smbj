@@ -48,7 +48,7 @@ public class Directory extends DiskEntry {
         Connection connection = session.getConnection();
 
         // Query Directory Request
-        SMB2QueryDirectoryRequest qdr = new SMB2QueryDirectoryRequest(connection.getNegotiatedDialect(),
+        SMB2QueryDirectoryRequest qdr = new SMB2QueryDirectoryRequest(connection.getNegotiatedProtocol().getDialect(),
                 session.getSessionId(), treeConnect.getTreeId(),
                 getFileId(), FileInformationClass.FileIdBothDirectoryInformation, // FileInformationClass
                 // .FileDirectoryInformation,

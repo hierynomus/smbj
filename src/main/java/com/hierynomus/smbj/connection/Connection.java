@@ -80,7 +80,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         }
         SMB2NegotiateResponse resp = (SMB2NegotiateResponse) negotiateResponse;
         connectionInfo.negotiated(resp);
-        logger.info("Negotiated dialect: {}", connectionInfo.getDialect());
+        logger.info("Negotiated dialect: {}", connectionInfo.getNegotiatedProtocol().getDialect());
     }
 
     /**
@@ -134,12 +134,12 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     }
 
     /**
-     * Return the negotiated dialect for this connection.
+     * Returns the negotiated protocol details for this connection.
      *
-     * @return The negotiated dialect
+     * @return The negotiated protocol details
      */
-    public SMB2Dialect getNegotiatedDialect() {
-        return connectionInfo.getDialect();
+    public NegotiatedProtocol getNegotiatedProtocol() {
+        return connectionInfo.getNegotiatedProtocol();
     }
 
     @Override

@@ -23,10 +23,7 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.smb2.SMB2CreateDisposition;
-import com.hierynomus.smbj.smb2.SMB2CreateOptions;
-import com.hierynomus.smbj.smb2.SMB2FileId;
-import com.hierynomus.smbj.smb2.SMB2ShareAccess;
+import com.hierynomus.smbj.smb2.*;
 import com.hierynomus.smbj.smb2.messages.SMB2Close;
 import com.hierynomus.smbj.smb2.messages.SMB2CreateRequest;
 import com.hierynomus.smbj.smb2.messages.SMB2CreateResponse;
@@ -107,7 +104,7 @@ public class Share implements AutoCloseable {
 
         Session session = treeConnect.getSession();
         SMB2CreateRequest cr = new SMB2CreateRequest(
-                session.getConnection().getNegotiatedDialect(),
+            session.getConnection().getNegotiatedProtocol().getDialect(),
                 session.getSessionId(), treeConnect.getTreeId(),
                 accessMask,
                 fileAttributes,
@@ -120,7 +117,7 @@ public class Share implements AutoCloseable {
     public void close(SMB2FileId fileId) throws TransportException, SMBApiException {
         Connection connection = treeConnect.getSession().getConnection();
         SMB2Close closeReq = new SMB2Close(
-            connection.getNegotiatedDialect(),
+            connection.getNegotiatedProtocol().getDialect(),
             treeConnect.getSession().getSessionId(), treeConnect.getTreeId(), fileId);
         Future<SMB2Close> closeFuture = connection.send(closeReq);
         SMB2Close closeResp = Futures.get(closeFuture, TransportException.Wrapper);

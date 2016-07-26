@@ -66,7 +66,7 @@ public class NtlmAuthenticator implements Authenticator {
             EnumSet<SMB2SessionSetup.SMB2SecurityMode> signingEnabled = EnumSet.of
                     (SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_ENABLED);
 
-            SMB2SessionSetup smb2SessionSetup = new SMB2SessionSetup(connection.getNegotiatedDialect(), signingEnabled);
+            SMB2SessionSetup smb2SessionSetup = new SMB2SessionSetup(connection.getNegotiatedProtocol().getDialect(), signingEnabled);
             NtlmNegotiate ntlmNegotiate = new NtlmNegotiate();
             byte[] asn1 = negTokenInit(ntlmNegotiate);
             smb2SessionSetup.setSecurityBuffer(asn1);
@@ -102,7 +102,7 @@ public class NtlmAuthenticator implements Authenticator {
                     }
                 }
 
-                SMB2SessionSetup smb2SessionSetup2 = new SMB2SessionSetup(connection.getNegotiatedDialect(), signingEnabled);
+                SMB2SessionSetup smb2SessionSetup2 = new SMB2SessionSetup(connection.getNegotiatedProtocol().getDialect(), signingEnabled);
                 smb2SessionSetup2.getHeader().setSessionId(sessionId);
                 //smb2SessionSetup2.getHeader().setCreditRequest(256);
 

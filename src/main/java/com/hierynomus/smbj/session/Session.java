@@ -24,13 +24,11 @@ import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.event.TreeDisconnected;
 import com.hierynomus.smbj.share.*;
-import com.hierynomus.smbj.smb2.SMB2Packet;
 import com.hierynomus.smbj.smb2.SMB2ShareCapabilities;
 import com.hierynomus.smbj.smb2.messages.SMB2Logoff;
 import com.hierynomus.smbj.smb2.messages.SMB2TreeConnectRequest;
 import com.hierynomus.smbj.smb2.messages.SMB2TreeConnectResponse;
 import com.hierynomus.smbj.transport.TransportException;
-import net.engio.mbassy.listener.Filter;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,8 +74,7 @@ public class Session implements AutoCloseable {
         SmbPath smbPath = new SmbPath(remoteHostname, shareName);
         logger.info("Connection to {} on session {}", smbPath, sessionId);
         try {
-            SMB2TreeConnectRequest smb2TreeConnectRequest = new SMB2TreeConnectRequest(connection
-                    .getNegotiatedDialect(), smbPath, sessionId);
+            SMB2TreeConnectRequest smb2TreeConnectRequest = new SMB2TreeConnectRequest(connection.getNegotiatedProtocol().getDialect(), smbPath, sessionId);
             smb2TreeConnectRequest.getHeader().setCreditRequest(256);
             Future<SMB2TreeConnectResponse> send = connection.send(smb2TreeConnectRequest);
             SMB2TreeConnectResponse response = Futures.get(send, TransportException.Wrapper);
@@ -123,7 +120,7 @@ public class Session implements AutoCloseable {
                 // TODO
             }
         }
-        SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedDialect(), sessionId);
+        SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
         SMB2Logoff response = Futures.get(connection.<SMB2Logoff>send(logoff), TransportException.Wrapper);
         if (!response.getHeader().getStatus().isSuccess()) {
             throw new SMBApiException(response.getHeader().getStatus(), "Could not logoff session <<" + sessionId + ">>");

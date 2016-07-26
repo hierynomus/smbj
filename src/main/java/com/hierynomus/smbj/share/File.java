@@ -44,17 +44,17 @@ public class File extends DiskEntry {
     }
 
     public void write(InputStream srcStream, ProgressListener progressListener) throws IOException, SMBApiException {
-        byte[] buf = new byte[8192];
-        int numRead = -1;
-        int offset = 0;
 
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
 
+        byte[] buf = new byte[connection.getNegotiatedProtocol().getMaxWriteSize()];
+        int numRead = -1;
+        int offset = 0;
 
         while ((numRead = srcStream.read(buf)) != -1) {
             //logger.debug("Writing {} bytes", numRead);
-            SMB2WriteRequest wreq = new SMB2WriteRequest(connection.getNegotiatedDialect(), getFileId(),
+            SMB2WriteRequest wreq = new SMB2WriteRequest(connection.getNegotiatedProtocol().getDialect(), getFileId(),
                     session.getSessionId(), treeConnect.getTreeId(),
                     buf, numRead, offset, 0);
             Future<SMB2WriteResponse> writeFuture = connection.send(wreq);
@@ -74,7 +74,7 @@ public class File extends DiskEntry {
         Connection connection = session.getConnection();
 
         long offset = 0;
-        SMB2ReadRequest rreq = new SMB2ReadRequest(connection.getNegotiatedDialect(), getFileId(),
+        SMB2ReadRequest rreq = new SMB2ReadRequest(connection.getNegotiatedProtocol(), getFileId(),
                 session.getSessionId(), treeConnect.getTreeId(), offset);
 
         Future<SMB2ReadResponse> readResponseFuture = connection.send(rreq);
@@ -84,7 +84,7 @@ public class File extends DiskEntry {
                 rresp.getHeader().getStatus() != NtStatus.STATUS_END_OF_FILE) {
             destStream.write(rresp.getData());
             offset += rresp.getDataLength();
-            rreq = new SMB2ReadRequest(connection.getNegotiatedDialect(), getFileId(),
+            rreq = new SMB2ReadRequest(connection.getNegotiatedProtocol(), getFileId(),
                     session.getSessionId(), treeConnect.getTreeId(), offset);
             readResponseFuture = connection.send(rreq);
             rresp = Futures.get(readResponseFuture, TransportException.Wrapper);

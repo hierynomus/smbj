@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.smb2.messages;
 
 import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smbj.connection.NegotiatedProtocol;
 import com.hierynomus.smbj.smb2.SMB2Dialect;
 import com.hierynomus.smbj.smb2.SMB2FileId;
 import com.hierynomus.smbj.smb2.SMB2MessageCommandCode;
@@ -27,14 +28,15 @@ import com.hierynomus.smbj.smb2.SMB2Packet;
  */
 public class SMB2ReadRequest extends SMB2Packet {
 
-    final long READ_SIZE = 64 * 1024;
     private final long offset;
     private final SMB2FileId fileId;
+    private int readSize;
 
     public SMB2ReadRequest(
-            SMB2Dialect negotiatedDialect, SMB2FileId fileId,
-            long sessionId, long treeId, long offset) {
-        super(49, negotiatedDialect, SMB2MessageCommandCode.SMB2_READ, sessionId, treeId);
+        NegotiatedProtocol negotiatedProtocol, SMB2FileId fileId,
+        long sessionId, long treeId, long offset) {
+        super(49, negotiatedProtocol.getDialect(), SMB2MessageCommandCode.SMB2_READ, sessionId, treeId);
+        this.readSize = negotiatedProtocol.getMaxReadSize();
         this.fileId = fileId;
         this.offset = offset;
     }
@@ -44,7 +46,7 @@ public class SMB2ReadRequest extends SMB2Packet {
         buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putByte((byte) 0); // Padding (1 byte)
         buffer.putByte((byte) 0); // Flags (1 byte)
-        buffer.putUInt32(READ_SIZE); // Length (4 bytes)
+        buffer.putUInt32(readSize); // Length (4 bytes)
         buffer.putUInt64(offset); // Offset (8 bytes)
         fileId.write(buffer);  // FileId (16 bytes)
         buffer.putUInt32(1); // MinimumCount (4 bytes)
