@@ -30,13 +30,11 @@ import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.smb2.SMB2CreateDisposition;
-import com.hierynomus.smbj.smb2.SMB2CreateOptions;
-import com.hierynomus.smbj.smb2.SMB2FileId;
-import com.hierynomus.smbj.smb2.SMB2ShareAccess;
+import com.hierynomus.smbj.smb2.*;
 import com.hierynomus.smbj.smb2.messages.SMB2Close;
 import com.hierynomus.smbj.smb2.messages.SMB2CreateRequest;
 import com.hierynomus.smbj.smb2.messages.SMB2CreateResponse;
@@ -157,7 +155,7 @@ public class DiskShare extends Share {
      * Get information about the given path.
      **/
     public FileInfo getFileInformation(String path)
-            throws SMBApiException, TransportException {
+            throws SMBApiException {
 
         byte[] outputBuffer = queryInfoCommon(path,
                 SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILE, null,
@@ -167,7 +165,7 @@ public class DiskShare extends Share {
             return FileInformationFactory.parseFileAllInformation(
                     new Buffer.PlainBuffer(outputBuffer, Endian.LE));
         } catch (Buffer.BufferException e) {
-            throw new TransportException(e);
+            throw new SMBRuntimeException(e);
         }
     }
 
@@ -394,7 +392,7 @@ public class DiskShare extends Share {
             SMB2QueryInfoRequest.SMB2QueryInfoType infoType,
             EnumSet<SecurityInformation> securityInfo,
             FileInformationClass fileInformationClass)
-            throws SMBApiException, TransportException {
+            throws SMBApiException {
 
         SMB2FileId fileId = null;
         try {
@@ -423,7 +421,7 @@ public class DiskShare extends Share {
             SMB2QueryInfoRequest.SMB2QueryInfoType infoType,
             EnumSet<SecurityInformation> securityInfo,
             FileInformationClass fileInformationClass)
-            throws SMBApiException, TransportException {
+            throws SMBApiException {
 
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
@@ -432,12 +430,16 @@ public class DiskShare extends Share {
             connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
                 fileId, infoType,
                 fileInformationClass, null, null, securityInfo);
-        Future<SMB2QueryInfoResponse> qiResponseFuture = connection.send(qreq);
-        SMB2QueryInfoResponse qresp = Futures.get(qiResponseFuture, TransportException.Wrapper);
+        try {
+            Future<SMB2QueryInfoResponse> qiResponseFuture = connection.send(qreq);
+            SMB2QueryInfoResponse qresp = Futures.get(qiResponseFuture, SMBRuntimeException.Wrapper);
 
-        if (qresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(qresp.getHeader().getStatus(), "QUERY_INFO failed for " + fileId);
+            if (qresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+                throw new SMBApiException(qresp.getHeader().getStatus(), "QUERY_INFO failed for " + fileId);
+            }
+            return qresp.getOutputBuffer();
+        } catch (TransportException e) {
+            throw SMBRuntimeException.Wrapper.wrap(e);
         }
-        return qresp.getOutputBuffer();
     }
 }
