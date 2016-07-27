@@ -13,19 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj;
+package com.hierynomus.mssmb2;
 
-import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.protocol.commons.EnumWithValue;
 
-import java.security.SecureRandom;
-import java.util.EnumSet;
-import java.util.UUID;
+/**
+ * [MS-SMB2].pdf 2.2.10 TREE_CONNECT Response Capabilities
+ */
+public enum SMB2ShareCapabilities implements EnumWithValue<SMB2ShareCapabilities> {
+    SMB2_SHARE_CAP_DFS(0x08L),
+    SMB2_SHARE_CAP_CONTINUOUS_AVAILABILITY(0x10L),
+    SMB2_SHARE_CAP_SCALEOUT(0x20L),
+    SMB2_SHARE_CAP_CLUSTER(0x40L),
+    SMB2_SHARE_CAP_ASYMMETRIC(0x80L);
 
-public class DefaultConfig extends ConfigImpl {
+    private long value;
 
-    public DefaultConfig() {
-        random = new SecureRandom();
-        dialects = EnumSet.of(SMB2Dialect.SMB_2_0_2);
-        clientGuid = UUID.randomUUID();
+    SMB2ShareCapabilities(long value) {
+        this.value = value;
+    }
+
+    @Override
+    public long getValue() {
+        return value;
     }
 }

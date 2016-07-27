@@ -13,19 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj;
+package com.hierynomus.mssmb2.messages;
 
-import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.mssmb2.SMB2Packet;
 
-import java.security.SecureRandom;
-import java.util.EnumSet;
-import java.util.UUID;
+/**
+ * [MS-SMB2].pdf 2.2.40 SMB2 SET_INFO Response
+ */
+public class SMB2SetInfoResponse extends SMB2Packet {
 
-public class DefaultConfig extends ConfigImpl {
+    public SMB2SetInfoResponse() {
+        super();
+    }
 
-    public DefaultConfig() {
-        random = new SecureRandom();
-        dialects = EnumSet.of(SMB2Dialect.SMB_2_0_2);
-        clientGuid = UUID.randomUUID();
+    @Override
+    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+        buffer.skip(2); // StructureSize (2 bytes)
     }
 }

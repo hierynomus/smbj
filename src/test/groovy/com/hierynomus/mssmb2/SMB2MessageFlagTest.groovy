@@ -13,19 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj;
+package com.hierynomus.mssmb2
 
-import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.protocol.commons.EnumWithValue
+import spock.lang.Specification
 
-import java.security.SecureRandom;
-import java.util.EnumSet;
-import java.util.UUID;
+class SMB2MessageFlagTest extends Specification {
 
-public class DefaultConfig extends ConfigImpl {
+    def "should correctly detect that flag is set"() {
+        given:
+        long b = 0x10000001
 
-    public DefaultConfig() {
-        random = new SecureRandom();
-        dialects = EnumSet.of(SMB2Dialect.SMB_2_0_2);
-        clientGuid = UUID.randomUUID();
+        when:
+        def flagses = EnumWithValue.EnumUtils.toEnumSet(b, SMB2MessageFlag.class)
+
+        then:
+        flagses.size() == 2
+        flagses.contains(SMB2MessageFlag.SMB2_FLAGS_DFS_OPERATIONS)
+        flagses.contains(SMB2MessageFlag.SMB2_FLAGS_SERVER_TO_REDIR)
     }
 }

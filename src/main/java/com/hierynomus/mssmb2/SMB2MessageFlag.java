@@ -13,19 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj;
+package com.hierynomus.mssmb2;
 
-import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.protocol.commons.EnumWithValue;
 
-import java.security.SecureRandom;
-import java.util.EnumSet;
-import java.util.UUID;
+public enum SMB2MessageFlag implements EnumWithValue<SMB2MessageFlag> {
+    SMB2_FLAGS_SERVER_TO_REDIR(0x00000001),
+    SMB2_FLAGS_ASYNC_COMMAND(0x00000002),
+    SMB2_FLAGS_RELATED_OPERATIONS(0x00000004),
+    SMB2_FLAGS_SIGNED(0x00000008),
+    SMB2_FLAGS_PRIORITY_MASK(0x00000070),
+    SMB2_FLAGS_DFS_OPERATIONS(0x10000000),
+    SMB2_FLAGS_REPLAY_OPERATION(0x20000000);
 
-public class DefaultConfig extends ConfigImpl {
+    private long value;
 
-    public DefaultConfig() {
-        random = new SecureRandom();
-        dialects = EnumSet.of(SMB2Dialect.SMB_2_0_2);
-        clientGuid = UUID.randomUUID();
+    SMB2MessageFlag(long value) {
+        this.value = value;
+    }
+
+    public long getValue() {
+        return value;
     }
 }

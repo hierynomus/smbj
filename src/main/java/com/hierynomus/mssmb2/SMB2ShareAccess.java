@@ -13,19 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj;
+package com.hierynomus.mssmb2;
 
-import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.protocol.commons.EnumWithValue;
 
-import java.security.SecureRandom;
-import java.util.EnumSet;
-import java.util.UUID;
+/**
+ * SMB2 Create 2.2.13 - SMB2ShareAccess
+ */
+public enum SMB2ShareAccess implements EnumWithValue<SMB2ShareAccess> {
+    FILE_SHARE_READ(0x00000001L),
+    FILE_SHARE_WRITE(0x00000002L),
+    FILE_SHARE_DELETE(0x00000004L);
 
-public class DefaultConfig extends ConfigImpl {
+    private long value;
 
-    public DefaultConfig() {
-        random = new SecureRandom();
-        dialects = EnumSet.of(SMB2Dialect.SMB_2_0_2);
-        clientGuid = UUID.randomUUID();
+    SMB2ShareAccess(long value) {
+        this.value = value;
+    }
+
+    public long getValue() {
+        return value;
     }
 }

@@ -15,17 +15,11 @@
  */
 package com.hierynomus.smbj.share;
 
-import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.common.SMBApiException;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.smb2.SMB2FileId;
-import com.hierynomus.smbj.smb2.messages.SMB2Close;
+import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.smbj.transport.TransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.Future;
 
 abstract class DiskEntry {
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());

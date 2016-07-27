@@ -15,7 +15,7 @@
  */
 package com.hierynomus.smbj;
 
-import com.hierynomus.smbj.smb2.SMB2Dialect;
+import com.hierynomus.mssmb2.SMB2Dialect;
 
 import java.util.EnumSet;
 import java.util.Random;

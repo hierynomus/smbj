@@ -15,7 +15,7 @@
  */
 package com.hierynomus.smbj.transport;
 
-import com.hierynomus.smbj.smb2.SMB2Packet;
+import com.hierynomus.mssmb2.SMB2Packet;
 
 import java.io.InputStream;
 import java.io.OutputStream;

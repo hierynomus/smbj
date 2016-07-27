@@ -16,10 +16,8 @@
 package com.hierynomus.smbj.connection;
 
 import com.hierynomus.protocol.commons.EnumWithValue;
-import com.hierynomus.smbj.smb2.SMB2Dialect;
-import com.hierynomus.smbj.smb2.messages.SMB2NegotiateResponse;
+import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 
-import java.io.OutputStream;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;

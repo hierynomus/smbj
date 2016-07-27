@@ -17,16 +17,19 @@ package com.hierynomus.smbj.share;
 
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
+import com.hierynomus.mssmb2.SMB2CreateDisposition;
+import com.hierynomus.mssmb2.SMB2CreateOptions;
+import com.hierynomus.mssmb2.SMB2FileId;
+import com.hierynomus.mssmb2.SMB2ShareAccess;
+import com.hierynomus.mssmb2.messages.SMB2Close;
+import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
+import com.hierynomus.mssmb2.messages.SMB2CreateResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.smb2.*;
-import com.hierynomus.smbj.smb2.messages.SMB2Close;
-import com.hierynomus.smbj.smb2.messages.SMB2CreateRequest;
-import com.hierynomus.smbj.smb2.messages.SMB2CreateResponse;
 import com.hierynomus.smbj.transport.TransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,9 +72,9 @@ public class Share implements AutoCloseable {
     }
 
     public SMB2FileId open(
-            String path, long accessMask,
-            EnumSet<FileAttributes> fileAttributes, EnumSet<SMB2ShareAccess> shareAccess,
-            SMB2CreateDisposition createDisposition, EnumSet<SMB2CreateOptions> createOptions)
+        String path, long accessMask,
+        EnumSet<FileAttributes> fileAttributes, EnumSet<SMB2ShareAccess> shareAccess,
+        SMB2CreateDisposition createDisposition, EnumSet<SMB2CreateOptions> createOptions)
             throws SMBApiException {
         logger.info("open {},{}", path);
 

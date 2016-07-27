@@ -16,7 +16,7 @@
 package com.hierynomus.smbj.transport;
 
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.smb2.SMB2Packet;
+import com.hierynomus.mssmb2.SMB2Packet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

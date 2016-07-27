@@ -13,19 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj;
+package com.hierynomus.mssmb2;
 
-import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.protocol.commons.EnumWithValue;
 
-import java.security.SecureRandom;
-import java.util.EnumSet;
-import java.util.UUID;
+/**
+ * SMB2 Create 2.2.13 - CreateDisposition
+ */
+public enum SMB2CreateDisposition implements EnumWithValue<SMB2CreateDisposition> {
+    FILE_SUPERSEDE(0x00000000L),
+    FILE_OPEN(0x00000001L),
+    FILE_CREATE(0x00000002L),
+    FILE_OPEN_IF(0x00000003L),
+    FILE_OVERWRITE(0x00000004L),
+    FILE_OVERWRITE_IF(0x00000005L);
 
-public class DefaultConfig extends ConfigImpl {
+    private long value;
 
-    public DefaultConfig() {
-        random = new SecureRandom();
-        dialects = EnumSet.of(SMB2Dialect.SMB_2_0_2);
-        clientGuid = UUID.randomUUID();
+    SMB2CreateDisposition(long value) {
+        this.value = value;
+    }
+
+    public long getValue() {
+        return value;
     }
 }

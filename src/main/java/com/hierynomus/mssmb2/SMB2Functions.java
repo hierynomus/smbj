@@ -13,19 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj;
+package com.hierynomus.mssmb2;
 
-import com.hierynomus.mssmb2.SMB2Dialect;
+import java.nio.charset.StandardCharsets;
 
-import java.security.SecureRandom;
-import java.util.EnumSet;
-import java.util.UUID;
+public class SMB2Functions {
+    private static final byte[] EMPTY_BYTES = new byte[0];
 
-public class DefaultConfig extends ConfigImpl {
-
-    public DefaultConfig() {
-        random = new SecureRandom();
-        dialects = EnumSet.of(SMB2Dialect.SMB_2_0_2);
-        clientGuid = UUID.randomUUID();
+    public static byte[] unicode(String s) {
+        if (s == null) {
+            return EMPTY_BYTES;
+        } else {
+            return s.getBytes(StandardCharsets.UTF_16LE);
+        }
     }
 }
