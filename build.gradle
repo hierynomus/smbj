@@ -3,11 +3,11 @@ import java.text.SimpleDateFormat
 plugins {
   id "java"
   id "groovy"
-  id "idea"
   id "maven-publish"
   id "org.ajoberstar.release-opinion" version "1.4.2"
   id "com.github.hierynomus.license" version "0.12.1"
   id "com.jfrog.bintray" version "1.7"
+  id 'ru.vyarus.pom' version '1.0.2'
 }
 
 group = "com.hierynomus"
@@ -19,13 +19,6 @@ repositories {
 
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
-
-idea {
-  module {
-    downloadJavadoc = true
-    downloadSources = true
-  }
-}
 
 configurations.compile.transitive = false
 
@@ -108,6 +101,42 @@ license {
 
 project.tasks.compileGroovy.onlyIf { false }
 
+pom {
+  description 'SMB2 protocol library for communication with Windows servers'
+  url 'https://github.com/hierynomus/smbj'
+  licenses {
+    license {
+      name "The Apache License, Version 2.0"
+      url "http://www.apache.org/licenses/LICENSE-2.0.txt"
+      distribution 'repo'
+    }
+  }
+  scm {
+    url 'https://github.com/hierynomus/smbj.git'
+    connection 'https://github.com/hierynomus/smbj.git'
+    developerConnection 'git@github.com:hierynomus/smbj.git'
+  }
+  developers {
+    developer {
+      id "hierynomus"
+      name "Jeroen van Erp"
+      email "jeroen@hierynomus.com"
+      roles {
+        role "Lead developer"
+      }
+    }
+    developer {
+      id "sbellan"
+      name "Saravanan Bellan"
+      email "sbellan@gmail.com"
+      roles {
+        role "Developer"
+      }
+    }
+  }
+}
+
+
 publishing {
   publications {
     Smbj(MavenPublication) {
@@ -128,7 +157,7 @@ bintray {
     name = project.name
     licenses = ["Apache-2.0"]
     vcsUrl = "https://github.com/hierynomus/smbj.git"
-    labels = ["smb2", "smb3", "network", "windows", "file-transfer"]
+    labels = ["smb", "smb2", "smb3", "network", "windows", "file-transfer"]
     githubRepo = "hierynomus/smbj"
     version {
       name = project.version.toString()
