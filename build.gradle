@@ -141,31 +141,33 @@ publishing {
   }
 }
 
-bintray {
-  user = project.property("bintrayUsername")
-  key = project.property("bintrayApiKey")
-  publish = true
-  publications = ["Smbj"]
-  pkg {
-    repo = "maven"
-    name = project.name
-    licenses = ["Apache-2.0"]
-    vcsUrl = "https://github.com/hierynomus/smbj.git"
-    labels = ["smb", "smb2", "smb3", "network", "windows", "file-transfer"]
-    githubRepo = "hierynomus/smbj"
-    version {
-      name = project.version.toString()
-      vcsTag = "v${project.version}"
-      released = new SimpleDateFormat('yyyy-MM-dd\'T\'HH:mm:ss.SSSZZ').format(new Date())
-      gpg {
-        sign = true
-        passphrase = project.property("signing.password")
-      }
-      mavenCentralSync {
-        sync = true
-        user = project.property("sonatypeUsername")
-        password = project.property("sonatypePassword")
-        close = 1
+if (project.hasProperty("bintrayUsername") && project.hasProperty("bintrayApiKey")) {
+  bintray {
+    user = project.property("bintrayUsername")
+    key = project.property("bintrayApiKey")
+    publish = true
+    publications = ["Smbj"]
+    pkg {
+      repo = "maven"
+      name = project.name
+      licenses = ["Apache-2.0"]
+      vcsUrl = "https://github.com/hierynomus/smbj.git"
+      labels = ["smb", "smb2", "smb3", "network", "windows", "file-transfer"]
+      githubRepo = "hierynomus/smbj"
+      version {
+        name = project.version.toString()
+        vcsTag = "v${project.version}"
+        released = new SimpleDateFormat('yyyy-MM-dd\'T\'HH:mm:ss.SSSZZ').format(new Date())
+        gpg {
+          sign = true
+          passphrase = project.property("signing.password")
+        }
+        mavenCentralSync {
+          sync = true
+          user = project.property("sonatypeUsername")
+          password = project.property("sonatypePassword")
+          close = 1
+        }
       }
     }
   }
