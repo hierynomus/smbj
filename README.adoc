@@ -1,10 +1,45 @@
 = smbj - SMB2/SMB3 library for Java
 Jeroen van Erp
 :smbj_groupid: com.hierynomus
-:smbj_version: 0.0.1
+:smbj_version: 0.0.3
 :source-highlighter: pygments
 
 To get started, have a look at one of the examples. Hopefully you will find the API pleasant to work with :)
 
 image:https://travis-ci.org/hierynomus/smbj.svg?branch=master["Build Status", link="https://travis-ci.org/hierynomus/smbj"]
 image:https://badge.waffle.io/hierynomus/smbj.svg?label=ready&title=Ready["Issues in Ready", link="http://waffle.io/hierynomus/smbj"]
+
+== Getting SMBJ
+
+To get SMBJ, you have two options:
+
+. Add a dependency to SMBJ to your project.
+. Build SMBJ yourself.
+
+And, if you want, you can also run the SMBJ examples.
+
+Binary releases of SMBJ are not provided here, but you can download it http://search.maven.org/#artifactdetails%7C{smbj_groupid}%7Csmbj%7C{smbj_version}%7Cjar[straight from the Maven Central repository] if you want to.
+
+== Depending on SMBJ
+If you're building your project using Maven, you can add the following dependency to the `pom.xml`:
+
+[source,xml,subs="verbatim,attributes"]
+----
+<dependency>
+  <groupId>{smbj_groupid}</groupId>
+  <artifactId>smbj</artifactId>
+  <version>{smbj_version}</version>
+</dependency>
+----
+
+If your project is built using another build tool that uses the Maven Central repository, translate this dependency into the format used by your build tool.
+
+== Building SMBJ
+. Clone the Overthere repository.
+. Ensure you have Java7 installed with the http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html[Unlimited strength Java Cryptography Extensions (JCE)].
+. Run the command `./gradlew clean build`.
+
+== Specifications
+The implementation is based on the following specifications:
+
+- https://msdn.microsoft.com/en-us/library/cc246482.aspx[\[MS-SMB2\]: Server Message Block (SMB) Protocol Versions 2 and 3]
