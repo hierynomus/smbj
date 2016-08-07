@@ -15,11 +15,11 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
-import com.hierynomus.smbj.smb2.SMB2CompletionFilter;
-import com.hierynomus.smbj.smb2.SMB2CreateDisposition;
-import com.hierynomus.smbj.smb2.SMB2ShareAccess;
-import com.hierynomus.smbj.smb2.messages.SMB2ChangeNotifyRequest;
-import com.hierynomus.smbj.smb2.messages.SMB2ChangeNotifyResponse;
+import com.hierynomus.mssmb2.SMB2CompletionFilter;
+import com.hierynomus.mssmb2.SMB2CreateDisposition;
+import com.hierynomus.mssmb2.SMB2ShareAccess;
+import com.hierynomus.mssmb2.messages.SMB2ChangeNotifyRequest;
+import com.hierynomus.mssmb2.messages.SMB2ChangeNotifyResponse;
 import com.hierynomus.smbj.transport.TransportException;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.BeforeClass;
@@ -299,7 +299,7 @@ public class SmbjTest {
         Connection connection = session.getConnection();
 
         SMB2ChangeNotifyRequest cnr = new SMB2ChangeNotifyRequest(
-                connection.getNegotiatedDialect(),
+                connection.getNegotiatedProtocol().getDialect(),
                 session.getSessionId(), share.getTreeConnect().getTreeId(),
                 directory.getFileId(),
                 EnumSet.of(
