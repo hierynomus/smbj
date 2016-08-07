@@ -31,8 +31,8 @@ class IntegrationTest extends Specification {
         def client = new SMBClient()
 
         when:
-        def connection = client.connect("192.168.0.110")
-        connection.authenticate(new AuthenticationContext("elton", "metoni1".toCharArray(), ""))
+        def connection = client.connect("172.16.37.149")
+        connection.authenticate(new AuthenticationContext("Administrator", "xeb1aLabs".toCharArray(), ""))
 
         then:
         connection.connected
