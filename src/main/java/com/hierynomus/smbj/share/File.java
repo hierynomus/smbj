@@ -98,9 +98,10 @@ public class File extends DiskEntry {
                 if (isClosed)
                     throw new IOException("Stream is closed");
 
-                int i = readFromBuffer();
-                if (i != -1)
-                    return i;
+                if (buf != null && curr < buf.length) {
+                    ++curr;
+                    return buf[curr - 1] & 0xFF;
+                }
 
                 SMB2ReadRequest rreq = new SMB2ReadRequest(connection.getNegotiatedProtocol(), getFileId(),
                     session.getSessionId(), treeConnect.getTreeId(), offset);
@@ -113,9 +114,10 @@ public class File extends DiskEntry {
                     curr = 0;
                     offset += rresp.getDataLength();
                     if (progressListener != null) progressListener.onProgressChanged(offset, -1);
-                    i = readFromBuffer();
-                    if (i != -1)
-                        return i;
+                    if (buf != null && curr < buf.length) {
+                        ++curr;
+                        return buf[curr - 1] & 0xFF;
+                    }
                 }
 
                 if(rresp.getHeader().getStatus() == NtStatus.STATUS_END_OF_FILE) {
@@ -137,14 +139,6 @@ public class File extends DiskEntry {
             @Override
             public int available() throws IOException {
                 throw new IOException("Available not supported");
-            }
-
-            private int readFromBuffer() {
-                if (buf != null && curr < buf.length) {
-                    ++curr;
-                    return (int)buf[curr - 1];
-                }
-                return -1;
             }
         };
     }
