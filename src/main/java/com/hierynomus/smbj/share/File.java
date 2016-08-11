@@ -15,25 +15,17 @@
  */
 package com.hierynomus.smbj.share;
 
-import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.messages.SMB2ReadRequest;
-import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
-import com.hierynomus.mssmb2.messages.SMB2WriteRequest;
-import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
-import com.hierynomus.smbj.transport.TransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.concurrent.Future;
 
 public class File extends DiskEntry {
 
@@ -44,8 +36,9 @@ public class File extends DiskEntry {
     }
 
     public void write(InputStream srcStream) throws IOException, SMBApiException {
-        write(null);
+        write(srcStream, null);
     }
+
     public void write(InputStream srcStream, ProgressListener progressListener) throws IOException, SMBApiException {
 
         Session session = treeConnect.getSession();
@@ -65,8 +58,9 @@ public class File extends DiskEntry {
         SMBApiException {
         read(destStream, null);
     }
+
     public void read(OutputStream destStream, ProgressListener progressListener) throws IOException,
-            SMBApiException {
+        SMBApiException {
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
         InputStream is = getInputStream(progressListener);
@@ -83,64 +77,7 @@ public class File extends DiskEntry {
     }
 
     private InputStream getInputStream(final ProgressListener listener) {
-
-        return new InputStream() {
-            private Session session = treeConnect.getSession();
-            private Connection connection = session.getConnection();
-            private long offset = 0;
-            private int curr = 0;
-            private byte[] buf;
-            private boolean isClosed = false;
-            private ProgressListener progressListener = listener;
-
-            @Override
-            public int read() throws IOException {
-                if (isClosed)
-                    throw new IOException("Stream is closed");
-
-                if (buf != null && curr < buf.length) {
-                    ++curr;
-                    return buf[curr - 1] & 0xFF;
-                }
-
-                SMB2ReadRequest rreq = new SMB2ReadRequest(connection.getNegotiatedProtocol(), getFileId(),
-                    session.getSessionId(), treeConnect.getTreeId(), offset);
-
-                Future<SMB2ReadResponse> readResponseFuture = connection.send(rreq);
-                SMB2ReadResponse rresp = Futures.get(readResponseFuture, TransportException.Wrapper);
-
-                if (rresp.getHeader().getStatus() == NtStatus.STATUS_SUCCESS) {
-                    buf = rresp.getData();
-                    curr = 0;
-                    offset += rresp.getDataLength();
-                    if (progressListener != null) progressListener.onProgressChanged(offset, -1);
-                    if (buf != null && curr < buf.length) {
-                        ++curr;
-                        return buf[curr - 1] & 0xFF;
-                    }
-                }
-
-                if(rresp.getHeader().getStatus() == NtStatus.STATUS_END_OF_FILE) {
-                    logger.debug("EOF, {} bytes read", offset);
-                    return -1;
-                }
-
-                throw new SMBApiException(rresp.getHeader().getStatus(), "Read failed for " + this);
-            }
-
-            @Override
-            public void close() throws IOException {
-                isClosed = true;
-                session = null;
-                connection = null;
-                buf = null;
-            }
-
-            @Override
-            public int available() throws IOException {
-                throw new IOException("Available not supported");
-            }
-        };
+        return new FileInputStream(fileId, treeConnect, listener);
     }
 
     public OutputStream getOutputStream() {
@@ -148,65 +85,15 @@ public class File extends DiskEntry {
     }
 
     private OutputStream getOutputStream(final ProgressListener listener) {
-
-        return new OutputStream() {
-            private Session session = treeConnect.getSession();
-            private Connection connection = session.getConnection();
-            private int maxWriteSize = connection.getNegotiatedProtocol().getMaxWriteSize();
-            private ProgressListener progressListener = listener;
-
-            private byte[] buf = new byte[maxWriteSize];
-            private long offset = 0;
-            private int curr = 0;
-            private boolean isClosed = false;
-
-            @Override
-            public void write(int b) throws IOException {
-                if (isClosed) throw new IOException("Stream is closed");
-
-                if (curr < maxWriteSize) {
-                    buf[curr] = (byte) b;
-                    ++curr;
-                }
-                if (curr == maxWriteSize) flush();
-            }
-
-            @Override
-            public void flush() throws IOException {
-                SMB2WriteRequest wreq = new SMB2WriteRequest(connection.getNegotiatedProtocol().getDialect(), getFileId(),
-                    session.getSessionId(), treeConnect.getTreeId(),
-                    buf, curr, offset, 0);
-                Future<SMB2WriteResponse> writeFuture = connection.send(wreq);
-                SMB2WriteResponse wresp = Futures.get(writeFuture, TransportException.Wrapper);
-
-                if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                    throw new SMBApiException(wresp.getHeader().getStatus(), "Write failed for " + this);
-                }
-                offset += curr;
-                curr = 0;
-
-                if (progressListener != null) progressListener.onProgressChanged(offset, -1);
-                if (isClosed) logger.debug("EOF, {} bytes written", offset);
-            }
-
-            @Override
-            public void close() throws IOException {
-                isClosed = true;
-                flush();
-                session = null;
-                connection = null;
-                buf = null;
-            }
-        };
-
+        return new FileOutputStream(fileId, treeConnect, listener);
     }
 
     @Override
     public String toString() {
         return "File{" +
-                "fileId=" + fileId +
-                ", fileName='" + fileName + '\'' +
-                '}';
+            "fileId=" + fileId +
+            ", fileName='" + fileName + '\'' +
+            '}';
     }
 
 }
