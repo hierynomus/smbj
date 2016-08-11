@@ -41,8 +41,10 @@ public class FileInputStream extends InputStream {
     private long offset = 0;
     private int curr = 0;
     private byte[] buf;
-    private boolean isClosed = false;
     private ProgressListener progressListener;
+    private boolean isClosed;
+    private Future<SMB2ReadResponse> nextResponse;
+
     private static final Logger logger = LoggerFactory.getLogger(FileInputStream.class);
 
     public FileInputStream(SMB2FileId fileId, TreeConnect treeConnect, ProgressListener progressListener) {
@@ -55,37 +57,29 @@ public class FileInputStream extends InputStream {
 
     @Override
     public int read() throws IOException {
-        if (isClosed)
-            throw new IOException("Stream is closed");
-
-        if (buf != null && curr < buf.length) {
-            ++curr;
-            return buf[curr - 1] & 0xFF;
+        if (buf == null || curr >= buf.length) {
+            loadBuffer();
         }
+        if (isClosed) return -1;
+        ++curr;
+        return buf[curr - 1] & 0xFF;
+    }
 
-        SMB2ReadRequest rreq = new SMB2ReadRequest(connection.getNegotiatedProtocol(), fileId,
-            session.getSessionId(), treeConnect.getTreeId(), offset);
+    @Override
+    public int read(byte b[]) throws IOException {
+        return read(b, 0, b.length);
+    }
 
-        Future<SMB2ReadResponse> readResponseFuture = connection.send(rreq);
-        SMB2ReadResponse rresp = Futures.get(readResponseFuture, TransportException.Wrapper);
-
-        if (rresp.getHeader().getStatus() == NtStatus.STATUS_SUCCESS) {
-            buf = rresp.getData();
-            curr = 0;
-            offset += rresp.getDataLength();
-            if (progressListener != null) progressListener.onProgressChanged(offset, -1);
-            if (buf != null && curr < buf.length) {
-                ++curr;
-                return buf[curr - 1] & 0xFF;
-            }
+    @Override
+    public int read(byte b[], int off, int len) throws IOException {
+        if (buf == null || curr >= buf.length) {
+            loadBuffer();
         }
-
-        if (rresp.getHeader().getStatus() == NtStatus.STATUS_END_OF_FILE) {
-            logger.debug("EOF, {} bytes read", offset);
-            return -1;
-        }
-
-        throw new SMBApiException(rresp.getHeader().getStatus(), "Read failed for " + this);
+        if (isClosed) return -1;
+        int l = buf.length - curr > len ? len : buf.length - curr;
+        System.arraycopy(buf, curr, b, off, l);
+        curr = curr + l;
+        return l;
     }
 
     @Override
@@ -99,5 +93,34 @@ public class FileInputStream extends InputStream {
     @Override
     public int available() throws IOException {
         throw new IOException("Available not supported");
+    }
+
+    private void loadBuffer() throws IOException {
+
+        if (nextResponse == null)
+            nextResponse = sendRequest();
+
+        SMB2ReadResponse res = Futures.get(nextResponse, TransportException.Wrapper);
+        if (res.getHeader().getStatus() == NtStatus.STATUS_SUCCESS) {
+            buf = res.getData();
+            curr = 0;
+            offset += res.getDataLength();
+            if (progressListener != null) progressListener.onProgressChanged(offset, -1);
+        }
+        if (res.getHeader().getStatus() == NtStatus.STATUS_END_OF_FILE) {
+            logger.debug("EOF, {} bytes read", offset);
+            isClosed = true;
+            return;
+        }
+        if (res.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+            throw new SMBApiException(res.getHeader().getStatus(), "Read failed for " + this);
+        }
+        nextResponse = sendRequest();
+    }
+
+    private Future<SMB2ReadResponse> sendRequest() throws IOException {
+        SMB2ReadRequest rreq = new SMB2ReadRequest(connection.getNegotiatedProtocol(), fileId,
+            session.getSessionId(), treeConnect.getTreeId(), offset);
+        return connection.send(rreq);
     }
 }

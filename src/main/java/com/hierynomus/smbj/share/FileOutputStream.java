@@ -30,6 +30,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Future;
 
 public class FileOutputStream extends OutputStream {
@@ -45,6 +47,8 @@ public class FileOutputStream extends OutputStream {
     private long offset = 0;
     private int curr = 0;
     private boolean isClosed = false;
+    private List<Future<SMB2WriteResponse>> responses = new ArrayList<>();
+    private int availableCredits;
     private static final Logger logger = LoggerFactory.getLogger(FileOutputStream.class);
 
     public FileOutputStream(SMB2FileId fileId, TreeConnect treeConnect, ProgressListener progressListener) {
@@ -55,6 +59,7 @@ public class FileOutputStream extends OutputStream {
         this.progressListener = progressListener;
         this.maxWriteSize = connection.getNegotiatedProtocol().getMaxWriteSize();
         this.buf = new byte[maxWriteSize];
+        this.availableCredits = connection.getConnectionInfo().getSequenceWindow().available();
     }
 
     @Override
@@ -69,15 +74,32 @@ public class FileOutputStream extends OutputStream {
     }
 
     @Override
+    public void write(byte b[]) throws IOException {
+        write(b, 0, b.length);
+    }
+
+    @Override
+    public void write(byte b[], int off, int len) throws IOException {
+        if (isClosed) throw new IOException("Stream is closed");
+
+        if (curr < maxWriteSize) {
+            System.arraycopy(b, off, buf, curr, len);
+            curr = curr + len;
+        }
+        if (curr == maxWriteSize) flush();
+    }
+
+    @Override
     public void flush() throws IOException {
         SMB2WriteRequest wreq = new SMB2WriteRequest(connection.getNegotiatedProtocol().getDialect(), fileId,
             session.getSessionId(), treeConnect.getTreeId(),
             buf, curr, offset, 0);
         Future<SMB2WriteResponse> writeFuture = connection.send(wreq);
-        SMB2WriteResponse wresp = Futures.get(writeFuture, TransportException.Wrapper);
+        if (availableCredits > responses.size())
+            responses.add(writeFuture);
 
-        if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(wresp.getHeader().getStatus(), "Write failed for " + this);
+        if (responses.size() == availableCredits) {
+            processResponses();
         }
         offset += curr;
         curr = 0;
@@ -90,8 +112,21 @@ public class FileOutputStream extends OutputStream {
     public void close() throws IOException {
         isClosed = true;
         flush();
+        processResponses();
         session = null;
         connection = null;
         buf = null;
     }
+
+    private void processResponses() throws TransportException {
+        for (Future<SMB2WriteResponse> res : responses) {
+            SMB2WriteResponse wresp = Futures.get(res, TransportException.Wrapper);
+
+            if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+                throw new SMBApiException(wresp.getHeader().getStatus(), "Write failed for " + this);
+            }
+        }
+        responses.clear();
+    }
+
 }
