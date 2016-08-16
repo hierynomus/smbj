@@ -48,4 +48,15 @@ public class NegotiatedProtocol {
     public int getMaxWriteSize() {
         return maxWriteSize;
     }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("NegotiatedProtocol{");
+        sb.append("dialect=").append(dialect);
+        sb.append(", maxTransactSize=").append(maxTransactSize);
+        sb.append(", maxReadSize=").append(maxReadSize);
+        sb.append(", maxWriteSize=").append(maxWriteSize);
+        sb.append('}');
+        return sb.toString();
+    }
 }

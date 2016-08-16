@@ -123,5 +123,19 @@ public class ConnectionInfo {
         return serverCapabilities.contains(capability);
     }
 
-
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("ConnectionInfo{\n");
+        sb.append("  serverGuid=").append(serverGuid).append(",\n");
+        sb.append("  serverName='").append(serverName).append("',\n");
+        sb.append("  negotiatedProtocol=").append(negotiatedProtocol).append(",\n");
+        sb.append("  clientGuid=").append(clientGuid).append(",\n");
+        sb.append("  clientCapabilities=").append(clientCapabilities).append(",\n");
+        sb.append("  serverCapabilities=").append(serverCapabilities).append(",\n");
+        sb.append("  clientSecurityMode=").append(clientSecurityMode).append(",\n");
+        sb.append("  serverSecurityMode=").append(serverSecurityMode).append(",\n");
+        sb.append("  server='").append(server).append("'\n");
+        sb.append('}');
+        return sb.toString();
+    }
 }
