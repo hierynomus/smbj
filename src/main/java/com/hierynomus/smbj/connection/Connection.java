@@ -104,9 +104,10 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     }
 
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
-        long messageId = connectionInfo.getSequenceWindow().get();
-        packet.getHeader().setMessageId(messageId);
-        Request request = new Request(messageId, UUID.randomUUID(), packet);
+        int creditsNeeded = packet.getHeader().creditsNeeded();
+        long[] messageIds = connectionInfo.getSequenceWindow().get(creditsNeeded);
+        packet.getHeader().setMessageId(messageIds[0]);
+        Request request = new Request(messageIds[0], UUID.randomUUID(), packet);
         connectionInfo.getOutstandingRequests().registerOutstanding(request);
         transport.write(packet);
         return request.getFuture(null); // TODO cancel callback

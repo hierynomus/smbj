@@ -36,6 +36,7 @@ public class SMB2ReadRequest extends SMB2Packet {
         long sessionId, long treeId, long offset) {
         super(49, negotiatedProtocol.getDialect(), SMB2MessageCommandCode.SMB2_READ, sessionId, treeId);
         this.readSize = negotiatedProtocol.getMaxReadSize();
+        header.setPayloadSize(readSize);
         this.fileId = fileId;
         this.offset = offset;
     }

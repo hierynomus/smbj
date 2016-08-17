@@ -85,9 +85,9 @@ public class ConnectionInfo {
 
     void negotiated(SMB2NegotiateResponse response) {
         gssNegotiateToken = response.getGssToken();
-        this.negotiatedProtocol = new NegotiatedProtocol(response.getDialect(), response.getMaxTransactSize(), response.getMaxReadSize(), response.getMaxWriteSize());
         serverGuid = response.getServerGuid();
         serverCapabilities = toEnumSet(response.getCapabilities(), GlobalCapability.class);
+        this.negotiatedProtocol = new NegotiatedProtocol(response.getDialect(), response.getMaxTransactSize(), response.getMaxReadSize(), response.getMaxWriteSize(), serverCapabilities.contains(GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU));
         serverSecurityMode = response.getSecurityMode();
     }
 

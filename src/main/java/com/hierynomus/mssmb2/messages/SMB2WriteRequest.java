@@ -15,12 +15,9 @@
  */
 package com.hierynomus.mssmb2.messages;
 
-import com.hierynomus.mssmb2.SMB2Dialect;
-import com.hierynomus.mssmb2.SMB2Header;
-import com.hierynomus.mssmb2.SMB2MessageCommandCode;
+import com.hierynomus.mssmb2.*;
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.smbj.connection.NegotiatedProtocol;
 
 /**
  * [MS-SMB2].pdf 2.2.21 SMB2 Write Request
@@ -31,13 +28,14 @@ public class SMB2WriteRequest extends SMB2Packet {
     private final long offset;
     private final SMB2FileId fileId;
     private final byte[] data;
-    private final long length;
+    private final int length;
     private final long remainingBytes; // Used for write caching
 
     public SMB2WriteRequest(
         SMB2Dialect negotiatedDialect, SMB2FileId fileId,
-        long sessionId, long treeId, byte data[], long length, long offset, long remainingBytes) {
+        long sessionId, long treeId, byte data[], int length, int offset, long remainingBytes) {
         super(49, negotiatedDialect, SMB2MessageCommandCode.SMB2_WRITE, sessionId, treeId);
+        header.setPayloadSize(length);
         this.fileId = fileId;
         this.data = data;
         this.length = length;
