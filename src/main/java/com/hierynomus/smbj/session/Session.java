@@ -15,6 +15,10 @@
  */
 package com.hierynomus.smbj.session;
 
+import com.hierynomus.mssmb2.SMB2ShareCapabilities;
+import com.hierynomus.mssmb2.messages.SMB2Logoff;
+import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
+import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
@@ -24,10 +28,6 @@ import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.event.TreeDisconnected;
 import com.hierynomus.smbj.share.*;
-import com.hierynomus.mssmb2.SMB2ShareCapabilities;
-import com.hierynomus.mssmb2.messages.SMB2Logoff;
-import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
-import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
 import com.hierynomus.smbj.transport.TransportException;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;

@@ -16,16 +16,16 @@
 package com.hierynomus.smbj.share;
 
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.smbj.ProgressListener;
-import com.hierynomus.smbj.common.SMBApiException;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.session.Session;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.messages.SMB2ReadRequest;
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
 import com.hierynomus.mssmb2.messages.SMB2WriteRequest;
 import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
+import com.hierynomus.protocol.commons.concurrent.Futures;
+import com.hierynomus.smbj.ProgressListener;
+import com.hierynomus.smbj.common.SMBApiException;
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

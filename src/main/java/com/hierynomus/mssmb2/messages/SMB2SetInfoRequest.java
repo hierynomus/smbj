@@ -17,13 +17,9 @@ package com.hierynomus.mssmb2.messages;
 
 import com.hierynomus.msdtyp.SecurityInformation;
 import com.hierynomus.msfscc.FileInformationClass;
+import com.hierynomus.mssmb2.*;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.mssmb2.SMB2Dialect;
-import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.SMB2Header;
-import com.hierynomus.mssmb2.SMB2MessageCommandCode;
-import com.hierynomus.mssmb2.SMB2Packet;
 
 /**
  * [MS-SMB2].pdf 2.2.39 SMB2 SET_INFO Request

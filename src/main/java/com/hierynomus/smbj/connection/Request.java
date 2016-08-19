@@ -15,9 +15,9 @@
  */
 package com.hierynomus.smbj.connection;
 
+import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.concurrent.Promise;
 import com.hierynomus.smbj.common.SMBRuntimeException;
-import com.hierynomus.mssmb2.SMB2Packet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

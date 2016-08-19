@@ -15,6 +15,8 @@
  */
 package com.hierynomus.smbj.auth;
 
+import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.ntlm.NtlmException;
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.ntlm.messages.NtlmAuthenticate;
@@ -26,8 +28,6 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.spnego.NegTokenInit;
 import com.hierynomus.spnego.NegTokenTarg;

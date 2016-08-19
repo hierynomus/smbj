@@ -16,11 +16,8 @@
 package com.hierynomus.spnego
 
 import com.hierynomus.ntlm.messages.NtlmNegotiate
-import com.hierynomus.protocol.commons.ByteArrayUtils
 import com.hierynomus.protocol.commons.buffer.Buffer
 import com.hierynomus.protocol.commons.buffer.Endian
-import org.bouncycastle.asn1.DEROctetString
-import org.bouncycastle.asn1.DERTaggedObject
 import org.bouncycastle.asn1.microsoft.MicrosoftObjectIdentifiers
 import spock.lang.Specification
 

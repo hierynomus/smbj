@@ -15,10 +15,10 @@
  */
 package com.hierynomus.mssmb2.messages;
 
+import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.mserref.NtStatus;
 
 /**
  * [MS-SMB2].pdf 2.2.38 SMB2 QUERY_INFO Response

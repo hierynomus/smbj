@@ -15,11 +15,11 @@
  */
 package com.hierynomus.mssmb2.messages;
 
+import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
+import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.connection.NegotiatedProtocol;
-import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.SMB2Packet;
 
 /**
  * [MS-SMB2].pdf 2.2.19 SMB2 READ Request

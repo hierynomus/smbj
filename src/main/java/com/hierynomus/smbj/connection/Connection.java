@@ -16,6 +16,10 @@
 package com.hierynomus.smbj.connection;
 
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.mssmb2.SMB2MessageFlag;
+import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
+import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.commons.socket.SocketClient;
 import com.hierynomus.smbj.Config;
@@ -25,10 +29,6 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.mssmb2.SMB2MessageFlag;
-import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
-import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.smbj.transport.PacketReader;
 import com.hierynomus.smbj.transport.PacketReceiver;
 import com.hierynomus.smbj.transport.TransportException;

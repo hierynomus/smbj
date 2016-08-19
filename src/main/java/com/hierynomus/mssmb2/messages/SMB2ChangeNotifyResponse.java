@@ -17,10 +17,10 @@ package com.hierynomus.mssmb2.messages;
 
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileNotifyAction;
+import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.mssmb2.SMB2Packet;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;

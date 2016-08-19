@@ -16,13 +16,8 @@
 package com.hierynomus.smbj;
 
 import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.event.SMBEvent;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
-import net.engio.mbassy.bus.MBassador;
-import net.engio.mbassy.bus.SyncMessageBus;
-import net.engio.mbassy.bus.config.BusConfiguration;
-import net.engio.mbassy.bus.config.Feature;
 
 import java.io.IOException;
 import java.util.Map;

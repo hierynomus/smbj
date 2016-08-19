@@ -17,8 +17,8 @@ package com.hierynomus.mssmb2
 
 import com.hierynomus.msfscc.FileInformationClass
 import com.hierynomus.msfscc.fileinformation.FileInformationFactory
-import com.hierynomus.smbj.common.SMBBuffer
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryResponse
+import com.hierynomus.smbj.common.SMBBuffer
 import spock.lang.Specification
 
 import javax.xml.bind.DatatypeConverter
