@@ -89,6 +89,7 @@ public class SMB2Header {
                 break;
             default:
                 buffer.putUInt16(Math.max(creditRequest, creditsNeeded()));
+                break;
         }
     }
 

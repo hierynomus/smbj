@@ -395,7 +395,7 @@ public class DiskShare extends Share {
         try {
             fileId = open(
                     path,
-                    EnumWithValue.EnumUtils.toLong(EnumSet.of(AccessMask.GENERIC_READ)),
+                    toLong(EnumSet.of(AccessMask.GENERIC_READ)),
                     EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
                     EnumSet.of(SMB2ShareAccess.FILE_SHARE_DELETE, SMB2ShareAccess.FILE_SHARE_WRITE,
                             SMB2ShareAccess.FILE_SHARE_READ),
