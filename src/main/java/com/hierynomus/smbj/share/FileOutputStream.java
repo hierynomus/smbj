@@ -1,4 +1,4 @@
-/*uuuunew file
+/*
  * Copyright (C)2016 - SMBJ Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,7 +45,7 @@ public class FileOutputStream extends OutputStream {
     private int maxWriteSize;
     private ProgressListener progressListener;
     private byte[] buf;
-    private long offset = 0;
+    private int offset = 0;
     private int curr = 0;
     private BlockingQueue<WriteResponseWrapper> responses = new ArrayBlockingQueue<>(MAX_QUEUE_SIZE);
     private Thread writeHandler;

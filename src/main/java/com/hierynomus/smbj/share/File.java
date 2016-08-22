@@ -15,11 +15,11 @@
  */
 package com.hierynomus.smbj.share;
 
+import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.mssmb2.SMB2FileId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,9 +91,9 @@ public class File extends DiskEntry {
     @Override
     public String toString() {
         return "File{" +
-            "fileId=" + fileId +
-            ", fileName='" + fileName + '\'' +
-            '}';
+                "fileId=" + fileId +
+                ", fileName='" + fileName + '\'' +
+                '}';
     }
 
 }

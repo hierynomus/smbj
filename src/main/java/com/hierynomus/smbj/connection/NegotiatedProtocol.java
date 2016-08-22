@@ -21,16 +21,17 @@ import com.hierynomus.mssmb2.SMB2Dialect;
  * Encapsulates the details of the Protocol Negotiation
  */
 public class NegotiatedProtocol {
+    public static int SINGLE_CREDIT_PAYLOAD_SIZE = 65536;
     private SMB2Dialect dialect;
     private int maxTransactSize;
     private int maxReadSize;
     private int maxWriteSize;
 
-    public NegotiatedProtocol(SMB2Dialect dialect, int maxTransactSize, int maxReadSize, int maxWriteSize) {
+    public NegotiatedProtocol(SMB2Dialect dialect, int maxTransactSize, int maxReadSize, int maxWriteSize, boolean supportsMultiCredit) {
         this.dialect = dialect;
-        this.maxTransactSize = maxTransactSize;
-        this.maxReadSize = maxReadSize;
-        this.maxWriteSize = maxWriteSize;
+        this.maxTransactSize = supportsMultiCredit ? maxTransactSize : Math.max(maxTransactSize, SINGLE_CREDIT_PAYLOAD_SIZE);
+        this.maxReadSize = supportsMultiCredit ? maxReadSize : Math.max(maxReadSize, SINGLE_CREDIT_PAYLOAD_SIZE);
+        this.maxWriteSize = supportsMultiCredit ? maxWriteSize : Math.max(maxWriteSize, SINGLE_CREDIT_PAYLOAD_SIZE);
     }
 
     public SMB2Dialect getDialect() {
@@ -47,5 +48,16 @@ public class NegotiatedProtocol {
 
     public int getMaxWriteSize() {
         return maxWriteSize;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("NegotiatedProtocol{");
+        sb.append("dialect=").append(dialect);
+        sb.append(", maxTransactSize=").append(maxTransactSize);
+        sb.append(", maxReadSize=").append(maxReadSize);
+        sb.append(", maxWriteSize=").append(maxWriteSize);
+        sb.append('}');
+        return sb.toString();
     }
 }

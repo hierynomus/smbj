@@ -97,7 +97,17 @@ public class SequenceWindow {
         }
 
         @Override
+        public boolean tryAcquire(long timeout, TimeUnit unit) {
+            return true;
+        }
+
+        @Override
         public boolean tryAcquire(int permits) {
+            return true;
+        }
+
+        @Override
+        public boolean tryAcquire(int permits, long timeout, TimeUnit unit) {
             return true;
         }
 

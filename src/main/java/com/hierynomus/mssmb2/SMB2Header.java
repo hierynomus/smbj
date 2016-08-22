@@ -21,6 +21,7 @@ import com.hierynomus.smbj.common.SMBBuffer;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
+import static com.hierynomus.smbj.connection.NegotiatedProtocol.SINGLE_CREDIT_PAYLOAD_SIZE;
 
 /**
  * [MS-SMB2].pdf 2.2.1 SMB2 Packet Header
@@ -29,7 +30,6 @@ public class SMB2Header {
     public static final int STRUCTURE_SIZE = 64;
 
     private SMB2Dialect dialect;
-    private int creditCost;
     private int creditRequest;
     private int creditResponse;
     private SMB2MessageCommandCode message;
@@ -40,7 +40,8 @@ public class SMB2Header {
     private NtStatus status;
     private long statusCode;
     private long flags;
-    private long nextCommandOffset;
+    private long nextCommandOffset; // TODO Message Compounding
+    private int payloadSize;
 
     public SMB2Header() {
     }
@@ -51,7 +52,7 @@ public class SMB2Header {
         writeCreditCharge(buffer); // CreditCharge (2 byte)
         writeChannelSequenceReserved(buffer); // (ChannelSequence/Reserved)/Status (4 bytes)
         buffer.putUInt16(message.getValue()); // Command (2 bytes)
-        buffer.putUInt16(creditRequest); // CreditRequest (2 bytes)
+        writeCreditRequest(buffer); // CreditRequest (2 bytes)
         buffer.putUInt32(flags); // Flags (4 bytes)
         buffer.putUInt32(nextCommandOffset); // NextCommand (4 bytes)
         buffer.putUInt64(messageId); // MessageId (8 bytes)
@@ -75,6 +76,23 @@ public class SMB2Header {
         }
     }
 
+    /**
+     * [MS-SMB2].pdf 3.2.4.1.2 Requesting Credits from the Server
+     *
+     * We should at least request the number of credits this request consumes, but we can request more (by calling {@link #setCreditRequest(int)}).
+     */
+    private void writeCreditRequest(SMBBuffer buffer) {
+        switch (dialect) {
+            case UNKNOWN:
+            case SMB_2_0_2:
+                buffer.putReserved(2);
+                break;
+            default:
+                buffer.putUInt16(Math.max(creditRequest, creditsNeeded()));
+                break;
+        }
+    }
+
     private void writeCreditCharge(SMBBuffer buffer) {
         switch (dialect) {
             case UNKNOWN:
@@ -82,7 +100,7 @@ public class SMB2Header {
                 buffer.putReserved(2);
                 break;
             default:
-                buffer.putUInt16(creditCost);
+                buffer.putUInt16(creditsNeeded());
                 break;
         }
     }
@@ -119,10 +137,6 @@ public class SMB2Header {
         this.dialect = dialect;
     }
 
-    public void setCreditCost(int creditCost) {
-        this.creditCost = creditCost;
-    }
-
     public void setFlag(SMB2MessageFlag flag) {
         this.flags |= flag.getValue();
     }
@@ -146,7 +160,7 @@ public class SMB2Header {
     public void readFrom(Buffer<?> buffer) throws Buffer.BufferException {
         buffer.skip(4); // ProtocolId (4 bytes) (already verified)
         buffer.skip(2); // StructureSize (2 bytes)
-        creditCost = buffer.readUInt16(); // CreditCharge (2 bytes)
+        buffer.readUInt16(); // CreditCharge (2 bytes)
         statusCode = buffer.readUInt32();
         status = EnumUtils.valueOf(statusCode, NtStatus.class, NtStatus.UNKNOWN); // Status (4 bytes)
         message = SMB2MessageCommandCode.lookup(buffer.readUInt16()); // Command (2 bytes)
@@ -187,4 +201,16 @@ public class SMB2Header {
     public void setNextCommandOffset(long nextCommandOffset) {
         this.nextCommandOffset = nextCommandOffset;
     }
+
+    public void setPayloadSize(int payloadSize) {
+        this.payloadSize = payloadSize;
+    }
+
+    /**
+     * [MS-SMB2].pdf 3.1.5.2 Calculating the CreditCharge
+     */
+    public int creditsNeeded() {
+        return Math.abs((payloadSize - 1) / SINGLE_CREDIT_PAYLOAD_SIZE) + 1;
+    }
+
 }

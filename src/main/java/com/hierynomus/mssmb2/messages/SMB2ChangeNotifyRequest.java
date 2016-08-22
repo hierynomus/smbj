@@ -15,13 +15,9 @@
  */
 package com.hierynomus.mssmb2.messages;
 
+import com.hierynomus.mssmb2.*;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.mssmb2.SMB2CompletionFilter;
-import com.hierynomus.mssmb2.SMB2Dialect;
-import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.SMB2MessageCommandCode;
-import com.hierynomus.mssmb2.SMB2Packet;
 
 import java.util.EnumSet;
 

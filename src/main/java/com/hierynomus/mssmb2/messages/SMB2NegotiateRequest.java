@@ -16,10 +16,10 @@
 package com.hierynomus.mssmb2.messages;
 
 import com.hierynomus.msdtyp.MsDataTypes;
-import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.smbj.common.SMBBuffer;
 
 import java.util.EnumSet;
 import java.util.UUID;
@@ -39,7 +39,7 @@ public class SMB2NegotiateRequest extends SMB2Packet {
      */
     public SMB2NegotiateRequest(EnumSet<SMB2Dialect> dialects, UUID clientGuid) {
         super(36, SMB2Dialect.UNKNOWN, SMB2MessageCommandCode.SMB2_NEGOTIATE, 0, 0);
-        header.setCreditCost(0);
+        header.setPayloadSize(1);
         this.dialects = dialects;
         this.clientGuid = clientGuid;
     }

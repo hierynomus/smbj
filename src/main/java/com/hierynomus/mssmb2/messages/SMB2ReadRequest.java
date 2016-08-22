@@ -15,11 +15,11 @@
  */
 package com.hierynomus.mssmb2.messages;
 
+import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
+import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.connection.NegotiatedProtocol;
-import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.SMB2Packet;
 
 /**
  * [MS-SMB2].pdf 2.2.19 SMB2 READ Request
@@ -36,6 +36,7 @@ public class SMB2ReadRequest extends SMB2Packet {
         long sessionId, long treeId, long offset) {
         super(49, negotiatedProtocol.getDialect(), SMB2MessageCommandCode.SMB2_READ, sessionId, treeId);
         this.readSize = negotiatedProtocol.getMaxReadSize();
+        header.setPayloadSize(readSize);
         this.fileId = fileId;
         this.offset = offset;
     }

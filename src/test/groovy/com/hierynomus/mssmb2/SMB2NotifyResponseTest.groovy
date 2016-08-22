@@ -15,8 +15,8 @@
  */
 package com.hierynomus.mssmb2
 
-import com.hierynomus.smbj.common.SMBBuffer
 import com.hierynomus.mssmb2.messages.SMB2ChangeNotifyResponse
+import com.hierynomus.smbj.common.SMBBuffer
 import spock.lang.Specification
 
 import javax.xml.bind.DatatypeConverter

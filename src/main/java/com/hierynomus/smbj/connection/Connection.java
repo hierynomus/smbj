@@ -16,6 +16,10 @@
 package com.hierynomus.smbj.connection;
 
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.mssmb2.SMB2MessageFlag;
+import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
+import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.commons.socket.SocketClient;
 import com.hierynomus.smbj.Config;
@@ -25,10 +29,6 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.mssmb2.SMB2MessageFlag;
-import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
-import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.smbj.transport.PacketReader;
 import com.hierynomus.smbj.transport.PacketReceiver;
 import com.hierynomus.smbj.transport.TransportException;
@@ -79,7 +79,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         }
         SMB2NegotiateResponse resp = (SMB2NegotiateResponse) negotiateResponse;
         connectionInfo.negotiated(resp);
-        logger.info("Negotiated dialect: {}", connectionInfo.getNegotiatedProtocol().getDialect());
+        logger.info("Negotiated: {}", connectionInfo);
     }
 
     /**
@@ -104,9 +104,10 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     }
 
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
-        long messageId = connectionInfo.getSequenceWindow().get();
-        packet.getHeader().setMessageId(messageId);
-        Request request = new Request(messageId, UUID.randomUUID(), packet);
+        int creditsNeeded = packet.getHeader().creditsNeeded();
+        long[] messageIds = connectionInfo.getSequenceWindow().get(creditsNeeded);
+        packet.getHeader().setMessageId(messageIds[0]);
+        Request request = new Request(messageIds[0], UUID.randomUUID(), packet);
         connectionInfo.getOutstandingRequests().registerOutstanding(request);
         transport.write(packet);
         return request.getFuture(null); // TODO cancel callback
