@@ -27,12 +27,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -40,20 +35,13 @@ import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.Security;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  * Integration test Pre-Req
@@ -211,6 +199,78 @@ public class SmbjTest {
         } finally {
             session.close();
         }
+    }
+
+    @Test
+    public void testWithSingleConnectionMultipleClients() throws IOException, SMBApiException, URISyntaxException {
+        logger.info("Connect {},{},{},{}", ci.host, ci.user, ci.domain, ci.sharePath);
+        SMBClient client = new SMBClient();
+        Connection connection = client.connect(ci.host);
+        AuthenticationContext ac = new AuthenticationContext(
+            ci.user,
+            ci.password == null ? new char[0] : ci.password.toCharArray(),
+            ci.domain);
+        Session session = connection.authenticate(ac);
+
+        try (DiskShare share = (DiskShare)session.connectShare(ci.sharePath)) {
+            try {
+                share.rmdir(TEST_PATH, true);
+            } catch (SMBApiException sae) {
+                if (sae.getStatus() != NtStatus.STATUS_OBJECT_NAME_NOT_FOUND) {
+                    throw sae;
+                }
+            }
+            share.mkdir(fix(TEST_PATH));
+            assertTrue(share.folderExists(fix(TEST_PATH)));
+            ExecutorService executor = Executors.newFixedThreadPool(10);
+            final List <Exception> exceptions = new ArrayList<>();
+            for (int i = 0; i < 1000; i++) {
+                executor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        String fl = UUID.randomUUID().toString() + ".txt";
+                        byte[] expectedBytes = generateRandomBytes(100000);
+                        InputStream is = new ByteArrayInputStream(expectedBytes);
+                        String path = fix(TEST_PATH + "\\" + fl);
+                        try {
+                            File localTmpFile = File.createTempFile("smbj", "junit");
+                            share.write(path, true, is, null);
+                            try (OutputStream os = new FileOutputStream(localTmpFile)) {
+                                share.read(path, os, null);
+                            }
+                            byte[] actualBytes = Files.readAllBytes(localTmpFile.toPath());
+                            assertArrayEquals(expectedBytes, actualBytes);
+                            localTmpFile.delete();
+                            share.rm(path);
+                        } catch (Exception e) {
+                            exceptions.add(e);
+                        }
+                    }
+                });
+            }
+            executor.shutdown();
+            while (!executor.isTerminated()) {
+                try {
+                    executor.awaitTermination(10, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    // ignore
+                }
+            }
+            for (Throwable e : exceptions) {
+                e.printStackTrace();
+            }
+            assertEquals("Errors encountered using mutiple threads", 0, exceptions.size());
+            share.rmdir(TEST_PATH, true);
+            assertFalse(share.folderExists(fix(TEST_PATH)));
+        } finally {
+            session.close();
+        }
+    }
+
+    private static byte[] generateRandomBytes(final int size) {
+        byte[] randomBytes = new byte[size];
+        new Random().nextBytes(randomBytes);
+        return randomBytes;
     }
 
     @Test
