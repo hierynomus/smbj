@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * </ul>
  */
 public class SequenceWindow {
+    public static final int PREFERRED_MINIMUM_CREDITS = 512;
     private AtomicLong lowestAvailable = new AtomicLong(0);
     private Semaphore available = new Semaphore(1);
 

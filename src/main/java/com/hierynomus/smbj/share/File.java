@@ -25,13 +25,13 @@ import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.io.ByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.Future;
 
@@ -43,30 +43,48 @@ public class File extends DiskEntry {
         super(treeConnect, fileId, fileName);
     }
 
-    public void write(InputStream srcStream, ProgressListener progressListener) throws IOException, SMBApiException {
-
+    public void write(ByteChunkProvider provider, ProgressListener progressListener) throws TransportException {
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
 
-        byte[] buf = new byte[connection.getNegotiatedProtocol().getMaxWriteSize()];
-        int numRead = -1;
-        int offset = 0;
-
-        while ((numRead = srcStream.read(buf)) != -1) {
-            //logger.debug("Writing {} bytes", numRead);
+        while (provider.isAvailable()) {
+            logger.debug("Writing to {} from offset {}", this.fileName, provider.getOffset());
             SMB2WriteRequest wreq = new SMB2WriteRequest(connection.getNegotiatedProtocol().getDialect(), getFileId(),
-                    session.getSessionId(), treeConnect.getTreeId(),
-                    buf, numRead, offset, 0);
+                session.getSessionId(), treeConnect.getTreeId(), provider, connection.getNegotiatedProtocol().getMaxWriteSize());
             Future<SMB2WriteResponse> writeFuture = connection.send(wreq);
             SMB2WriteResponse wresp = Futures.get(writeFuture, TransportException.Wrapper);
-
             if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
                 throw new SMBApiException(wresp.getHeader().getStatus(), "Write failed for " + this);
             }
-            offset += numRead;
-            if (progressListener != null) progressListener.onProgressChanged(offset, -1);
+            if (progressListener != null) progressListener.onProgressChanged(wresp.getBytesWritten(), provider.getOffset());
+
         }
     }
+
+//    public void write(InputStream srcStream, ProgressListener progressListener) throws IOException, SMBApiException {
+//
+//        Session session = treeConnect.getSession();
+//        Connection connection = session.getConnection();
+//
+//        byte[] buf = new byte[connection.getNegotiatedProtocol().getMaxWriteSize()];
+//        int numRead = -1;
+//        int offset = 0;
+//
+//        while ((numRead = srcStream.read(buf)) != -1) {
+//            //logger.debug("Writing {} bytes", numRead);
+//            SMB2WriteRequest wreq = new SMB2WriteRequest(connection.getNegotiatedProtocol().getDialect(), getFileId(),
+//                    session.getSessionId(), treeConnect.getTreeId(),
+//                    buf, numRead, offset, 0);
+//            Future<SMB2WriteResponse> writeFuture = connection.send(wreq);
+//            SMB2WriteResponse wresp = Futures.get(writeFuture, TransportException.Wrapper);
+//
+//            if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+//                throw new SMBApiException(wresp.getHeader().getStatus(), "Write failed for " + this);
+//            }
+//            offset += numRead;
+//            if (progressListener != null) progressListener.onProgressChanged(offset, -1);
+//        }
+//    }
 
     public void read(OutputStream destStream, ProgressListener progressListener) throws IOException,
             SMBApiException {

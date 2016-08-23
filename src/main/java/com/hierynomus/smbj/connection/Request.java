@@ -131,6 +131,10 @@ class Request {
         return cancelId;
     }
 
+    public Date getTimestamp() {
+        return timestamp;
+    }
+
     interface CancelCallback {
         void cancel(long messageId);
     }

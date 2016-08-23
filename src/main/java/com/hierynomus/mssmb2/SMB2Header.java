@@ -30,6 +30,7 @@ public class SMB2Header {
     public static final int STRUCTURE_SIZE = 64;
 
     private SMB2Dialect dialect;
+    private int creditCharge = 1;
     private int creditRequest;
     private int creditResponse;
     private SMB2MessageCommandCode message;
@@ -41,7 +42,6 @@ public class SMB2Header {
     private long statusCode;
     private long flags;
     private long nextCommandOffset; // TODO Message Compounding
-    private int payloadSize;
 
     public SMB2Header() {
     }
@@ -88,7 +88,7 @@ public class SMB2Header {
                 buffer.putReserved(2);
                 break;
             default:
-                buffer.putUInt16(Math.max(creditRequest, creditsNeeded()));
+                buffer.putUInt16(creditRequest + creditCharge); // Ask for the credit buffer wanted + what we use
                 break;
         }
     }
@@ -100,7 +100,7 @@ public class SMB2Header {
                 buffer.putReserved(2);
                 break;
             default:
-                buffer.putUInt16(creditsNeeded());
+                buffer.putUInt16(creditCharge);
                 break;
         }
     }
@@ -202,15 +202,7 @@ public class SMB2Header {
         this.nextCommandOffset = nextCommandOffset;
     }
 
-    public void setPayloadSize(int payloadSize) {
-        this.payloadSize = payloadSize;
+    public void setCreditCharge(int creditCharge) {
+        this.creditCharge = creditCharge;
     }
-
-    /**
-     * [MS-SMB2].pdf 3.1.5.2 Calculating the CreditCharge
-     */
-    public int creditsNeeded() {
-        return Math.abs((payloadSize - 1) / SINGLE_CREDIT_PAYLOAD_SIZE) + 1;
-    }
-
 }
