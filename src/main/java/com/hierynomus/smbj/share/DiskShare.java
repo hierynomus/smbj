@@ -231,41 +231,41 @@ public class DiskShare extends Share {
         deleteCommon(path, smb2CreateRequest);
     }
 
-    /**
-     * Write the given input stream to the given path
-     */
-    public void write(String path, boolean overWrite,
-                             InputStream srcStream, ProgressListener progressListener)
-            throws SMBApiException, IOException {
-        logger.info("Write {},{}", path, overWrite);
-        SMB2CreateDisposition createDisposition = SMB2CreateDisposition.FILE_OVERWRITE_IF;
-        if (!overWrite) createDisposition = SMB2CreateDisposition.FILE_CREATE;
-        File fileHandle =
-                openFile(path, EnumSet.of(AccessMask.GENERIC_WRITE), createDisposition);
-
-        try {
-            fileHandle.write(srcStream, progressListener);
-        } finally {
-            fileHandle.close();
-        }
-    }
-
-    /**
-     * Read the file at the given path and write the data to the given output stream
-     */
-    public void read(String path,
-                            OutputStream destStream, ProgressListener progressListener)
-            throws SMBApiException, IOException {
-        logger.info("Read {}", path);
-        File fileHandle = openFile(path,
-                EnumSet.of(AccessMask.GENERIC_READ), SMB2CreateDisposition.FILE_OPEN);
-
-        try {
-            fileHandle.read(destStream, progressListener);
-        } finally {
-            fileHandle.close();
-        }
-    }
+//    /**
+//     * Write the given input stream to the given path
+//     */
+//    public void write(String path, boolean overWrite,
+//                             InputStream srcStream, ProgressListener progressListener)
+//            throws SMBApiException, IOException {
+//        logger.info("Write {},{}", path, overWrite);
+//        SMB2CreateDisposition createDisposition = SMB2CreateDisposition.FILE_OVERWRITE_IF;
+//        if (!overWrite) createDisposition = SMB2CreateDisposition.FILE_CREATE;
+//        File fileHandle =
+//                openFile(path, EnumSet.of(AccessMask.GENERIC_WRITE), createDisposition);
+//
+//        try {
+//            fileHandle.write(srcStream, progressListener);
+//        } finally {
+//            fileHandle.close();
+//        }
+//    }
+//
+//    /**
+//     * Read the file at the given path and write the data to the given output stream
+//     */
+//    public void read(String path,
+//                            OutputStream destStream, ProgressListener progressListener)
+//            throws SMBApiException, IOException {
+//        logger.info("Read {}", path);
+//        File fileHandle = openFile(path,
+//                EnumSet.of(AccessMask.GENERIC_READ), SMB2CreateDisposition.FILE_OPEN);
+//
+//        try {
+//            fileHandle.read(destStream, progressListener);
+//        } finally {
+//            fileHandle.close();
+//        }
+//    }
 
     /**
      * The SecurityDescriptor(MS-DTYP 2.4.6 SECURITY_DESCRIPTOR) for the Given Path

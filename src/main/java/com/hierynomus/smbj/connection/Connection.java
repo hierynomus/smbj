@@ -17,6 +17,7 @@ package com.hierynomus.smbj.connection;
 
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2MessageFlag;
+import com.hierynomus.mssmb2.SMB2MultiCreditPacket;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
@@ -42,10 +43,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
+import static com.hierynomus.smbj.connection.NegotiatedProtocol.SINGLE_CREDIT_PAYLOAD_SIZE;
 
 /**
  * A connection to a server.
@@ -59,6 +64,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     private final SMBEventBus bus;
     private PacketReader packetReader;
     private Thread packetReaderThread;
+    private final ReentrantLock lock = new ReentrantLock();
 
     public Connection(Config config, TransportLayer transport, SMBEventBus bus) {
         super(transport.getDefaultPort());
@@ -68,19 +74,6 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         bus.subscribe(this);
     }
 
-
-    private void negotiateDialect() throws TransportException {
-        logger.info("Negotiating dialects {} with server {}", config.getSupportedDialects(), getRemoteHostname());
-        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid());
-        Future<SMB2Packet> send = send(negotiatePacket);
-        SMB2Packet negotiateResponse = Futures.get(send, TransportException.Wrapper);
-        if (!(negotiateResponse instanceof SMB2NegotiateResponse)) {
-            throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + negotiateResponse.getHeader().getMessageId());
-        }
-        SMB2NegotiateResponse resp = (SMB2NegotiateResponse) negotiateResponse;
-        connectionInfo.negotiated(resp);
-        logger.info("Negotiated: {}", connectionInfo);
-    }
 
     /**
      * On connection establishment, also initializes the transport via {@link DirectTcpTransport#init}.
@@ -101,16 +94,6 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     public void close() throws Exception {
         packetReader.stop();
         super.disconnect();
-    }
-
-    public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
-        int creditsNeeded = packet.getHeader().creditsNeeded();
-        long[] messageIds = connectionInfo.getSequenceWindow().get(creditsNeeded);
-        packet.getHeader().setMessageId(messageIds[0]);
-        Request request = new Request(messageIds[0], UUID.randomUUID(), packet);
-        connectionInfo.getOutstandingRequests().registerOutstanding(request);
-        transport.write(packet);
-        return request.getFuture(null); // TODO cancel callback
     }
 
     /**
@@ -134,6 +117,63 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         return null;
     }
 
+    public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
+        lock.lock();
+        try {
+            int availableCredits = connectionInfo.getSequenceWindow().available();
+            if (packet instanceof SMB2MultiCreditPacket) {
+                int payloadSize = ((SMB2MultiCreditPacket) packet).getPayloadSize();
+                int creditsNeeded = creditsNeeded(payloadSize);
+                int grantCredits = 1;
+                if (availableCredits == 0) {
+                    throw new NoSuchElementException("TODO ([MS-SMB2].pdf 3.2.5.1.4 Granting Message Credits)! No credits left.");
+                } else if (creditsNeeded < availableCredits) {
+                    grantCredits = creditsNeeded;
+                } else if (creditsNeeded > 1 && availableCredits > 1) { // creditsNeeded >= availableCredits
+                    grantCredits = availableCredits - 1; // Keep 1 credit left for a simple request
+                } else {
+                    grantCredits = 1;
+                }
+                long[] messageIds = connectionInfo.getSequenceWindow().get(grantCredits);
+                ((SMB2MultiCreditPacket) packet).setCreditsAssigned(grantCredits);
+                packet.getHeader().setMessageId(messageIds[0]);
+                logger.info("Granted {} credits to {} with message id {}", grantCredits, packet.getHeader().getMessage(), packet.getHeader().getMessageId());
+                packet.getHeader().setCreditRequest(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits);
+            } else {
+                long messageId = connectionInfo.getSequenceWindow().get();
+                packet.getHeader().setMessageId(messageId);
+                packet.getHeader().setCreditRequest(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - 1);
+            }
+            Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID(), packet);
+            connectionInfo.getOutstandingRequests().registerOutstanding(request);
+            transport.write(packet);
+            return request.getFuture(null); // TODO cancel callback
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void negotiateDialect() throws TransportException {
+        logger.info("Negotiating dialects {} with server {}", config.getSupportedDialects(), getRemoteHostname());
+        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid());
+        Future<SMB2Packet> send = send(negotiatePacket);
+        SMB2Packet negotiateResponse = Futures.get(send, TransportException.Wrapper);
+        if (!(negotiateResponse instanceof SMB2NegotiateResponse)) {
+            throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + negotiateResponse.getHeader().getMessageId());
+        }
+        SMB2NegotiateResponse resp = (SMB2NegotiateResponse) negotiateResponse;
+        connectionInfo.negotiated(resp);
+        logger.info("Negotiated: {}", connectionInfo);
+    }
+
+
+    /**
+     * [MS-SMB2].pdf 3.1.5.2 Calculating the CreditCharge
+     */
+    private int creditsNeeded(int payloadSize) {
+        return Math.abs((payloadSize - 1) / SINGLE_CREDIT_PAYLOAD_SIZE) + 1;
+    }
+
     /**
      * Returns the negotiated protocol details for this connection.
      *
@@ -154,6 +194,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         connectionInfo.getSequenceWindow().creditsGranted(packet.getHeader().getCreditResponse());
 
         Request request = connectionInfo.getOutstandingRequests().getRequestByMessageId(messageId);
+        logger.info("Send/Recv of packet with message id << {} >> took << {} ms >>", messageId, System.currentTimeMillis() - request.getTimestamp().getTime());
 
         // [MS-SMB2].pdf 3.2.5.1.5 Handling Asynchronous Responses
         if (isSet(packet.getHeader().getFlags(), SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
