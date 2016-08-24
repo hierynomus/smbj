@@ -87,7 +87,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         packetReaderThread.start();
         transport.init(getInputStream(), getOutputStream());
         negotiateDialect();
-        logger.debug("Connected to: {}", getRemoteHostname());
+        logger.info("Successfully connected to: {}", getRemoteHostname());
     }
 
     @Override
@@ -125,6 +125,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
                 int payloadSize = ((SMB2MultiCreditPacket) packet).getPayloadSize();
                 int creditsNeeded = creditsNeeded(payloadSize);
                 int grantCredits = 1;
+                // Scale the credits granted to the message dynamically.
                 if (availableCredits == 0) {
                     throw new NoSuchElementException("TODO ([MS-SMB2].pdf 3.2.5.1.4 Granting Message Credits)! No credits left.");
                 } else if (creditsNeeded < availableCredits) {
@@ -137,13 +138,14 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
                 long[] messageIds = connectionInfo.getSequenceWindow().get(grantCredits);
                 ((SMB2MultiCreditPacket) packet).setCreditsAssigned(grantCredits);
                 packet.getHeader().setMessageId(messageIds[0]);
-                logger.info("Granted {} credits to {} with message id {}", grantCredits, packet.getHeader().getMessage(), packet.getHeader().getMessageId());
+                logger.debug("Granted {} credits to {} with message id << {} >>", grantCredits, packet.getHeader().getMessage(), packet.getHeader().getMessageId());
                 packet.getHeader().setCreditRequest(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits);
             } else {
                 long messageId = connectionInfo.getSequenceWindow().get();
                 packet.getHeader().setMessageId(messageId);
                 packet.getHeader().setCreditRequest(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - 1);
             }
+
             Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID(), packet);
             connectionInfo.getOutstandingRequests().registerOutstanding(request);
             transport.write(packet);
@@ -163,7 +165,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         }
         SMB2NegotiateResponse resp = (SMB2NegotiateResponse) negotiateResponse;
         connectionInfo.negotiated(resp);
-        logger.info("Negotiated: {}", connectionInfo);
+        logger.info("Negotiated the following connection settings: {}", connectionInfo);
     }
 
 
@@ -192,9 +194,10 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
         // [MS-SMB2].pdf 3.2.5.1.4 Granting Message Credits
         connectionInfo.getSequenceWindow().creditsGranted(packet.getHeader().getCreditResponse());
+        logger.debug("Server granted us {} credits for message with sequence number << {} >>", packet.getHeader().getCreditResponse(), messageId);
 
         Request request = connectionInfo.getOutstandingRequests().getRequestByMessageId(messageId);
-        logger.info("Send/Recv of packet with message id << {} >> took << {} ms >>", messageId, System.currentTimeMillis() - request.getTimestamp().getTime());
+        logger.trace("Send/Recv of packet with message id << {} >> took << {} ms >>", messageId, System.currentTimeMillis() - request.getTimestamp().getTime());
 
         // [MS-SMB2].pdf 3.2.5.1.5 Handling Asynchronous Responses
         if (isSet(packet.getHeader().getFlags(), SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
@@ -224,6 +227,6 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     @Handler
     private void sessionLogoff(SessionLoggedOff loggedOff) {
         // TODO keep track of the current sessions.
-        logger.info("Session logged off");
+        logger.info("Session << {} >> logged off", loggedOff.getSessionId());
     }
 }
