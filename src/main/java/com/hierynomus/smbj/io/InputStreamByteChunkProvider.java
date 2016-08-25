@@ -15,6 +15,8 @@
  */
 package com.hierynomus.smbj.io;
 
+import com.hierynomus.smbj.common.SMBRuntimeException;
+
 import java.io.*;
 
 public class InputStreamByteChunkProvider extends ByteChunkProvider {
@@ -43,7 +45,7 @@ public class InputStreamByteChunkProvider extends ByteChunkProvider {
         try {
             return is.available();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new SMBRuntimeException(e);
         }
     }
 
