@@ -17,9 +17,6 @@ package com.hierynomus.smbj.connection;
 
 import com.hierynomus.smbj.common.SMBRuntimeException;
 
-import java.io.Serializable;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -123,41 +120,6 @@ class SequenceWindow {
         @Override
         public int availablePermits() {
             return Integer.MAX_VALUE;
-        }
-    }
-
-    public static class Range implements Serializable, Iterable<Long> {
-        long minInclusive;
-        long maxExclusive;
-
-        public Range(long minInclusive, long maxExclusive) {
-            this.minInclusive = minInclusive;
-            this.maxExclusive = maxExclusive;
-        }
-
-        @Override
-        public Iterator<Long> iterator() {
-            return new Iterator<Long>() {
-                long current = minInclusive;
-
-                @Override
-                public boolean hasNext() {
-                    return current < maxExclusive;
-                }
-
-                @Override
-                public Long next() {
-                    if (current >= maxExclusive) {
-                        throw new NoSuchElementException("Range Iterator depleted");
-                    }
-                    return current++;
-                }
-
-                @Override
-                public void remove() {
-                    throw new UnsupportedOperationException();
-                }
-            };
         }
     }
 }
