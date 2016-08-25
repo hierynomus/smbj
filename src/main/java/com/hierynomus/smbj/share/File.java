@@ -63,8 +63,7 @@ public class File extends DiskEntry {
         write(provider, null);
     }
 
-    public void read(OutputStream destStream) throws IOException,
-        SMBApiException {
+    public void read(OutputStream destStream) throws IOException, SMBApiException {
         read(destStream, null);
     }
 

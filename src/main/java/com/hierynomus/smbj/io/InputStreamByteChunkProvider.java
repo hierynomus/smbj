@@ -40,13 +40,12 @@ public class InputStreamByteChunkProvider extends ByteChunkProvider {
 
     @Override
     public int bytesLeft() {
-        int i = 0;
         try {
-            i = is.available();
+            return is.available();
         } catch (IOException e) {
             new RuntimeException(e);
         }
-        return i;
+        return 0;
     }
 
     @Override

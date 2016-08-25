@@ -41,10 +41,6 @@ public class FileOutputStream extends OutputStream {
     private Connection connection;
     private int maxWriteSize;
     private ProgressListener progressListener;
-    private byte[] buf;
-    private int offset = 0;
-    private int currentSize = 0;
-    private int readPosition = 0;
     private boolean isClosed = false;
     private ByteArrayProvider provider;
 
@@ -57,19 +53,18 @@ public class FileOutputStream extends OutputStream {
         this.connection = session.getConnection();
         this.progressListener = progressListener;
         this.maxWriteSize = connection.getNegotiatedProtocol().getMaxWriteSize();
-        this.buf = new byte[maxWriteSize];
-        this.provider = new ByteArrayProvider();
+        this.provider = new ByteArrayProvider(this.maxWriteSize);
     }
 
     @Override
     public void write(int b) throws IOException {
         verifyConnectionNotClosed();
 
-        if (currentSize < maxWriteSize) {
-            buf[currentSize] = (byte) b;
-            ++currentSize;
+        if (provider.getCurrentSize() < maxWriteSize) {
+            provider.getBuf()[provider.getCurrentSize()] = (byte) b;
+            provider.incCurrentSize();
         }
-        if (currentSize == maxWriteSize) flush();
+        if (provider.getCurrentSize() == maxWriteSize) flush();
     }
 
     @Override
@@ -80,11 +75,11 @@ public class FileOutputStream extends OutputStream {
     @Override
     public void write(byte b[], int off, int len) throws IOException {
         verifyConnectionNotClosed();
-        if (currentSize < maxWriteSize) {
-            System.arraycopy(b, off, buf, currentSize, len);
-            currentSize = currentSize + len;
+        if (provider.getCurrentSize() < maxWriteSize) {
+            System.arraycopy(b, off, provider.getBuf(), provider.getCurrentSize(), len);
+            provider.incCurrentSize(len);
         }
-        if (currentSize == maxWriteSize) flush();
+        if (provider.getCurrentSize() == maxWriteSize) flush();
     }
 
     @Override
@@ -99,9 +94,8 @@ public class FileOutputStream extends OutputStream {
             if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
                 throw new SMBApiException(wresp.getHeader().getStatus(), "Write failed for " + this);
             }
-            offset += currentSize;
-            currentSize = 0;
-            readPosition = 0;
+            provider.resetCurrentSize();
+            provider.resetReadPosition();
             if (progressListener != null)
                 progressListener.onProgressChanged(wresp.getBytesWritten(), provider.getOffset());
         }
@@ -111,18 +105,27 @@ public class FileOutputStream extends OutputStream {
     public void close() throws IOException {
         flush();
         isClosed = true;
-        buf = null;
+        provider.clean();
         treeConnect = null;
         session = null;
         connection = null;
-        logger.debug("EOF, {} bytes written", offset);
+        logger.debug("EOF, {} bytes written", provider.getOffset());
     }
 
     private void verifyConnectionNotClosed() throws IOException {
         if (isClosed) throw new IOException("Stream is closed");
     }
 
-    private class ByteArrayProvider extends ByteChunkProvider {
+    private static class ByteArrayProvider extends ByteChunkProvider {
+
+        private byte[] buf;
+        private int maxWriteSize;
+        private int currentSize;
+        private int readPosition;
+
+        private ByteArrayProvider(int maxWriteSize) {
+            this.maxWriteSize = maxWriteSize;
+        }
 
         @Override
         public boolean isAvailable() {
@@ -140,6 +143,36 @@ public class FileOutputStream extends OutputStream {
         @Override
         public int bytesLeft() {
             return currentSize - readPosition;
+        }
+
+        private byte[] getBuf() {
+            if (buf == null)
+                buf = new byte[maxWriteSize];
+            return buf;
+        }
+
+        private void clean() {
+            buf = null;
+        }
+
+        private int getCurrentSize() {
+            return currentSize;
+        }
+
+        private void incCurrentSize() {
+            incCurrentSize(1);
+        }
+
+        private void incCurrentSize(int i) {
+            currentSize += i;
+        }
+
+        private void resetCurrentSize() {
+            currentSize = 0;
+        }
+
+        private void resetReadPosition() {
+            readPosition = 0;
         }
     }
 }
