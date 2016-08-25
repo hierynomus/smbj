@@ -12,6 +12,7 @@ import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.io.InputStreamByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
@@ -168,7 +169,7 @@ public class SmbjTest {
             // Download and compare with originals
             File tmpFile1 = File.createTempFile("smbj", "junit");
             try (OutputStream os = new FileOutputStream(tmpFile1)) {
-                share.read(fix(TEST_PATH + "/1/" + file1), os, null);
+                read(share, fix(TEST_PATH + "/1/" + file1), os);
             }
             assertFileContent("testfiles/medium.txt", tmpFile1.getAbsolutePath());
 
@@ -205,7 +206,7 @@ public class SmbjTest {
     public void testWithSingleConnectionMultipleClients() throws IOException, SMBApiException, URISyntaxException {
         logger.info("Connect {},{},{},{}", ci.host, ci.user, ci.domain, ci.sharePath);
         SMBClient client = new SMBClient();
-        Connection connection = client.connect(ci.host);
+        final Connection connection = client.connect(ci.host);
         AuthenticationContext ac = new AuthenticationContext(
             ci.user,
             ci.password == null ? new char[0] : ci.password.toCharArray(),
@@ -224,7 +225,7 @@ public class SmbjTest {
             assertTrue(share.folderExists(fix(TEST_PATH)));
             ExecutorService executor = Executors.newFixedThreadPool(10);
             final List <Exception> exceptions = new ArrayList<>();
-            for (int i = 0; i < 1000; i++) {
+            for (int i = 0; i < 100; i++) {
                 executor.execute(new Runnable() {
                     @Override
                     public void run() {
@@ -234,9 +235,20 @@ public class SmbjTest {
                         String path = fix(TEST_PATH + "\\" + fl);
                         try {
                             File localTmpFile = File.createTempFile("smbj", "junit");
-                            share.write(path, true, is, null);
+                            com.hierynomus.smbj.share.File file = share.openFile(path,
+                                EnumSet.of(AccessMask.GENERIC_WRITE), SMB2CreateDisposition.FILE_OVERWRITE_IF);
+
+                            OutputStream out = file.getOutputStream();
+                            int numRead = -1;
+                            byte[] buf = new byte[10000];
+                            while ((numRead = is.read(buf)) != -1) {
+                                out.write(buf, 0, numRead);
+                            }
+                            out.close();
+                            file.close();
+
                             try (OutputStream os = new FileOutputStream(localTmpFile)) {
-                                share.read(path, os, null);
+                                read(share, path, os);
                             }
                             byte[] actualBytes = Files.readAllBytes(localTmpFile.toPath());
                             assertArrayEquals(expectedBytes, actualBytes);
@@ -259,7 +271,7 @@ public class SmbjTest {
             for (Throwable e : exceptions) {
                 e.printStackTrace();
             }
-            assertEquals("Errors encountered using mutiple threads", 0, exceptions.size());
+            assertEquals("Errors encountered with multiple threads", 0, exceptions.size());
             share.rmdir(TEST_PATH, true);
             assertFalse(share.folderExists(fix(TEST_PATH)));
         } finally {
@@ -395,9 +407,28 @@ public class SmbjTest {
     void write(DiskShare share, String remotePath, String localResource)
             throws IOException, SMBApiException {
         logger.debug("Writing {}, {} to {}", localResource, this.getClass().getResource(localResource), remotePath);
+        com.hierynomus.smbj.share.File file = share.openFile(remotePath,
+            EnumSet.of(AccessMask.GENERIC_WRITE), SMB2CreateDisposition.FILE_OVERWRITE_IF);
         try (InputStream is = this.getClass().getResourceAsStream(localResource)) {
-            share.write(remotePath, true, is, null);
+            file.write(new InputStreamByteChunkProvider(is));
         }
+        file.close();
+    }
+
+    void write(DiskShare share, String remotePath, InputStream is)
+        throws IOException, SMBApiException {
+        com.hierynomus.smbj.share.File file = share.openFile(remotePath,
+            EnumSet.of(AccessMask.GENERIC_WRITE), SMB2CreateDisposition.FILE_OVERWRITE_IF);
+        file.write(new InputStreamByteChunkProvider(is));
+        file.close();
+    }
+
+    void read(DiskShare share, String remotePath, OutputStream os)
+        throws IOException, SMBApiException {
+        com.hierynomus.smbj.share.File file = share.openFile(remotePath,
+            EnumSet.of(AccessMask.GENERIC_READ), SMB2CreateDisposition.FILE_OPEN);
+        file.read(os);
+        file.close();
     }
 
     private void assertFilesInPathEquals(DiskShare share, String[] expected, String path)
