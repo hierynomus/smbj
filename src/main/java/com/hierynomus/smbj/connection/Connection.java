@@ -185,10 +185,6 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         return connectionInfo.getNegotiatedProtocol();
     }
 
-    public ConnectionInfo getConnectionInfo() {
-        return connectionInfo;
-    }
-
     @Override
     public void handle(SMB2Packet packet) throws TransportException {
         long messageId = packet.getSequenceNumber();
