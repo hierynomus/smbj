@@ -43,9 +43,8 @@ public class InputStreamByteChunkProvider extends ByteChunkProvider {
         try {
             return is.available();
         } catch (IOException e) {
-            new RuntimeException(e);
+            throw new RuntimeException(e);
         }
-        return 0;
     }
 
     @Override

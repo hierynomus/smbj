@@ -59,15 +59,15 @@ public class File extends DiskEntry {
         }
     }
 
-    public void write(ByteChunkProvider provider) throws IOException, SMBApiException {
+    public void write(ByteChunkProvider provider) throws IOException {
         write(provider, null);
     }
 
-    public void read(OutputStream destStream) throws IOException, SMBApiException {
+    public void read(OutputStream destStream) throws IOException {
         read(destStream, null);
     }
 
-    public void read(OutputStream destStream, ProgressListener progressListener) throws IOException, SMBApiException {
+    public void read(OutputStream destStream, ProgressListener progressListener) throws IOException {
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
         InputStream is = getInputStream(progressListener);
