@@ -67,8 +67,7 @@ public class File extends DiskEntry {
         read(destStream, null);
     }
 
-    public void read(OutputStream destStream, ProgressListener progressListener) throws IOException,
-        SMBApiException {
+    public void read(OutputStream destStream, ProgressListener progressListener) throws IOException, SMBApiException {
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
         InputStream is = getInputStream(progressListener);
