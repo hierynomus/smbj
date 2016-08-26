@@ -18,6 +18,7 @@ package com.hierynomus.smbj.connection;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -39,18 +40,27 @@ class SequenceWindow {
     static final int PREFERRED_MINIMUM_CREDITS = 512;
     private AtomicLong lowestAvailable = new AtomicLong(0);
     private Semaphore available = new Semaphore(1);
+    private static final long MAX_WAIT = 5000;
 
-    long get() {
-        if (available.tryAcquire()) {
-            return lowestAvailable.getAndIncrement();
+    public long get() {
+        try {
+            if (available.tryAcquire(MAX_WAIT, TimeUnit.MILLISECONDS)) {
+                return lowestAvailable.getAndIncrement();
+            }
+        } catch (InterruptedException e) {
+            //ignore
         }
         throw new SMBRuntimeException("No more credits available to hand out sequence number");
     }
 
-    long[] get(int credits) {
-        if (available.tryAcquire(credits)) {
-            long lowest = lowestAvailable.getAndAdd(credits);
-            return range(lowest, lowest + credits);
+    public long[] get(int credits) {
+        try {
+            if (available.tryAcquire(credits, MAX_WAIT, TimeUnit.MILLISECONDS)) {
+                long lowest = lowestAvailable.getAndAdd(credits);
+                return range(lowest, lowest + credits);
+            }
+        } catch (InterruptedException e) {
+            //ignore
         }
         throw new SMBRuntimeException("Not enough credits (" + available.availablePermits() + " available) to hand out " + credits + " sequence numbers");
     }
@@ -88,7 +98,17 @@ class SequenceWindow {
         }
 
         @Override
+        public boolean tryAcquire(long timeout, TimeUnit unit) {
+            return true;
+        }
+
+        @Override
         public boolean tryAcquire(int permits) {
+            return true;
+        }
+
+        @Override
+        public boolean tryAcquire(int permits, long timeout, TimeUnit unit) {
             return true;
         }
 
