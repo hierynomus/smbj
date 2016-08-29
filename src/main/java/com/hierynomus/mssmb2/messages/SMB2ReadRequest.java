@@ -18,7 +18,6 @@ package com.hierynomus.mssmb2.messages;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2MultiCreditPacket;
-import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.connection.NegotiatedProtocol;
 
@@ -30,13 +29,11 @@ public class SMB2ReadRequest extends SMB2MultiCreditPacket {
 
     private final long offset;
     private final SMB2FileId fileId;
-    private int readSize;
 
     public SMB2ReadRequest(
         NegotiatedProtocol negotiatedProtocol, SMB2FileId fileId,
         long sessionId, long treeId, long offset) {
         super(49, negotiatedProtocol.getDialect(), SMB2MessageCommandCode.SMB2_READ, sessionId, treeId, negotiatedProtocol.getMaxReadSize());
-        this.readSize = negotiatedProtocol.getMaxReadSize();
         this.fileId = fileId;
         this.offset = offset;
     }
@@ -46,7 +43,7 @@ public class SMB2ReadRequest extends SMB2MultiCreditPacket {
         buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putByte((byte) 0); // Padding (1 byte)
         buffer.putByte((byte) 0); // Flags (1 byte)
-        buffer.putUInt32(readSize); // Length (4 bytes)
+        buffer.putUInt32(NegotiatedProtocol.SINGLE_CREDIT_PAYLOAD_SIZE * creditsAssigned); // Length (4 bytes)
         buffer.putUInt64(offset); // Offset (8 bytes)
         fileId.write(buffer);  // FileId (16 bytes)
         buffer.putUInt32(1); // MinimumCount (4 bytes)
