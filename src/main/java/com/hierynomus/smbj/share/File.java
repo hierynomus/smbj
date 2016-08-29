@@ -84,7 +84,7 @@ public class File extends DiskEntry {
     }
 
     private InputStream getInputStream(final ProgressListener listener) {
-        return new FileInputStream(fileId, treeConnect, listener);
+        return new FileInputStream(this, listener);
     }
 
     public OutputStream getOutputStream() {
