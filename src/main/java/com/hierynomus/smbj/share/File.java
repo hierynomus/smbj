@@ -91,8 +91,8 @@ public class File extends DiskEntry {
         return getOutputStream(null);
     }
 
-    private OutputStream getOutputStream(final ProgressListener listener) {
-        return new FileOutputStream(fileId, treeConnect, listener);
+    public OutputStream getOutputStream(final ProgressListener listener) {
+        return new FileOutputStream(this, listener);
     }
 
     @Override

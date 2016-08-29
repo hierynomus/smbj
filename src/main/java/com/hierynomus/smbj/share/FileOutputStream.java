@@ -46,9 +46,9 @@ public class FileOutputStream extends OutputStream {
 
     private static final Logger logger = LoggerFactory.getLogger(FileOutputStream.class);
 
-    public FileOutputStream(SMB2FileId fileId, TreeConnect treeConnect, ProgressListener progressListener) {
-        this.treeConnect = treeConnect;
-        this.fileId = fileId;
+    public FileOutputStream(File file, ProgressListener progressListener) {
+        this.treeConnect = file.treeConnect;
+        this.fileId = file.fileId;
         this.session = treeConnect.getSession();
         this.connection = session.getConnection();
         this.progressListener = progressListener;
