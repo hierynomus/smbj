@@ -46,7 +46,6 @@ import java.io.IOException;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.concurrent.Future;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
@@ -124,7 +123,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             if (packet instanceof SMB2MultiCreditPacket) {
                 int payloadSize = ((SMB2MultiCreditPacket) packet).getPayloadSize();
                 int creditsNeeded = creditsNeeded(payloadSize);
-                int grantCredits = 1;
+                int grantCredits;
                 // Scale the credits granted to the message dynamically.
                 if (availableCredits == 0) {
                     throw new NoSuchElementException("TODO ([MS-SMB2].pdf 3.2.5.1.4 Granting Message Credits)! No credits left.");
