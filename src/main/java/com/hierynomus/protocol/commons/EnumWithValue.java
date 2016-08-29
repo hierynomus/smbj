@@ -29,7 +29,7 @@ public interface EnumWithValue<E extends Enum<E>> {
                 if (e instanceof EnumWithValue) {
                     l |= ((EnumWithValue) e).getValue();
                 } else {
-                    throw new RuntimeException("Can only be used with EnumWithValue enums.");
+                    throw new IllegalArgumentException("Can only be used with EnumWithValue enums.");
                 }
             }
             return l;
@@ -37,7 +37,7 @@ public interface EnumWithValue<E extends Enum<E>> {
 
         public static <E extends Enum<E>> EnumSet<E> toEnumSet(long l, Class<E> clazz) {
             if (!EnumWithValue.class.isAssignableFrom(clazz)) {
-                throw new RuntimeException("Can only be used with EnumWithValue enums.");
+                throw new IllegalArgumentException("Can only be used with EnumWithValue enums.");
             }
             EnumSet<E> es = EnumSet.noneOf(clazz);
             for (E anEnum : clazz.getEnumConstants()) {

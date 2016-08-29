@@ -18,7 +18,6 @@ package com.hierynomus.mssmb2;
 public class SMB2MultiCreditPacket extends SMB2Packet {
 
     protected int creditsAssigned = 1;
-    private int creditsNeeded;
     private int payloadSize;
 
     public SMB2MultiCreditPacket(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType, long sessionId, long treeId, int payloadSize) {

@@ -108,7 +108,7 @@ public abstract class ACE {
                 ace = new AceType1().read(buffer);
                 break;
             default:
-                throw new RuntimeException("Reserved for future use");
+                throw new IllegalStateException("Unknown ACE type: " + aceType);
         }
 
         return ace;

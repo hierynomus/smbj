@@ -111,6 +111,8 @@ public class SMB2QueryInfoRequest extends SMB2Packet {
                 fileId.write(buffer); // FileId (16 bytes)
                 offset = BUFFER_OFFSET;
                 break;
+            default:
+                throw new IllegalStateException("Unknown SMB2QueryInfoType: " + infoType);
         }
         if (offset > 0) {
             buffer.putRawBytes(inputBuffer);

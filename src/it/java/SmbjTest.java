@@ -66,7 +66,7 @@ public class SmbjTest {
     String TEST_PATH = get("junit");
 
     @BeforeClass
-    public static void setup() throws IOException {
+    public static void setUp() throws IOException {
         String url = System.getenv("TEST_SMBJ_API_URL");
         if (url == null) {
             url = "smb://<someip>/share?smbuser=<smbuser>&smbdomain=CORP&smbpassword=<smbpass>";
@@ -150,7 +150,7 @@ public class SmbjTest {
 
             fileInformation = share.getFileInformation(fix(TEST_PATH + "/1/2/3/" +
                     file3));
-            assertTrue(!EnumWithValue.EnumUtils.isSet(
+            assertFalse(EnumWithValue.EnumUtils.isSet(
                     fileInformation.getFileAttributes(), FileAttributes.FILE_ATTRIBUTE_DIRECTORY));
 
             try {
