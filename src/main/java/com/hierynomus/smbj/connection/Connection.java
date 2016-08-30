@@ -120,10 +120,10 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         lock.lock();
         try {
             int availableCredits = connectionInfo.getSequenceWindow().available();
+            int grantCredits;
             if (packet instanceof SMB2MultiCreditPacket) {
                 int payloadSize = ((SMB2MultiCreditPacket) packet).getPayloadSize();
                 int creditsNeeded = creditsNeeded(payloadSize);
-                int grantCredits;
                 // Scale the credits granted to the message dynamically.
                 if (availableCredits == 0) {
                     throw new NoSuchElementException("TODO ([MS-SMB2].pdf 3.2.5.1.4 Granting Message Credits)! No credits left.");
@@ -138,12 +138,12 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
                 ((SMB2MultiCreditPacket) packet).setCreditsAssigned(grantCredits);
                 packet.getHeader().setMessageId(messageIds[0]);
                 logger.debug("Granted {} credits to {} with message id << {} >>", grantCredits, packet.getHeader().getMessage(), packet.getHeader().getMessageId());
-                packet.getHeader().setCreditRequest(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits);
             } else {
+                grantCredits = 1;
                 long messageId = connectionInfo.getSequenceWindow().get();
                 packet.getHeader().setMessageId(messageId);
-                packet.getHeader().setCreditRequest(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - 1);
             }
+            packet.getHeader().setCreditRequest(Math.max(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits, grantCredits));
 
             Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID(), packet);
             connectionInfo.getOutstandingRequests().registerOutstanding(request);
