@@ -75,11 +75,18 @@ public class FileOutputStream extends OutputStream {
     @Override
     public void write(byte b[], int off, int len) throws IOException {
         verifyConnectionNotClosed();
+
+        if (provider.getCurrentSize() + len > maxWriteSize) {
+            flush();
+        }
         if (provider.getCurrentSize() < maxWriteSize) {
-            System.arraycopy(b, off, provider.getBuf(), provider.getCurrentSize(), len);
+            try {
+                System.arraycopy(b, off, provider.getBuf(), provider.getCurrentSize(), len);
+            }catch(Exception ex) {
+                int y = 0;
+            }
             provider.incCurrentSize(len);
         }
-        if (provider.getCurrentSize() == maxWriteSize) flush();
     }
 
     @Override
@@ -94,11 +101,12 @@ public class FileOutputStream extends OutputStream {
             if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
                 throw new SMBApiException(wresp.getHeader().getStatus(), "Write failed for " + this);
             }
-            provider.resetCurrentSize();
-            provider.resetReadPosition();
-            if (progressListener != null)
+            if (progressListener != null) {
                 progressListener.onProgressChanged(wresp.getBytesWritten(), provider.getOffset());
+            }
         }
+        provider.resetCurrentSize();
+        provider.resetReadPosition();
     }
 
     @Override
