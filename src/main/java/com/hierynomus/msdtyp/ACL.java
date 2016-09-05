@@ -74,7 +74,7 @@ public class ACL {
     }
 
     public ACE[] getAces() {
-        return aces;
+        return Arrays.copyOf(aces, aces.length);
     }
 
     public int getAclSize() {
