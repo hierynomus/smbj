@@ -65,8 +65,7 @@ public class Directory extends DiskEntry {
         byte[] outputBuffer = qdResp.getOutputBuffer();
 
         try {
-            return FileInformationFactory.parseFileInformationList(
-                    outputBuffer, FileInformationClass.FileIdBothDirectoryInformation);
+            return FileInformationFactory.parseFileInformationList(outputBuffer, FileInformationClass.FileIdBothDirectoryInformation);
         } catch (Buffer.BufferException e) {
             throw new TransportException(e);
         }
@@ -86,10 +85,7 @@ public class Directory extends DiskEntry {
 
     @Override
     public String toString() {
-        return "File{" +
-                "fileId=" + fileId +
-                ", fileName='" + fileName + '\'' +
-                '}';
+        return String.format("File{fileId=%s, fileName='%s'}", fileId, fileName);
     }
 
 }
