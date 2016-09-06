@@ -50,7 +50,7 @@ public class ConnectionInfo {
     }
 
     // All SMB2 Dialect
-    private List<Void> sessionTable;
+    private SessionTable sessionTable = new SessionTable();
     private List<Void> preauthSessionTable;
     private OutstandingRequests outstandingRequests = new OutstandingRequests();
     private SequenceWindow sequenceWindow;
@@ -91,8 +91,12 @@ public class ConnectionInfo {
         serverSecurityMode = response.getSecurityMode();
     }
 
-    public SequenceWindow getSequenceWindow() {
+    SequenceWindow getSequenceWindow() {
         return sequenceWindow;
+    }
+
+    SessionTable getSessionTable() {
+        return sessionTable;
     }
 
     public UUID getClientGuid() {

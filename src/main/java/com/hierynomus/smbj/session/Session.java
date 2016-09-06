@@ -117,7 +117,7 @@ public class Session implements AutoCloseable {
             try {
                 treeConnect.getHandle().close();
             } catch (IOException e) {
-                // TODO
+                logger.error(String.format("Caught exception while closing TreeConnect with id: %s", treeConnect.getTreeId()), e);
             }
         }
         SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);

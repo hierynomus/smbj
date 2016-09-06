@@ -23,7 +23,7 @@ import spock.lang.Specification
 import java.security.Security
 
 class IntegrationTest extends Specification {
-  def IP = "172.16.37.142"
+  def IP = "172.16.37.150"
   def AUTH = new AuthenticationContext("Administrator", "xeb1aLabs".toCharArray(), "")
 
   def setupSpec() {
@@ -50,10 +50,12 @@ class IntegrationTest extends Specification {
     when:
     def connection = client.connect(IP)
     def session = connection.authenticate(AUTH)
-    session.close()
 
     then:
     session.sessionId != null
+
+    cleanup:
+    connection.close()
   }
 
   def "should connect to share"() {
@@ -64,7 +66,7 @@ class IntegrationTest extends Specification {
     def connection = client.connect(IP)
     def session = connection.authenticate(AUTH)
     def share = session.connectShare("Go")
-    session.close()
+    connection.close()
 
     then:
     share instanceof DiskShare
@@ -86,6 +88,6 @@ class IntegrationTest extends Specification {
     !share.folderExists("foo")
 
     cleanup:
-    session.close()
+    connection.close()
   }
 }

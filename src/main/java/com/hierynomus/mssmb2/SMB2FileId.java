@@ -24,9 +24,9 @@ import com.hierynomus.smbj.common.SMBBuffer;
  */
 public class SMB2FileId {
 
-    private byte[] persistentHandle = new byte[8];
+    private byte[] persistentHandle;
 
-    private byte[] volatileHandle = new byte[8];
+    private byte[] volatileHandle;
 
     private SMB2FileId(byte[] persistentHandle, byte[] volatileHandle) {
         this.persistentHandle = persistentHandle;

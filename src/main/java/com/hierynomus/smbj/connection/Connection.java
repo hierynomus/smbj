@@ -91,7 +91,9 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
     @Override
     public void close() throws Exception {
+        connectionInfo.getSessionTable().closeRemainingSessions();
         packetReader.stop();
+        logger.info("Closed connection to {}", getRemoteHostname());
         super.disconnect();
     }
 
@@ -108,7 +110,10 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             if (negTokenInit.getSupportedMechTypes().contains(new ASN1ObjectIdentifier(factory.getName()))) {
                 NtlmAuthenticator ntlmAuthenticator = factory.create();
                 long sessionId = ntlmAuthenticator.authenticate(this, authContext);
-                return new Session(sessionId, this, bus);
+                logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), getRemoteHostname(), sessionId);
+                Session session = new Session(sessionId, this, bus);
+                connectionInfo.getSessionTable().registerSession(sessionId, session);
+                return session;
             }
         } catch (IOException e) {
             throw new SMBRuntimeException(e);
@@ -225,7 +230,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
     @Handler
     private void sessionLogoff(SessionLoggedOff loggedOff) {
-        // TODO keep track of the current sessions.
-        logger.info("Session << {} >> logged off", loggedOff.getSessionId());
+        connectionInfo.getSessionTable().sessionClosed(loggedOff.getSessionId());
+        logger.debug("Session << {} >> logged off", loggedOff.getSessionId());
     }
 }
