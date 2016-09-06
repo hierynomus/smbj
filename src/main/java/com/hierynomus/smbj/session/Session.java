@@ -79,7 +79,7 @@ public class Session implements AutoCloseable {
             Future<SMB2TreeConnectResponse> send = connection.send(smb2TreeConnectRequest);
             SMB2TreeConnectResponse response = Futures.get(send, TransportException.Wrapper);
             if (response.getHeader().getStatus().isError()) {
-                throw new SMBApiException(response.getHeader().getStatus(), "Could not connect to " + smbPath);
+                throw new SMBApiException(response.getHeader(), "Could not connect to " + smbPath);
             }
 
             if (response.getCapabilities().contains(SMB2ShareCapabilities.SMB2_SHARE_CAP_ASYMMETRIC)) {
@@ -123,7 +123,7 @@ public class Session implements AutoCloseable {
         SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
         SMB2Logoff response = Futures.get(connection.<SMB2Logoff>send(logoff), TransportException.Wrapper);
         if (!response.getHeader().getStatus().isSuccess()) {
-            throw new SMBApiException(response.getHeader().getStatus(), "Could not logoff session <<" + sessionId + ">>");
+            throw new SMBApiException(response.getHeader(), "Could not logoff session <<" + sessionId + ">>");
         }
         bus.publish(new SessionLoggedOff(sessionId));
     }

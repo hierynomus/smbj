@@ -320,7 +320,7 @@ public class DiskShare extends Share {
         SMB2CreateResponse response = Futures.get(sendFuture, TransportException.Wrapper);
 
         if (response.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(response.getHeader().getStatus(), "Create failed for " + path);
+            throw new SMBApiException(response.getHeader(), "Create failed for " + path);
         }
 
         SMB2FileId fileId = response.getFileId();
@@ -328,40 +328,38 @@ public class DiskShare extends Share {
             byte[] dispoInfo = FileInformationFactory.getFileDispositionInfo(true);
             SMB2SetInfoRequest si_req = new SMB2SetInfoRequest(
                 connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
-                    SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE, fileId,
-                    FileInformationClass.FileDispositionInformation, null, dispoInfo);
+                SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE, fileId,
+                FileInformationClass.FileDispositionInformation, null, dispoInfo);
 
             Future<SMB2SetInfoResponse> setInfoFuture = connection.send(si_req);
             SMB2SetInfoResponse setInfoResponse = Futures.get(setInfoFuture, TransportException.Wrapper);
 
             if (setInfoResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(response.getHeader().getStatus(), "SetInfo failed for " + path);
+                throw new SMBApiException(response.getHeader(), "SetInfo failed for " + path);
             }
         } finally {
             SMB2Close closeReq = new SMB2Close(connection.getNegotiatedProtocol().getDialect(),
-                    session.getSessionId(), treeConnect.getTreeId(), fileId);
+                session.getSessionId(), treeConnect.getTreeId(), fileId);
             Future<SMB2Close> closeFuture = connection.send(closeReq);
             SMB2Close closeResponse = Futures.get(closeFuture, TransportException.Wrapper);
 
             if (closeResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(response.getHeader().getStatus(), "Close failed for " + path);
+                throw new SMBApiException(response.getHeader(), "Close failed for " + path);
             }
 
         }
     }
 
-    private boolean exists(String path, EnumSet<SMB2CreateOptions> createOptions)
-            throws SMBApiException {
+    private boolean exists(String path, EnumSet<SMB2CreateOptions> createOptions) throws SMBApiException {
         logger.info("exists {}", path);
 
         SMB2FileId fileId = null;
         try {
             fileId = open(path,
-                    toLong(EnumSet.of(AccessMask.FILE_READ_ATTRIBUTES)),
-                    EnumSet.of(FileAttributes.FILE_ATTRIBUTE_DIRECTORY),
-                    EnumSet.of(SMB2ShareAccess.FILE_SHARE_DELETE, SMB2ShareAccess.FILE_SHARE_WRITE,
-                            SMB2ShareAccess.FILE_SHARE_READ),
-                    SMB2CreateDisposition.FILE_OPEN, createOptions);
+                toLong(EnumSet.of(AccessMask.FILE_READ_ATTRIBUTES)),
+                EnumSet.of(FileAttributes.FILE_ATTRIBUTE_DIRECTORY),
+                EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ),
+                SMB2CreateDisposition.FILE_OPEN, createOptions);
             return true;
         } catch (SMBApiException sae) {
             if (sae.getStatus() == NtStatus.STATUS_OBJECT_NAME_NOT_FOUND) {
@@ -410,25 +408,25 @@ public class DiskShare extends Share {
     }
 
     private byte[] queryInfoCommon(
-            SMB2FileId fileId,
-            SMB2QueryInfoRequest.SMB2QueryInfoType infoType,
-            EnumSet<SecurityInformation> securityInfo,
-            FileInformationClass fileInformationClass)
-            throws SMBApiException {
+        SMB2FileId fileId,
+        SMB2QueryInfoRequest.SMB2QueryInfoType infoType,
+        EnumSet<SecurityInformation> securityInfo,
+        FileInformationClass fileInformationClass)
+        throws SMBApiException {
 
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
 
         SMB2QueryInfoRequest qreq = new SMB2QueryInfoRequest(
             connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
-                fileId, infoType,
-                fileInformationClass, null, null, securityInfo);
+            fileId, infoType,
+            fileInformationClass, null, null, securityInfo);
         try {
             Future<SMB2QueryInfoResponse> qiResponseFuture = connection.send(qreq);
             SMB2QueryInfoResponse qresp = Futures.get(qiResponseFuture, SMBRuntimeException.Wrapper);
 
             if (qresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(qresp.getHeader().getStatus(), "QUERY_INFO failed for " + fileId);
+                throw new SMBApiException(qresp.getHeader(), "QUERY_INFO failed for " + fileId);
             }
             return qresp.getOutputBuffer();
         } catch (TransportException e) {

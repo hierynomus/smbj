@@ -59,8 +59,7 @@ public class Directory extends DiskEntry {
         SMB2QueryDirectoryResponse qdResp = Futures.get(qdFuture, TransportException.Wrapper);
 
         if (qdResp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(qdResp.getHeader().getStatus(),
-                    "Query directory failed for " + fileName + "/" + fileId);
+            throw new SMBApiException(qdResp.getHeader(), "Query directory failed for " + fileName + "/" + fileId);
         }
         byte[] outputBuffer = qdResp.getOutputBuffer();
 

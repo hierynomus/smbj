@@ -16,22 +16,37 @@
 package com.hierynomus.smbj.common;
 
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.mssmb2.SMB2Header;
+import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 
 public class SMBApiException extends SMBRuntimeException {
-    private NtStatus status;
+    private final NtStatus status;
+    private final SMB2MessageCommandCode failedCommand;
 
-    public SMBApiException(NtStatus status, String message) {
+    public SMBApiException(NtStatus status, SMB2MessageCommandCode failedCommand, String message) {
         super(message);
         this.status = status;
+        this.failedCommand = failedCommand;
     }
 
-    public SMBApiException(NtStatus status, Throwable t) {
+    public SMBApiException(NtStatus status, SMB2MessageCommandCode failedCommand, Throwable t) {
         super(t);
         this.status = status;
+        this.failedCommand = failedCommand;
+    }
+
+    public SMBApiException(SMB2Header header, String message) {
+        super(message);
+        this.status = header.getStatus();
+        this.failedCommand = header.getMessage();
     }
 
     public NtStatus getStatus() {
         return status;
+    }
+
+    public SMB2MessageCommandCode getFailedCommand() {
+        return failedCommand;
     }
 
     @Override

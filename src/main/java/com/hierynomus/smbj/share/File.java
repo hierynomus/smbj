@@ -53,7 +53,7 @@ public class File extends DiskEntry {
             Future<SMB2WriteResponse> writeFuture = connection.send(wreq);
             SMB2WriteResponse wresp = Futures.get(writeFuture, TransportException.Wrapper);
             if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(wresp.getHeader().getStatus(), "Write failed for " + this);
+                throw new SMBApiException(wresp.getHeader(), "Write failed for " + this);
             }
             if (progressListener != null) progressListener.onProgressChanged(wresp.getBytesWritten(), provider.getOffset());
         }

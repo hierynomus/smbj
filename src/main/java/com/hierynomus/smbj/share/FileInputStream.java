@@ -113,7 +113,7 @@ public class FileInputStream extends InputStream {
             return;
         }
         if (res.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(res.getHeader().getStatus(), "Read failed for " + this);
+            throw new SMBApiException(res.getHeader(), "Read failed for " + this);
         }
         nextResponse = sendRequest();
     }
