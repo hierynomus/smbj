@@ -46,6 +46,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.Future;
 
+import static com.hierynomus.mssmb2.SMB2ShareAccess.*;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
 
 public class DiskShare extends Share {
