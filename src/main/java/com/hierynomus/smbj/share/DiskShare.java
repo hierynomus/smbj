@@ -90,9 +90,9 @@ public class DiskShare extends Share {
                 return new File(null, treeConnect, path, fileInformation.getAccessMask());
             }
         } catch (SMBApiException ex) {
-            if (ex.getStatus() == NtStatus.STATUS_OBJECT_NAME_NOT_FOUND) {
-                return new NonExisting(null, treeConnect, path);
-            }
+//            if (ex.getStatus() == NtStatus.STATUS_OBJECT_NAME_NOT_FOUND) {
+//                return new NonExisting(null, treeConnect, path);
+//            }
             throw ex;
         }
     }
