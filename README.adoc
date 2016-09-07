@@ -35,7 +35,7 @@ If you're building your project using Maven, you can add the following dependenc
 If your project is built using another build tool that uses the Maven Central repository, translate this dependency into the format used by your build tool.
 
 == Building SMBJ
-. Clone the Overthere repository.
+. Clone the SMBJ repository.
 . Ensure you have Java7 installed with the http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html[Unlimited strength Java Cryptography Extensions (JCE)].
 . Run the command `./gradlew clean build`.
 
