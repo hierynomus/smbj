@@ -32,12 +32,15 @@ public class ByteArrayUtils {
      *
      * @return <code>true</code> or <code>false</code>
      */
-    public static boolean equals(byte[] a1, int a1Offset, byte[] a2, int a2Offset, int length) {
-        if (a1.length < a1Offset + length || a2.length < a2Offset + length)
+    public static boolean equals(byte[] a1, final int a1Offset, byte[] a2, final int a2Offset, final int length) {
+        if (a1.length < a1Offset + length || a2.length < a2Offset + length) {
             return false;
-        while (length-- > 0)
-            if (a1[a1Offset++] != a2[a2Offset++])
+        }
+
+        for (int l = 0; l < length; l++) {
+            if (a1[a1Offset + l] != a2[a2Offset + l])
                 return false;
+        }
         return true;
     }
 

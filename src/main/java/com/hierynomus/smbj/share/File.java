@@ -37,9 +37,11 @@ import java.util.concurrent.Future;
 public class File extends DiskEntry {
 
     private static final Logger logger = LoggerFactory.getLogger(File.class);
+    private final long accessMask;
 
-    public File(SMB2FileId fileId, TreeConnect treeConnect, String fileName) {
+    public File(SMB2FileId fileId, TreeConnect treeConnect, String fileName, long accessMask) {
         super(treeConnect, fileId, fileName);
+        this.accessMask = accessMask;
     }
 
     public void write(ByteChunkProvider provider, ProgressListener progressListener) throws TransportException {
