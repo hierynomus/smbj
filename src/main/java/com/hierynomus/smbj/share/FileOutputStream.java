@@ -80,11 +80,7 @@ public class FileOutputStream extends OutputStream {
             flush();
         }
         if (provider.getCurrentSize() < maxWriteSize) {
-            try {
-                System.arraycopy(b, off, provider.getBuf(), provider.getCurrentSize(), len);
-            }catch(Exception ex) {
-                int y = 0;
-            }
+            System.arraycopy(b, off, provider.getBuf(), provider.getCurrentSize(), len);
             provider.incCurrentSize(len);
         }
     }
@@ -92,26 +88,32 @@ public class FileOutputStream extends OutputStream {
     @Override
     public void flush() throws IOException {
         verifyConnectionNotClosed();
+        sendWriteRequest();
+    }
 
-        while (provider.isAvailable()) {
-            SMB2WriteRequest wreq = new SMB2WriteRequest(connection.getNegotiatedProtocol().getDialect(), fileId,
-                session.getSessionId(), treeConnect.getTreeId(), provider, connection.getNegotiatedProtocol().getMaxWriteSize());
-            Future<SMB2WriteResponse> writeFuture = connection.send(wreq);
-            SMB2WriteResponse wresp = Futures.get(writeFuture, TransportException.Wrapper);
-            if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(wresp.getHeader().getStatus(), "Write failed for " + this);
-            }
-            if (progressListener != null) {
-                progressListener.onProgressChanged(wresp.getBytesWritten(), provider.getOffset());
-            }
+    private void sendWriteRequest() throws TransportException {
+        SMB2WriteRequest wreq = new SMB2WriteRequest(connection.getNegotiatedProtocol().getDialect(), fileId,
+            session.getSessionId(), treeConnect.getTreeId(), provider, connection.getNegotiatedProtocol().getMaxWriteSize());
+        Future<SMB2WriteResponse> writeFuture = connection.send(wreq);
+        SMB2WriteResponse wresp = Futures.get(writeFuture, TransportException.Wrapper);
+        if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+            throw new SMBApiException(wresp.getHeader().getStatus(), "Write failed for " + this);
         }
-        provider.resetCurrentSize();
-        provider.resetReadPosition();
+        if (progressListener != null) {
+            progressListener.onProgressChanged(wresp.getBytesWritten(), provider.getOffset());
+        }
     }
 
     @Override
     public void close() throws IOException {
-        flush();
+
+        while (provider.isAvailable()) {
+            sendWriteRequest();
+        }
+
+        provider.resetCurrentSize();
+        provider.resetReadPosition();
+
         isClosed = true;
         provider.clean();
         treeConnect = null;
