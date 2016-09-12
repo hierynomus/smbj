@@ -18,7 +18,6 @@ package com.hierynomus.smbj.share;
 public class RingBuffer {
 
     private byte[] buf;
-    private int readIndex;
     private int writeIndex;
     private int size;
 
@@ -68,15 +67,17 @@ public class RingBuffer {
     }
 
     private void readBytes(byte[] b, int i) {
-        if (readIndex + i <= buf.length) {
+        int readIndex = writeIndex - size;
+        if (readIndex > 0) {
             System.arraycopy(buf, readIndex, b, 0, i);
-            readIndex += i;
         } else {
+            readIndex += buf.length;
             int bytesToEnd = buf.length - readIndex;
             System.arraycopy(buf, readIndex, b, 0, bytesToEnd);
             System.arraycopy(buf, 0, b, bytesToEnd, i - bytesToEnd);
-            readIndex = i - bytesToEnd;
         }
+
     }
+
 }
 

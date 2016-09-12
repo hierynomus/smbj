@@ -107,8 +107,40 @@ public class RingBufferTest {
         byte[] b1 = new byte[]{4, 5, 6};
         cBuf.write(b1);
         cBuf.read(1);
-        cBuf.write(new byte[] {30});
+        cBuf.write(new byte[]{30});
         assertEquals("Incorrect Size", 3, cBuf.getUsedSize());
         assertArrayEquals("Bytes to not match", new byte[]{5, 6, 30}, cBuf.read(3));
+    }
+
+    @Test
+    public void shouldBeAbleToAppendMoreBytesIfWritePositionHasWrappedAround() {
+        cBuf = new RingBuffer(6);
+        byte[] b1 = new byte[]{1, 2, 3, 4, 5, 6};
+        cBuf.write(b1);
+        cBuf.read(4);
+        cBuf.write(new byte[]{7, 8});
+        cBuf.write(new byte[]{9, 10});
+        assertEquals("Incorrect Size", 6, cBuf.getUsedSize());
+        assertArrayEquals("Bytes to not match", new byte[]{5, 6, 7, 8, 9, 10}, cBuf.read(6));
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void shouldThrowExceptionIfFullWhenWritePositionHasWrappedAround() {
+        cBuf = new RingBuffer(6);
+        byte[] b1 = new byte[]{1, 2, 3, 4, 5, 6};
+        cBuf.write(b1);
+        cBuf.read(4);
+        cBuf.write(new byte[]{7, 8});
+        cBuf.write(new byte[]{9, 10, 11});
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void shouldThrowExceptionIfAllBytesAreReadWhenWritePositionHasWrappedAround() {
+        cBuf = new RingBuffer(6);
+        byte[] b1 = new byte[]{1, 2, 3, 4, 5, 6};
+        cBuf.write(b1);
+        cBuf.read(4);
+        cBuf.write(new byte[]{7, 8});
+        cBuf.read(5);
     }
 }
