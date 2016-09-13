@@ -15,7 +15,7 @@
  */
 package com.hierynomus.smbj.share;
 
-public class RingBuffer {
+class RingBuffer {
 
     private byte[] buf;
     private int writeIndex;
@@ -25,45 +25,40 @@ public class RingBuffer {
         buf = new byte[maxSize];
     }
 
-    public void write(byte[] b) {
 
-        if (b.length > getAvailableSize())
+    public void write(byte[] b, int off, int len) {
+
+        if (b.length - off < len)
+            throw new IllegalArgumentException("Bytes to write do not exist in source");
+
+        if (len > buf.length - size)
             throw new IndexOutOfBoundsException("Size of bytes to be written is greater than available buffer space");
 
-        writeBytes(b);
-        size += b.length;
+        writeBytes(b, off, len);
+        size += len;
     }
 
-    public byte[] read(int i) {
-        if (i == 0)
+    public void write(int b) {
+        write(new byte[]{(byte) b}, 0, 1);
+    }
+
+
+    public int read(byte[] chunk) {
+        int len = size < chunk.length ? size : chunk.length;
+
+        if (len == 0)
             throw new IllegalArgumentException("Read size should be more than zero");
-        if (i > getUsedSize())
+
+        if (len > getUsedSize())
             throw new IndexOutOfBoundsException("Read size is greater than available bytes");
-        byte[] b = new byte[i];
-        readBytes(b, i);
-        size -= i;
-        return b;
+
+        readBytes(chunk, len);
+        size -= len;
+        return len;
     }
 
     public int getUsedSize() {
         return size;
-    }
-
-    public int getAvailableSize() {
-        return buf.length - size;
-    }
-
-    private void writeBytes(byte[] b) {
-        int i = b.length;
-        if (writeIndex + i <= buf.length) {
-            System.arraycopy(b, 0, buf, writeIndex, i);
-            writeIndex += i;
-        } else {
-            int bytesToEnd = buf.length - writeIndex;
-            System.arraycopy(b, 0, buf, writeIndex, bytesToEnd);
-            System.arraycopy(b, bytesToEnd, buf, bytesToEnd, i - bytesToEnd);
-            writeIndex = i - bytesToEnd;
-        }
     }
 
     private void readBytes(byte[] b, int i) {
@@ -76,8 +71,30 @@ public class RingBuffer {
             System.arraycopy(buf, readIndex, b, 0, bytesToEnd);
             System.arraycopy(buf, 0, b, bytesToEnd, i - bytesToEnd);
         }
-
     }
 
+    private void writeBytes(byte[] b, int off, int len) {
+        if (writeIndex + len <= buf.length) {
+            System.arraycopy(b, off, buf, writeIndex, len);
+            writeIndex += len;
+        } else {
+            int bytesToEnd = buf.length - writeIndex;
+            System.arraycopy(b, off, buf, writeIndex, bytesToEnd);
+            System.arraycopy(b, bytesToEnd, buf, bytesToEnd, len - bytesToEnd);
+            writeIndex = len - bytesToEnd;
+        }
+    }
+
+    public boolean isFull() {
+        return size == buf.length;
+    }
+
+    public boolean isFull(int len) {
+        return size + len > buf.length;
+    }
+
+    public boolean hasData() {
+        return size > 0;
+    }
 }
 
