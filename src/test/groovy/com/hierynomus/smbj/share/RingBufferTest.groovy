@@ -29,7 +29,7 @@ public class RingBufferTest extends Specification {
   def "should be able to append all bytes to buffer"() {
     given:
     def actual = [4, 5, 6, 7, 1] as byte[]
-    def byteArray = [0, 0, 0, 0, 0] as byte[]
+    def byteArray = new byte[5]
 
 
     when:
@@ -44,7 +44,7 @@ public class RingBufferTest extends Specification {
   def "should be able to append only selected bytes to buffer"() {
     given:
     def actual = [4, 5, 6, 7, 1] as byte[];
-    def byteArray = [0, 0, 0] as byte[]
+    def byteArray = new byte[3]
 
     when:
     cBuf.write(actual, 2, 3);
@@ -69,7 +69,7 @@ public class RingBufferTest extends Specification {
   def "should be able to append single byte to buffer"() {
     given:
     def actual = [4, 5, 6, 7, 1] as byte[];
-    def byteArray = [0, 0, 0, 0] as byte[]
+    def byteArray = new byte[4]
 
     when:
     cBuf.write(actual, 2, 3);
@@ -85,7 +85,7 @@ public class RingBufferTest extends Specification {
     given:
     def b1 = [4, 5, 6] as byte[]
     def b2 = [12, 13] as byte[]
-    def byteArray = [0, 0, 0, 0, 0] as byte[]
+    def byteArray = new byte[5]
 
     when:
     cBuf.write(b1, 0, 3);
@@ -109,26 +109,12 @@ public class RingBufferTest extends Specification {
     thrown IndexOutOfBoundsException
   }
 
-  def "should read all available bytes from buffer"() {
-    given:
-    def b = [4, 5, 6, 7, 1] as byte[]
-    def byteArray = [0, 0, 0, 0, 0] as byte[]
-
-    when:
-    cBuf.write(b, 0, 5);
-
-    then:
-    cBuf.getUsedSize() == 5
-    cBuf.read(byteArray);
-    byteArray == b
-  }
-
   def "should read specified number of bytes from buffer"() {
     given:
     def b = [4, 5, 6, 7, 1, 20] as byte[]
-    def b1 = [0, 0] as byte[]
-    def b2 = [0, 0, 0] as byte[]
-    def b3 = [0] as byte[]
+    def b1 = new byte[2]
+    def b2 = new byte[3]
+    def b3 = new byte[1]
 
     when:
     cBuf.write(b, 0, 6);
@@ -149,7 +135,7 @@ public class RingBufferTest extends Specification {
 
     when:
     cBuf.write(b, 0, 3);
-    cBuf.read([] as byte[])
+    cBuf.read(new byte[0])
 
     then:
     thrown IllegalArgumentException
@@ -164,11 +150,11 @@ public class RingBufferTest extends Specification {
 
     then:
     cBuf.getUsedSize() == 5
-    cBuf.read([0] as byte[]);
+    cBuf.read(new byte[1]);
     cBuf.getUsedSize() == 4
-    cBuf.read([0, 0] as byte[]);
+    cBuf.read(new byte[2]);
     cBuf.getUsedSize() == 2
-    cBuf.read([0, 0] as byte[]);
+    cBuf.read(new byte[2]);
     cBuf.getUsedSize() == 0
   }
 
@@ -176,11 +162,11 @@ public class RingBufferTest extends Specification {
     given:
     cBuf = new RingBuffer(3);
     def b1 = [4, 5, 6] as byte[]
-    def byteArray = [0, 0, 0] as byte[]
+    def byteArray = new byte[3]
 
     when:
     cBuf.write(b1, 0, 3);
-    cBuf.read([0] as byte[]);
+    cBuf.read(new byte[1]);
     cBuf.write([30] as byte[], 0, 1);
 
 
@@ -195,11 +181,11 @@ public class RingBufferTest extends Specification {
     given:
     cBuf = new RingBuffer(6);
     def b1 = [1, 2, 3, 4, 5, 6] as byte[]
-    def byteArray = [0, 0, 0, 0, 0, 0] as byte[]
+    def byteArray = new byte[6]
 
     when:
     cBuf.write(b1, 0, 6);
-    cBuf.read([0, 0, 0, 0] as byte[]);
+    cBuf.read(new byte[4]);
     cBuf.write([7, 8] as byte[], 0, 2);
     cBuf.write([9, 10] as byte[], 0, 2);
 
@@ -217,7 +203,7 @@ public class RingBufferTest extends Specification {
 
     when:
     cBuf.write(b, 0, 6);
-    cBuf.read([0, 0, 0, 0] as byte[])
+    cBuf.read(new byte[4])
     cBuf.write([7, 8] as byte[], 0, 2);
     cBuf.write([9, 10, 11] as byte[], 0, 3);
 
