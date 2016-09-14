@@ -55,7 +55,7 @@ class SequenceWindowTest extends Specification {
         window.creditsGranted(10)
 
         expect:
-        window.get(10) == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        window.get(10) == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as long[]
     }
 
     def "should throw exception when requesting more sequence numbers than credits available"() {

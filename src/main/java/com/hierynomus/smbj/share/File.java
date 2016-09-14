@@ -37,9 +37,11 @@ import java.util.concurrent.Future;
 public class File extends DiskEntry {
 
     private static final Logger logger = LoggerFactory.getLogger(File.class);
+    private final long accessMask;
 
-    public File(SMB2FileId fileId, TreeConnect treeConnect, String fileName) {
+    public File(SMB2FileId fileId, TreeConnect treeConnect, String fileName, long accessMask) {
         super(treeConnect, fileId, fileName);
+        this.accessMask = accessMask;
     }
 
     public void write(ByteChunkProvider provider, ProgressListener progressListener) throws TransportException {
@@ -53,7 +55,7 @@ public class File extends DiskEntry {
             Future<SMB2WriteResponse> writeFuture = connection.send(wreq);
             SMB2WriteResponse wresp = Futures.get(writeFuture, TransportException.Wrapper);
             if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(wresp.getHeader().getStatus(), "Write failed for " + this);
+                throw new SMBApiException(wresp.getHeader(), "Write failed for " + this);
             }
             if (progressListener != null) progressListener.onProgressChanged(wresp.getBytesWritten(), provider.getOffset());
         }

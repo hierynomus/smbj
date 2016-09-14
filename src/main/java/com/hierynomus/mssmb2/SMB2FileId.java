@@ -24,21 +24,13 @@ import com.hierynomus.smbj.common.SMBBuffer;
  */
 public class SMB2FileId {
 
-    private byte[] persistentHandle = new byte[8];
+    private byte[] persistentHandle;
 
-    private byte[] volatileHandle = new byte[8];
+    private byte[] volatileHandle;
 
-    public SMB2FileId(byte[] persistentHandle, byte[] volatileHandle) {
-        System.arraycopy(persistentHandle, 0, this.persistentHandle, 0, 8);
-        System.arraycopy(volatileHandle, 0, this.volatileHandle, 0, 8);
-    }
-
-    public byte[] getPersistentHandle() {
-        return persistentHandle;
-    }
-
-    public byte[] getVolatileHandle() {
-        return volatileHandle;
+    private SMB2FileId(byte[] persistentHandle, byte[] volatileHandle) {
+        this.persistentHandle = persistentHandle;
+        this.volatileHandle = volatileHandle;
     }
 
     public void write(SMBBuffer buffer) {

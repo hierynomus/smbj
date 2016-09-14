@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.transport;
 
 import com.hierynomus.protocol.Packet;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +47,7 @@ public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
                     return;
                 }
                 handler.handleError(e);
-                throw new RuntimeException(e);
+                throw new SMBRuntimeException(e);
             }
         }
     }

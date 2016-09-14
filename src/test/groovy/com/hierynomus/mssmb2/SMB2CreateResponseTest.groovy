@@ -33,7 +33,7 @@ class SMB2CreateResponseTest extends Specification {
         resp.read(new SMBBuffer(bytes1))
 
         then:
-        resp.getCreationTime().equals(new Date(1461446418426L))
+        resp.getCreationTime() == new Date(1461446418426L)
         Arrays.equals(([0x03,0x00,0x00,0x00,0x10,0x00,0x00,0x00] as byte[]), resp.fileId.persistentHandle)
     }
 

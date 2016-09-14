@@ -59,14 +59,12 @@ public class Directory extends DiskEntry {
         SMB2QueryDirectoryResponse qdResp = Futures.get(qdFuture, TransportException.Wrapper);
 
         if (qdResp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(qdResp.getHeader().getStatus(),
-                    "Query directory failed for " + fileName + "/" + fileId);
+            throw new SMBApiException(qdResp.getHeader(), "Query directory failed for " + fileName + "/" + fileId);
         }
         byte[] outputBuffer = qdResp.getOutputBuffer();
 
         try {
-            return FileInformationFactory.parseFileInformationList(
-                    outputBuffer, FileInformationClass.FileIdBothDirectoryInformation);
+            return FileInformationFactory.parseFileInformationList(outputBuffer, FileInformationClass.FileIdBothDirectoryInformation);
         } catch (Buffer.BufferException e) {
             throw new TransportException(e);
         }
@@ -86,10 +84,7 @@ public class Directory extends DiskEntry {
 
     @Override
     public String toString() {
-        return "File{" +
-                "fileId=" + fileId +
-                ", fileName='" + fileName + '\'' +
-                '}';
+        return String.format("File{fileId=%s, fileName='%s'}", fileId, fileName);
     }
 
 }

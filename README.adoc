@@ -8,6 +8,8 @@ To get started, have a look at one of the examples. Hopefully you will find the 
 
 image:https://travis-ci.org/hierynomus/smbj.svg?branch=master["Build Status", link="https://travis-ci.org/hierynomus/smbj"]
 image:https://badge.waffle.io/hierynomus/smbj.svg?label=ready&title=Ready["Issues in Ready", link="http://waffle.io/hierynomus/smbj"]
+image:https://api.codacy.com/project/badge/Grade/ae8ba8e308734bfbab92fa226853ce91["Codacy code quality", link="https://www.codacy.com/app/jeroen_2/smbj?utm_source=github.com&utm_medium=referral&utm_content=hierynomus/smbj&utm_campaign=Badge_Grade"]
+image:https://www.ej-technologies.com/images/product_banners/jprofiler_small.png["Java profiler", link="http://www.ej-technologies.com/products/jprofiler/overview.html"]
 
 == Getting SMBJ
 
@@ -35,7 +37,7 @@ If you're building your project using Maven, you can add the following dependenc
 If your project is built using another build tool that uses the Maven Central repository, translate this dependency into the format used by your build tool.
 
 == Building SMBJ
-. Clone the Overthere repository.
+. Clone the SMBJ repository.
 . Ensure you have Java7 installed with the http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html[Unlimited strength Java Cryptography Extensions (JCE)].
 . Run the command `./gradlew clean build`.
 
