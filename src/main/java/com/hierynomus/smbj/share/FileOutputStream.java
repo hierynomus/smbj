@@ -60,11 +60,13 @@ public class FileOutputStream extends OutputStream {
     public void write(int b) throws IOException {
         verifyConnectionNotClosed();
 
-        if (provider.getCurrentSize() < maxWriteSize) {
-            provider.getBuf()[provider.getCurrentSize()] = (byte) b;
-            provider.incCurrentSize();
+        if (provider.isBufferFull()) {
+            flush();
         }
-        if (provider.getCurrentSize() == maxWriteSize) flush();
+
+        if (!provider.isBufferFull()) {
+            provider.writeByte(b);
+        }
     }
 
     @Override
@@ -75,37 +77,46 @@ public class FileOutputStream extends OutputStream {
     @Override
     public void write(byte b[], int off, int len) throws IOException {
         verifyConnectionNotClosed();
-        if (provider.getCurrentSize() < maxWriteSize) {
-            System.arraycopy(b, off, provider.getBuf(), provider.getCurrentSize(), len);
-            provider.incCurrentSize(len);
+
+        if (provider.isBufferFull(len)) {
+            flush();
         }
-        if (provider.getCurrentSize() == maxWriteSize) flush();
+
+        if (!provider.isBufferFull()) {
+            provider.writeBytes(b, off, len);
+        }
+
     }
 
     @Override
     public void flush() throws IOException {
         verifyConnectionNotClosed();
+        sendWriteRequest();
+    }
 
-        while (provider.isAvailable()) {
-            SMB2WriteRequest wreq = new SMB2WriteRequest(connection.getNegotiatedProtocol().getDialect(), fileId,
-                session.getSessionId(), treeConnect.getTreeId(), provider, connection.getNegotiatedProtocol().getMaxWriteSize());
-            Future<SMB2WriteResponse> writeFuture = connection.send(wreq);
-            SMB2WriteResponse wresp = Futures.get(writeFuture, TransportException.Wrapper);
-            if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(wresp.getHeader(), "Write failed for " + this);
-            }
-            provider.resetCurrentSize();
-            provider.resetReadPosition();
-            if (progressListener != null)
-                progressListener.onProgressChanged(wresp.getBytesWritten(), provider.getOffset());
+    private void sendWriteRequest() throws TransportException {
+        SMB2WriteRequest wreq = new SMB2WriteRequest(connection.getNegotiatedProtocol().getDialect(), fileId,
+            session.getSessionId(), treeConnect.getTreeId(), provider, connection.getNegotiatedProtocol().getMaxWriteSize());
+        Future<SMB2WriteResponse> writeFuture = connection.send(wreq);
+        SMB2WriteResponse wresp = Futures.get(writeFuture, TransportException.Wrapper);
+        if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+            throw new SMBApiException(wresp.getHeader(), "Write failed for " + this);
+        }
+        if (progressListener != null) {
+            progressListener.onProgressChanged(wresp.getBytesWritten(), provider.getOffset());
         }
     }
 
     @Override
     public void close() throws IOException {
-        flush();
+
+        while (provider.isAvailable()) {
+            sendWriteRequest();
+        }
+
+        provider.reset();
+
         isClosed = true;
-        provider.clean();
         treeConnect = null;
         session = null;
         connection = null;
@@ -118,61 +129,45 @@ public class FileOutputStream extends OutputStream {
 
     private static class ByteArrayProvider extends ByteChunkProvider {
 
-        private byte[] buf;
-        private int maxWriteSize;
-        private int currentSize;
-        private int readPosition;
+        private RingBuffer buf;
 
         private ByteArrayProvider(int maxWriteSize) {
-            this.maxWriteSize = maxWriteSize;
+            this.buf = new RingBuffer(maxWriteSize);
         }
 
         @Override
         public boolean isAvailable() {
-            return currentSize - readPosition > 0;
+            return buf.hasData();
         }
 
         @Override
         protected int getChunk(byte[] chunk) throws IOException {
-            int len = currentSize - readPosition < chunk.length ? currentSize - readPosition : chunk.length;
-            System.arraycopy(buf, readPosition, chunk, 0, len);
-            readPosition = readPosition + len;
-            return len;
+            return buf.read(chunk);
         }
 
         @Override
         public int bytesLeft() {
-            return currentSize - readPosition;
+            return buf.getUsedSize();
         }
 
-        private byte[] getBuf() {
-            if (buf == null)
-                buf = new byte[maxWriteSize];
-            return buf;
+        public void writeBytes(byte[] b, int off, int len) {
+            buf.write(b, off, len);
         }
 
-        private void clean() {
-            buf = null;
+        public void writeByte(int b) {
+            buf.write(b);
         }
 
-        private int getCurrentSize() {
-            return currentSize;
+        public boolean isBufferFull() {
+            return buf.isFull();
         }
 
-        private void incCurrentSize() {
-            incCurrentSize(1);
+        public boolean isBufferFull(int len) {
+            return buf.isFull(len);
         }
 
-        private void incCurrentSize(int i) {
-            currentSize += i;
-        }
-
-        private void resetCurrentSize() {
-            currentSize = 0;
-        }
-
-        private void resetReadPosition() {
-            readPosition = 0;
+        private void reset() {
+            this.buf = null;
         }
     }
 }
