@@ -21,8 +21,10 @@ import com.hierynomus.msdtyp.SecurityInformation;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.FileInformationClass;
+import com.hierynomus.msfscc.FileSysemInformationClass;
 import com.hierynomus.msfscc.fileinformation.FileInfo;
 import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
+import com.hierynomus.msfscc.fileinformation.ShareInfo;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMB2FileId;
@@ -57,6 +59,25 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
 public class DiskShare extends Share {
 
     private static final Logger logger = LoggerFactory.getLogger(DiskShare.class);
+
+    protected ShareInfo shareInfo = null;
+    protected long attrExpiration = 0L;
+    protected static final long attrExpirationPeriod;
+    
+    protected static final long DEFAULT_ATTR_EXPIRATION_PERIOD = 5000;
+    
+    static {
+    	long period = DEFAULT_ATTR_EXPIRATION_PERIOD;
+    	try {
+    		String value = System.getProperty("hierynomus.smb.client.attrExpirationPeriod");
+    		if ( value != null ) {
+    			period = Long.valueOf(value);
+    		}
+    	} catch (Exception e) {
+    		
+    	}
+    	attrExpirationPeriod = period;
+    }
 
     public DiskShare(SmbPath smbPath, TreeConnect treeConnect) {
         super(smbPath, treeConnect);
@@ -189,6 +210,38 @@ public class DiskShare extends Share {
         }
     }
 
+    /**
+     * Get Share Information for the current Disk Share
+     * @return the ShareInfo
+     * @throws SMBApiException
+     */
+    public ShareInfo getShareInformation() throws TransportException, SMBApiException {
+    	final String path = ".";
+
+    	if ( shareInfo != null && attrExpiration > System.currentTimeMillis() ) {
+    		return shareInfo;
+    	}
+    	
+		Directory directory = openDirectory(path, EnumSet.of(AccessMask.FILE_READ_ATTRIBUTES),
+                EnumSet.of(SMB2ShareAccess.FILE_SHARE_DELETE, SMB2ShareAccess.FILE_SHARE_WRITE,
+                SMB2ShareAccess.FILE_SHARE_READ),
+                SMB2CreateDisposition.FILE_OPEN);
+		
+		try {
+        	byte[] outputBuffer = queryInfoCommon(directory.getFileId(), 
+        			SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILESYSTEM, 
+        			null, null, FileSysemInformationClass.FileFsFullSizeInformation);
+    	
+        	shareInfo = ShareInfo.parseFsFullSizeInformation(new Buffer.PlainBuffer(outputBuffer, Endian.LE));
+        	attrExpiration = System.currentTimeMillis() + attrExpirationPeriod;
+        	
+        	return shareInfo;
+        	
+    	} catch (Buffer.BufferException e) {
+    		throw new SMBRuntimeException(e);
+    	}   			
+    }
+    
     /**
      * Remove the directory at the given path.
      */
@@ -401,10 +454,20 @@ public class DiskShare extends Share {
     }
 
     private byte[] queryInfoCommon(
+            SMB2FileId fileId,
+            SMB2QueryInfoRequest.SMB2QueryInfoType infoType,
+            EnumSet<SecurityInformation> securityInfo,
+            FileInformationClass fileInformationClass)
+            throws SMBApiException {
+    	return queryInfoCommon(fileId, infoType, securityInfo, fileInformationClass, null);
+    }
+    
+    private byte[] queryInfoCommon(
         SMB2FileId fileId,
         SMB2QueryInfoRequest.SMB2QueryInfoType infoType,
         EnumSet<SecurityInformation> securityInfo,
-        FileInformationClass fileInformationClass)
+        FileInformationClass fileInformationClass,
+        FileSysemInformationClass fileSysemInformationClass)
         throws SMBApiException {
 
         Session session = treeConnect.getSession();
@@ -413,7 +476,7 @@ public class DiskShare extends Share {
         SMB2QueryInfoRequest qreq = new SMB2QueryInfoRequest(
             connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
             fileId, infoType,
-            fileInformationClass, null, null, securityInfo);
+            fileInformationClass, fileSysemInformationClass, null, securityInfo);
         try {
             Future<SMB2QueryInfoResponse> qiResponseFuture = connection.send(qreq);
             SMB2QueryInfoResponse qresp = Futures.get(qiResponseFuture, SMBRuntimeException.Wrapper);

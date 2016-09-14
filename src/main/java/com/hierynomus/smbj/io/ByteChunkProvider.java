@@ -24,7 +24,7 @@ import java.io.OutputStream;
 public abstract class ByteChunkProvider {
     static final int CHUNK_SIZE = 64 * 1024;
 
-    private int offset;
+    protected long offset = 0;
 
     public abstract boolean isAvailable();
 
@@ -63,7 +63,7 @@ public abstract class ByteChunkProvider {
         }
     }
 
-    public int getOffset() {
+    public long getOffset() {
         return offset;
     }
 
