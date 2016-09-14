@@ -28,11 +28,13 @@ class RingBuffer {
 
     public void write(byte[] b, int off, int len) {
 
-        if (b.length - off < len)
+        if (b.length - off < len) {
             throw new IllegalArgumentException("Bytes to write do not exist in source");
+        }
 
-        if (len > buf.length - size)
+        if (len > buf.length - size) {
             throw new IndexOutOfBoundsException("Size of bytes to be written is greater than available buffer space");
+        }
 
         writeBytes(b, off, len);
         size += len;
@@ -46,11 +48,13 @@ class RingBuffer {
     public int read(byte[] chunk) {
         int len = size < chunk.length ? size : chunk.length;
 
-        if (len == 0)
+        if (len == 0) {
             throw new IllegalArgumentException("Read size should be more than zero");
+        }
 
-        if (len > getUsedSize())
+        if (len > getUsedSize()) {
             throw new IndexOutOfBoundsException("Read size is greater than available bytes");
+        }
 
         readBytes(chunk, len);
         size -= len;

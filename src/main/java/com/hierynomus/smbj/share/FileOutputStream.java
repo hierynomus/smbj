@@ -60,9 +60,13 @@ public class FileOutputStream extends OutputStream {
     public void write(int b) throws IOException {
         verifyConnectionNotClosed();
 
-        if (provider.isBufferFull()) flush();
+        if (provider.isBufferFull()) {
+            flush();
+        }
 
-        if (!provider.isBufferFull()) provider.writeByte(b);
+        if (!provider.isBufferFull()) {
+            provider.writeByte(b);
+        }
     }
 
     @Override
@@ -74,9 +78,13 @@ public class FileOutputStream extends OutputStream {
     public void write(byte b[], int off, int len) throws IOException {
         verifyConnectionNotClosed();
 
-        if (provider.isBufferFull(len)) flush();
+        if (provider.isBufferFull(len)) {
+            flush();
+        }
 
-        if (!provider.isBufferFull()) provider.writeBytes(b, off, len);
+        if (!provider.isBufferFull()) {
+            provider.writeBytes(b, off, len);
+        }
 
     }
 
