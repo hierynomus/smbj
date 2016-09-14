@@ -435,4 +435,34 @@ public class DiskShare extends Share {
             throw SMBRuntimeException.Wrapper.wrap(e);
         }
     }
+
+
+    public boolean checkAccessMask(AccessMask mask, String smbPathOnShare) {
+        File file = null;
+        try {
+            file = openFile(smbPathOnShare, EnumSet.of(mask), SMB2CreateDisposition.FILE_OPEN);
+            return file !=null;
+        } catch (TransportException e) {
+            throw new IllegalStateException("Exception occurred while trying to determine permissions on file", e);
+        } catch (SMBApiException e) {
+            return checkPermissions(e);
+        } finally {
+            close(file);
+        }
+    }
+
+    private boolean checkPermissions(SMBApiException e) {
+        if (e.getStatus().equals(NtStatus.STATUS_ACCESS_DENIED)) {
+            return false;
+        }
+        throw new IllegalStateException("Exception occurred while trying to determine permissions on file", e);
+    }
+
+    private void close(File file) {
+        try {
+            close(file.getFileId());
+        } catch (TransportException e) {
+            throw new IllegalStateException("Exception occured while trying to determine permissions on file", e);
+        }
+    }
 }
