@@ -6,6 +6,7 @@ import com.hierynomus.msdtyp.ace.ACE;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.fileinformation.FileInfo;
+import com.hierynomus.msfscc.fileinformation.ShareInfo;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.SMBClient;
@@ -327,6 +328,11 @@ public class SmbjTest {
                 System.out.println(ace.getSid() + "-" + ace.getAceHeader());
                 sids.add(ace.getSid());
             }
+            
+        	ShareInfo info = share.getShareInformation(); 
+        	System.out.printf("total space of share = %d\n", info.getTotalSpace());
+        	System.out.printf("free space of share = %d\n", info.getFreeSpace());
+
         } finally {
             session.close();
         }
@@ -389,7 +395,7 @@ public class SmbjTest {
         SMB2ChangeNotifyResponse cnresponse = Futures.get(changeNotifyResponseFuture, TransportException.Wrapper);
 
         if (cnresponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(cnresponse.getHeader().getStatus(), "Notify failed for " + directory);
+            throw new SMBApiException(cnresponse.getHeader(), "Notify failed for " + directory);
         }
 
         return cnresponse.getFileNotifyInfoList();
