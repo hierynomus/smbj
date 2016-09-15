@@ -216,11 +216,7 @@ public class DiskShare extends Share {
      * @throws SMBApiException
      */
     public ShareInfo getShareInformation() throws TransportException, SMBApiException {
-<<<<<<< HEAD
     	final String path = "";
-=======
-    	final String path = ".";
->>>>>>> 70ff89ea468aa422a07e532ff0c807193200b0d8
 
     	if ( shareInfo != null && attrExpiration > System.currentTimeMillis() ) {
     		return shareInfo;
