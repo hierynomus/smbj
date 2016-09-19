@@ -129,16 +129,34 @@ public class RingBufferTest extends Specification {
     b3 == [20] as byte[]
   }
 
-  def "should throw exception if zero bytes are read"() {
+  def "should read zero bytes when read is called with zero byte buffer"() {
     given:
     def b = [4, 5, 6] as byte[];
 
     when:
     cBuf.write(b, 0, 3);
-    cBuf.read(new byte[0])
 
     then:
-    thrown IllegalArgumentException
+    cBuf.getUsedSize() == 3
+    cBuf.read(new byte[3])
+    cBuf.getUsedSize() == 0
+    cBuf.read(new byte[0]) == 0
+    cBuf.getUsedSize() == 0
+  }
+
+  def "should read available bytes when read is called with larger than available byte buffer"() {
+    given:
+    def b = [4, 5, 6] as byte[];
+    def byteArray = new byte[6]
+
+    when:
+    cBuf.write(b, 0, 3);
+
+    then:
+    cBuf.getUsedSize() == 3
+    cBuf.read(byteArray) == 3
+    cBuf.getUsedSize() == 0
+    byteArray == [4, 5, 6, 0, 0, 0] as byte[]
   }
 
   def "should indicate available bytes correctly"() {

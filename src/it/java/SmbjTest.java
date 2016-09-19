@@ -389,7 +389,7 @@ public class SmbjTest {
         SMB2ChangeNotifyResponse cnresponse = Futures.get(changeNotifyResponseFuture, TransportException.Wrapper);
 
         if (cnresponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(cnresponse.getHeader().getStatus(), "Notify failed for " + directory);
+            throw new SMBApiException(cnresponse.getHeader(), "Notify failed for " + directory);
         }
 
         return cnresponse.getFileNotifyInfoList();
