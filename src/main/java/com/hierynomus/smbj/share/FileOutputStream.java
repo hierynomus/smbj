@@ -91,7 +91,8 @@ public class FileOutputStream extends OutputStream {
     @Override
     public void flush() throws IOException {
         verifyConnectionNotClosed();
-        sendWriteRequest();
+        if (provider.isAvailable())
+            sendWriteRequest();
     }
 
     private void sendWriteRequest() throws TransportException {
