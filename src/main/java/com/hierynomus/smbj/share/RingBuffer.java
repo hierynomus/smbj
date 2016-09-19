@@ -46,12 +46,8 @@ class RingBuffer {
 
 
     public int read(byte[] chunk) {
+
         int len = size < chunk.length ? size : chunk.length;
-
-        if (len > getUsedSize()) {
-            throw new IndexOutOfBoundsException("Read size is greater than available bytes");
-        }
-
         readBytes(chunk, len);
         size -= len;
         return len;

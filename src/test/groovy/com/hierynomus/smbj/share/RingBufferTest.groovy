@@ -144,6 +144,21 @@ public class RingBufferTest extends Specification {
     cBuf.getUsedSize() == 0
   }
 
+  def "should read available bytes when read is called with larger than available byte buffer"() {
+    given:
+    def b = [4, 5, 6] as byte[];
+    def byteArray = new byte[6]
+
+    when:
+    cBuf.write(b, 0, 3);
+
+    then:
+    cBuf.getUsedSize() == 3
+    cBuf.read(byteArray) == 3
+    cBuf.getUsedSize() == 0
+    byteArray == [4, 5, 6, 0, 0, 0] as byte[]
+  }
+
   def "should indicate available bytes correctly"() {
     given:
     def b = [4, 5, 6, 10, 12] as byte[]
