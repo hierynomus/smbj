@@ -69,12 +69,15 @@ public class TreeConnect {
         if (!smb2Packet.getHeader().getStatus().isSuccess()) {
             throw new SMBApiException(smb2Packet.getHeader(), "Error closing connection to " + smbPath);
         }
-        share.disconnect();
         bus.publish(new TreeDisconnected(session.getSessionId(), treeId));
     }
 
     void setHandle(Share handle) {
         this.handle = handle;
+    }
+
+    public String getShareName() {
+        return smbPath.getShareName();
     }
 
     public Share getHandle() {

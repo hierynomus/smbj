@@ -38,4 +38,16 @@ public class SmbPath {
         }
         return b.toString();
     }
+
+    public String getHostname() {
+        return hostname;
+    }
+
+    public String getShareName() {
+        return shareName;
+    }
+
+    public String getPath() {
+        return path;
+    }
 }
