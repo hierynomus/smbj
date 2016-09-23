@@ -322,7 +322,9 @@ public class DiskShare extends Share {
         SMB2CreateResponse response = Futures.get(sendFuture, TransportException.Wrapper);
 
         if (response.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(response.getHeader(), "Create failed for " + path);
+            throw new SMBApiException(response.getHeader().getStatus(),
+                    response.getHeader().getStatusCode(),
+                    "Create failed for " + path);
         }
 
         SMB2FileId fileId = response.getFileId();
@@ -337,7 +339,9 @@ public class DiskShare extends Share {
             SMB2SetInfoResponse setInfoResponse = Futures.get(setInfoFuture, TransportException.Wrapper);
 
             if (setInfoResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(response.getHeader(), "SetInfo failed for " + path);
+                throw new SMBApiException(response.getHeader().getStatus(),
+                        response.getHeader().getStatusCode(),
+                        "SetInfo failed for " + path);
             }
         } finally {
             SMB2Close closeReq = new SMB2Close(connection.getNegotiatedProtocol().getDialect(),
@@ -346,7 +350,9 @@ public class DiskShare extends Share {
             SMB2Close closeResponse = Futures.get(closeFuture, TransportException.Wrapper);
 
             if (closeResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(response.getHeader(), "Close failed for " + path);
+                throw new SMBApiException(response.getHeader().getStatus(),
+                        response.getHeader().getStatusCode(),
+                        "Close failed for " + path);
             }
 
         }
@@ -455,5 +461,11 @@ public class DiskShare extends Share {
         } catch (TransportException e) {
             throw new IllegalStateException("Exception occured while trying to determine permissions on file", e);
         }
+        if (qresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+            throw new SMBApiException(qresp.getHeader().getStatus(),
+                    qresp.getHeader().getStatusCode(),
+                    "QUERY_INFO failed for " + fileId);
+        }
+        return qresp.getOutputBuffer();
     }
 }

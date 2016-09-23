@@ -42,6 +42,7 @@ public class SMB2Header {
     private long statusCode;
     private long flags;
     private long nextCommandOffset; // TODO Message Compounding
+    private byte[] signature;
 
     public SMB2Header() {
     }
@@ -63,7 +64,12 @@ public class SMB2Header {
             buffer.putUInt32(treeId); // TreeId (4 bytes)
         }
         buffer.putLong(sessionId); // SessionId (8 bytes)
-        buffer.putRawBytes(new byte[] {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}); // Signature (16 bytes)
+        if (signature == null) {
+            buffer.putRawBytes(new byte[] { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+                    0x0 }); // Signature (16 bytes)
+        } else {
+            buffer.putRawBytes(signature, 0, 16);
+        }
     }
 
     private void writeChannelSequenceReserved(SMBBuffer buffer) {
@@ -204,5 +210,13 @@ public class SMB2Header {
 
     public void setCreditCharge(int creditCharge) {
         this.creditCharge = creditCharge;
+    }
+
+    public byte[] getSignature() {
+        return signature;
+    }
+
+    public void setSignature(byte[] signature) {
+        this.signature = signature;
     }
 }

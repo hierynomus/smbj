@@ -45,11 +45,13 @@ public class Session implements AutoCloseable {
     private Connection connection;
     private SMBEventBus bus;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
+    private byte[] sessionKey;
 
-    public Session(long sessionId, Connection connection, SMBEventBus bus) {
+    public Session(long sessionId, Connection connection, SMBEventBus bus, byte[] sessionKey) {
         this.sessionId = sessionId;
         this.connection = connection;
         this.bus = bus;
+        this.sessionKey = sessionKey;
         bus.subscribe(this);
     }
 
@@ -131,7 +133,8 @@ public class Session implements AutoCloseable {
         SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
         SMB2Logoff response = Futures.get(connection.<SMB2Logoff>send(logoff), TransportException.Wrapper);
         if (!response.getHeader().getStatus().isSuccess()) {
-            throw new SMBApiException(response.getHeader(), "Could not logoff session <<" + sessionId + ">>");
+            throw new SMBApiException(response.getHeader(),
+                    "Could not logoff session <<" + sessionId + ">>");
         }
         bus.publish(new SessionLoggedOff(sessionId));
     }
@@ -144,5 +147,9 @@ public class Session implements AutoCloseable {
 
     public Connection getConnection() {
         return connection;
+    }
+
+    public byte[] getSessionKey() {
+        return sessionKey;
     }
 }
