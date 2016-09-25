@@ -64,11 +64,7 @@ public class NtlmAuthenticate extends NtlmPacket {
         offset = writeOffsettedByteArrayFields(buffer, domainName, offset); // DomainNameFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, userName, offset); // UserNameFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, workstation, offset); // WorkstationFields (8 bytes)
-        if (EnumWithValue.EnumUtils.isSet(negotiateFlags, NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH)) {
-            offset = writeOffsettedByteArrayFields(buffer, encryptedRandomSessionKey, offset);
-        } else {
-            offset = writeOffsettedByteArrayFields(buffer, EMPTY, offset);
-        }
+        offset = writeOffsettedByteArrayFields(buffer, encryptedRandomSessionKey, offset);
 
         buffer.putUInt32(negotiateFlags); // NegotiateFlags (4 bytes)
 

@@ -190,14 +190,11 @@ public class NtlmFunctions {
      * Set NTProofStr to HMAC_MD5(ResponseKeyNT, ConcatenationOf(CHALLENGE_MESSAGE.ServerChallenge,temp))
      * Set NtChallengeResponse to ConcatenationOf(NTProofStr, temp)
      *
-     * @param responseKeyNT
-     * @param serverChallenge
+     * @param ntProofStr
      * @param ntlmv2ClientChallenge (temp from above)
      * @return
      */
-    public static byte[] getNTLMv2Response(byte[] responseKeyNT, byte[] serverChallenge, byte[] ntlmv2ClientChallenge) {
-
-        byte[] ntProofStr = hmac_md5(responseKeyNT, serverChallenge, ntlmv2ClientChallenge);
+    public static byte[] getNTLMv2Response(byte[] ntProofStr, byte[] ntlmv2ClientChallenge) {
 
         byte[] ntChallengeResponse = new byte[ntProofStr.length + ntlmv2ClientChallenge.length];
         System.arraycopy(ntProofStr, 0, ntChallengeResponse, 0, ntProofStr.length);
