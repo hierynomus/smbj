@@ -87,6 +87,11 @@ task integrationTest(type: Test) {
 }
 
 tasks.withType(Test) {
+  testLogging {
+    exceptionFormat = 'full'
+  }
+  include "**/*Test.*"
+  include "**/*Spec.*"
   afterSuite { descriptor, result ->
     def indicator = "\u001B[32m✓\u001b[0m"
     if (result.failedTestCount > 0) {
