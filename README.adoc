@@ -6,10 +6,8 @@ Jeroen van Erp
 
 To get started, have a look at one of the examples. Hopefully you will find the API pleasant to work with :)
 
-image::https://api.bintray.com/packages/hierynomus/maven/smbj/images/download.svg[link="https://bintray.com/hierynomus/maven/smbj/_latestVersion"]
-image:https://travis-ci.org/hierynomus/smbj.svg?branch=master["Build Status", link="https://travis-ci.org/hierynomus/smbj"]
-image:https://badge.waffle.io/hierynomus/smbj.svg?label=ready&title=Ready["Issues in Ready", link="http://waffle.io/hierynomus/smbj"]
-image:https://api.codacy.com/project/badge/Grade/ae8ba8e308734bfbab92fa226853ce91["Codacy code quality", link="https://www.codacy.com/app/jeroen_2/smbj?utm_source=github.com&utm_medium=referral&utm_content=hierynomus/smbj&utm_campaign=Badge_Grade"]
+image:https://api.bintray.com/packages/hierynomus/maven/smbj/images/download.svg[link="https://bintray.com/hierynomus/maven/smbj/_latestVersion"] image:https://travis-ci.org/hierynomus/smbj.svg?branch=master["Build Status", link="https://travis-ci.org/hierynomus/smbj"] image:https://api.codacy.com/project/badge/Grade/ae8ba8e308734bfbab92fa226853ce91["Codacy code quality", link="https://www.codacy.com/app/jeroen_2/smbj?utm_source=github.com&utm_medium=referral&utm_content=hierynomus/smbj&utm_campaign=Badge_Grade"] image:https://javadoc-emblem.rhcloud.com/doc/com.hierynomus/smbj/badge.svg["Javadoc",link="http://www.javadoc.io/doc/com.hierynomus/smbj"] image:https://maven-badges.herokuapp.com/maven-central/com.hierynomus/smbj/badge.svg["Maven Central",link="https://maven-badges.herokuapp.com/maven-central/com.hierynomus/smbj"]
+
 image:https://www.ej-technologies.com/images/product_banners/jprofiler_small.png["Java profiler", link="http://www.ej-technologies.com/products/jprofiler/overview.html"]
 
 == Getting SMBJ

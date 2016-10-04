@@ -15,6 +15,10 @@
  */
 package com.hierynomus.smbj.session;
 
+import java.io.IOException;
+import java.util.concurrent.Future;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.messages.SMB2Logoff;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
@@ -29,15 +33,8 @@ import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.event.TreeDisconnected;
 import com.hierynomus.smbj.share.*;
 import com.hierynomus.smbj.transport.TransportException;
-import net.engio.mbassy.listener.Handler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
+import net.engio.mbassy.listener.Handler;
 
 /**
  * A Session
@@ -47,7 +44,7 @@ public class Session implements AutoCloseable {
     long sessionId;
     private Connection connection;
     private SMBEventBus bus;
-    private Map<Long, TreeConnect> treeConnectTable = new ConcurrentHashMap<>();
+    private TreeConnectTable treeConnectTable = new TreeConnectTable();
 
     public Session(long sessionId, Connection connection, SMBEventBus bus) {
         this.sessionId = sessionId;
@@ -63,6 +60,7 @@ public class Session implements AutoCloseable {
     /**
      * Connect to a share on the remote machine over the authenticated session.
      * <p/>
+     * [MS-SMB2].pdf 3.2.4.2 Application Requests a Connection to a Share
      * [MS-SMB2].pdf 3.2.4.2.4 Connecting to the Share
      * [MS-SMB2].pdf 3.2.5.5 Receiving an SMB2 TREE_CONNECT Response
      *
@@ -70,6 +68,16 @@ public class Session implements AutoCloseable {
      * @return the handle to the connected share.
      */
     public Share connectShare(String shareName) {
+        TreeConnect connectedConnect = treeConnectTable.getTreeConnect(shareName);
+        if (connectedConnect != null) {
+            logger.info("Returning cached Share {} for {}", connectedConnect.getTreeId(), shareName);
+            return connectedConnect.getHandle();
+        } else {
+            return connectTree(shareName);
+        }
+    }
+
+    private Share connectTree(final String shareName) {
         String remoteHostname = connection.getRemoteHostname();
         SmbPath smbPath = new SmbPath(remoteHostname, shareName);
         logger.info("Connection to {} on session {}", smbPath, sessionId);
@@ -88,7 +96,7 @@ public class Session implements AutoCloseable {
 
             long treeId = response.getHeader().getTreeId();
             TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), connection, bus);
-            treeConnectTable.put(treeId, treeConnect);
+            treeConnectTable.register(treeConnect);
             if (response.isDiskShare()) {
                 return new DiskShare(smbPath, treeConnect);
             } else if (response.isNamedPipe()) {
@@ -107,13 +115,13 @@ public class Session implements AutoCloseable {
     private void disconnectTree(TreeDisconnected disconnectEvent) {
         if (disconnectEvent.getSessionId() == sessionId) {
             logger.debug("Notified of TreeDisconnected <<" + disconnectEvent.getTreeId() + ">>");
-            treeConnectTable.remove(disconnectEvent.getTreeId());
+            treeConnectTable.closed(disconnectEvent.getTreeId());
         }
     }
 
     public void logoff() throws TransportException {
         logger.info("Logging off session " + sessionId + " from host " + connection.getRemoteHostname());
-        for (TreeConnect treeConnect : new ArrayList<>(treeConnectTable.values())) {
+        for (TreeConnect treeConnect : treeConnectTable.getOpenTreeConnects()) {
             try {
                 treeConnect.getHandle().close();
             } catch (IOException e) {

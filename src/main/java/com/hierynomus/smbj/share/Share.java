@@ -46,7 +46,7 @@ public class Share implements AutoCloseable {
     protected final TreeConnect treeConnect;
     private AtomicBoolean disconnected = new AtomicBoolean(false);
 
-    public Share(SmbPath smbPath, TreeConnect treeConnect) {
+    Share(SmbPath smbPath, TreeConnect treeConnect) {
         this.smbPath = smbPath;
         this.treeConnect = treeConnect;
         treeConnect.setHandle(this);
@@ -57,10 +57,6 @@ public class Share implements AutoCloseable {
         if (!disconnected.getAndSet(true)) {
             treeConnect.close(this);
         }
-    }
-
-    void disconnect() {
-        disconnected.set(true);
     }
 
     public boolean isConnected() {

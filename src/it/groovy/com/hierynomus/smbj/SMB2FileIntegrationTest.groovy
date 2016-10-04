@@ -15,18 +15,12 @@
  */
 package com.hierynomus.smbj
 
-import com.hierynomus.msdtyp.AccessMask
-import com.hierynomus.msfscc.FileAttributes
-import com.hierynomus.msfscc.fileinformation.FileInfo
-import com.hierynomus.protocol.commons.EnumWithValue
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.share.Directory
 import com.hierynomus.smbj.share.DiskShare
 import com.hierynomus.smbj.share.File
-import com.hierynomus.smbj.share.NonExisting
-import com.hierynomus.smbj.share.Share
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import spock.lang.Specification
 
