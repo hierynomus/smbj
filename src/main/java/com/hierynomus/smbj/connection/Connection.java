@@ -119,8 +119,8 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             if (negTokenInit.getSupportedMechTypes().contains(new ASN1ObjectIdentifier(factory.getName()))) {
                 NtlmAuthenticator ntlmAuthenticator = factory.create();
                 Session session = ntlmAuthenticator.authenticate(this, authContext, bus);
-                logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), getRemoteHostname(), sessionId);
-                connectionInfo.getSessionTable().registerSession(sessionId, session);
+                logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), getRemoteHostname(), session.getSessionId());
+                connectionInfo.getSessionTable().registerSession(session.getSessionId(), session);
                 return session;
             }
         } catch (IOException e) {
@@ -161,7 +161,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID(), packet);
             connectionInfo.getOutstandingRequests().registerOutstanding(request);
             if (connectionInfo.isRequireSigning() && packet.getHeader().getSessionId() > 0) {
-                Session session = sessionTable.get(packet.getHeader().getSessionId());
+                Session session = connectionInfo.getSessionTable().lookup(packet.getHeader().getSessionId());
                 if (session != null) {
                     packet.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_SIGNED);
                     SMBBuffer buffer = new SMBBuffer();

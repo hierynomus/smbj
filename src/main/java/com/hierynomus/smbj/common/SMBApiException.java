@@ -49,6 +49,10 @@ public class SMBApiException extends SMBRuntimeException {
         return status;
     }
 
+    public long getStatusCode() {
+        return statusCode;
+    }
+
     public SMB2MessageCommandCode getFailedCommand() {
         return failedCommand;
     }
