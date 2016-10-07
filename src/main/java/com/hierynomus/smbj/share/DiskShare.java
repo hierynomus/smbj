@@ -339,8 +339,8 @@ public class DiskShare extends Share {
             SMB2SetInfoResponse setInfoResponse = Futures.get(setInfoFuture, TransportException.Wrapper);
 
             if (setInfoResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(response.getHeader().getStatus(),
-                        response.getHeader().getStatusCode(),
+                throw new SMBApiException(setInfoResponse.getHeader().getStatus(),
+                        setInfoResponse.getHeader().getStatusCode(),
                         "SetInfo failed for " + path);
             }
         } finally {
@@ -350,8 +350,8 @@ public class DiskShare extends Share {
             SMB2Close closeResponse = Futures.get(closeFuture, TransportException.Wrapper);
 
             if (closeResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(response.getHeader().getStatus(),
-                        response.getHeader().getStatusCode(),
+                throw new SMBApiException(closeResponse.getHeader().getStatus(),
+                        closeResponse.getHeader().getStatusCode(),
                         "Close failed for " + path);
             }
 
