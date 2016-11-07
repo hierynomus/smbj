@@ -67,6 +67,24 @@ class FileByteChunkProviderTest extends Specification {
     provider.isAvailable()
   }
 
+  def "should start at provided offset"() {
+    given:
+    def file = getFileWithRandomData(ByteChunkProvider.CHUNK_SIZE)
+    def provider = new FileByteChunkProvider(file, 100)
+    def baos = new ByteArrayOutputStream()
+
+    when:
+    provider.writeChunk(baos)
+
+    then:
+    def tmpBytes = new byte[ByteChunkProvider.CHUNK_SIZE - 100]
+    System.arraycopy(file.bytes, 100, tmpBytes, 0, tmpBytes.length)
+    baos.toByteArray() == tmpBytes
+    provider.offset == ByteChunkProvider.CHUNK_SIZE
+    !provider.isAvailable()
+
+  }
+
   private def getFileWithRandomData(int size) {
     def bytes = new byte[size]
     new Random().nextBytes(bytes)

@@ -29,6 +29,24 @@ public class FileByteChunkProvider extends ByteChunkProvider {
         fis = new BufferedInputStream(new FileInputStream(file), CHUNK_SIZE);
     }
 
+    public FileByteChunkProvider(File file, long offset) throws IOException {
+        this.file = file;
+        fis = new BufferedInputStream(new FileInputStream(file), CHUNK_SIZE);
+        ensureSkipped(fis, offset);
+        this.offset = offset;
+    }
+
+    private void ensureSkipped(final BufferedInputStream fis, final long offset) throws IOException {
+        long skipped = 0;
+        while (skipped < offset && fis.available() > 0) {
+            skipped += fis.skip(offset);
+        }
+
+        if (skipped < offset) {
+            throw new IOException("Was unable to go to the requested offset of " + offset + " of file " + file);
+        }
+    }
+
     @Override
     protected int getChunk(byte[] chunk) throws IOException {
         int count = 0;
