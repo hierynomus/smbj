@@ -16,6 +16,8 @@
 package com.hierynomus.protocol.commons.socket;
 
 import javax.net.SocketFactory;
+
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -115,7 +117,7 @@ public abstract class SocketClient {
     protected void onConnect() throws IOException {
         socket.setSoTimeout(soTimeout);
         input = socket.getInputStream();
-        output = socket.getOutputStream();
+        output = new BufferedOutputStream(socket.getOutputStream(), 2500); //TODO: default number (better to be close to Ethernet frame size?)
     }
 
     public int getRemotePort() {

@@ -42,14 +42,21 @@ import net.engio.mbassy.listener.Handler;
 public class Session implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(Session.class);
     long sessionId;
+    
+    byte[] signingKey;
+    boolean signingRequired;
+    
     private Connection connection;
     private SMBEventBus bus;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
 
-    public Session(long sessionId, Connection connection, SMBEventBus bus) {
+    public Session(long sessionId, Connection connection, SMBEventBus bus, byte[] signingKey) {
         this.sessionId = sessionId;
         this.connection = connection;
         this.bus = bus;
+        this.signingKey = signingKey;
+        this.signingRequired = connection.getConnectionInfo().isRequireSigning();
+        if (bus != null)
         bus.subscribe(this);
     }
 
@@ -84,9 +91,10 @@ public class Session implements AutoCloseable {
         try {
             SMB2TreeConnectRequest smb2TreeConnectRequest = new SMB2TreeConnectRequest(connection.getNegotiatedProtocol().getDialect(), smbPath, sessionId);
             smb2TreeConnectRequest.getHeader().setCreditRequest(256);
-            Future<SMB2TreeConnectResponse> send = connection.send(smb2TreeConnectRequest);
+            Future<SMB2TreeConnectResponse> send = connection.send(smb2TreeConnectRequest, signingRequired?this.getSigningKey():null);
             SMB2TreeConnectResponse response = Futures.get(send, TransportException.Wrapper);
             if (response.getHeader().getStatus().isError()) {
+                logger.debug(response.getHeader().toString());
                 throw new SMBApiException(response.getHeader(), "Could not connect to " + smbPath);
             }
 
@@ -129,13 +137,22 @@ public class Session implements AutoCloseable {
             }
         }
         SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
-        SMB2Logoff response = Futures.get(connection.<SMB2Logoff>send(logoff), TransportException.Wrapper);
+        SMB2Logoff response = Futures.get(connection.<SMB2Logoff>send(logoff, signingRequired?signingKey:null), TransportException.Wrapper);
         if (!response.getHeader().getStatus().isSuccess()) {
             throw new SMBApiException(response.getHeader(), "Could not logoff session <<" + sessionId + ">>");
         }
         bus.publish(new SessionLoggedOff(sessionId));
     }
 
+    public boolean getSigningRequired() {
+        return signingRequired;
+    }
+    public void setSigningKey(byte[] signingKey) {
+        this.signingKey = signingKey;
+    }
+    public byte[] getSigningKey() {
+        return signingKey;
+    }
 
     @Override
     public void close() throws IOException {
@@ -144,5 +161,14 @@ public class Session implements AutoCloseable {
 
     public Connection getConnection() {
         return connection;
+    }
+
+    public void setBus(SMBEventBus bus) {
+        if (this.bus != null) {
+            this.bus.unsubscribe(this);
+            this.bus = null;
+        }
+        this.bus = bus;
+        bus.subscribe(this);
     }
 }

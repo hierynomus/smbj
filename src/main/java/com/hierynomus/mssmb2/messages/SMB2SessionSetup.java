@@ -59,9 +59,10 @@ public class SMB2SessionSetup extends SMB2Packet {
         buffer.putUInt32(clientCapabilities & 0x01); // Capabilities (4 bytes) (only last byte can be set)
         buffer.putReserved4(); // Channel (4 bytes)
         buffer.putUInt16(SMB2Header.STRUCTURE_SIZE + 25 - 1); // SecurityBufferOffset (2 bytes) (header structure size + Session setup structure size - 1)
-        buffer.putUInt16(securityBuffer.length); // SecurityBufferLength (2 bytes)
+        buffer.putUInt16((securityBuffer!=null)?securityBuffer.length:0); // SecurityBufferLength (2 bytes)
         buffer.putUInt64(previousSessionId); // PreviousSessionId (8 bytes)
-        buffer.putRawBytes(securityBuffer); // SecurityBuffer (variable)
+        if (securityBuffer != null)
+            buffer.putRawBytes(securityBuffer); // SecurityBuffer (variable)
     }
 
     @Override
@@ -82,7 +83,9 @@ public class SMB2SessionSetup extends SMB2Packet {
             buffer.rpos(securityBufferOffset);
             return buffer.readRawBytes(securityBufferLength);
         }
-        throw new SMBRuntimeException("The SMB2 Session Setup response should contain a positive length security buffer");
+        else
+            return new byte[0];
+//        throw new SMBRuntimeException("The SMB2 Session Setup response should contain a positive length security buffer");
     }
 
     private void putFlags(SMBBuffer buffer) {

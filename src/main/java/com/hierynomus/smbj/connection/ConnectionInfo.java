@@ -51,7 +51,7 @@ public class ConnectionInfo {
 
     // All SMB2 Dialect
     private SessionTable sessionTable = new SessionTable();
-    private List<Void> preauthSessionTable;
+    private SessionTable preauthSessionTable = new SessionTable();
     private OutstandingRequests outstandingRequests = new OutstandingRequests();
     private SequenceWindow sequenceWindow;
     private byte[] gssNegotiateToken;
@@ -99,6 +99,10 @@ public class ConnectionInfo {
         return sessionTable;
     }
 
+    public SessionTable getPreauthSessionTable() {
+        return preauthSessionTable;
+    }
+    
     public UUID getClientGuid() {
         return clientGuid;
     }
