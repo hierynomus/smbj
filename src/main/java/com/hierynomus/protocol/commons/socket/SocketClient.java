@@ -25,6 +25,8 @@ import java.net.InetAddress;
 import java.net.Socket;
 
 public abstract class SocketClient {
+    private static final int INITIAL_BUFFER_SIZE = 9000; // Size of a Jumbo frame.
+
     private final int defaultPort;
 
     private Socket socket;
@@ -117,7 +119,7 @@ public abstract class SocketClient {
     protected void onConnect() throws IOException {
         socket.setSoTimeout(soTimeout);
         input = socket.getInputStream();
-        output = new BufferedOutputStream(socket.getOutputStream(), 2500); //TODO: default number (better to be close to Ethernet frame size?)
+        output = new BufferedOutputStream(socket.getOutputStream(), INITIAL_BUFFER_SIZE);
     }
 
     public int getRemotePort() {
