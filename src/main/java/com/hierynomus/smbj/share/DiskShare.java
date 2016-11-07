@@ -322,8 +322,7 @@ public class DiskShare extends Share {
         SMB2CreateResponse response = Futures.get(sendFuture, TransportException.Wrapper);
 
         if (response.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(response.getHeader().getStatus(),
-                    response.getHeader().getStatusCode(),
+            throw new SMBApiException(response.getHeader(),
                     "Create failed for " + path);
         }
 
@@ -339,8 +338,7 @@ public class DiskShare extends Share {
             SMB2SetInfoResponse setInfoResponse = Futures.get(setInfoFuture, TransportException.Wrapper);
 
             if (setInfoResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(setInfoResponse.getHeader().getStatus(),
-                        setInfoResponse.getHeader().getStatusCode(),
+                throw new SMBApiException(setInfoResponse.getHeader(),
                         "SetInfo failed for " + path);
             }
         } finally {
@@ -350,8 +348,7 @@ public class DiskShare extends Share {
             SMB2Close closeResponse = Futures.get(closeFuture, TransportException.Wrapper);
 
             if (closeResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(closeResponse.getHeader().getStatus(),
-                        closeResponse.getHeader().getStatusCode(),
+                throw new SMBApiException(closeResponse.getHeader(),
                         "Close failed for " + path);
             }
 
@@ -461,11 +458,5 @@ public class DiskShare extends Share {
         } catch (TransportException e) {
             throw new IllegalStateException("Exception occured while trying to determine permissions on file", e);
         }
-        if (qresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(qresp.getHeader().getStatus(),
-                    qresp.getHeader().getStatusCode(),
-                    "QUERY_INFO failed for " + fileId);
-        }
-        return qresp.getOutputBuffer();
     }
 }

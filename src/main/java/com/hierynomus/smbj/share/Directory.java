@@ -54,7 +54,7 @@ public class Directory extends DiskEntry {
         // Keep querying until we don't get new data
         do {
             // Query Directory Request
-            SMB2QueryDirectoryRequest qdr = new SMB2QueryDirectoryRequest(connection.getNegotiatedDialect(),
+            SMB2QueryDirectoryRequest qdr = new SMB2QueryDirectoryRequest(connection.getNegotiatedProtocol().getDialect(),
                     session.getSessionId(), treeConnect.getTreeId(),
                     getFileId(), FileInformationClass.FileIdBothDirectoryInformation, // FileInformationClass
                     // .FileDirectoryInformation,
@@ -68,8 +68,7 @@ public class Directory extends DiskEntry {
                 newDataLength = 0;
             } else {
                 if (qdResp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                    throw new SMBApiException(qdResp.getHeader().getStatus(),
-                            qdResp.getHeader().getStatusCode(),
+                    throw new SMBApiException(qdResp.getHeader(),
                             "Query directory failed for " + fileName + "/" + fileId);
                 }
                 byte[] outputBuffer = qdResp.getOutputBuffer();
