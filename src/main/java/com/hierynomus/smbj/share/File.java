@@ -52,7 +52,7 @@ public class File extends DiskEntry {
             logger.debug("Writing to {} from offset {}", this.fileName, provider.getOffset());
             SMB2WriteRequest wreq = new SMB2WriteRequest(connection.getNegotiatedProtocol().getDialect(), getFileId(),
                 session.getSessionId(), treeConnect.getTreeId(), provider, connection.getNegotiatedProtocol().getMaxWriteSize());
-            Future<SMB2WriteResponse> writeFuture = connection.send(wreq, session.getSigningRequired()?session.getSigningKey():null);
+            Future<SMB2WriteResponse> writeFuture = session.send(wreq);
             SMB2WriteResponse wresp = Futures.get(writeFuture, TransportException.Wrapper);
             if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
                 throw new SMBApiException(wresp.getHeader(), "Write failed for " + this);

@@ -79,7 +79,7 @@ public class Share implements AutoCloseable {
         SMB2CreateRequest cr = openFileRequest(
                 treeConnect, path, accessMask, shareAccess, fileAttributes, createDisposition, createOptions);
         try {
-            Future<SMB2CreateResponse> responseFuture = connection.send(cr, (session.getSigningRequired()?session.getSigningKey():null));
+            Future<SMB2CreateResponse> responseFuture = session.send(cr);
             SMB2CreateResponse cresponse = Futures.get(responseFuture, SMBRuntimeException.Wrapper);
             if (cresponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
                 throw new SMBApiException(cresponse.getHeader(), "Create failed for " + path);
@@ -119,7 +119,7 @@ public class Share implements AutoCloseable {
         SMB2Close closeReq = new SMB2Close(
             connection.getNegotiatedProtocol().getDialect(),
             treeConnect.getSession().getSessionId(), treeConnect.getTreeId(), fileId);
-        Future<SMB2Close> closeFuture = connection.send(closeReq, session.getSigningRequired()?session.getSigningKey():null);
+        Future<SMB2Close> closeFuture = session.send(closeReq);
         SMB2Close closeResp = Futures.get(closeFuture, TransportException.Wrapper);
 
         if (closeResp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {

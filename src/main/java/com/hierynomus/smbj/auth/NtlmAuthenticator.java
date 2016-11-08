@@ -27,11 +27,13 @@ import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.protocol.commons.concurrent.Futures;
+import com.hierynomus.smbj.common.MessageSigning;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.spnego.NegTokenInit;
 import com.hierynomus.spnego.NegTokenTarg;
+
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.microsoft.MicrosoftObjectIdentifiers;
 import org.bouncycastle.util.Arrays;
@@ -42,6 +44,8 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.EnumSet;
 import java.util.concurrent.Future;
+
+import javax.crypto.spec.SecretKeySpec;
 
 public class NtlmAuthenticator implements Authenticator {
     private static final Logger logger = LoggerFactory.getLogger(NtlmAuthenticator.class);
@@ -76,7 +80,7 @@ public class NtlmAuthenticator implements Authenticator {
             SMB2SessionSetup receive = Futures.get(future, TransportException.Wrapper);
             long sessionId = receive.getHeader().getSessionId();
             
-            Session session = new Session(sessionId, connection, null, null);
+            Session session = new Session(sessionId, connection);
             connection.getConnectionInfo().getPreauthSessionTable().registerSession(sessionId, session);
             
             if (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
@@ -103,10 +107,10 @@ public class NtlmAuthenticator implements Authenticator {
                         byte[] masterKey = new byte[16];
                         NtlmFunctions.getRandom().nextBytes(masterKey);
                         sessionkey = NtlmFunctions.encryptRc4(userSessionKey, masterKey);
-                        session.setSigningKey(masterKey);
+                        session.setSigningKeySpec(new SecretKeySpec(masterKey, MessageSigning.HMAC_SHA256_ALGORITHM));
                     } else {
                         sessionkey = userSessionKey;
-                        session.setSigningKey(sessionkey);
+                        session.setSigningKeySpec(new SecretKeySpec(sessionkey, MessageSigning.HMAC_SHA256_ALGORITHM));
                     }
                 }
 

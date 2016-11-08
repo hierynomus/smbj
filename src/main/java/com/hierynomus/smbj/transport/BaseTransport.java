@@ -30,6 +30,8 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.crypto.spec.SecretKeySpec;
+
 public abstract class BaseTransport implements TransportLayer {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -62,7 +64,7 @@ public abstract class BaseTransport implements TransportLayer {
     }
 
     @Override
-    public void writeSigned(SMB2Packet packet, byte[] signingKey) throws TransportException {
+    public void writeSigned(SMB2Packet packet, SecretKeySpec signingKeySpec) throws TransportException {
         writeLock.lock();
         try {
             try {
@@ -70,7 +72,7 @@ public abstract class BaseTransport implements TransportLayer {
                 packet.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_SIGNED); // set the SMB2_FLAGS_SIGNED flag
                 packet.write(buffer);
                 
-                signBuffer(buffer, signingKey);
+                signBuffer(buffer, signingKeySpec);
                 
                 logger.trace("Writing packet << {} >>, sequence number << {} >>", packet.getHeader().getMessage(), packet.getSequenceNumber());
                 doWrite(buffer);
@@ -93,7 +95,7 @@ public abstract class BaseTransport implements TransportLayer {
     // [MS-SMB2] 3.1.4.1 Signing An Outgoing Message
     // If Connection.Dialect is "2.0.2" or "2.1", the sender MUST compute a 32-byte hash using HMAC-SHA256 over the entire message, 
     // beginning with the SMB2 Header from step 1, and using the key provided.
-    public static void signBuffer(SMBBuffer buffer, byte[] signingKey) throws InvalidKeyException, NoSuchAlgorithmException {
-        MessageSigning.signBuffer(buffer.array(), buffer.available(), signingKey);
+    public static void signBuffer(SMBBuffer buffer, SecretKeySpec signingKeySpec) throws InvalidKeyException, NoSuchAlgorithmException {
+        MessageSigning.signBuffer(buffer.array(), buffer.available(), signingKeySpec);
     }
 }

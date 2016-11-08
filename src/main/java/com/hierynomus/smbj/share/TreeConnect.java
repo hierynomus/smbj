@@ -64,7 +64,7 @@ public class TreeConnect {
 
     void close(Share share) throws TransportException {
         SMB2TreeDisconnect disconnect = new SMB2TreeDisconnect(connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeId);
-        Future<SMB2Packet> send = connection.send(disconnect, session.getSigningRequired()?session.getSigningKey():null);
+        Future<SMB2Packet> send = session.send(disconnect);
         SMB2Packet smb2Packet = Futures.get(send, TransportException.Wrapper);
         if (!smb2Packet.getHeader().getStatus().isSuccess()) {
             throw new SMBApiException(smb2Packet.getHeader(), "Error closing connection to " + smbPath);

@@ -16,6 +16,7 @@
 package com.hierynomus.mssmb2;
 
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
@@ -140,7 +141,7 @@ public class SMB2Header {
     }
 
     public boolean isFlagSet(SMB2MessageFlag flag) {
-        return ((this.flags & flag.getValue()) != 0);
+        return EnumWithValue.EnumUtils.isSet(this.flags, flag);
     }
     
     public void setFlag(SMB2MessageFlag flag) {

@@ -34,13 +34,13 @@ public class MessageSigning {
      *            message length. Note that the buffer array might contain more
      *            bytes than the message length. The len parameter indicates how
      *            many bytes of the buffer array are in the message.
-     * @param signingKey
-     *            the session's signing key.
+     * @param signingKeySpec
+     *            the session's signing key, a SecretKeySpec
      * @return
      */
-    public static boolean validateSignature(byte[] buffer, int len, byte[] signingKey) {
+    public static boolean validateSignature(byte[] buffer, int len, SecretKeySpec signingKeySpec) {
         try {
-            byte[] signature = computeSignature(buffer, len, signingKey);
+            byte[] signature = computeSignature(buffer, len, signingKeySpec);
 
             // are signatures identical?
             for (int i = 0; i < SMB2Header.SIGNATURE_SIZE; i++) {
@@ -67,9 +67,9 @@ public class MessageSigning {
      * @throws InvalidKeyException
      * @throws NoSuchAlgorithmException
      */
-    public static void signBuffer(byte[] buffer, int len, byte[] signingKey) throws InvalidKeyException,
+    public static void signBuffer(byte[] buffer, int len, SecretKeySpec signingKeySpec) throws InvalidKeyException,
                     NoSuchAlgorithmException {
-        byte[] signature = computeSignature(buffer, len, signingKey);
+        byte[] signature = computeSignature(buffer, len, signingKeySpec);
         System.arraycopy(signature, 0, buffer, SMB2Header.SIGNATURE_OFFSET, 16);
     }
 
@@ -83,17 +83,17 @@ public class MessageSigning {
      *            message length. Note that the buffer array might contain more
      *            bytes than the message length. The len parameter indicates how
      *            many bytes of the buffer array are in the message.
-     * @param signingKey
-     *            the session's signing key.
+     * @param signingKeySpec
+     *            the session's signing key, a SecretKeySpec
      * @throws InvalidKeyException
      * @throws NoSuchAlgorithmException
      */
-    private static byte[] computeSignature(byte[] buffer, int len, byte[] signingKey) throws NoSuchAlgorithmException,
+    private static byte[] computeSignature(byte[] buffer, int len, SecretKeySpec signingKeySpec) throws NoSuchAlgorithmException,
                     InvalidKeyException {
         if (len < SMB2Header.STRUCTURE_SIZE)
             throw new IllegalArgumentException("Buffer must be longer than 64 bytes");
-        SecretKeySpec signingKeySpec = new SecretKeySpec(signingKey, MessageSigning.HMAC_SHA256_ALGORITHM);
-        Mac mac = Mac.getInstance(MessageSigning.HMAC_SHA256_ALGORITHM);
+
+        Mac mac = Mac.getInstance(signingKeySpec.getAlgorithm());
         mac.init(signingKeySpec);
         mac.update(buffer, 0, SMB2Header.SIGNATURE_OFFSET);
         for (int i = 0; i < SMB2Header.SIGNATURE_SIZE; i++)

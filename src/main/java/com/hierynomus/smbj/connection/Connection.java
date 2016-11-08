@@ -52,6 +52,8 @@ import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.crypto.spec.SecretKeySpec;
+
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 import static com.hierynomus.smbj.connection.NegotiatedProtocol.SINGLE_CREDIT_PAYLOAD_SIZE;
 
@@ -144,7 +146,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
      * @return a Future to be used to retrieve the response packet
      * @throws TransportException
      */
-    public <T extends SMB2Packet> Future<T> send(SMB2Packet packet, byte[] signingKey) throws TransportException {
+    public <T extends SMB2Packet> Future<T> send(SMB2Packet packet, SecretKeySpec signingKeySpec) throws TransportException {
         lock.lock();
         try {
             int availableCredits = connectionInfo.getSequenceWindow().available();
@@ -175,10 +177,11 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
             Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID(), packet);
             connectionInfo.getOutstandingRequests().registerOutstanding(request);
-            if (signingKey != null)
-                transport.writeSigned(packet, signingKey);
-            else
-            transport.write(packet);
+            if (signingKeySpec != null) {
+                transport.writeSigned(packet, signingKeySpec);
+            } else {
+                transport.write(packet);
+            }
             return request.getFuture(null); // TODO cancel callback
         } finally {
             lock.unlock();
@@ -257,20 +260,20 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             }
             
             // check packet signature.  Drop the packet if it is not correct.
-            if (session.getSigningRequired()) {
+            if (session.isSigningRequired()) {
                 if (packet.getHeader().isFlagSet(SMB2MessageFlag.SMB2_FLAGS_SIGNED)) {
                     packet.getBuffer().rpos(0);
-                    if (!MessageSigning.validateSignature(packet.getBuffer().array(), packet.getBuffer().available(), session.getSigningKey())) {
+                    if (!MessageSigning.validateSignature(packet.getBuffer().array(), packet.getBuffer().available(), session.getSigningKeySpec())) {
                         logger.warn("Invalid packet signature");
-//                        return;
+                        if (config.isStrictSigning()) {
+                            return; // drop the packet
+                        }
                     }
-                }
-                else {
+                } else {
                     logger.warn("Illegal request, session requires message signing, but the message is not signed.");
                     return;
                 }
-            }
-            else {
+            } else {
                 if (packet.getHeader().isFlagSet(SMB2MessageFlag.SMB2_FLAGS_SIGNED)) {
                     logger.trace("Received a signed packet, but signing is not required on this session.");
                     // but this is OK, so we fall through.

@@ -54,7 +54,7 @@ public class Directory extends DiskEntry {
                 // .FileDirectoryInformation,
                 EnumSet.of(SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags.SMB2_REOPEN),
                 0, null);
-        Future<SMB2QueryDirectoryResponse> qdFuture = connection.send(qdr, session.getSigningRequired()?session.getSigningKey():null);
+        Future<SMB2QueryDirectoryResponse> qdFuture = session.send(qdr);
 
         SMB2QueryDirectoryResponse qdResp = Futures.get(qdFuture, TransportException.Wrapper);
 

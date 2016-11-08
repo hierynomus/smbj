@@ -26,6 +26,7 @@ public class ConfigImpl implements Config {
     protected EnumSet<SMB2Dialect> dialects;
     protected Random random;
     protected UUID clientGuid;
+    protected boolean isStrictSigning;
 
     @Override
     public Random getRandomProvider() {
@@ -40,5 +41,10 @@ public class ConfigImpl implements Config {
     @Override
     public UUID getClientGuid() {
         return clientGuid;
+    }
+    
+    @Override
+    public boolean isStrictSigning() {
+        return isStrictSigning;
     }
 }
