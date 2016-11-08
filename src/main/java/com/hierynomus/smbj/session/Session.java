@@ -142,7 +142,7 @@ public class Session implements AutoCloseable {
             }
         }
         SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
-        SMB2Logoff response = Futures.get(send(logoff), TransportException.Wrapper);
+        SMB2Logoff response = Futures.get(this.<SMB2Logoff>send(logoff), TransportException.Wrapper);
         if (!response.getHeader().getStatus().isSuccess()) {
             throw new SMBApiException(response.getHeader(), "Could not logoff session <<" + sessionId + ">>");
         }
