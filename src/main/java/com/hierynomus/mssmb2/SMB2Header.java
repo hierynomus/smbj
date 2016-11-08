@@ -141,7 +141,7 @@ public class SMB2Header {
     }
 
     public boolean isFlagSet(SMB2MessageFlag flag) {
-        return EnumWithValue.EnumUtils.isSet(this.flags, flag);
+        return isSet(this.flags, flag);
     }
     
     public void setFlag(SMB2MessageFlag flag) {

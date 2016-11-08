@@ -75,7 +75,6 @@ public class Share implements AutoCloseable {
         logger.info("open {},{}", path);
 
         Session session = treeConnect.getSession();
-        Connection connection = session.getConnection();
         SMB2CreateRequest cr = openFileRequest(
                 treeConnect, path, accessMask, shareAccess, fileAttributes, createDisposition, createOptions);
         try {

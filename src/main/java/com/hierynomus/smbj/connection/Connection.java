@@ -254,7 +254,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
                 session = connectionInfo.getPreauthSessionTable().find(packet.getHeader().getSessionId());
                 if (session == null) {
                     logger.warn("Illegal request, no session matching the sessionId: {}", packet.getHeader().getSessionId());
-                    //TODO: maybe tear down the connection?
+                    //TODO maybe tear down the connection?
                     return;
                 }
             }
