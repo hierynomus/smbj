@@ -109,10 +109,9 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
             if (negTokenInit.getSupportedMechTypes().contains(new ASN1ObjectIdentifier(factory.getName()))) {
                 NtlmAuthenticator ntlmAuthenticator = factory.create();
-                long sessionId = ntlmAuthenticator.authenticate(this, authContext);
-                logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), getRemoteHostname(), sessionId);
-                Session session = new Session(sessionId, this, bus);
-                connectionInfo.getSessionTable().registerSession(sessionId, session);
+                Session session = ntlmAuthenticator.authenticate(this, authContext, bus);
+                logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), getRemoteHostname(), session.getSessionId());
+                connectionInfo.getSessionTable().registerSession(session.getSessionId(), session);
                 return session;
             }
         } catch (IOException e) {
@@ -152,7 +151,14 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
             Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID(), packet);
             connectionInfo.getOutstandingRequests().registerOutstanding(request);
-            transport.write(packet);
+            long sessionId = packet.getHeader().getSessionId();
+            Session session = connectionInfo.getSessionTable().lookup(sessionId);
+            if (connectionInfo.isRequireSigning() && session != null) {
+                byte[] sessionKey = session.getSessionKey();
+                transport.writeSigned(packet, sessionKey);
+            } else {
+                transport.write(packet);
+            }
             return request.getFuture(null); // TODO cancel callback
         } finally {
             lock.unlock();

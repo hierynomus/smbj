@@ -122,7 +122,8 @@ public class Share implements AutoCloseable {
         SMB2Close closeResp = Futures.get(closeFuture, TransportException.Wrapper);
 
         if (closeResp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(closeResp.getHeader(), "Close failed for " + fileId);
+            throw new SMBApiException(closeResp.getHeader(),
+                    "Close failed for " + fileId);
         }
     }
 }

@@ -203,6 +203,15 @@ public class SmbjTest {
     }
 
     @Test
+    public void testSID() {
+        SID s1 = new SID((byte) 1, new byte[]{0, 0, 0, 0, 0, 1}, new long[]{0});
+        SID s2 = new SID((byte) 1, new byte[]{0, 0, 0, 0, 0, 1}, new long[]{0});
+        assertEquals(s1, s2);
+        System.out.println(s1.hashCode());
+        System.out.println(s2.hashCode());
+    }
+
+    @Test
     public void testWithSingleConnectionMultipleClients() throws IOException, SMBApiException, URISyntaxException {
         logger.info("Connect {},{},{},{}", ci.host, ci.user, ci.domain, ci.sharePath);
         SMBClient client = new SMBClient();

@@ -48,6 +48,15 @@ class SessionTable {
         }
     }
 
+    Session lookup(Long id) {
+        lock.lock();
+        try {
+            return lookup.get(id);
+        } finally {
+            lock.unlock();
+        }
+    }
+
     boolean isActive(Long id) {
         lock.lock();
         try {

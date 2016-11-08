@@ -28,6 +28,7 @@ import static com.hierynomus.smbj.connection.NegotiatedProtocol.SINGLE_CREDIT_PA
  */
 public class SMB2Header {
     public static final int STRUCTURE_SIZE = 64;
+    public static final int SIGNATURE_OFFSET = 48;
 
     private SMB2Dialect dialect;
     private int creditCharge = 1;
@@ -42,6 +43,7 @@ public class SMB2Header {
     private long statusCode;
     private long flags;
     private long nextCommandOffset; // TODO Message Compounding
+    private byte[] signature;
 
     public SMB2Header() {
     }
@@ -63,7 +65,11 @@ public class SMB2Header {
             buffer.putUInt32(treeId); // TreeId (4 bytes)
         }
         buffer.putLong(sessionId); // SessionId (8 bytes)
-        buffer.putRawBytes(new byte[] {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}); // Signature (16 bytes)
+        if (signature == null) {
+            buffer.putRawBytes(new byte[] { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 }); // Signature (16 bytes)
+        } else {
+            buffer.putRawBytes(signature, 0, 16);
+        }
     }
 
     private void writeChannelSequenceReserved(SMBBuffer buffer) {
@@ -204,5 +210,13 @@ public class SMB2Header {
 
     public void setCreditCharge(int creditCharge) {
         this.creditCharge = creditCharge;
+    }
+
+    public byte[] getSignature() {
+        return signature;
+    }
+
+    public void setSignature(byte[] signature) {
+        this.signature = signature;
     }
 }

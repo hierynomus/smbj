@@ -35,7 +35,6 @@ public class NtlmNegotiate extends NtlmPacket {
             NTLMSSP_NEGOTIATE_ALWAYS_SIGN,
             NTLMSSP_NEGOTIATE_KEY_EXCH,
             NTLMSSP_NEGOTIATE_NTLM,
-            NTLMSSP_NEGOTIATE_NTLM,
             NTLMSSP_REQUEST_TARGET,
             NTLMSSP_NEGOTIATE_UNICODE));
 
