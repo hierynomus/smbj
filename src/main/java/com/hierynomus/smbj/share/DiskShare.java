@@ -322,8 +322,7 @@ public class DiskShare extends Share {
         SMB2CreateResponse response = Futures.get(sendFuture, TransportException.Wrapper);
 
         if (response.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(response.getHeader(),
-                    "Create failed for " + path);
+            throw new SMBApiException(response.getHeader(), "Create failed for " + path);
         }
 
         SMB2FileId fileId = response.getFileId();
@@ -338,8 +337,7 @@ public class DiskShare extends Share {
             SMB2SetInfoResponse setInfoResponse = Futures.get(setInfoFuture, TransportException.Wrapper);
 
             if (setInfoResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(setInfoResponse.getHeader(),
-                        "SetInfo failed for " + path);
+                throw new SMBApiException(setInfoResponse.getHeader(), "SetInfo failed for " + path);
             }
         } finally {
             SMB2Close closeReq = new SMB2Close(connection.getNegotiatedProtocol().getDialect(),
@@ -348,8 +346,7 @@ public class DiskShare extends Share {
             SMB2Close closeResponse = Futures.get(closeFuture, TransportException.Wrapper);
 
             if (closeResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(closeResponse.getHeader(),
-                        "Close failed for " + path);
+                throw new SMBApiException(closeResponse.getHeader(), "Close failed for " + path);
             }
 
         }

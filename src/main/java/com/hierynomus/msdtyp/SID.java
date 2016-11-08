@@ -21,7 +21,6 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 import java.util.Arrays;
-import java.util.Objects;
 
 /**
  * [MS-DTYP].pdf 2.4.2 SecurityIdentifier SID

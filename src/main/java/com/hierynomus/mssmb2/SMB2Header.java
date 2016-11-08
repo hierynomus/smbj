@@ -28,6 +28,7 @@ import static com.hierynomus.smbj.connection.NegotiatedProtocol.SINGLE_CREDIT_PA
  */
 public class SMB2Header {
     public static final int STRUCTURE_SIZE = 64;
+    public static final int SIGNATURE_OFFSET = 48;
 
     private SMB2Dialect dialect;
     private int creditCharge = 1;
@@ -65,8 +66,7 @@ public class SMB2Header {
         }
         buffer.putLong(sessionId); // SessionId (8 bytes)
         if (signature == null) {
-            buffer.putRawBytes(new byte[] { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
-                    0x0 }); // Signature (16 bytes)
+            buffer.putRawBytes(new byte[] { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 }); // Signature (16 bytes)
         } else {
             buffer.putRawBytes(signature, 0, 16);
         }

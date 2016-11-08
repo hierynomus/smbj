@@ -42,4 +42,7 @@ public interface TransportLayer {
      * @return The sequence number of the packet.
      */
     void write(SMB2Packet packet) throws TransportException;
+
+    void writeSigned(SMB2Packet packet, byte[] sessionKey) throws TransportException;
+
 }

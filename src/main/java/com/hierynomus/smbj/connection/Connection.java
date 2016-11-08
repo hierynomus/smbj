@@ -15,8 +15,6 @@
  */
 package com.hierynomus.smbj.connection;
 
-import com.hierynomus.protocol.commons.Base64;
-import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2MessageFlag;
 import com.hierynomus.mssmb2.SMB2MultiCreditPacket;
@@ -28,8 +26,6 @@ import com.hierynomus.protocol.commons.socket.SocketClient;
 import com.hierynomus.smbj.Config;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
-import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.common.SMBException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
@@ -46,13 +42,8 @@ import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.util.NoSuchElementException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
@@ -160,28 +151,14 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
             Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID(), packet);
             connectionInfo.getOutstandingRequests().registerOutstanding(request);
-            if (connectionInfo.isRequireSigning() && packet.getHeader().getSessionId() > 0) {
-                Session session = connectionInfo.getSessionTable().lookup(packet.getHeader().getSessionId());
-                if (session != null) {
-                    packet.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_SIGNED);
-                    SMBBuffer buffer = new SMBBuffer();
-                    packet.write(buffer);
-                    Mac sha256_HMAC = null;
-                    try {
-                        sha256_HMAC = Mac.getInstance("HMACSHA256");
-
-                        System.out.println("Session Key" + ByteArrayUtils.printHex(session.getSessionKey()));
-                        SecretKeySpec secret_key = new SecretKeySpec(session.getSessionKey(), "HMACSHA256");
-                        sha256_HMAC.init(secret_key);
-                        byte[] dataToSign = buffer.getCompactData();
-                        byte[] signature = sha256_HMAC.doFinal(dataToSign);
-                        packet.getHeader().setSignature(signature);
-                    } catch (Exception e) {
-                        throw new TransportException(e);
-                    }
-                }
+            long sessionId = packet.getHeader().getSessionId();
+            Session session = connectionInfo.getSessionTable().lookup(sessionId);
+            if (connectionInfo.isRequireSigning() && session != null) {
+                byte[] sessionKey = session.getSessionKey();
+                transport.writeSigned(packet, sessionKey);
+            } else {
+                transport.write(packet);
             }
-            transport.write(packet);
             return request.getFuture(null); // TODO cancel callback
         } finally {
             lock.unlock();
