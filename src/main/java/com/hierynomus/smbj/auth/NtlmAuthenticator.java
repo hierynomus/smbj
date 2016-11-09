@@ -103,15 +103,18 @@ public class NtlmAuthenticator implements Authenticator {
                 if (challenge.getNegotiateFlags().contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SIGN)) {
                     byte[] userSessionKey = NtlmFunctions.hmac_md5(
                                     responseKeyNT, Arrays.copyOfRange(ntlmv2Response, 0, 16)); // first 16 bytes of ntlmv2Response is ntProofStr
-
-                    if ((challenge.getNegotiateFlags().contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH))) {
-                        byte[] masterKey = new byte[16];
-                        NtlmFunctions.getRandom().nextBytes(masterKey);
-                        sessionkey = NtlmFunctions.encryptRc4(userSessionKey, masterKey);
-                        session.setSigningKeySpec(new SecretKeySpec(masterKey, MessageSigning.HMAC_SHA256_ALGORITHM));
-                    } else {
-                        sessionkey = userSessionKey;
-                        session.setSigningKeySpec(new SecretKeySpec(sessionkey, MessageSigning.HMAC_SHA256_ALGORITHM));
+                    if (connection.getConnectionInfo().getNegotiatedProtocol().getDialect().isSmb3x()) {
+                        throw new TransportException("Protocol dialect 3.x not supported for signing");
+                    } else { // smbv2
+                        if ((challenge.getNegotiateFlags().contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH))) {
+                            byte[] masterKey = new byte[16];
+                            NtlmFunctions.getRandom().nextBytes(masterKey);
+                            sessionkey = NtlmFunctions.encryptRc4(userSessionKey, masterKey);
+                            session.setSigningKeySpec(new SecretKeySpec(masterKey, MessageSigning.HMAC_SHA256_ALGORITHM));
+                        } else {
+                            sessionkey = userSessionKey;
+                            session.setSigningKeySpec(new SecretKeySpec(sessionkey, MessageSigning.HMAC_SHA256_ALGORITHM));
+                        }
                     }
                 }
 
