@@ -43,23 +43,22 @@ import net.engio.mbassy.listener.Handler;
  */
 public class Session implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(Session.class);
-    long sessionId;
+    private long sessionId;
 
-    SecretKeySpec signingKeySpec;
-    boolean signingRequired;
+    private SecretKeySpec signingKeySpec;
+    private boolean signingRequired;
 
     private Connection connection;
     private SMBEventBus bus;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
 
-    public Session(long sessionId, Connection connection) {
+    public Session(long sessionId, Connection connection, SMBEventBus bus, boolean signingRequired) {
         this.sessionId = sessionId;
         this.connection = connection;
-        this.bus = null;
+        this.bus = bus;
         this.signingKeySpec = null;
-        this.signingRequired = connection.getConnectionInfo().isRequireSigning();
-        if (bus != null)
-            bus.subscribe(this);
+        this.signingRequired = signingRequired;
+        bus.subscribe(this);
     }
 
     public long getSessionId() {

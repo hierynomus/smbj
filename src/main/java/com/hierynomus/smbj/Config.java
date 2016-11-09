@@ -16,15 +16,20 @@
 package com.hierynomus.smbj;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.protocol.commons.Factory;
+import com.hierynomus.smbj.auth.Authenticator;
 
 public interface Config {
 
     Random getRandomProvider();
 
     EnumSet<SMB2Dialect> getSupportedDialects();
+
+    List<Factory.Named<Authenticator>> getSupportedAuthenticators();
 
     UUID getClientGuid();
 

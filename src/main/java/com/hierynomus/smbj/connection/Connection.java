@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.connection;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.concurrent.Future;
@@ -31,12 +32,15 @@ import com.hierynomus.mssmb2.SMB2MultiCreditPacket;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
+import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
+import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.commons.socket.SocketClient;
 import com.hierynomus.smbj.Config;
 import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.auth.NtlmAuthenticator;
+import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.common.MessageSigning;
+import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
@@ -53,6 +57,7 @@ import net.engio.mbassy.listener.Handler;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 import static com.hierynomus.smbj.connection.NegotiatedProtocol.SINGLE_CREDIT_PAYLOAD_SIZE;
+import static java.lang.String.format;
 
 /**
  * A connection to a server.
@@ -106,23 +111,42 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
      * @return a (new) Session that is authenticated for the user.
      */
     public Session authenticate(AuthenticationContext authContext) {
-        // TODO hardcoded for now
-        NtlmAuthenticator.Factory factory = new NtlmAuthenticator.Factory();
         try {
             NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
-            if (negTokenInit.getSupportedMechTypes().contains(new ASN1ObjectIdentifier(factory.getName()))) {
-                NtlmAuthenticator ntlmAuthenticator = factory.create();
+            Authenticator authenticator = getAuthenticator(negTokenInit.getSupportedMechTypes());
+            Future<SMB2SessionSetup> future = authenticator.authenticate(this, authContext);
+            SMB2SessionSetup receive = Futures.get(future, TransportException.Wrapper);
+            long sessionId = receive.getHeader().getSessionId();
+            Session session = new Session(sessionId, this, bus, connectionInfo.isRequireSigning());
+            connectionInfo.getPreauthSessionTable().registerSession(sessionId, session);
+            try {
+                while (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
+                    logger.debug("More processing required for authentication of {} using {}", authContext.getUsername(), authenticator);
+                    future = authenticator.authenticate(session, authContext, receive);
+                    receive = Futures.get(future, TransportException.Wrapper);
+                }
 
-                Session session = ntlmAuthenticator.authenticate(this, authContext);
-                session.setBus(bus);
+                if (receive.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+                    throw new SMBApiException(receive.getHeader(), format("Authentication failed for '%s' using %s", authContext.getUsername(), authenticator));
+                }
                 logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), getRemoteHostname(), session.getSessionId());
                 connectionInfo.getSessionTable().registerSession(session.getSessionId(), session);
                 return session;
+            } finally {
+                connectionInfo.getPreauthSessionTable().sessionClosed(sessionId);
             }
         } catch (IOException e) {
             throw new SMBRuntimeException(e);
         }
-        return null;
+    }
+
+    private Authenticator getAuthenticator(List<ASN1ObjectIdentifier> mechTypes) {
+        for (Factory.Named<Authenticator> factory : config.getSupportedAuthenticators()) {
+            if (mechTypes.contains(new ASN1ObjectIdentifier(factory.getName()))) {
+                return factory.create();
+            }
+        }
+        throw new SMBRuntimeException("No authenticator is configured for the supported mechtypes: " + mechTypes);
     }
 
     /**
@@ -295,11 +319,4 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         connectionInfo.getSessionTable().sessionClosed(loggedOff.getSessionId());
         logger.debug("Session << {} >> logged off", loggedOff.getSessionId());
     }
-
-
-    public ConnectionInfo getConnectionInfo() {
-        return connectionInfo;
-    }
-
-
 }
