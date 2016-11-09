@@ -15,22 +15,28 @@
  */
 package com.hierynomus.smbj.transport;
 
+import com.hierynomus.mssmb2.SMB2MessageFlag;
 import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.smbj.common.MessageSigning;
 import com.hierynomus.smbj.common.SMBBuffer;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.locks.ReentrantLock;
+
+import javax.crypto.spec.SecretKeySpec;
 
 public abstract class BaseTransport implements TransportLayer {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     protected InputStream in;
     protected OutputStream out;
-
     private final ReentrantLock writeLock = new ReentrantLock();
 
     @Override
@@ -57,5 +63,36 @@ public abstract class BaseTransport implements TransportLayer {
         }
     }
 
+    @Override
+    public void writeSigned(SMB2Packet packet, SecretKeySpec signingKeySpec) throws TransportException {
+        writeLock.lock();
+        try {
+            try {
+                SMBBuffer buffer = new SMBBuffer();
+                packet.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_SIGNED); // set the SMB2_FLAGS_SIGNED flag
+                packet.write(buffer);
+                
+                signBuffer(buffer, signingKeySpec);
+                
+                logger.trace("Writing packet << {} >>, sequence number << {} >>", packet.getHeader().getMessage(), packet.getSequenceNumber());
+                doWrite(buffer);
+                out.flush();
+            } catch (IOException ioe) {
+                throw new TransportException(ioe);
+            } catch (InvalidKeyException e) {
+                throw new TransportException(e);
+            } catch (NoSuchAlgorithmException e) {
+                throw new TransportException(e);
+            }
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
     protected abstract void doWrite(SMBBuffer packetData) throws IOException;
+
+    
+    public static void signBuffer(SMBBuffer buffer, SecretKeySpec signingKeySpec) throws InvalidKeyException, NoSuchAlgorithmException {
+        MessageSigning.signBuffer(buffer.array(), buffer.available(), signingKeySpec);
+    }
 }

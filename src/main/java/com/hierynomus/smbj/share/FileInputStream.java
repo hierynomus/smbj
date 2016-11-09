@@ -121,6 +121,6 @@ public class FileInputStream extends InputStream {
     private Future<SMB2ReadResponse> sendRequest() throws IOException {
         SMB2ReadRequest rreq = new SMB2ReadRequest(connection.getNegotiatedProtocol(), fileId,
             session.getSessionId(), treeConnect.getTreeId(), offset);
-        return connection.send(rreq);
+        return session.send(rreq);
     }
 }

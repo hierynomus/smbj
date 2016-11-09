@@ -57,6 +57,16 @@ public class SMBClient {
         return getEstablishedOrConnect(hostname, DEFAULT_PORT);
     }
 
+    /**
+     * Connect to the host at <pre>hostname</pre> on the given port
+     * @param hostname The hostname to connect to.
+     * @param port The port to connect to
+     * @return An established connection.
+     * @throws IOException If the connection could not be established.
+     */
+    public Connection connect(String hostname, int port) throws IOException {
+        return getEstablishedOrConnect(hostname, port);
+    }
 
     private Connection getEstablishedOrConnect(String hostname, int port) throws IOException {
         synchronized (this) {

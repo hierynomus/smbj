@@ -318,7 +318,7 @@ public class DiskShare extends Share {
         Connection connection = session.getConnection();
 
         // TODO Use Compounding
-        Future<SMB2CreateResponse> sendFuture = connection.send(smb2CreateRequest);
+        Future<SMB2CreateResponse> sendFuture = session.send(smb2CreateRequest);
         SMB2CreateResponse response = Futures.get(sendFuture, TransportException.Wrapper);
 
         if (response.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
@@ -415,7 +415,7 @@ public class DiskShare extends Share {
             fileId, infoType,
             fileInformationClass, null, null, securityInfo);
         try {
-            Future<SMB2QueryInfoResponse> qiResponseFuture = connection.send(qreq);
+            Future<SMB2QueryInfoResponse> qiResponseFuture = session.send(qreq);
             SMB2QueryInfoResponse qresp = Futures.get(qiResponseFuture, SMBRuntimeException.Wrapper);
 
             if (qresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {

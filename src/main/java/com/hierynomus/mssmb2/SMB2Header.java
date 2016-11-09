@@ -16,6 +16,7 @@
 package com.hierynomus.mssmb2;
 
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
@@ -28,6 +29,8 @@ import static com.hierynomus.smbj.connection.NegotiatedProtocol.SINGLE_CREDIT_PA
  */
 public class SMB2Header {
     public static final int STRUCTURE_SIZE = 64;
+    public static final int SIGNATURE_OFFSET = 48;
+    public static final int SIGNATURE_SIZE = 16;
 
     private SMB2Dialect dialect;
     private int creditCharge = 1;
@@ -137,6 +140,10 @@ public class SMB2Header {
         this.dialect = dialect;
     }
 
+    public boolean isFlagSet(SMB2MessageFlag flag) {
+        return isSet(this.flags, flag);
+    }
+    
     public void setFlag(SMB2MessageFlag flag) {
         this.flags |= flag.getValue();
     }
@@ -204,5 +211,24 @@ public class SMB2Header {
 
     public void setCreditCharge(int creditCharge) {
         this.creditCharge = creditCharge;
+    }
+    
+    public String toString() {
+        return String.format(
+        "dialect=%s, creditCharge=%s, creditRequest=%s, creditResponse=%s, message=%s, messageId=%s, asyncId=%s, sessionId=%s, treeId=%s, status=%s, statusCode=%s, flags=%s, nextCommandOffset=%s",
+        dialect,
+        creditCharge,
+        creditRequest,
+        creditResponse,
+        message,
+        messageId,
+        asyncId,
+        sessionId,
+        treeId,
+        status,
+        statusCode,
+        flags,
+        nextCommandOffset);
+
     }
 }

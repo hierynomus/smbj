@@ -27,20 +27,25 @@ import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.protocol.commons.concurrent.Futures;
+import com.hierynomus.smbj.common.MessageSigning;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.spnego.NegTokenInit;
 import com.hierynomus.spnego.NegTokenTarg;
+
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.microsoft.MicrosoftObjectIdentifiers;
+import org.bouncycastle.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import java.util.EnumSet;
 import java.util.concurrent.Future;
+
+import javax.crypto.spec.SecretKeySpec;
 
 public class NtlmAuthenticator implements Authenticator {
     private static final Logger logger = LoggerFactory.getLogger(NtlmAuthenticator.class);
@@ -60,12 +65,14 @@ public class NtlmAuthenticator implements Authenticator {
         }
     }
 
-    public long authenticate(Connection connection, AuthenticationContext context) throws TransportException {
+    public Session authenticate(Connection connection, AuthenticationContext context) throws TransportException {
+        Session session = null; 
         try {
             logger.info("Authenticating {} on {} using NTLM", context.getUsername(), connection.getRemoteHostname());
             EnumSet<SMB2SessionSetup.SMB2SecurityMode> signingEnabled = EnumSet.of
                     (SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_ENABLED);
 
+            
             SMB2SessionSetup smb2SessionSetup = new SMB2SessionSetup(connection.getNegotiatedProtocol().getDialect(), signingEnabled);
             NtlmNegotiate ntlmNegotiate = new NtlmNegotiate();
             byte[] asn1 = negTokenInit(ntlmNegotiate);
@@ -73,6 +80,10 @@ public class NtlmAuthenticator implements Authenticator {
             Future<SMB2SessionSetup> future = connection.send(smb2SessionSetup);
             SMB2SessionSetup receive = Futures.get(future, TransportException.Wrapper);
             long sessionId = receive.getHeader().getSessionId();
+            
+            session = new Session(sessionId, connection);
+            connection.getConnectionInfo().getPreauthSessionTable().registerSession(sessionId, session);
+            
             if (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
                 logger.debug("More processing required for authentication of {}", context.getUsername());
                 byte[] securityBuffer = receive.getSecurityBuffer();
@@ -91,14 +102,19 @@ public class NtlmAuthenticator implements Authenticator {
 
                 if (challenge.getNegotiateFlags().contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SIGN)) {
                     byte[] userSessionKey = NtlmFunctions.hmac_md5(
-                            responseKeyNT, ByteBuffer.wrap(ntlmv2Response, 0, 16).array());
-
-                    if ((challenge.getNegotiateFlags().contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH))) {
-                        byte[] masterKey = new byte[16];
-                        NtlmFunctions.getRandom().nextBytes(masterKey);
-                        sessionkey = NtlmFunctions.encryptRc4(userSessionKey, masterKey);
-                    } else {
-                        sessionkey = userSessionKey;
+                                    responseKeyNT, Arrays.copyOfRange(ntlmv2Response, 0, 16)); // first 16 bytes of ntlmv2Response is ntProofStr
+                    if (connection.getConnectionInfo().getNegotiatedProtocol().getDialect().isSmb3x()) {
+                        throw new TransportException("Protocol dialect 3.x not supported for signing");
+                    } else { // smbv2
+                        if ((challenge.getNegotiateFlags().contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH))) {
+                            byte[] masterKey = new byte[16];
+                            NtlmFunctions.getRandom().nextBytes(masterKey);
+                            sessionkey = NtlmFunctions.encryptRc4(userSessionKey, masterKey);
+                            session.setSigningKeySpec(new SecretKeySpec(masterKey, MessageSigning.HMAC_SHA256_ALGORITHM));
+                        } else {
+                            sessionkey = userSessionKey;
+                            session.setSigningKeySpec(new SecretKeySpec(sessionkey, MessageSigning.HMAC_SHA256_ALGORITHM));
+                        }
                     }
                 }
 
@@ -106,6 +122,8 @@ public class NtlmAuthenticator implements Authenticator {
                 smb2SessionSetup2.getHeader().setSessionId(sessionId);
                 //smb2SessionSetup2.getHeader().setCreditRequest(256);
 
+                
+                // If NTLM v2 is used, KeyExchangeKey MUST be set to the given 128-bit SessionBaseKey value.
                 NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
                         context.getUsername(), context.getDomain(), null, sessionkey, NtlmNegotiate.DEFAULT_FLAGS);
                 asn1 = negTokenTarg(resp, negTokenTarg.getResponseToken());
@@ -115,10 +133,16 @@ public class NtlmAuthenticator implements Authenticator {
                 if (setupResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
                     throw new NtlmException("Setup failed with " + setupResponse.getHeader().getStatus());
                 }
+                
             }
-            return sessionId;
+            return session;
         } catch (IOException | Buffer.BufferException e) {
             throw new TransportException(e);
+        } finally {
+            // remove the session from the preauth session table
+            if (session != null) {
+                connection.getConnectionInfo().getPreauthSessionTable().sessionClosed(session.getSessionId());
+            }
         }
     }
 

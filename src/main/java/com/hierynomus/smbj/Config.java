@@ -28,4 +28,10 @@ public interface Config {
     EnumSet<SMB2Dialect> getSupportedDialects();
 
     UUID getClientGuid();
+    
+    /**
+     * enforces message signing.  When message signing is enforced a received message that is not signed properly
+     * will be dropped.
+     */
+    boolean isStrictSigning();
 }

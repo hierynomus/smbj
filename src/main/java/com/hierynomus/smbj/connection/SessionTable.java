@@ -25,12 +25,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
-class SessionTable {
+public class SessionTable {
     private static final Logger logger = LoggerFactory.getLogger(SessionTable.class);
     private ReentrantLock lock = new ReentrantLock();
     private Map<Long, Session> lookup = new HashMap<>();
 
-    void registerSession(Long id, Session session) {
+    public void registerSession(Long id, Session session) {
         lock.lock();
         try {
             lookup.put(id, session);
@@ -39,7 +39,16 @@ class SessionTable {
         }
     }
 
-    Session sessionClosed(Long id) {
+    Session find(Long id) {
+        lock.lock();
+        try {
+            return lookup.get(id);
+        } finally {
+            lock.unlock();
+        }
+    }
+    
+    public Session sessionClosed(Long id) {
         lock.lock();
         try {
             return lookup.remove(id);
