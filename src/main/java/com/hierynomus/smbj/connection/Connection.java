@@ -26,7 +26,9 @@ import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.commons.socket.SocketClient;
 import com.hierynomus.smbj.Config;
 import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.auth.GSSAuthenticationContext;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
+import com.hierynomus.smbj.auth.SpnegoAuthenticator;
 import com.hierynomus.smbj.common.MessageSigning;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.event.SMBEventBus;
@@ -117,6 +119,25 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
                 NtlmAuthenticator ntlmAuthenticator = factory.create();
                 
                 Session session = ntlmAuthenticator.authenticate(this, authContext);
+                session.setBus(bus);
+                logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), getRemoteHostname(), session.getSessionId());
+                connectionInfo.getSessionTable().registerSession(session.getSessionId(), session);
+                return session;
+            }
+        } catch (IOException e) {
+            throw new SMBRuntimeException(e);
+        }
+        return null;
+    }
+
+    public Session authenticateSP(GSSAuthenticationContext authContext) {
+        // TODO hardcoded for now
+        SpnegoAuthenticator.Factory factory = new SpnegoAuthenticator.Factory();
+        try {
+            NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
+            if (negTokenInit.getSupportedMechTypes().contains(new ASN1ObjectIdentifier(factory.getName()))) {
+                SpnegoAuthenticator spnegoAuthenticator = factory.create();
+                Session session = spnegoAuthenticator.authenticate(this, authContext);
                 session.setBus(bus);
                 logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), getRemoteHostname(), session.getSessionId());
                 connectionInfo.getSessionTable().registerSession(session.getSessionId(), session);
