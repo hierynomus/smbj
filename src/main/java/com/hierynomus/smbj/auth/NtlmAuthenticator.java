@@ -66,6 +66,7 @@ public class NtlmAuthenticator implements Authenticator {
     }
 
     public Session authenticate(Connection connection, AuthenticationContext context) throws TransportException {
+        Session session = null; 
         try {
             logger.info("Authenticating {} on {} using NTLM", context.getUsername(), connection.getRemoteHostname());
             EnumSet<SMB2SessionSetup.SMB2SecurityMode> signingEnabled = EnumSet.of
@@ -80,7 +81,7 @@ public class NtlmAuthenticator implements Authenticator {
             SMB2SessionSetup receive = Futures.get(future, TransportException.Wrapper);
             long sessionId = receive.getHeader().getSessionId();
             
-            Session session = new Session(sessionId, connection);
+            session = new Session(sessionId, connection);
             connection.getConnectionInfo().getPreauthSessionTable().registerSession(sessionId, session);
             
             if (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
@@ -134,6 +135,11 @@ public class NtlmAuthenticator implements Authenticator {
             return session;
         } catch (IOException | Buffer.BufferException e) {
             throw new TransportException(e);
+        } finally {
+            // remove the session from the preauth session table
+            if (session != null) {
+                connection.getConnectionInfo().getPreauthSessionTable().sessionClosed(session.getSessionId());
+            }
         }
     }
 

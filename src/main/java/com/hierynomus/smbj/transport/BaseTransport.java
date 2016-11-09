@@ -92,9 +92,6 @@ public abstract class BaseTransport implements TransportLayer {
     protected abstract void doWrite(SMBBuffer packetData) throws IOException;
 
     
-    // [MS-SMB2] 3.1.4.1 Signing An Outgoing Message
-    // If Connection.Dialect is "2.0.2" or "2.1", the sender MUST compute a 32-byte hash using HMAC-SHA256 over the entire message, 
-    // beginning with the SMB2 Header from step 1, and using the key provided.
     public static void signBuffer(SMBBuffer buffer, SecretKeySpec signingKeySpec) throws InvalidKeyException, NoSuchAlgorithmException {
         MessageSigning.signBuffer(buffer.array(), buffer.available(), signingKeySpec);
     }

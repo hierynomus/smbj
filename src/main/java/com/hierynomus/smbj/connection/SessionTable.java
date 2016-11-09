@@ -48,7 +48,7 @@ public class SessionTable {
         }
     }
     
-    Session sessionClosed(Long id) {
+    public Session sessionClosed(Long id) {
         lock.lock();
         try {
             return lookup.remove(id);

@@ -25,6 +25,8 @@ import com.hierynomus.mssmb2.SMB2Header;
 
 public class MessageSigning {
 
+    public static final String HMAC_SHA256_ALGORITHM = "HmacSHA256";
+    
     /**
      * check that the signature field of the SMB message buffer is correct.
      * 
@@ -44,8 +46,9 @@ public class MessageSigning {
 
             // are signatures identical?
             for (int i = 0; i < SMB2Header.SIGNATURE_SIZE; i++) {
-                if (signature[i] != buffer[SMB2Header.SIGNATURE_OFFSET + i])
+                if (signature[i] != buffer[SMB2Header.SIGNATURE_OFFSET + i]) {
                     return false;
+                }
             }
             return true;
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
@@ -67,10 +70,24 @@ public class MessageSigning {
      * @throws InvalidKeyException
      * @throws NoSuchAlgorithmException
      */
+    // [MS-SMB2] 3.1.4.1 Signing An Outgoing Message
+    // 1. The sender MUST zero out the 16-byte signature field in the SMB2 Header of the message to be sent 
+    // prior to generating the signature.
+    // 2. If Connection.Dialect belongs to the SMB 3.x dialect family, the sender MUST compute a 16-byte hash
+    // using AES-128-CMAC over the entire message, beginning with the SMB2 Header from step 1, and using the 
+    // key provided. The AES-128-CMAC is specified in [RFC4493]. If the message is part of a compounded chain, 
+    // any padding at the end of the message MUST be used in the hash computation. The sender MUST copy the 
+    // 16-byte hash into the signature field of the SMB2 header.
+    // 3. If Connection.Dialect is "2.0.2" or "2.1", the sender MUST compute a 32-byte hash using HMAC-SHA256 
+    // over the entire message, beginning with the SMB2 Header from step 1, and using the key provided. 
+    // The HMAC-SHA256 is specified in [FIPS180-4] and [RFC2104]. If the message is part of a compounded 
+    // chain, any padding at the end of the message MUST be used in the hash computation. The first 
+    // 16 bytes (the high-order portion) of the hash MUST be copied (beginning with the first, most 
+    // significant, byte) into the 16-byte signature field of the SMB2 Header.
     public static void signBuffer(byte[] buffer, int len, SecretKeySpec signingKeySpec) throws InvalidKeyException,
                     NoSuchAlgorithmException {
         byte[] signature = computeSignature(buffer, len, signingKeySpec);
-        System.arraycopy(signature, 0, buffer, SMB2Header.SIGNATURE_OFFSET, 16);
+        System.arraycopy(signature, 0, buffer, SMB2Header.SIGNATURE_OFFSET, SMB2Header.SIGNATURE_SIZE);
     }
 
     /**
@@ -90,19 +107,18 @@ public class MessageSigning {
      */
     private static byte[] computeSignature(byte[] buffer, int len, SecretKeySpec signingKeySpec) throws NoSuchAlgorithmException,
                     InvalidKeyException {
-        if (len < SMB2Header.STRUCTURE_SIZE)
+        if (len < SMB2Header.STRUCTURE_SIZE) {
             throw new IllegalArgumentException("Buffer must be longer than 64 bytes");
+        }
 
         Mac mac = Mac.getInstance(signingKeySpec.getAlgorithm());
         mac.init(signingKeySpec);
         mac.update(buffer, 0, SMB2Header.SIGNATURE_OFFSET);
-        for (int i = 0; i < SMB2Header.SIGNATURE_SIZE; i++)
+        for (int i = 0; i < SMB2Header.SIGNATURE_SIZE; i++) { // pretend the signature bytes are zero
             mac.update((byte) 0);
+        }
         mac.update(buffer, SMB2Header.STRUCTURE_SIZE, len - SMB2Header.STRUCTURE_SIZE);
         byte[] signature = mac.doFinal();
         return signature;
     }
-
-    public static final String HMAC_SHA256_ALGORITHM = "HmacSHA256";
-
 }
