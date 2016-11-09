@@ -62,28 +62,26 @@ public class NtlmAuthenticator implements Authenticator {
         }
     }
 
-    public Future<SMB2SessionSetup> authenticate(Connection connection, AuthenticationContext context) throws TransportException {
-        Session session = null;
-        logger.info("Authenticating {} on {} using NTLM", context.getUsername(), connection.getRemoteHostname());
-        EnumSet<SMB2SecurityMode> signingEnabled = EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED);
-
-        SMB2SessionSetup smb2SessionSetup = new SMB2SessionSetup(connection.getNegotiatedProtocol().getDialect(), signingEnabled);
-        NtlmNegotiate ntlmNegotiate = new NtlmNegotiate();
-        byte[] asn1 = negTokenInit(ntlmNegotiate);
-        smb2SessionSetup.setSecurityBuffer(asn1);
-        return connection.send(smb2SessionSetup);
-    }
+    private boolean initialized = false;
 
     @Override
-    public Future<SMB2SessionSetup> authenticate(final Session session, final AuthenticationContext context, final SMB2SessionSetup moreProcessing) throws TransportException {
-        try {
-            EnumSet<SMB2SecurityMode> signingEnabled = EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED);
-            byte[] securityBuffer = moreProcessing.getSecurityBuffer();
-            logger.debug("Received token: {}", ByteArrayUtils.printHex(securityBuffer));
+    public byte[] authenticate(final AuthenticationContext context, final byte[] gssToken, Session session) throws IOException {
+        if (!initialized) {
+            logger.info("Initialized Authentication of {} using NTLM", context.getUsername());
+            NtlmNegotiate ntlmNegotiate = new NtlmNegotiate();
+            initialized = true;
+            return negTokenInit(ntlmNegotiate);
+        } else {
+            logger.debug("Received token: {}", ByteArrayUtils.printHex(gssToken));
 
-            NegTokenTarg negTokenTarg = new NegTokenTarg().read(securityBuffer);
+            NegTokenTarg negTokenTarg = new NegTokenTarg().read(gssToken);
             BigInteger negotiationResult = negTokenTarg.getNegotiationResult();
-            NtlmChallenge challenge = (NtlmChallenge) new NtlmChallenge().read(new Buffer.PlainBuffer(negTokenTarg.getResponseToken(), Endian.LE));
+            NtlmChallenge challenge = null;
+            try {
+                challenge = (NtlmChallenge) new NtlmChallenge().read(new Buffer.PlainBuffer(negTokenTarg.getResponseToken(), Endian.LE));
+            } catch (Buffer.BufferException e) {
+                throw new IOException(e);
+            }
             logger.debug("Received NTLM challenge from: {}", challenge.getTargetName());
 
             byte[] serverChallenge = challenge.getServerChallenge();
@@ -94,34 +92,21 @@ public class NtlmAuthenticator implements Authenticator {
 
             if (challenge.getNegotiateFlags().contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SIGN)) {
                 byte[] userSessionKey = NtlmFunctions.hmac_md5(responseKeyNT, Arrays.copyOfRange(ntlmv2Response, 0, 16)); // first 16 bytes of ntlmv2Response is ntProofStr
-                if (session.getConnection().getNegotiatedProtocol().getDialect().isSmb3x()) {
-                    throw new TransportException("Protocol dialect 3.x not supported for signing");
-                } else { // smbv2
-                    if ((challenge.getNegotiateFlags().contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH))) {
-                        byte[] masterKey = new byte[16];
-                        NtlmFunctions.getRandom().nextBytes(masterKey);
-                        sessionkey = NtlmFunctions.encryptRc4(userSessionKey, masterKey);
-                        session.setSigningKeySpec(new SecretKeySpec(masterKey, MessageSigning.HMAC_SHA256_ALGORITHM));
-                    } else {
-                        sessionkey = userSessionKey;
-                        session.setSigningKeySpec(new SecretKeySpec(sessionkey, MessageSigning.HMAC_SHA256_ALGORITHM));
-                    }
+                if ((challenge.getNegotiateFlags().contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH))) {
+                    byte[] masterKey = new byte[16];
+                    NtlmFunctions.getRandom().nextBytes(masterKey);
+                    sessionkey = NtlmFunctions.encryptRc4(userSessionKey, masterKey);
+                    session.setSigningKey(masterKey);
+                } else {
+                    sessionkey = userSessionKey;
+                    session.setSigningKey(sessionkey);
                 }
             }
-
-            SMB2SessionSetup smb2SessionSetup2 = new SMB2SessionSetup(session.getConnection().getNegotiatedProtocol().getDialect(), signingEnabled);
-            smb2SessionSetup2.getHeader().setSessionId(session.getSessionId());
-            //smb2SessionSetup2.getHeader().setCreditRequest(256);
-
 
             // If NTLM v2 is used, KeyExchangeKey MUST be set to the given 128-bit SessionBaseKey value.
             NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
                 context.getUsername(), context.getDomain(), null, sessionkey, NtlmNegotiate.DEFAULT_FLAGS);
-            final byte[] asn1 = negTokenTarg(resp, negTokenTarg.getResponseToken());
-            smb2SessionSetup2.setSecurityBuffer(asn1);
-            return session.send(smb2SessionSetup2);
-        } catch (IOException | Buffer.BufferException e) {
-            throw new TransportException(e);
+            return negTokenTarg(resp, negTokenTarg.getResponseToken());
         }
     }
 

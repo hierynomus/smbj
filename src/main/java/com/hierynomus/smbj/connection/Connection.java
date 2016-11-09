@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.connection;
 
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -55,6 +56,7 @@ import com.hierynomus.spnego.NegTokenInit;
 
 import net.engio.mbassy.listener.Handler;
 
+import static com.hierynomus.mssmb2.messages.SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_ENABLED;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 import static com.hierynomus.smbj.connection.NegotiatedProtocol.SINGLE_CREDIT_PAYLOAD_SIZE;
 import static java.lang.String.format;
@@ -114,16 +116,21 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         try {
             NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
             Authenticator authenticator = getAuthenticator(negTokenInit.getSupportedMechTypes());
-            Future<SMB2SessionSetup> future = authenticator.authenticate(this, authContext);
-            SMB2SessionSetup receive = Futures.get(future, TransportException.Wrapper);
+            byte[] securityContext = authenticator.authenticate(authContext, connectionInfo.getGssNegotiateToken(), null);
+            SMB2SessionSetup req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED));
+            req.setSecurityBuffer(securityContext);
+            SMB2SessionSetup receive = sendAndReceive(req);
             long sessionId = receive.getHeader().getSessionId();
             Session session = new Session(sessionId, this, bus, connectionInfo.isRequireSigning());
             connectionInfo.getPreauthSessionTable().registerSession(sessionId, session);
             try {
                 while (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
                     logger.debug("More processing required for authentication of {} using {}", authContext.getUsername(), authenticator);
-                    future = authenticator.authenticate(session, authContext, receive);
-                    receive = Futures.get(future, TransportException.Wrapper);
+                    securityContext = authenticator.authenticate(authContext, receive.getSecurityBuffer(), session);
+                    req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED));
+                    req.getHeader().setSessionId(sessionId);
+                    req.setSecurityBuffer(securityContext);
+                    receive = sendAndReceive(req);
                 }
 
                 if (receive.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
@@ -160,6 +167,9 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         return send(packet, null);
     }
 
+    public <T extends SMB2Packet> T sendAndReceive(SMB2Packet packet) throws TransportException {
+        return Futures.get(this.<T>send(packet), TransportException.Wrapper);
+    }
 
     /**
      * send a packet, potentially signed

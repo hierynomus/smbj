@@ -15,11 +15,8 @@
  */
 package com.hierynomus.smbj.auth;
 
-import java.util.concurrent.Future;
-import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
-import com.hierynomus.smbj.connection.Connection;
+import java.io.IOException;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.transport.TransportException;
 
 public class SpnegoAuthenticator implements Authenticator {
 
@@ -35,17 +32,13 @@ public class SpnegoAuthenticator implements Authenticator {
         public SpnegoAuthenticator create() {
             return null;
         }
+
+    }
+    @Override
+    public byte[] authenticate(final AuthenticationContext context, final byte[] gssToken, final Session session) throws IOException {
+        return new byte[0];
     }
 
-    @Override
-    public Future<SMB2SessionSetup> authenticate(final Connection connection, final AuthenticationContext context) throws TransportException {
-        return null;
-    }
-
-    @Override
-    public Future<SMB2SessionSetup> authenticate(final Session session, final AuthenticationContext context, final SMB2SessionSetup moreProcessing) throws TransportException {
-        return null;
-    }
 
     public void authenticate(String username, String password, String domain) {
 //        try {

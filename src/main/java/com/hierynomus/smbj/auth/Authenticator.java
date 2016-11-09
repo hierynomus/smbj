@@ -15,15 +15,10 @@
  */
 package com.hierynomus.smbj.auth;
 
-import java.util.concurrent.Future;
-import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
-import com.hierynomus.smbj.connection.Connection;
+import java.io.IOException;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.transport.TransportException;
 
 public interface Authenticator {
 
-    Future<SMB2SessionSetup> authenticate(Connection connection, AuthenticationContext context) throws TransportException;
-
-    Future<SMB2SessionSetup> authenticate(Session session, AuthenticationContext context, SMB2SessionSetup moreProcessing) throws TransportException;
+    byte[] authenticate(AuthenticationContext context, byte[] gssToken, Session session) throws IOException;
 }

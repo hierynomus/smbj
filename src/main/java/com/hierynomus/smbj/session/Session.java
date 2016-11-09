@@ -26,6 +26,7 @@ import com.hierynomus.mssmb2.messages.SMB2Logoff;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
+import com.hierynomus.smbj.common.MessageSigning;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
@@ -149,8 +150,12 @@ public class Session implements AutoCloseable {
         return signingRequired;
     }
 
-    public void setSigningKeySpec(SecretKeySpec signingKey) {
-        this.signingKeySpec = signingKey;
+    public void setSigningKey(byte[] signingKeyBytes) {
+        if (connection.getNegotiatedProtocol().getDialect().isSmb3x()) {
+            throw new IllegalStateException("Cannot set a signing key (yet) for SMB3.x");
+        } else {
+            this.signingKeySpec = new SecretKeySpec(signingKeyBytes, MessageSigning.HMAC_SHA256_ALGORITHM);
+        }
     }
 
     public SecretKeySpec getSigningKeySpec() {
