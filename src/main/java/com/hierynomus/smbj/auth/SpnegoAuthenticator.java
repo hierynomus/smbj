@@ -32,6 +32,7 @@ public class SpnegoAuthenticator implements Authenticator {
 
     /**
      * Authenticate the user against
+     *
      * @param gssToken
      * @param context
      * @return

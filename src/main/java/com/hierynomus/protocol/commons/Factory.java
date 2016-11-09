@@ -32,7 +32,7 @@ public interface Factory<T> {
      * @param <T> type of object created by this factory
      */
     interface Named<T>
-            extends Factory<T> {
+        extends Factory<T> {
 
         /**
          * Utility functions

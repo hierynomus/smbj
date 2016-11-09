@@ -15,15 +15,14 @@
  */
 package com.hierynomus.protocol.commons.concurrent;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Represents promised data of the parameterized type {@code V} and allows waiting on it. An exception may also be
@@ -121,7 +120,7 @@ public class Promise<V, T extends Throwable> {
      * @throws T in case another thread informs the promise of an error meanwhile
      */
     public V retrieve()
-            throws T {
+        throws T {
         return tryRetrieve(0, TimeUnit.SECONDS);
     }
 
@@ -134,7 +133,7 @@ public class Promise<V, T extends Throwable> {
      * @throws T in case another thread informs the promise of an error meanwhile, or the timeout expires
      */
     public V retrieve(long timeout, TimeUnit unit)
-            throws T {
+        throws T {
         final V value = tryRetrieve(timeout, unit);
         if (value == null)
             throw wrapper.wrap(new TimeoutException("Timeout expired"));
@@ -153,7 +152,7 @@ public class Promise<V, T extends Throwable> {
      * @throws T in case another thread informs the promise of an error meanwhile
      */
     public V tryRetrieve(long timeout, TimeUnit unit)
-            throws T {
+        throws T {
         lock.lock();
         try {
             if (pendingEx != null)

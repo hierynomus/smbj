@@ -23,7 +23,8 @@ import com.hierynomus.smbj.common.SMBBuffer;
 /**
  * [MS-SMB2].pdf 2.2.38 SMB2 QUERY_INFO Response
  * <p>
-\ */
+ * \
+ */
 public class SMB2QueryInfoResponse extends SMB2Packet {
 
     byte[] outputBuffer;

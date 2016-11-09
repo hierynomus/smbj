@@ -15,9 +15,10 @@
  */
 package com.hierynomus.smbj.io;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import com.hierynomus.smbj.common.SMBRuntimeException;
-
-import java.io.*;
 
 public class InputStreamByteChunkProvider extends ByteChunkProvider {
 

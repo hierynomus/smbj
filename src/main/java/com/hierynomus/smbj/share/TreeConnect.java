@@ -15,6 +15,8 @@
  */
 package com.hierynomus.smbj.share;
 
+import java.util.EnumSet;
+import java.util.concurrent.Future;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.messages.SMB2TreeDisconnect;
@@ -26,9 +28,6 @@ import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.TreeDisconnected;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
-
-import java.util.EnumSet;
-import java.util.concurrent.Future;
 
 /**
  *

@@ -15,15 +15,14 @@
  */
 package com.hierynomus.protocol.commons.socket;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.net.SocketFactory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Socket;
+import javax.net.SocketFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ProxySocketFactory extends SocketFactory {
     private static final Logger logger = LoggerFactory.getLogger(ProxySocketFactory.class);

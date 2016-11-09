@@ -15,9 +15,8 @@
  */
 package com.hierynomus.smbj.io;
 
-import com.hierynomus.smbj.common.SMBRuntimeException;
-
 import java.io.*;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 
 public class FileByteChunkProvider extends ByteChunkProvider {
 

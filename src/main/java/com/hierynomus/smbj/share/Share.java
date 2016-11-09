@@ -15,6 +15,12 @@
  */
 package com.hierynomus.smbj.share;
 
+import java.io.IOException;
+import java.util.EnumSet;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
@@ -31,13 +37,6 @@ import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.EnumSet;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Share implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(Share.class);
@@ -71,12 +70,12 @@ public class Share implements AutoCloseable {
         String path, long accessMask,
         EnumSet<FileAttributes> fileAttributes, EnumSet<SMB2ShareAccess> shareAccess,
         SMB2CreateDisposition createDisposition, EnumSet<SMB2CreateOptions> createOptions)
-            throws SMBApiException {
+        throws SMBApiException {
         logger.info("open {},{}", path);
 
         Session session = treeConnect.getSession();
         SMB2CreateRequest cr = openFileRequest(
-                treeConnect, path, accessMask, shareAccess, fileAttributes, createDisposition, createOptions);
+            treeConnect, path, accessMask, shareAccess, fileAttributes, createDisposition, createOptions);
         try {
             Future<SMB2CreateResponse> responseFuture = session.send(cr);
             SMB2CreateResponse cresponse = Futures.get(responseFuture, SMBRuntimeException.Wrapper);
@@ -93,22 +92,22 @@ public class Share implements AutoCloseable {
 
 
     protected static SMB2CreateRequest openFileRequest(
-            TreeConnect treeConnect, String path,
-            long accessMask,
-            EnumSet<SMB2ShareAccess> shareAccess,
-            EnumSet<FileAttributes> fileAttributes,
-            SMB2CreateDisposition createDisposition,
-            EnumSet<SMB2CreateOptions> createOptions) {
+        TreeConnect treeConnect, String path,
+        long accessMask,
+        EnumSet<SMB2ShareAccess> shareAccess,
+        EnumSet<FileAttributes> fileAttributes,
+        SMB2CreateDisposition createDisposition,
+        EnumSet<SMB2CreateOptions> createOptions) {
 
         Session session = treeConnect.getSession();
         SMB2CreateRequest cr = new SMB2CreateRequest(
             session.getConnection().getNegotiatedProtocol().getDialect(),
-                session.getSessionId(), treeConnect.getTreeId(),
-                accessMask,
-                fileAttributes,
-                shareAccess,
-                createDisposition,
-                createOptions, path);
+            session.getSessionId(), treeConnect.getTreeId(),
+            accessMask,
+            fileAttributes,
+            shareAccess,
+            createDisposition,
+            createOptions, path);
         return cr;
     }
 

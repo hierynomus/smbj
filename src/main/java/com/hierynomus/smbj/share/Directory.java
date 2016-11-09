@@ -15,6 +15,11 @@
  */
 package com.hierynomus.smbj.share;
 
+import java.util.EnumSet;
+import java.util.List;
+import java.util.concurrent.Future;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.msfscc.fileinformation.FileInfo;
@@ -28,12 +33,6 @@ import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.EnumSet;
-import java.util.List;
-import java.util.concurrent.Future;
 
 public class Directory extends DiskEntry {
 
@@ -49,11 +48,11 @@ public class Directory extends DiskEntry {
 
         // Query Directory Request
         SMB2QueryDirectoryRequest qdr = new SMB2QueryDirectoryRequest(connection.getNegotiatedProtocol().getDialect(),
-                session.getSessionId(), treeConnect.getTreeId(),
-                getFileId(), FileInformationClass.FileIdBothDirectoryInformation, // FileInformationClass
-                // .FileDirectoryInformation,
-                EnumSet.of(SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags.SMB2_REOPEN),
-                0, null);
+            session.getSessionId(), treeConnect.getTreeId(),
+            getFileId(), FileInformationClass.FileIdBothDirectoryInformation, // FileInformationClass
+            // .FileDirectoryInformation,
+            EnumSet.of(SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags.SMB2_REOPEN),
+            0, null);
         Future<SMB2QueryDirectoryResponse> qdFuture = session.send(qdr);
 
         SMB2QueryDirectoryResponse qdResp = Futures.get(qdFuture, TransportException.Wrapper);

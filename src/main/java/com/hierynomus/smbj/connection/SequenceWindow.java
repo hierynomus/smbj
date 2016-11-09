@@ -15,11 +15,10 @@
  */
 package com.hierynomus.smbj.connection;
 
-import com.hierynomus.smbj.common.SMBRuntimeException;
-
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 
 /**
  * [MS-SMB2].pdf 3.2.4.1.6 Algorithm for Handling Available Message Sequence Numbers by the Client.

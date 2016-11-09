@@ -15,6 +15,7 @@
  */
 package com.hierynomus.mssmb2.messages;
 
+import java.util.EnumSet;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2Header;
@@ -23,9 +24,6 @@ import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.common.SMBRuntimeException;
-
-import java.util.EnumSet;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
@@ -48,7 +46,7 @@ public class SMB2SessionSetup extends SMB2Packet {
     public SMB2SessionSetup(SMB2Dialect negotiatedDialect, EnumSet<SMB2SecurityMode> securityMode) {
         super(25, negotiatedDialect, SMB2MessageCommandCode.SMB2_SESSION_SETUP);
         this.negotiatedDialect = negotiatedDialect;
-        this.securityMode = (byte)EnumWithValue.EnumUtils.toLong(securityMode);
+        this.securityMode = (byte) EnumWithValue.EnumUtils.toLong(securityMode);
     }
 
     @Override
@@ -59,7 +57,7 @@ public class SMB2SessionSetup extends SMB2Packet {
         buffer.putUInt32(clientCapabilities & 0x01); // Capabilities (4 bytes) (only last byte can be set)
         buffer.putReserved4(); // Channel (4 bytes)
         buffer.putUInt16(SMB2Header.STRUCTURE_SIZE + 25 - 1); // SecurityBufferOffset (2 bytes) (header structure size + Session setup structure size - 1)
-        buffer.putUInt16((securityBuffer!=null) ? securityBuffer.length : 0); // SecurityBufferLength (2 bytes)
+        buffer.putUInt16((securityBuffer != null) ? securityBuffer.length : 0); // SecurityBufferLength (2 bytes)
         buffer.putUInt64(previousSessionId); // PreviousSessionId (8 bytes)
         if (securityBuffer != null) {
             buffer.putRawBytes(securityBuffer); // SecurityBuffer (variable)
@@ -73,7 +71,7 @@ public class SMB2SessionSetup extends SMB2Packet {
         int securityBufferOffset = buffer.readUInt16(); // SecurityBufferOffset (2 bytes)
         int securityBufferLength = buffer.readUInt16(); // SecurityBufferLength (2 bytes)
         if (getHeader().getStatus() == NtStatus.STATUS_SUCCESS ||
-                getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
+            getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
             securityBuffer = readSecurityBuffer(buffer, securityBufferOffset, securityBufferLength); // SecurityBuffer (variable)
         }
     }

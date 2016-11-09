@@ -15,18 +15,17 @@
  */
 package com.hierynomus.ntlm.functions;
 
-import com.hierynomus.msdtyp.MsDataTypes;
-import com.hierynomus.ntlm.NtlmException;
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.buffer.Endian;
-
-import javax.crypto.*;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.util.Arrays;
+import javax.crypto.*;
+import javax.crypto.spec.SecretKeySpec;
+import com.hierynomus.msdtyp.MsDataTypes;
+import com.hierynomus.ntlm.NtlmException;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.Endian;
 
 /**
  * NTLM Helper functions
@@ -155,7 +154,7 @@ public class NtlmFunctions {
 
     /**
      * [MS-NLMP].pdf 2.2.2.7 NTLM v2: NTLMv2_CLIENT_CHALLENGE
-     *
+     * <p>
      * 3.3.2 NTLM v2 Authentication
      * Set temp to ConcatenationOf(Responserversion, HiResponserversion, Z(6), Time, ClientChallenge, Z(4), ServerName, Z(4))
      *
@@ -170,8 +169,8 @@ public class NtlmFunctions {
         long nowAsFileTime = MsDataTypes.nowAsFileTime();
         byte[] l_targetInfo = (targetInformation == null) ? new byte[0] : targetInformation;
         Buffer.PlainBuffer ccBuf = new Buffer.PlainBuffer(Endian.LE);
-        ccBuf.putByte((byte)0x01); // RespType (1)
-        ccBuf.putByte((byte)0x01); // HiRespType (1)
+        ccBuf.putByte((byte) 0x01); // RespType (1)
+        ccBuf.putByte((byte) 0x01); // HiRespType (1)
         ccBuf.putUInt16(0); // Reserved1 (2)
         ccBuf.putUInt32(0); // Reserved2 (4)
         ccBuf.putLong(nowAsFileTime); // Timestamp (8)
@@ -184,9 +183,8 @@ public class NtlmFunctions {
     }
 
     /**
-     *
      * 3.3.2 NTLM v2 Authentication
-     *
+     * <p>
      * Set NTProofStr to HMAC_MD5(ResponseKeyNT, ConcatenationOf(CHALLENGE_MESSAGE.ServerChallenge,temp))
      * Set NtChallengeResponse to ConcatenationOf(NTProofStr, temp)
      *
@@ -211,7 +209,7 @@ public class NtlmFunctions {
         try {
             Cipher c = getRC4Cipher(key);
             byte[] enc = c.doFinal(val);
-            return  enc;
+            return enc;
         } catch (BadPaddingException | IllegalBlockSizeException e) {
             throw new NtlmException(e);
         }
@@ -231,17 +229,17 @@ public class NtlmFunctions {
         byte[] key = new byte[8];
         key[0] = (byte) ((key56[0] >> 1) & 0xff);
         key[1] = (byte) ((((key56[0] & 0x01) << 6)
-                | (((key56[1] & 0xff) >> 2) & 0xff)) & 0xff);
+            | (((key56[1] & 0xff) >> 2) & 0xff)) & 0xff);
         key[2] = (byte) ((((key56[1] & 0x03) << 5)
-                | (((key56[2] & 0xff) >> 3) & 0xff)) & 0xff);
+            | (((key56[2] & 0xff) >> 3) & 0xff)) & 0xff);
         key[3] = (byte) ((((key56[2] & 0x07) << 4)
-                | (((key56[3] & 0xff) >> 4) & 0xff)) & 0xff);
+            | (((key56[3] & 0xff) >> 4) & 0xff)) & 0xff);
         key[4] = (byte) ((((key56[3] & 0x0f) << 3)
-                | (((key56[4] & 0xff) >> 5) & 0xff)) & 0xff);
+            | (((key56[4] & 0xff) >> 5) & 0xff)) & 0xff);
         key[5] = (byte) ((((key56[4] & 0x1f) << 2)
-                | (((key56[5] & 0xff) >> 6) & 0xff)) & 0xff);
+            | (((key56[5] & 0xff) >> 6) & 0xff)) & 0xff);
         key[6] = (byte) ((((key56[5] & 0x3f) << 1)
-                | (((key56[6] & 0xff) >> 7) & 0xff)) & 0xff);
+            | (((key56[6] & 0xff) >> 7) & 0xff)) & 0xff);
         key[7] = (byte) (key56[6] & 0x7f);
 
         for (int i = 0; i < key.length; i++) {

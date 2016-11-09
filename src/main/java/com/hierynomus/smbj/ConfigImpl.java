@@ -15,11 +15,10 @@
  */
 package com.hierynomus.smbj;
 
-import com.hierynomus.mssmb2.SMB2Dialect;
-
 import java.util.EnumSet;
 import java.util.Random;
 import java.util.UUID;
+import com.hierynomus.mssmb2.SMB2Dialect;
 
 public class ConfigImpl implements Config {
 
@@ -42,7 +41,7 @@ public class ConfigImpl implements Config {
     public UUID getClientGuid() {
         return clientGuid;
     }
-    
+
     @Override
     public boolean isStrictSigning() {
         return isStrictSigning;

@@ -15,15 +15,14 @@
  */
 package com.hierynomus.smbj.connection;
 
-import com.hierynomus.smbj.session.Session;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.hierynomus.smbj.session.Session;
 
 public class SessionTable {
     private static final Logger logger = LoggerFactory.getLogger(SessionTable.class);
@@ -47,7 +46,7 @@ public class SessionTable {
             lock.unlock();
         }
     }
-    
+
     public Session sessionClosed(Long id) {
         lock.lock();
         try {

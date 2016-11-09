@@ -66,6 +66,7 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
 
     /**
      * Write the message fields into the buffer, as specified in the [MS-SMB2].pdf specification.
+     *
      * @param buffer
      */
     protected void writeTo(SMBBuffer buffer) {

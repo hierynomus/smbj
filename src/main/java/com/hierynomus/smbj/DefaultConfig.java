@@ -15,11 +15,10 @@
  */
 package com.hierynomus.smbj;
 
-import com.hierynomus.mssmb2.SMB2Dialect;
-
 import java.security.SecureRandom;
 import java.util.EnumSet;
 import java.util.UUID;
+import com.hierynomus.mssmb2.SMB2Dialect;
 
 public class DefaultConfig extends ConfigImpl {
 

@@ -15,22 +15,19 @@
  */
 package com.hierynomus.smbj.transport;
 
-import com.hierynomus.mssmb2.SMB2MessageFlag;
-import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.smbj.common.MessageSigning;
-import com.hierynomus.smbj.common.SMBBuffer;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.locks.ReentrantLock;
-
 import javax.crypto.spec.SecretKeySpec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.hierynomus.mssmb2.SMB2MessageFlag;
+import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.smbj.common.MessageSigning;
+import com.hierynomus.smbj.common.SMBBuffer;
 
 public abstract class BaseTransport implements TransportLayer {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -71,9 +68,9 @@ public abstract class BaseTransport implements TransportLayer {
                 SMBBuffer buffer = new SMBBuffer();
                 packet.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_SIGNED); // set the SMB2_FLAGS_SIGNED flag
                 packet.write(buffer);
-                
+
                 signBuffer(buffer, signingKeySpec);
-                
+
                 logger.trace("Writing packet << {} >>, sequence number << {} >>", packet.getHeader().getMessage(), packet.getSequenceNumber());
                 doWrite(buffer);
                 out.flush();
@@ -91,7 +88,7 @@ public abstract class BaseTransport implements TransportLayer {
 
     protected abstract void doWrite(SMBBuffer packetData) throws IOException;
 
-    
+
     public static void signBuffer(SMBBuffer buffer, SecretKeySpec signingKeySpec) throws InvalidKeyException, NoSuchAlgorithmException {
         MessageSigning.signBuffer(buffer.array(), buffer.available(), signingKeySpec);
     }

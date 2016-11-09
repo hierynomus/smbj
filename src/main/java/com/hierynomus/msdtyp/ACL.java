@@ -15,11 +15,10 @@
  */
 package com.hierynomus.msdtyp;
 
+import java.util.Arrays;
 import com.hierynomus.msdtyp.ace.ACE;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
-
-import java.util.Arrays;
 
 /**
  * [MS-DTYP].pdf 2.4.5 ACL
@@ -84,11 +83,11 @@ public class ACL {
     @Override
     public String toString() {
         return "ACL{" +
-                "revision=" + revision +
-                ", aceCount=" + aceCount +
-                ", sidIdentifierAuthority=" + Arrays.toString(sidIdentifierAuthority) +
-                ", subAuthorities=" + Arrays.toString(subAuthorities) +
-                ", aces=" + Arrays.toString(aces) +
-                '}';
+            "revision=" + revision +
+            ", aceCount=" + aceCount +
+            ", sidIdentifierAuthority=" + Arrays.toString(sidIdentifierAuthority) +
+            ", subAuthorities=" + Arrays.toString(subAuthorities) +
+            ", aces=" + Arrays.toString(aces) +
+            '}';
     }
 }

@@ -19,7 +19,7 @@ import com.hierynomus.protocol.commons.EnumWithValue;
 
 /**
  * MS-DTYP 2.4.3 ACCESS_MASK
- *
+ * <p>
  * Its ok to find multiple names pointing to the same values, Since the
  * same access mask when applied to File, Folder or other object are just
  * named/called differently.

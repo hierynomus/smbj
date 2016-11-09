@@ -23,7 +23,6 @@ import com.hierynomus.smbj.connection.NegotiatedProtocol;
 
 /**
  * [MS-SMB2].pdf 2.2.19 SMB2 READ Request
- *
  */
 public class SMB2ReadRequest extends SMB2MultiCreditPacket {
 

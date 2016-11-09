@@ -17,12 +17,9 @@ package com.hierynomus.smbj.session;
 
 import java.io.IOException;
 import java.util.concurrent.Future;
-
 import javax.crypto.spec.SecretKeySpec;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.messages.SMB2Logoff;
@@ -47,10 +44,10 @@ import net.engio.mbassy.listener.Handler;
 public class Session implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(Session.class);
     long sessionId;
-    
+
     SecretKeySpec signingKeySpec;
     boolean signingRequired;
-    
+
     private Connection connection;
     private SMBEventBus bus;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
@@ -62,7 +59,7 @@ public class Session implements AutoCloseable {
         this.signingKeySpec = null;
         this.signingRequired = connection.getConnectionInfo().isRequireSigning();
         if (bus != null)
-        bus.subscribe(this);
+            bus.subscribe(this);
     }
 
     public long getSessionId() {
@@ -152,9 +149,11 @@ public class Session implements AutoCloseable {
     public boolean isSigningRequired() {
         return signingRequired;
     }
+
     public void setSigningKeySpec(SecretKeySpec signingKey) {
         this.signingKeySpec = signingKey;
     }
+
     public SecretKeySpec getSigningKeySpec() {
         return signingKeySpec;
     }
@@ -167,9 +166,10 @@ public class Session implements AutoCloseable {
     public Connection getConnection() {
         return connection;
     }
-    
+
     /**
      * send a packet.  The packet will be signed or not depending on the session's flags.
+     *
      * @param packet SMBPacket to send
      * @return a Future to be used to retrieve the response packet
      * @throws TransportException

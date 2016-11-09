@@ -15,6 +15,15 @@
  */
 package com.hierynomus.smbj.connection;
 
+import java.io.IOException;
+import java.util.NoSuchElementException;
+import java.util.UUID;
+import java.util.concurrent.Future;
+import java.util.concurrent.locks.ReentrantLock;
+import javax.crypto.spec.SecretKeySpec;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2MessageFlag;
@@ -41,18 +50,6 @@ import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
 import com.hierynomus.spnego.NegTokenInit;
 
 import net.engio.mbassy.listener.Handler;
-
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.NoSuchElementException;
-import java.util.UUID;
-import java.util.concurrent.Future;
-import java.util.concurrent.locks.ReentrantLock;
-
-import javax.crypto.spec.SecretKeySpec;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 import static com.hierynomus.smbj.connection.NegotiatedProtocol.SINGLE_CREDIT_PAYLOAD_SIZE;
@@ -115,7 +112,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
             if (negTokenInit.getSupportedMechTypes().contains(new ASN1ObjectIdentifier(factory.getName()))) {
                 NtlmAuthenticator ntlmAuthenticator = factory.create();
-                
+
                 Session session = ntlmAuthenticator.authenticate(this, authContext);
                 session.setBus(bus);
                 logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), getRemoteHostname(), session.getSessionId());
@@ -130,6 +127,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
     /**
      * send a packet, unsigned.
+     *
      * @param packet SMBPacket to send
      * @return a Future to be used to retrieve the response packet
      * @throws TransportException
@@ -138,10 +136,11 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         return send(packet, null);
     }
 
-    
+
     /**
      * send a packet, potentially signed
-     * @param packet SMBPacket to send
+     *
+     * @param packet     SMBPacket to send
      * @param signingKey if null, do not sign the packet.  Otherwise, the signingKey will be used to sign the packet.
      * @return a Future to be used to retrieve the response packet
      * @throws TransportException
@@ -246,7 +245,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             // TODO reauthenticate session!
             return;
         }
-        
+
         if (packet.getHeader().getSessionId() != 0 && (packet.getHeader().getMessage() != SMB2MessageCommandCode.SMB2_SESSION_SETUP)) {
             Session session = connectionInfo.getSessionTable().find(packet.getHeader().getSessionId());
             if (session == null) {
@@ -258,7 +257,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
                     return;
                 }
             }
-            
+
             // check packet signature.  Drop the packet if it is not correct.
             if (session.isSigningRequired()) {
                 if (packet.getHeader().isFlagSet(SMB2MessageFlag.SMB2_FLAGS_SIGNED)) {
@@ -301,6 +300,6 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     public ConnectionInfo getConnectionInfo() {
         return connectionInfo;
     }
-    
-    
+
+
 }

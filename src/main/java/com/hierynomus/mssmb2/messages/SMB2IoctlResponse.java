@@ -26,7 +26,8 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.valueOf;
 /**
  * [MS-SMB2].pdf 2.2.32 SMB2 IOCTL Response
  * <p>
-\ */
+ * \
+ */
 public class SMB2IoctlResponse extends SMB2Packet {
 
     private SMB2IoctlRequest.ControlCode controlCode;
@@ -50,9 +51,9 @@ public class SMB2IoctlResponse extends SMB2Packet {
         fileId = SMB2FileId.read(buffer); // FileId (16 bytes)
 
         int inputOffset = buffer.readUInt32AsInt(); // Input Offset (4 bytes)
-        int inputCount  = buffer.readUInt32AsInt(); // Input Count (4 bytes)
+        int inputCount = buffer.readUInt32AsInt(); // Input Count (4 bytes)
         int outputOffset = buffer.readUInt32AsInt(); // Input Offset (4 bytes)
-        int outputCount  = buffer.readUInt32AsInt(); // Input Count (4 bytes)
+        int outputCount = buffer.readUInt32AsInt(); // Input Count (4 bytes)
         buffer.skip(4); // Flags (4 bytes)
         buffer.skip(4); // Reserved2 (4 bytes)
 

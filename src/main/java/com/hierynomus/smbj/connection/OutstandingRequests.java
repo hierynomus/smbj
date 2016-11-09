@@ -15,13 +15,12 @@
  */
 package com.hierynomus.smbj.connection;
 
-import com.hierynomus.smbj.common.SMBRuntimeException;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 
 class OutstandingRequests {
     private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
