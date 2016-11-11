@@ -28,6 +28,7 @@ import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.connection.NegotiatedProtocol;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
 
@@ -118,8 +119,9 @@ public class FileInputStream extends InputStream {
     }
 
     private Future<SMB2ReadResponse> sendRequest() throws IOException {
-        SMB2ReadRequest rreq = new SMB2ReadRequest(connection.getNegotiatedProtocol(), fileId,
-            session.getSessionId(), treeConnect.getTreeId(), offset);
+        NegotiatedProtocol negotiatedProtocol = connection.getNegotiatedProtocol();
+        SMB2ReadRequest rreq = new SMB2ReadRequest(negotiatedProtocol.getDialect(), fileId,
+            session.getSessionId(), treeConnect.getTreeId(), offset, negotiatedProtocol.getMaxReadSize());
         return session.send(rreq);
     }
 }

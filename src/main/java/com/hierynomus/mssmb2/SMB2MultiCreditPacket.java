@@ -17,20 +17,25 @@ package com.hierynomus.mssmb2;
 
 public class SMB2MultiCreditPacket extends SMB2Packet {
 
-    protected int creditsAssigned = 1;
-    private int payloadSize;
+    private int maxPayloadSize;
 
-    public SMB2MultiCreditPacket(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType, long sessionId, long treeId, int payloadSize) {
+    public SMB2MultiCreditPacket(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType, long sessionId, long treeId, int maxPayloadSize) {
         super(structureSize, dialect, messageType, sessionId, treeId);
-        this.payloadSize = payloadSize;
+        this.maxPayloadSize = maxPayloadSize;
+    }
+
+    public int getMaxPayloadSize() {
+        return this.maxPayloadSize;
     }
 
     public int getPayloadSize() {
-        return this.payloadSize;
+        return Math.min(maxPayloadSize, SINGLE_CREDIT_PAYLOAD_SIZE * getCreditsAssigned());
     }
 
+    public int getCreditsAssigned() {
+        return getHeader().getCreditCharge();
+    }
     public void setCreditsAssigned(int creditsAssigned) {
-        this.creditsAssigned = creditsAssigned;
         getHeader().setCreditCharge(creditsAssigned);
     }
 }
