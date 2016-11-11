@@ -17,16 +17,11 @@ package com.hierynomus.smbj.auth;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.EnumSet;
-import java.util.concurrent.Future;
-import javax.crypto.spec.SecretKeySpec;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.microsoft.MicrosoftObjectIdentifiers;
 import org.bouncycastle.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
-import com.hierynomus.mssmb2.messages.SMB2SessionSetup.SMB2SecurityMode;
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.ntlm.messages.NtlmAuthenticate;
 import com.hierynomus.ntlm.messages.NtlmChallenge;
@@ -35,14 +30,9 @@ import com.hierynomus.ntlm.messages.NtlmNegotiateFlag;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
-import com.hierynomus.smbj.common.MessageSigning;
-import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.spnego.NegTokenInit;
 import com.hierynomus.spnego.NegTokenTarg;
-
-import static com.hierynomus.mssmb2.messages.SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_ENABLED;
 
 public class NtlmAuthenticator implements Authenticator {
     private static final Logger logger = LoggerFactory.getLogger(NtlmAuthenticator.class);
