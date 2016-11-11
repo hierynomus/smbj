@@ -15,14 +15,13 @@
  */
 package com.hierynomus.protocol.commons.socket;
 
-import javax.net.SocketFactory;
-
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import javax.net.SocketFactory;
 
 public abstract class SocketClient {
     private static final int INITIAL_BUFFER_SIZE = 9000; // Size of a Jumbo frame.

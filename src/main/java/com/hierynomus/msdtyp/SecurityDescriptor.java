@@ -15,11 +15,10 @@
  */
 package com.hierynomus.msdtyp;
 
+import java.util.EnumSet;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
-
-import java.util.EnumSet;
 
 /**
  * [MS-DTYP].pdf 2.4.6 SecurityDescriptor
@@ -35,7 +34,7 @@ public class SecurityDescriptor {
     public SecurityDescriptor() {
     }
 
-//    public SecurityDescriptor(EnumSet<Control> control, SID ownerSid, SID groupSid, ACL sacl, ACL dacl) {
+    //    public SecurityDescriptor(EnumSet<Control> control, SID ownerSid, SID groupSid, ACL sacl, ACL dacl) {
 //        this.control = control;
 //        this.ownerSid = ownerSid;
 //        this.groupSid = groupSid;
@@ -120,12 +119,12 @@ public class SecurityDescriptor {
     @Override
     public String toString() {
         return "SecurityDescriptor{" +
-                "control=" + control +
-                ", ownerSid=" + ownerSid +
-                ", groupSid=" + groupSid +
-                ", sacl=" + sacl +
-                ", dacl=" + dacl +
-                '}';
+            "control=" + control +
+            ", ownerSid=" + ownerSid +
+            ", groupSid=" + groupSid +
+            ", sacl=" + sacl +
+            ", dacl=" + dacl +
+            '}';
     }
 
     // SecurityDescriptor Control bits

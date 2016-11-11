@@ -15,14 +15,13 @@
  */
 package com.hierynomus.msdtyp.ace;
 
+import java.util.EnumSet;
+import java.util.UUID;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.msdtyp.SID;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
-
-import java.util.EnumSet;
-import java.util.UUID;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
@@ -35,9 +34,9 @@ class AceType2 extends ACE {
     private UUID inheritedObjectType;
 
     AceType2(AceType aceType, EnumSet<AceFlags> aceFlags, EnumSet<AccessMask> accessMask,
-                    EnumSet<AceObjectFlags> flags, UUID objectType, UUID inheritedObjectType, SID sid) {
+             EnumSet<AceObjectFlags> flags, UUID objectType, UUID inheritedObjectType, SID sid) {
         super(new AceHeader(aceType, aceFlags, ACE.HEADER_STRUCTURE_SIZE + 4 + 4 + 16 + 16 + sid.byteCount()),
-                toLong(accessMask), sid);
+            toLong(accessMask), sid);
         this.flags = flags;
         this.objectType = objectType;
         this.inheritedObjectType = inheritedObjectType;
@@ -83,9 +82,9 @@ class AceType2 extends ACE {
     @Override
     public String toString() {
         return "AceType2{" +
-                "flags=" + flags +
-                ", objectType=" + objectType +
-                ", inheritedObjectType=" + inheritedObjectType +
-                "} " + super.toString();
+            "flags=" + flags +
+            ", objectType=" + objectType +
+            ", inheritedObjectType=" + inheritedObjectType +
+            "} " + super.toString();
     }
 }

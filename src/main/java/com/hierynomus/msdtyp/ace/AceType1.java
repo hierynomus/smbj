@@ -15,12 +15,11 @@
  */
 package com.hierynomus.msdtyp.ace;
 
+import java.util.EnumSet;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SID;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
-
-import java.util.EnumSet;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
 
@@ -30,9 +29,10 @@ class AceType1 extends ACE {
 
     AceType1() {
     }
+
     AceType1(AceType aceType, EnumSet<AceFlags> aceFlags, EnumSet<AccessMask> accessMask, SID sid) {
         super(new AceHeader(aceType, aceFlags, ACE.HEADER_STRUCTURE_SIZE + 4 + sid.byteCount()),
-                toLong(accessMask), sid);
+            toLong(accessMask), sid);
     }
 
     @Override

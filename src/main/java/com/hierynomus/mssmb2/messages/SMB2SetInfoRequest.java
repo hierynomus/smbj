@@ -33,10 +33,10 @@ public class SMB2SetInfoRequest extends SMB2Packet {
     private final SecurityInformation securityInformation;
 
     public SMB2SetInfoRequest(
-            SMB2Dialect negotiatedDialect, long sessionId, long treeId,
-            SMB2InfoType infoType, SMB2FileId fileId,
-            FileInformationClass fileInfoClass,
-            SecurityInformation securityInformation, byte[] buffer
+        SMB2Dialect negotiatedDialect, long sessionId, long treeId,
+        SMB2InfoType infoType, SMB2FileId fileId,
+        FileInformationClass fileInfoClass,
+        SecurityInformation securityInformation, byte[] buffer
     ) {
         super(33, negotiatedDialect, SMB2MessageCommandCode.SMB2_SET_INFO, sessionId, treeId);
         this.fileId = fileId;
@@ -47,7 +47,6 @@ public class SMB2SetInfoRequest extends SMB2Packet {
     }
 
     /**
-     *
      * @param smbBuffer
      */
     @Override

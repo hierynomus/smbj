@@ -16,12 +16,11 @@
 package com.hierynomus.mssmb2.messages;
 
 import com.hierynomus.mssmb2.*;
-import com.hierynomus.smbj.io.ByteChunkProvider;
 import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smbj.io.ByteChunkProvider;
 
 /**
  * [MS-SMB2].pdf 2.2.21 SMB2 Write Request
- *
  */
 public class SMB2WriteRequest extends SMB2MultiCreditPacket {
 

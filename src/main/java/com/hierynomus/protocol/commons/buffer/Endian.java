@@ -41,7 +41,7 @@ public abstract class Endian {
         public <T extends Buffer<T>> int readUInt16(Buffer<T> buffer) throws Buffer.BufferException {
             buffer.ensureAvailable(2);
             return buffer.data[buffer.rpos++] << 8 & 0xFF00 |
-                    buffer.data[buffer.rpos++] & 0x00FF;
+                buffer.data[buffer.rpos++] & 0x00FF;
         }
 
         @Override
@@ -58,8 +58,8 @@ public abstract class Endian {
         public <T extends Buffer<T>> int readUInt24(Buffer<T> buffer) throws Buffer.BufferException {
             buffer.ensureAvailable(3);
             return buffer.data[buffer.rpos++] << 16 & 0xFF0000 |
-                    buffer.data[buffer.rpos++] << 8 & 0x00FF00 |
-                    buffer.data[buffer.rpos++] & 0x0000FF;
+                buffer.data[buffer.rpos++] << 8 & 0x00FF00 |
+                buffer.data[buffer.rpos++] & 0x0000FF;
         }
 
         @Override
@@ -77,9 +77,9 @@ public abstract class Endian {
         public <T extends Buffer<T>> long readUInt32(Buffer<T> buffer) throws Buffer.BufferException {
             buffer.ensureAvailable(4);
             return buffer.data[buffer.rpos++] << 24 & 0xFF000000L |
-                    buffer.data[buffer.rpos++] << 16 & 0x00FF0000L |
-                    buffer.data[buffer.rpos++] << 8 & 0x0000FF00L |
-                    buffer.data[buffer.rpos++] & 0x000000FFL;
+                buffer.data[buffer.rpos++] << 16 & 0x00FF0000L |
+                buffer.data[buffer.rpos++] << 8 & 0x0000FF00L |
+                buffer.data[buffer.rpos++] & 0x000000FFL;
         }
 
         @Override
@@ -155,7 +155,7 @@ public abstract class Endian {
         public <T extends Buffer<T>> int readUInt16(Buffer<T> buffer) throws Buffer.BufferException {
             buffer.ensureAvailable(2);
             return buffer.data[buffer.rpos++] & 0x00FF |
-                    buffer.data[buffer.rpos++] << 8 & 0xFF00;
+                buffer.data[buffer.rpos++] << 8 & 0xFF00;
         }
 
         @Override
@@ -173,8 +173,8 @@ public abstract class Endian {
         public <T extends Buffer<T>> int readUInt24(Buffer<T> buffer) throws Buffer.BufferException {
             buffer.ensureAvailable(3);
             return buffer.data[buffer.rpos++] & 0x0000FF |
-                    buffer.data[buffer.rpos++] << 8 & 0x00FF00 |
-                    buffer.data[buffer.rpos++] << 16 & 0xFF0000;
+                buffer.data[buffer.rpos++] << 8 & 0x00FF00 |
+                buffer.data[buffer.rpos++] << 16 & 0xFF0000;
         }
 
         @Override
@@ -193,9 +193,9 @@ public abstract class Endian {
         public <T extends Buffer<T>> long readUInt32(Buffer<T> buffer) throws Buffer.BufferException {
             buffer.ensureAvailable(4);
             return buffer.data[buffer.rpos++] & 0x000000FFL |
-                    buffer.data[buffer.rpos++] << 8 & 0x0000FF00L |
-                    buffer.data[buffer.rpos++] << 16 & 0x00FF0000L |
-                    buffer.data[buffer.rpos++] << 24 & 0xFF000000L;
+                buffer.data[buffer.rpos++] << 8 & 0x0000FF00L |
+                buffer.data[buffer.rpos++] << 16 & 0x00FF0000L |
+                buffer.data[buffer.rpos++] << 24 & 0xFF000000L;
         }
 
         @Override

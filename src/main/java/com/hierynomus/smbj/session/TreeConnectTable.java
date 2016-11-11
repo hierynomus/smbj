@@ -15,17 +15,16 @@
  */
 package com.hierynomus.smbj.session;
 
-import com.hierynomus.smbj.share.TreeConnect;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import com.hierynomus.smbj.share.TreeConnect;
 
 /**
  * [MS-SMB2].pdf 3.2.1.3 Per Session
- *
+ * <p>
  * A table of tree connects, as specified in section 3.2.1.4. The table MUST allow lookup by both TreeConnect.TreeConnectId and by share name.
  */
 class TreeConnectTable {

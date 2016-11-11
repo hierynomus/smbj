@@ -117,10 +117,10 @@ public abstract class ACE {
     @Override
     public String toString() {
         return "ACE{" +
-                "aceHeader=" + aceHeader +
-                ", accessMask=" + EnumWithValue.EnumUtils.toEnumSet(accessMask, AccessMask.class) +
-                ", sid=" + sid +
-                '}';
+            "aceHeader=" + aceHeader +
+            ", accessMask=" + EnumWithValue.EnumUtils.toEnumSet(accessMask, AccessMask.class) +
+            ", sid=" + sid +
+            '}';
     }
 
     protected abstract void readMessage(SMBBuffer buffer) throws Buffer.BufferException;

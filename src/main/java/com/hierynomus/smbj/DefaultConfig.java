@@ -15,11 +15,14 @@
  */
 package com.hierynomus.smbj;
 
-import com.hierynomus.mssmb2.SMB2Dialect;
-
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.UUID;
+import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.protocol.commons.Factory;
+import com.hierynomus.smbj.auth.Authenticator;
+import com.hierynomus.smbj.auth.NtlmAuthenticator;
 
 public class DefaultConfig extends ConfigImpl {
 
@@ -28,5 +31,10 @@ public class DefaultConfig extends ConfigImpl {
         dialects = EnumSet.of(SMB2Dialect.SMB_2_1, SMB2Dialect.SMB_2_0_2);
         clientGuid = UUID.randomUUID();
         isStrictSigning = false; //TODO change to true when we are more confident
+        registerDefaultAuthenticators();
+    }
+
+    private void registerDefaultAuthenticators() {
+        authenticators = Arrays.<Factory.Named<Authenticator>>asList(new NtlmAuthenticator.Factory());
     }
 }

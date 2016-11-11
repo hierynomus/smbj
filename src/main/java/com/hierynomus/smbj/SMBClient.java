@@ -15,13 +15,12 @@
  */
 package com.hierynomus.smbj;
 
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.event.SMBEventBus;
-import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
-
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.event.SMBEventBus;
+import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
 
 /**
  * Server Message Block Client API.
@@ -49,6 +48,7 @@ public class SMBClient {
 
     /**
      * Connect to the host at <pre>hostname</pre> on the default port (445)
+     *
      * @param hostname The hostname to connect to.
      * @return An established connection.
      * @throws IOException If the connection could not be established.
@@ -59,8 +59,9 @@ public class SMBClient {
 
     /**
      * Connect to the host at <pre>hostname</pre> on the given port
+     *
      * @param hostname The hostname to connect to.
-     * @param port The port to connect to
+     * @param port     The port to connect to
      * @return An established connection.
      * @throws IOException If the connection could not be established.
      */

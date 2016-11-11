@@ -15,12 +15,6 @@
  */
 package com.hierynomus.smbj.connection;
 
-import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.protocol.commons.concurrent.Promise;
-import com.hierynomus.smbj.common.SMBRuntimeException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -29,6 +23,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.protocol.commons.concurrent.Promise;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 
 class Request {
 

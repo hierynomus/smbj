@@ -15,7 +15,11 @@
  */
 package com.hierynomus.smbj.auth;
 
+import java.io.IOException;
+import com.hierynomus.smbj.session.Session;
+
 public class SpnegoAuthenticator implements Authenticator {
+
     public static class Factory implements com.hierynomus.protocol.commons.Factory.Named<SpnegoAuthenticator> {
 
         @Override
@@ -28,16 +32,11 @@ public class SpnegoAuthenticator implements Authenticator {
         public SpnegoAuthenticator create() {
             return null;
         }
-    }
 
-    /**
-     * Authenticate the user against
-     * @param gssToken
-     * @param context
-     * @return
-     */
-    public byte[] authenticate(byte[] gssToken, AuthenticationContext context) {
-        return null;
+    }
+    @Override
+    public byte[] authenticate(final AuthenticationContext context, final byte[] gssToken, final Session session) throws IOException {
+        return new byte[0];
     }
 
 

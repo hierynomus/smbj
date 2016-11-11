@@ -15,11 +15,10 @@
  */
 package com.hierynomus.smbj.io;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBRuntimeException;
-
 import java.io.IOException;
 import java.io.OutputStream;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 
 public abstract class ByteChunkProvider {
     protected static final int CHUNK_SIZE = 64 * 1024;

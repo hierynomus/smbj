@@ -15,19 +15,18 @@
  */
 package com.hierynomus.mssmb2.messages;
 
+import java.util.EnumSet;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
-import java.util.EnumSet;
-
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
 /**
  * [MS-SMB2].pdf 2.2.10 SMB2 TREE_CONNECT Response
- *
+ * <p>
  * TODO
  */
 public class SMB2TreeConnectResponse extends SMB2Packet {
@@ -38,7 +37,7 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
     private long maximalAccess;
 
     public SMB2TreeConnectResponse() {
-            super();
+        super();
     }
 
 
@@ -56,6 +55,7 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
 
     /**
      * Whether the ShareType returned is SMB2_SHARE_TYPE_DISK (0x01)
+     *
      * @return true if the ShareType returned is SMB2_SHARE_TYPE_DISK (0x01)
      */
     public boolean isDiskShare() {
@@ -64,6 +64,7 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
 
     /**
      * Whether the ShareType returned is SMB2_SHARE_TYPE_PIPE (0x02)
+     *
      * @return true if the ShareType returned is SMB2_SHARE_TYPE_PIPE (0x02)
      */
     public boolean isNamedPipe() {
@@ -72,6 +73,7 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
 
     /**
      * Whether the ShareType returned is SMB2_SHARE_TYPE_PRINT (0x03)
+     *
      * @return true if the ShareType returned is SMB2_SHARE_TYPE_PRINT (0x03)
      */
     public boolean isPrinterShare() {

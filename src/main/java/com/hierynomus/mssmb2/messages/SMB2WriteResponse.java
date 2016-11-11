@@ -22,14 +22,13 @@ import com.hierynomus.smbj.common.SMBBuffer;
 
 /**
  * [MS-SMB2].pdf 2.2.22 SMB2 Write Response
- *
  */
 public class SMB2WriteResponse extends SMB2Packet {
 
     private long bytesWritten;
 
     public SMB2WriteResponse() {
-            super();
+        super();
     }
 
 
