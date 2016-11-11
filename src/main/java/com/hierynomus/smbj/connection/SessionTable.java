@@ -24,12 +24,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.hierynomus.smbj.session.Session;
 
-public class SessionTable {
+class SessionTable {
     private static final Logger logger = LoggerFactory.getLogger(SessionTable.class);
     private ReentrantLock lock = new ReentrantLock();
     private Map<Long, Session> lookup = new HashMap<>();
 
-    public void registerSession(Long id, Session session) {
+    void registerSession(Long id, Session session) {
         lock.lock();
         try {
             lookup.put(id, session);
@@ -47,7 +47,7 @@ public class SessionTable {
         }
     }
 
-    public Session sessionClosed(Long id) {
+    Session sessionClosed(Long id) {
         lock.lock();
         try {
             return lookup.remove(id);
