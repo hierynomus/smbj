@@ -221,7 +221,9 @@ public class NtlmFunctions {
     }
 
     public static void setRandom(SecureRandom sRandom) {
-        if (sRandom != null) secureRandom = sRandom;
+        if (sRandom != null) {
+            secureRandom = sRandom;
+        }
     }
 
 
