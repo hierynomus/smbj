@@ -56,9 +56,9 @@ import com.hierynomus.spnego.NegTokenInit;
 
 import net.engio.mbassy.listener.Handler;
 
+import static com.hierynomus.mssmb2.SMB2Packet.SINGLE_CREDIT_PAYLOAD_SIZE;
 import static com.hierynomus.mssmb2.messages.SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_ENABLED;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
-import static com.hierynomus.smbj.connection.NegotiatedProtocol.SINGLE_CREDIT_PAYLOAD_SIZE;
 import static java.lang.String.format;
 
 /**
