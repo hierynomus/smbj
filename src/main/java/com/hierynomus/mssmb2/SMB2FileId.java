@@ -39,13 +39,13 @@ public class SMB2FileId {
     }
 
     public static SMB2FileId read(SMBBuffer buffer) throws Buffer.BufferException {
-        return new SMB2FileId(buffer.readRawBytes(8),buffer.readRawBytes(8));
+        return new SMB2FileId(buffer.readRawBytes(8), buffer.readRawBytes(8));
     }
 
     @Override
     public String toString() {
         return "SMB2FileId{" +
-                "persistentHandle=" + ByteArrayUtils.printHex(persistentHandle) +
-                '}';
+            "persistentHandle=" + ByteArrayUtils.printHex(persistentHandle) +
+            '}';
     }
 }

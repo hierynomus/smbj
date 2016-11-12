@@ -15,6 +15,7 @@
  */
 package com.hierynomus.mssmb2.messages;
 
+import java.util.Date;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Dialect;
@@ -23,8 +24,6 @@ import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
-
-import java.util.Date;
 
 /**
  * [MS-SMB2].pdf 2.2.15 SMB2 CLOSE Request / 2.2.16 SMB2 CLOSE Response

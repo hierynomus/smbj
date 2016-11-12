@@ -15,9 +15,8 @@
  */
 package com.hierynomus.smbj.io;
 
-import com.hierynomus.smbj.common.SMBRuntimeException;
-
 import java.io.*;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 
 public class FileByteChunkProvider extends ByteChunkProvider {
 
@@ -27,6 +26,24 @@ public class FileByteChunkProvider extends ByteChunkProvider {
     public FileByteChunkProvider(File file) throws FileNotFoundException {
         this.file = file;
         fis = new BufferedInputStream(new FileInputStream(file), CHUNK_SIZE);
+    }
+
+    public FileByteChunkProvider(File file, long offset) throws IOException {
+        this.file = file;
+        fis = new BufferedInputStream(new FileInputStream(file), CHUNK_SIZE);
+        ensureSkipped(fis, offset);
+        this.offset = offset;
+    }
+
+    private void ensureSkipped(final BufferedInputStream fis, final long offset) throws IOException {
+        long skipped = 0;
+        while (skipped < offset && fis.available() > 0) {
+            skipped += fis.skip(offset);
+        }
+
+        if (skipped < offset) {
+            throw new IOException("Was unable to go to the requested offset of " + offset + " of file " + file);
+        }
     }
 
     @Override

@@ -15,6 +15,12 @@
  */
 package com.hierynomus.smbj.share;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.concurrent.Future;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.messages.SMB2WriteRequest;
@@ -26,13 +32,6 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.io.ByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.concurrent.Future;
 
 public class File extends DiskEntry {
 
@@ -100,8 +99,8 @@ public class File extends DiskEntry {
     @Override
     public String toString() {
         return "File{" +
-                "fileId=" + fileId +
-                ", fileName='" + fileName + '\'' +
-                '}';
+            "fileId=" + fileId +
+            ", fileName='" + fileName + '\'' +
+            '}';
     }
 }

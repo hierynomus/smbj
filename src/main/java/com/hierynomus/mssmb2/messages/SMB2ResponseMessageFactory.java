@@ -26,7 +26,7 @@ public class SMB2ResponseMessageFactory {
 
     public static SMB2Packet read(SMBBuffer buffer) throws Buffer.BufferException {
         // Check we see a valid header start
-        Check.ensureEquals(buffer.readRawBytes(4), new byte[] {(byte) 0xFE, 'S', 'M', 'B'}, "Could not find SMB2 Packet header");
+        Check.ensureEquals(buffer.readRawBytes(4), new byte[]{(byte) 0xFE, 'S', 'M', 'B'}, "Could not find SMB2 Packet header");
         // Skip until Command
         buffer.skip(8);
         SMB2MessageCommandCode command = SMB2MessageCommandCode.lookup(buffer.readUInt16());

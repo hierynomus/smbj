@@ -15,20 +15,34 @@
  */
 package com.hierynomus.msdtyp.ace;
 
+import java.util.EnumSet;
+import java.util.UUID;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SID;
 
-import java.util.EnumSet;
-import java.util.UUID;
-
-import static com.hierynomus.msdtyp.ace.AceType.*;
+import static com.hierynomus.msdtyp.ace.AceType.ACCESS_ALLOWED_ACE_TYPE;
+import static com.hierynomus.msdtyp.ace.AceType.ACCESS_ALLOWED_CALLBACK_ACE_TYPE;
+import static com.hierynomus.msdtyp.ace.AceType.ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE;
+import static com.hierynomus.msdtyp.ace.AceType.ACCESS_ALLOWED_OBJECT_ACE_TYPE;
+import static com.hierynomus.msdtyp.ace.AceType.ACCESS_DENIED_ACE_TYPE;
+import static com.hierynomus.msdtyp.ace.AceType.ACCESS_DENIED_CALLBACK_ACE_TYPE;
+import static com.hierynomus.msdtyp.ace.AceType.ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE;
+import static com.hierynomus.msdtyp.ace.AceType.ACCESS_DENIED_OBJECT_ACE_TYPE;
+import static com.hierynomus.msdtyp.ace.AceType.SYSTEM_AUDIT_ACE_TYPE;
+import static com.hierynomus.msdtyp.ace.AceType.SYSTEM_AUDIT_CALLBACK_ACE_TYPE;
+import static com.hierynomus.msdtyp.ace.AceType.SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE;
+import static com.hierynomus.msdtyp.ace.AceType.SYSTEM_AUDIT_OBJECT_ACE_TYPE;
+import static com.hierynomus.msdtyp.ace.AceType.SYSTEM_MANDATORY_LABEL_ACE_TYPE;
+import static com.hierynomus.msdtyp.ace.AceType.SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE;
+import static com.hierynomus.msdtyp.ace.AceType.SYSTEM_SCOPED_POLICY_ID_ACE_TYPE;
 
 /**
  * Factory methods for the different AceType objects.
  */
 public class AceTypes {
 
-    private AceTypes() {}
+    private AceTypes() {
+    }
 
     /**
      * [MS-DTYP].pdf 2.4.4.2 ACCESS_ALLOWED_ACE
@@ -89,8 +103,8 @@ public class AceTypes {
      * [MS-DTYP].pdf 2.4.4.9 ACCESS_DENIED_CALLBACK_OBJECT_ACE
      */
     public static ACE accessDeniedCallbackObjectAce(EnumSet<AceFlags> aceFlags, EnumSet<AccessMask> accessMask,
-                                                     EnumSet<AceObjectFlags> flags, UUID objectType, UUID inheritedObjectType,
-                                                     SID sid, byte[] applicationData) {
+                                                    EnumSet<AceObjectFlags> flags, UUID objectType, UUID inheritedObjectType,
+                                                    SID sid, byte[] applicationData) {
         return new AceType4(ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE, aceFlags, accessMask, flags, objectType, inheritedObjectType, sid, applicationData);
     }
 

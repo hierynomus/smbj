@@ -19,15 +19,11 @@ import java.io.IOException;
 import java.security.Key;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import java.util.EnumSet;
-import java.util.concurrent.Future;
 import java.util.Arrays;
 
-import javax.crypto.spec.SecretKeySpec;
 import javax.security.auth.Subject;
 
 import org.ietf.jgss.GSSContext;
-import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
 import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.GSSName;
@@ -35,25 +31,19 @@ import org.ietf.jgss.Oid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Header;
-import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
-import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.smbj.common.MessageSigning;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
-import com.hierynomus.spnego.SpnegoException;
 import com.sun.security.jgss.ExtendedGSSContext;
 import com.sun.security.jgss.InquireType;
+
 
 public class SpnegoAuthenticator implements Authenticator {
     private static final Logger logger = LoggerFactory.getLogger(SpnegoAuthenticator.class);
 
-    private byte[] sessionKey;
-
-    public static class Factory implements com.hierynomus.protocol.commons.Factory.Named<SpnegoAuthenticator> {
+    public static class Factory implements com.hierynomus.protocol.commons.Factory.Named<Authenticator> {
 
         @Override
         public String getName() {
@@ -67,91 +57,63 @@ public class SpnegoAuthenticator implements Authenticator {
         }
     }
 
-    public Session authenticate(final Connection connection, final GSSAuthenticationContext context) throws TransportException {
+    private GSSContext gssContext;
+    
+    @Override
+    public byte[] authenticate(final AuthenticationContext context, final byte[] gssToken, final Session session) throws IOException {
+        final GSSAuthenticationContext gssAuthenticationContext = (GSSAuthenticationContext) context;
         try {
-            Session session = Subject.doAs(context.getSubject(), new PrivilegedExceptionAction<Session>(){
-                public Session run() throws Exception{
-                    return authenticateSession(context.getCreds(), connection, context);
+            return Subject.doAs(gssAuthenticationContext.getSubject(), new PrivilegedExceptionAction<byte[]>(){
+                public byte[] run() throws Exception{
+                    return authenticateSession(gssAuthenticationContext, gssToken, session);
                 }
             });
-            return session;
         } catch (PrivilegedActionException e) {
             throw new TransportException(e);
         }
     }
     
-    // called to execute the session-setup sequence.  Called after the SMB negotiation.
-    //
-    private Session authenticateSession(GSSCredential clientCreds, Connection connection, AuthenticationContext context) throws TransportException {
-        Session session = null; 
+    private byte[] authenticateSession(GSSAuthenticationContext context, byte[] gssToken, Session session) throws TransportException {
         try {
-            logger.info("Authenticating {} on {} using SPNEGO", context.getUsername(), connection.getRemoteHostname());
-            EnumSet<SMB2SessionSetup.SMB2SecurityMode> signingEnabled = EnumSet.of
-                    (SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_ENABLED);
-            byte[] gssToken = connection.getConnectionInfo().getGssNegotiateToken();
-            if (gssToken == null) {
-                logger.error("GSS token is null, but should have been provided by the SMB negotiation response");
-            }
-            
-            GSSManager gssManager = GSSManager.getInstance();
-            Oid spnegoOid = new Oid("1.3.6.1.5.5.2"); //SPNEGO
-            
-            String service = "cifs";
-            String hostName = connection.getRemoteHostname();
-            GSSName serverName = gssManager.createName(service+"@"+hostName, GSSName.NT_HOSTBASED_SERVICE);
-            GSSContext gssContext = gssManager.createContext(serverName, spnegoOid, clientCreds, GSSContext.DEFAULT_LIFETIME);
-            gssContext.requestMutualAuth(false);
-            // TODO: fill in all the other options too
-            
-            long sessionId = 0;
-            while (true) {
-                gssToken = gssContext.initSecContext(gssToken, 0, gssToken.length);
-                if (gssToken != null) {
-                    // create the setup message
-                    SMB2SessionSetup smb2SessionSetup = new SMB2SessionSetup(connection.getNegotiatedProtocol().getDialect(), signingEnabled);
-                    smb2SessionSetup.getHeader().setSessionId(sessionId);
-                    smb2SessionSetup.setSecurityBuffer(gssToken);
-                    // send the setup message
-                    Future<SMB2SessionSetup> future = connection.send(smb2SessionSetup);
-                    // retrieve setup response
-                    SMB2SessionSetup receive = Futures.get(future, TransportException.Wrapper);
-                    
-                    if (receive.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                        throw new SpnegoException("Setup failed with " + receive.getHeader().getStatus());
-                    }
-                
-                    //TODO: check receive for error?
-                    gssToken = receive.getSecurityBuffer();
-                    if (sessionId == 0) {
-                        sessionId = receive.getHeader().getSessionId();
-                        session = new Session(sessionId, connection);
-                        connection.getConnectionInfo().getPreauthSessionTable().registerSession(sessionId, session);
-                    }
-
-                    logger.debug("Received token: {}", ByteArrayUtils.printHex(gssToken));
+            logger.info("Authenticating {} on {} using SPNEGO", context.getUsername(), session.getConnection().getRemoteHostname());
+            if (gssContext == null) {
+                // GSS context is not established yet because this is the first pass at authentication, 
+                // so create the GSS context and attach it to our AuthenticationContext
+                if (gssToken == null) {
+                    logger.error("GSS token is null, but should have been provided by the SMB negotiation response");
                 }
-                if (gssContext.isEstablished())
-                    break;
+                
+                GSSManager gssManager = GSSManager.getInstance();
+                Oid spnegoOid = new Oid("1.3.6.1.5.5.2"); //SPNEGO
+                
+                String service = "cifs";
+                String hostName = session.getConnection().getRemoteHostname();
+                GSSName serverName = gssManager.createName(service+"@"+hostName, GSSName.NT_HOSTBASED_SERVICE);
+                gssContext = gssManager.createContext(serverName, spnegoOid, context.getCreds(), GSSContext.DEFAULT_LIFETIME);
+                gssContext.requestMutualAuth(false);
+                // TODO fill in all the other options too
+                
             }
-            
-            ExtendedGSSContext e = (ExtendedGSSContext)gssContext;
-            Key key = (Key)e.inquireSecContext(InquireType.KRB5_GET_SESSION_KEY);
-            if (key != null) {
-                // if a session key was negotiated, save it.
-                sessionKey = adjustKeyLength(key.getEncoded());
-                session.setSigningKeySpec(new SecretKeySpec(sessionKey, MessageSigning.HMAC_SHA256_ALGORITHM));
+
+            gssToken = gssContext.initSecContext(gssToken, 0, gssToken.length);
+            if (gssToken != null) {
+
+                logger.debug("Received token: {}", ByteArrayUtils.printHex(gssToken));
             }
-            return session;
-        } catch (IOException | GSSException e) {
+            if (gssContext.isEstablished()) {
+                ExtendedGSSContext e = (ExtendedGSSContext)gssContext;
+                Key key = (Key)e.inquireSecContext(InquireType.KRB5_GET_SESSION_KEY);
+                if (key != null) {
+                    // if a session key was negotiated, save it.
+                    session.setSigningKey(adjustKeyLength(key.getEncoded()));
+                }
+            }
+            return gssToken;
+        } catch (GSSException e) {
             throw new TransportException(e);
-        } finally {
-            // remove the session from the preauth session table
-            if (session != null) {
-                connection.getConnectionInfo().getPreauthSessionTable().sessionClosed(session.getSessionId());
-            }
         }
     }
-
+    
     /**
      * Make sure the key is exactly 16 bytes long.
      * @param key session key from the GSS API 
@@ -177,8 +139,8 @@ public class SpnegoAuthenticator implements Authenticator {
         }
         return newKey;
     }
-
-    public byte[] getSessionKey() {
-        return sessionKey;
+    @Override
+    public boolean supports(AuthenticationContext context) {
+        return (context.getClass().equals(GSSAuthenticationContext.class));
     }
 }

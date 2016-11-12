@@ -15,20 +15,19 @@
  */
 package com.hierynomus.protocol.commons.buffer;
 
-import com.hierynomus.protocol.commons.ByteArrayUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.hierynomus.protocol.commons.ByteArrayUtils;
 
 public class Buffer<T extends Buffer<T>> {
     private static final Logger logger = LoggerFactory.getLogger(Buffer.class);
 
     public static class BufferException
-            extends Exception {
+        extends Exception {
 
         public BufferException(String message) {
             super(message);
@@ -179,7 +178,7 @@ public class Buffer<T extends Buffer<T>> {
      * @throws BufferException If there are less than <code>a</code> bytes available
      */
     protected void ensureAvailable(int a)
-            throws BufferException {
+        throws BufferException {
         if (available() < a) {
             throw new BufferException("Underflow");
         }
@@ -229,7 +228,7 @@ public class Buffer<T extends Buffer<T>> {
      * @return the {@code true} or {@code false} value read
      */
     public boolean readBoolean()
-            throws BufferException {
+        throws BufferException {
         return readByte() != 0;
     }
 
@@ -249,7 +248,7 @@ public class Buffer<T extends Buffer<T>> {
      * @return the byte read
      */
     public byte readByte()
-            throws BufferException {
+        throws BufferException {
         ensureAvailable(1);
         return data[rpos++];
     }
@@ -286,7 +285,7 @@ public class Buffer<T extends Buffer<T>> {
      * @throws BufferException If the read operation would cause an underflow (less bytes available than array size)
      */
     public void readRawBytes(byte[] buf)
-            throws BufferException {
+        throws BufferException {
         readRawBytes(buf, 0, buf.length);
     }
 
@@ -299,7 +298,7 @@ public class Buffer<T extends Buffer<T>> {
      * @throws BufferException If the read operation would cause an underflow (less than length bytes available)
      */
     public void readRawBytes(byte[] buf, int offset, int length)
-            throws BufferException {
+        throws BufferException {
         ensureAvailable(length);
         System.arraycopy(data, rpos, buf, offset, length);
         rpos += length;
@@ -530,8 +529,9 @@ public class Buffer<T extends Buffer<T>> {
 
     /**
      * Writes a long in the buffer's endianness.
-     *
+     * <p>
      * Note: unlike a uint64, a long can be <em>negative.</em>
+     *
      * @param longVal
      * @return this
      */
@@ -541,8 +541,9 @@ public class Buffer<T extends Buffer<T>> {
 
     /**
      * Writes a long in the specified endianness.
-     *
+     * <p>
      * Note: unlike a uint64, a long can be <em>negative</em> or <em>overflowed.</em>
+     *
      * @param longVal
      * @return this
      */

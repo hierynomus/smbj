@@ -15,12 +15,10 @@
  */
 package com.hierynomus.smbj.connection;
 
+import java.util.EnumSet;
+import java.util.UUID;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.protocol.commons.EnumWithValue;
-
-import java.util.EnumSet;
-import java.util.List;
-import java.util.UUID;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
@@ -102,7 +100,7 @@ public class ConnectionInfo {
     public SessionTable getPreauthSessionTable() {
         return preauthSessionTable;
     }
-    
+
     public UUID getClientGuid() {
         return clientGuid;
     }

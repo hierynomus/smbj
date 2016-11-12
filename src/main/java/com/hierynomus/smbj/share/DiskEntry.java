@@ -15,11 +15,11 @@
  */
 package com.hierynomus.smbj.share;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.transport.TransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 abstract class DiskEntry {
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());

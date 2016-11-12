@@ -22,7 +22,6 @@ import com.hierynomus.smbj.common.SMBBuffer;
 
 /**
  * [MS-SMB2].pdf 2.2.20 SMB2 READ Response
- *
  */
 public class SMB2ReadResponse extends SMB2Packet {
 
@@ -30,7 +29,7 @@ public class SMB2ReadResponse extends SMB2Packet {
     private byte[] data;
 
     public SMB2ReadResponse() {
-            super();
+        super();
     }
 
 

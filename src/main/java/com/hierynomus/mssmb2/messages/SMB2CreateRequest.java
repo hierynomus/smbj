@@ -15,11 +15,10 @@
  */
 package com.hierynomus.mssmb2.messages;
 
+import java.util.EnumSet;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.smbj.common.SMBBuffer;
-
-import java.util.EnumSet;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.ensureNotNull;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;

@@ -15,13 +15,12 @@
  */
 package com.hierynomus.smbj.transport.tcp;
 
+import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.transport.BaseTransport;
 import com.hierynomus.smbj.transport.TransportLayer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
 
 /**
  * A transport layer to do SMB2 over Direct TCP/IP.

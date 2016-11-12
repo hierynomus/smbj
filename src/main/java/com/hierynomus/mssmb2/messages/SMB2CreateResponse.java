@@ -15,6 +15,8 @@
  */
 package com.hierynomus.mssmb2.messages;
 
+import java.util.Date;
+import java.util.EnumSet;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
@@ -23,14 +25,10 @@ import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
-import java.util.Date;
-import java.util.EnumSet;
-
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
 /**
  * [MS-SMB2].pdf 2.2.14 SMB2 CREATE Response
- *
  */
 public class SMB2CreateResponse extends SMB2Packet {
 
