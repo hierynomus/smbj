@@ -17,18 +17,15 @@ package com.hierynomus.smbj.auth;
 
 import javax.security.auth.Subject;
 
-import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
 
 public class GSSAuthenticationContext extends AuthenticationContext {
     Subject subject;
     GSSCredential creds;
-    GSSContext context;
     public GSSAuthenticationContext(String username, String domain, Subject subject, GSSCredential creds) {
         super(username, "".toCharArray(), domain);
         this.subject = subject;
         this.creds = creds;
-        this.context = null; // start with no GSS context
     }
     public Subject getSubject() {
         return subject;
