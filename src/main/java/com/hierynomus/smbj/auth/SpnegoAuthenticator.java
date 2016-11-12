@@ -33,7 +33,6 @@ import org.slf4j.LoggerFactory;
 
 import com.hierynomus.mssmb2.SMB2Header;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
-import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
 import com.sun.security.jgss.ExtendedGSSContext;
@@ -95,10 +94,9 @@ public class SpnegoAuthenticator implements Authenticator {
                 
             }
 
-            gssToken = gssContext.initSecContext(gssToken, 0, gssToken.length);
-            if (gssToken != null) {
-
-                logger.debug("Received token: {}", ByteArrayUtils.printHex(gssToken));
+            byte[] newToken = gssContext.initSecContext(gssToken, 0, gssToken.length);
+            if (newToken != null) {
+                logger.debug("Received token: {}", ByteArrayUtils.printHex(newToken));
             }
             if (gssContext.isEstablished()) {
                 ExtendedGSSContext e = (ExtendedGSSContext)gssContext;
@@ -108,7 +106,7 @@ public class SpnegoAuthenticator implements Authenticator {
                     session.setSigningKey(adjustKeyLength(key.getEncoded()));
                 }
             }
-            return gssToken;
+            return newToken;
         } catch (GSSException e) {
             throw new TransportException(e);
         }
