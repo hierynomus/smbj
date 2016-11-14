@@ -99,7 +99,7 @@ public class NtlmAuthenticator implements Authenticator {
             }
 
             completed = true;
-            
+
             // If NTLM v2 is used, KeyExchangeKey MUST be set to the given 128-bit SessionBaseKey value.
             NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
                 context.getUsername(), context.getDomain(), null, sessionkey, NtlmNegotiate.DEFAULT_FLAGS);
@@ -131,7 +131,7 @@ public class NtlmAuthenticator implements Authenticator {
 
     @Override
     public boolean supports(AuthenticationContext context) {
-        return (context.getClass().equals(AuthenticationContext.class));
+        return context.getClass().equals(AuthenticationContext.class);
     }
 
 }

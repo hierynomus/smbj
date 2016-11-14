@@ -121,7 +121,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             Authenticator authenticator = getAuthenticator(negTokenInit.getSupportedMechTypes(), authContext);
             Session session = new Session(0, this, bus, connectionInfo.isRequireSigning());
             byte[] gssToken = connectionInfo.getGssNegotiateToken();
-            
+
             byte[] securityContext = authenticator.authenticate(authContext, gssToken, session);
             SMB2SessionSetup req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED));
             req.setSecurityBuffer(securityContext);
@@ -142,7 +142,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
                 if (receive.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
                     throw new SMBApiException(receive.getHeader(), format("Authentication failed for '%s' using %s", authContext.getUsername(), authenticator));
                 }
-                
+
                 if (receive.getSecurityBuffer() != null) {
                     // process the last received buffer
                     securityContext = authenticator.authenticate(authContext, receive.getSecurityBuffer(), session);
@@ -189,7 +189,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
      * send a packet, potentially signed
      *
      * @param packet     SMBPacket to send
-     * @param signingKey if null, do not sign the packet.  Otherwise, the signingKey will be used to sign the packet.
+     * @param signingKeySpec if null, do not sign the packet.  Otherwise, the signingKey will be used to sign the packet.
      * @return a Future to be used to retrieve the response packet
      * @throws TransportException
      */
