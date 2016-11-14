@@ -74,12 +74,8 @@ public abstract class BaseTransport implements TransportLayer {
                 logger.trace("Writing packet << {} >>, sequence number << {} >>", packet.getHeader().getMessage(), packet.getSequenceNumber());
                 doWrite(buffer);
                 out.flush();
-            } catch (IOException ioe) {
+            } catch (IOException | InvalidKeyException | NoSuchAlgorithmException ioe) {
                 throw new TransportException(ioe);
-            } catch (InvalidKeyException e) {
-                throw new TransportException(e);
-            } catch (NoSuchAlgorithmException e) {
-                throw new TransportException(e);
             }
         } finally {
             writeLock.unlock();
@@ -89,7 +85,7 @@ public abstract class BaseTransport implements TransportLayer {
     protected abstract void doWrite(SMBBuffer packetData) throws IOException;
 
 
-    public static void signBuffer(SMBBuffer buffer, SecretKeySpec signingKeySpec) throws InvalidKeyException, NoSuchAlgorithmException {
+    private static void signBuffer(SMBBuffer buffer, SecretKeySpec signingKeySpec) throws InvalidKeyException, NoSuchAlgorithmException {
         MessageSigning.signBuffer(buffer.array(), buffer.available(), signingKeySpec);
     }
 }

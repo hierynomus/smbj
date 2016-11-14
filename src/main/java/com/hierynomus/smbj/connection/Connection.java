@@ -22,10 +22,13 @@ import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
+
 import javax.crypto.spec.SecretKeySpec;
+
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2MessageFlag;
@@ -115,13 +118,16 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     public Session authenticate(AuthenticationContext authContext) {
         try {
             NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
-            Authenticator authenticator = getAuthenticator(negTokenInit.getSupportedMechTypes());
-            byte[] securityContext = authenticator.authenticate(authContext, connectionInfo.getGssNegotiateToken(), null);
+            Authenticator authenticator = getAuthenticator(negTokenInit.getSupportedMechTypes(), authContext);
+            Session session = new Session(0, this, bus, connectionInfo.isRequireSigning());
+            byte[] gssToken = connectionInfo.getGssNegotiateToken();
+
+            byte[] securityContext = authenticator.authenticate(authContext, gssToken, session);
             SMB2SessionSetup req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED));
             req.setSecurityBuffer(securityContext);
             SMB2SessionSetup receive = sendAndReceive(req);
             long sessionId = receive.getHeader().getSessionId();
-            Session session = new Session(sessionId, this, bus, connectionInfo.isRequireSigning());
+            session.setSessionId(sessionId);
             connectionInfo.getPreauthSessionTable().registerSession(sessionId, session);
             try {
                 while (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
@@ -136,6 +142,11 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
                 if (receive.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
                     throw new SMBApiException(receive.getHeader(), format("Authentication failed for '%s' using %s", authContext.getUsername(), authenticator));
                 }
+
+                if (receive.getSecurityBuffer() != null) {
+                    // process the last received buffer
+                    securityContext = authenticator.authenticate(authContext, receive.getSecurityBuffer(), session);
+                }
                 logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), getRemoteHostname(), session.getSessionId());
                 connectionInfo.getSessionTable().registerSession(session.getSessionId(), session);
                 return session;
@@ -147,10 +158,13 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         }
     }
 
-    private Authenticator getAuthenticator(List<ASN1ObjectIdentifier> mechTypes) {
+    private Authenticator getAuthenticator(List<ASN1ObjectIdentifier> mechTypes, AuthenticationContext context) {
         for (Factory.Named<Authenticator> factory : config.getSupportedAuthenticators()) {
             if (mechTypes.contains(new ASN1ObjectIdentifier(factory.getName()))) {
-                return factory.create();
+                Authenticator authenticator = factory.create();
+                if (authenticator.supports(context)) {
+                    return authenticator;
+                }
             }
         }
         throw new SMBRuntimeException("No authenticator is configured for the supported mechtypes: " + mechTypes);

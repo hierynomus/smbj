@@ -59,7 +59,9 @@ public class Session implements AutoCloseable {
         this.bus = bus;
         this.signingKeySpec = null;
         this.signingRequired = signingRequired;
-        bus.subscribe(this);
+        if (bus != null) {
+            bus.subscribe(this);
+        }
     }
 
     public long getSessionId() {
@@ -179,6 +181,9 @@ public class Session implements AutoCloseable {
      * @throws TransportException
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
+        if (signingRequired && signingKeySpec == null) {
+            throw new TransportException("Message signing is required, but no signing key is negotiated");
+        }
         return connection.send(packet, isSigningRequired() ? signingKeySpec : null);
     }
 
@@ -189,5 +194,9 @@ public class Session implements AutoCloseable {
         }
         this.bus = bus;
         bus.subscribe(this);
+    }
+
+    public void setSessionId(long sessionId) {
+        this.sessionId = sessionId;
     }
 }
