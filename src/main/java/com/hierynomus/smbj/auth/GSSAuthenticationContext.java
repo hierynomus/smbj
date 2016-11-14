@@ -15,13 +15,22 @@
  */
 package com.hierynomus.smbj.auth;
 
-import java.io.IOException;
+import javax.security.auth.Subject;
 
-import com.hierynomus.smbj.session.Session;
+import org.ietf.jgss.GSSCredential;
 
-public interface Authenticator {
-
-    boolean supports(AuthenticationContext context);
-    
-    byte[] authenticate(AuthenticationContext context, byte[] gssToken, Session session) throws IOException;
+public class GSSAuthenticationContext extends AuthenticationContext {
+    Subject subject;
+    GSSCredential creds;
+    public GSSAuthenticationContext(String username, String domain, Subject subject, GSSCredential creds) {
+        super(username, "".toCharArray(), domain);
+        this.subject = subject;
+        this.creds = creds;
+    }
+    public Subject getSubject() {
+        return subject;
+    }
+    public GSSCredential getCreds() {
+        return creds;
+    }
 }

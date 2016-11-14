@@ -17,11 +17,13 @@ package com.hierynomus.smbj.auth;
 
 import java.io.IOException;
 import java.math.BigInteger;
+
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.microsoft.MicrosoftObjectIdentifiers;
 import org.bouncycastle.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.ntlm.messages.NtlmAuthenticate;
 import com.hierynomus.ntlm.messages.NtlmChallenge;
@@ -53,10 +55,13 @@ public class NtlmAuthenticator implements Authenticator {
     }
 
     private boolean initialized = false;
+    private boolean completed = false;
 
     @Override
     public byte[] authenticate(final AuthenticationContext context, final byte[] gssToken, Session session) throws IOException {
-        if (!initialized) {
+        if (completed) {
+            return null;
+        } else if (!initialized) {
             logger.info("Initialized Authentication of {} using NTLM", context.getUsername());
             NtlmNegotiate ntlmNegotiate = new NtlmNegotiate();
             initialized = true;
@@ -93,6 +98,8 @@ public class NtlmAuthenticator implements Authenticator {
                 }
             }
 
+            completed = true;
+            
             // If NTLM v2 is used, KeyExchangeKey MUST be set to the given 128-bit SessionBaseKey value.
             NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
                 context.getUsername(), context.getDomain(), null, sessionkey, NtlmNegotiate.DEFAULT_FLAGS);
@@ -120,6 +127,11 @@ public class NtlmAuthenticator implements Authenticator {
         Buffer.PlainBuffer negTokenBuffer = new Buffer.PlainBuffer(Endian.LE);
         targ.write(negTokenBuffer);
         return negTokenBuffer.getCompactData();
+    }
+
+    @Override
+    public boolean supports(AuthenticationContext context) {
+        return (context.getClass().equals(AuthenticationContext.class));
     }
 
 }

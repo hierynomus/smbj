@@ -16,13 +16,15 @@
 package com.hierynomus.smbj;
 
 import java.security.SecureRandom;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.UUID;
+
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
+import com.hierynomus.smbj.auth.SpnegoAuthenticator;
 
 public class DefaultConfig extends ConfigImpl {
 
@@ -35,6 +37,9 @@ public class DefaultConfig extends ConfigImpl {
     }
 
     private void registerDefaultAuthenticators() {
-        authenticators = Arrays.<Factory.Named<Authenticator>>asList(new NtlmAuthenticator.Factory());
+        authenticators = new ArrayList<Factory.Named<Authenticator>>();
+        // order is important.  The authenticators listed first will be selected
+        authenticators.add(new SpnegoAuthenticator.Factory());
+        authenticators.add(new NtlmAuthenticator.Factory());
     }
 }
