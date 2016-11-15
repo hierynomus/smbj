@@ -16,9 +16,7 @@
 package com.hierynomus.smbj.connection;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,17 +63,10 @@ class SessionTable {
         }
     }
 
-    void closeRemainingSessions() {
+    Collection<Session> activeSessions() {
         lock.lock();
         try {
-            for (Long id : new HashSet<>(lookup.keySet())) {
-                Session session = lookup.get(id);
-                try {
-                    session.close();
-                } catch (IOException e) {
-                    logger.error("Error closing session", e);
-                }
-            }
+            return new ArrayList<>(lookup.values());
         } finally {
             lock.unlock();
         }

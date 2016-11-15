@@ -104,7 +104,13 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
     @Override
     public void close() throws Exception {
-        connectionInfo.getSessionTable().closeRemainingSessions();
+        for (Session session : connectionInfo.getSessionTable().activeSessions()) {
+            try {
+                session.close();
+            } catch (IOException e) {
+                logger.warn("Exception while closing session {}", session.getSessionId(), e);
+            }
+        }
         packetReader.stop();
         logger.info("Closed connection to {}", getRemoteHostname());
         super.disconnect();
