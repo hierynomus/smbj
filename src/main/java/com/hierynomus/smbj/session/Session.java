@@ -184,7 +184,7 @@ public class Session implements AutoCloseable {
         if (signingRequired && signingKeySpec == null) {
             throw new TransportException("Message signing is required, but no signing key is negotiated");
         }
-        return connection.send(packet, isSigningRequired() ? signingKeySpec : null);
+        return connection.send(packet, signingKeySpec);
     }
 
     public void setBus(SMBEventBus bus) {
