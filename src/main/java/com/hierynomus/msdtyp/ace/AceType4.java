@@ -20,7 +20,7 @@ import java.util.EnumSet;
 import java.util.UUID;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SID;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 // Type 4 - Header/Mask/Flags/ObjectType/InheritedObjectType/Sid/ApplicationData
@@ -48,7 +48,7 @@ class AceType4 extends AceType2 {
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) throws BufferException {
         super.readMessage(buffer);
         // application data length is derived from aceHeader.size
         applicationData = buffer.readRawBytes(aceHeader.getAceSize() - 4 + 4 + 4 + 16 + 16 + getSid().byteCount());

@@ -18,7 +18,7 @@ package com.hierynomus.mssmb2.messages;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 /**
@@ -41,7 +41,7 @@ public class SMB2Logoff extends SMB2Packet {
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) throws BufferException {
         buffer.readUInt16(); // StructureSize (2 bytes)
         buffer.skip(2); // Reserved (2 bytes)
     }

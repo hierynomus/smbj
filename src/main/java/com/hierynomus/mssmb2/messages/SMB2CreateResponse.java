@@ -22,7 +22,7 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
@@ -44,7 +44,7 @@ public class SMB2CreateResponse extends SMB2Packet {
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) throws BufferException {
         if (header.getStatus() == NtStatus.STATUS_SUCCESS) {
             buffer.readUInt16(); // StructureSize (2 bytes)
             buffer.readByte(); // OpLockLevel (1 byte) - Not used yet

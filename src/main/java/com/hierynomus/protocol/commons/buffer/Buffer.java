@@ -19,100 +19,33 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import com.hierynomus.protocol.commons.ByteArrayUtils;
 
-public class Buffer<T extends Buffer<T>> {
-    private static final Logger logger = LoggerFactory.getLogger(Buffer.class);
-
-    public static class BufferException
-        extends Exception {
-
-        public BufferException(String message) {
-            super(message);
-        }
-    }
+public class Buffer<T extends Buffer<T>> implements RawBuffer<T> {
 
     public static class PlainBuffer extends Buffer<PlainBuffer> {
         public PlainBuffer(Endian endiannes) {
             super(endiannes);
         }
 
-        public PlainBuffer(Buffer<?> from) {
-            super(from);
+        public PlainBuffer(RawBuffer<?> from, Endian endianness) {
+            super(from, endianness);
         }
 
-        public PlainBuffer(byte[] data, Endian endianness) {
-            super(data, endianness);
-        }
-
-        public PlainBuffer(int size, Endian endianness) {
-            super(size, endianness);
+        public PlainBuffer(byte[] bytes, Endian endianness) {
+            super(new ByteArrayRawBuffer(bytes), endianness);
         }
     }
 
-    /**
-     * The default size for a {@code Buffer} (256 bytes)
-     */
-    public static final int DEFAULT_SIZE = 256;
-
-    /**
-     * The maximum valid size of buffer (i.e. biggest power of two that can be represented as an int - 2^30)
-     */
-    public static final int MAX_SIZE = (1 << 30);
-
-    protected static int getNextPowerOf2(int i) {
-        int j = 1;
-        while (j < i) {
-            j <<= 1;
-            if (j <= 0) throw new IllegalArgumentException("Cannot get next power of 2; " + i + " is too large");
-        }
-        return j;
-    }
-
-    private byte[] data;
+    private RawBuffer<?> rawBuffer;
     private Endian endianness;
-    protected int rpos;
-    protected int wpos;
 
-    /**
-     * @see #DEFAULT_SIZE
-     */
     public Buffer(Endian endiannes) {
-        this(DEFAULT_SIZE, endiannes);
+        this(new ByteArrayRawBuffer(), endiannes);
     }
 
-    public Buffer(Buffer<?> from) {
-        data = new byte[(wpos = from.wpos - from.rpos)];
-        endianness = from.endianness;
-        System.arraycopy(from.data, from.rpos, data, 0, wpos);
-    }
-
-    public Buffer(byte[] data, Endian endianness) {
-        this(data, true, endianness);
-    }
-
-    public Buffer(int size, Endian endianness) {
-        this(new byte[getNextPowerOf2(size)], false, endianness);
-    }
-
-    private Buffer(byte[] data, boolean read, Endian endianness) {
-        this.data = data;
+    public Buffer(RawBuffer rawBuffer, Endian endianness) {
+        this.rawBuffer = rawBuffer;
         this.endianness = endianness;
-        rpos = 0;
-        wpos = read ? data.length : 0;
-    }
-
-    /**
-     * Returns the underlying byte array.
-     * <p/>
-     * <em>NOTE:</em> Be careful, the structure is mutable.
-     *
-     * @return The underlying byte array
-     */
-    public byte[] array() {
-        return data;
     }
 
     /**
@@ -121,7 +54,7 @@ public class Buffer<T extends Buffer<T>> {
      * @return The number of bytes available from the buffer.
      */
     public int available() {
-        return wpos - rpos;
+        return rawBuffer.available();
     }
 
     /**
@@ -130,8 +63,7 @@ public class Buffer<T extends Buffer<T>> {
      * <em>NOTE:</em> This does not erase the underlying byte array for performance reasons.
      */
     public void clear() {
-        rpos = 0;
-        wpos = 0;
+        rawBuffer.clear();
     }
 
     /**
@@ -140,7 +72,7 @@ public class Buffer<T extends Buffer<T>> {
      * @return The current reading position
      */
     public int rpos() {
-        return rpos;
+        return rawBuffer.rpos();
     }
 
     /**
@@ -149,7 +81,7 @@ public class Buffer<T extends Buffer<T>> {
      * @param rpos The new reading position
      */
     public void rpos(int rpos) {
-        this.rpos = rpos;
+        rawBuffer.rpos(rpos);
     }
 
     /**
@@ -158,68 +90,7 @@ public class Buffer<T extends Buffer<T>> {
      * @return The current writing position.
      */
     public int wpos() {
-        return wpos;
-    }
-
-    /**
-     * Set the current writing position.
-     *
-     * @param wpos The new writing position.
-     */
-    public void wpos(int wpos) {
-        ensureCapacity(wpos - this.wpos);
-        this.wpos = wpos;
-    }
-
-    /**
-     * Ensure that there are at least <code>a</code> bytes available for reading from this buffer.
-     *
-     * @param a The number of bytes to ensure are at least available
-     * @throws BufferException If there are less than <code>a</code> bytes available
-     */
-    protected void ensureAvailable(int a)
-        throws BufferException {
-        if (available() < a) {
-            throw new BufferException("Underflow");
-        }
-    }
-
-    /**
-     * Ensure that there is at least <code>capacity</code> bytes available in the buffer for writing.
-     * This call enlarges the buffer if there is less capacity than requested.
-     *
-     * @param capacity The capacity required/
-     */
-    public void ensureCapacity(int capacity) {
-        if (data.length - wpos < capacity) {
-            int cw = wpos + capacity;
-            byte[] tmp = new byte[getNextPowerOf2(cw)];
-            System.arraycopy(data, 0, tmp, 0, data.length);
-            data = tmp;
-        }
-    }
-
-    /**
-     * Compact this buffer by truncating the read bytes from the array.
-     */
-    public void compact() {
-        logger.debug("Compacting...");
-        if (available() > 0) {
-            System.arraycopy(data, rpos, data, 0, wpos - rpos);
-        }
-        wpos -= rpos;
-        rpos = 0;
-    }
-
-    public byte[] getCompactData() {
-        final int len = available();
-        if (len > 0) {
-            byte[] b = new byte[len];
-            System.arraycopy(data, rpos, b, 0, len);
-            return b;
-        } else {
-            return new byte[0];
-        }
+        return rawBuffer.wpos();
     }
 
     /**
@@ -235,7 +106,7 @@ public class Buffer<T extends Buffer<T>> {
     /**
      * Puts a boolean byte
      *
-     * @param b the value
+     * @param b The boolean value to write
      * @return this
      */
     public Buffer<T> putBoolean(boolean b) {
@@ -249,19 +120,17 @@ public class Buffer<T extends Buffer<T>> {
      */
     public byte readByte()
         throws BufferException {
-        ensureAvailable(1);
-        return data[rpos++];
+        return rawBuffer.readByte();
     }
 
     /**
      * Writes a single byte into this buffer
      *
-     * @param b
+     * @param b The byte value to write
      * @return this
      */
     public Buffer<T> putByte(byte b) {
-        ensureCapacity(1);
-        data[wpos++] = b;
+        rawBuffer.putByte(b);
         return this;
     }
 
@@ -273,9 +142,7 @@ public class Buffer<T extends Buffer<T>> {
      * @throws BufferException If the read operation would cause an underflow (less than <code>length</code> bytes available)
      */
     public byte[] readRawBytes(int length) throws BufferException {
-        byte[] bytes = new byte[length];
-        readRawBytes(bytes);
-        return bytes;
+        return rawBuffer.readRawBytes(length);
     }
 
     /**
@@ -284,9 +151,8 @@ public class Buffer<T extends Buffer<T>> {
      * @param buf The array to write the read bytes into
      * @throws BufferException If the read operation would cause an underflow (less bytes available than array size)
      */
-    public void readRawBytes(byte[] buf)
-        throws BufferException {
-        readRawBytes(buf, 0, buf.length);
+    public void readRawBytes(byte[] buf) throws BufferException {
+        rawBuffer.readRawBytes(buf, 0, buf.length);
     }
 
     /**
@@ -297,11 +163,8 @@ public class Buffer<T extends Buffer<T>> {
      * @param length The number of bytes to read from this buffer
      * @throws BufferException If the read operation would cause an underflow (less than length bytes available)
      */
-    public void readRawBytes(byte[] buf, int offset, int length)
-        throws BufferException {
-        ensureAvailable(length);
-        System.arraycopy(data, rpos, buf, offset, length);
-        rpos += length;
+    public void readRawBytes(byte[] buf, int offset, int length) throws BufferException {
+        rawBuffer.readRawBytes(buf, offset, length);
     }
 
     /**
@@ -323,25 +186,7 @@ public class Buffer<T extends Buffer<T>> {
      * @return
      */
     public Buffer<T> putRawBytes(byte[] buf, int offset, int length) {
-        ensureCapacity(length);
-        System.arraycopy(buf, offset, data, wpos, length);
-        wpos += length;
-        return this;
-    }
-
-    /**
-     * Copies the contents of provided buffer into this buffer
-     *
-     * @param buffer the {@code Buffer} to copy
-     * @return this
-     */
-    public Buffer<T> putBuffer(Buffer<? extends Buffer<?>> buffer) {
-        if (buffer != null) {
-            int r = buffer.available();
-            ensureCapacity(r);
-            System.arraycopy(buffer.data, buffer.rpos, data, wpos, r);
-            wpos += r;
-        }
+        rawBuffer.putRawBytes(buf, offset, length);
         return this;
     }
 
@@ -363,13 +208,13 @@ public class Buffer<T extends Buffer<T>> {
      * @throws BufferException If this would cause an underflow (less than 2 bytes available)
      */
     public int readUInt16(Endian endianness) throws BufferException {
-        return endianness.readUInt16(this);
+        return endianness.readUInt16(rawBuffer);
     }
 
     /**
      * Writes a uint16 integer in the buffer's endianness.
      *
-     * @param uint16
+     * @param uint16 The uint16 value to write
      * @return this
      */
     public Buffer<T> putUInt16(int uint16) {
@@ -379,12 +224,12 @@ public class Buffer<T extends Buffer<T>> {
     /**
      * Writes a uint16 integer in the specified endianness.
      *
-     * @param uint16
+     * @param uint16     The uint16 value to write
      * @param endianness The endian (Big or Little) to use
      * @return this
      */
     public Buffer<T> putUInt16(int uint16, Endian endianness) {
-        endianness.writeUInt16(this, uint16);
+        endianness.writeUInt16(rawBuffer, uint16);
         return this;
     }
 
@@ -406,13 +251,13 @@ public class Buffer<T extends Buffer<T>> {
      * @throws BufferException If this would cause an underflow (less than 3 bytes available)
      */
     public int readUInt24(Endian endianness) throws BufferException {
-        return endianness.readUInt24(this);
+        return endianness.readUInt24(rawBuffer);
     }
 
     /**
      * Writes a uint24 integer in the buffer's endianness.
      *
-     * @param uint24
+     * @param uint24 The uint24 value to write
      * @return this
      */
     public Buffer<T> putUInt24(int uint24) {
@@ -422,12 +267,12 @@ public class Buffer<T extends Buffer<T>> {
     /**
      * Writes a uint24 integer in the specified endianness.
      *
-     * @param uint24
+     * @param uint24     The uint24 value to write
      * @param endianness The endian (Big or Little) to use
      * @return this
      */
     public Buffer<T> putUInt24(int uint24, Endian endianness) {
-        endianness.writeUInt24(this, uint24);
+        endianness.writeUInt24(rawBuffer, uint24);
         return this;
     }
 
@@ -459,13 +304,13 @@ public class Buffer<T extends Buffer<T>> {
      * @throws BufferException If this would cause an underflow (less than 4 bytes available)
      */
     public long readUInt32(Endian endianness) throws BufferException {
-        return endianness.readUInt32(this);
+        return endianness.readUInt32(rawBuffer);
     }
 
     /**
      * Writes a uint32 integer in the buffer's endianness.
      *
-     * @param uint32
+     * @param uint32 The uint32 value to write
      * @return this
      */
     public Buffer<T> putUInt32(long uint32) {
@@ -475,12 +320,12 @@ public class Buffer<T extends Buffer<T>> {
     /**
      * Writes a uint32 integer in the specified endianness.
      *
-     * @param uint32
+     * @param uint32     The uint32 value to write
      * @param endianness The endian (Big or Little) to use
      * @return this
      */
     public Buffer<T> putUInt32(long uint32, Endian endianness) {
-        endianness.writeUInt32(this, uint32);
+        endianness.writeUInt32(rawBuffer, uint32);
         return this;
     }
 
@@ -502,13 +347,13 @@ public class Buffer<T extends Buffer<T>> {
      * @throws BufferException If this would cause an underflow (less than 8 bytes available)
      */
     public long readUInt64(Endian endianness) throws BufferException {
-        return endianness.readUInt64(this);
+        return endianness.readUInt64(rawBuffer);
     }
 
     /**
      * Writes a uint64 integer in the buffer's endianness.
      *
-     * @param uint64
+     * @param uint64 The uint64 value to write
      * @return this
      */
     public Buffer<T> putUInt64(long uint64) {
@@ -518,12 +363,12 @@ public class Buffer<T extends Buffer<T>> {
     /**
      * Writes a uint64 integer in the specified endianness.
      *
-     * @param uint64
+     * @param uint64     The uint64 value to write
      * @param endianness The endian (Big or Little) to use
      * @return this
      */
     public Buffer<T> putUInt64(long uint64, Endian endianness) {
-        endianness.writeUInt64(this, uint64);
+        endianness.writeUInt64(rawBuffer, uint64);
         return this;
     }
 
@@ -532,7 +377,7 @@ public class Buffer<T extends Buffer<T>> {
      * <p>
      * Note: unlike a uint64, a long can be <em>negative.</em>
      *
-     * @param longVal
+     * @param longVal The long value to write
      * @return this
      */
     public Buffer<T> putLong(long longVal) {
@@ -544,11 +389,11 @@ public class Buffer<T extends Buffer<T>> {
      * <p>
      * Note: unlike a uint64, a long can be <em>negative</em> or <em>overflowed.</em>
      *
-     * @param longVal
+     * @param longVal The long value to write
      * @return this
      */
     public Buffer<T> putLong(long longVal, Endian endianness) {
-        endianness.writeLong(this, longVal);
+        endianness.writeLong(rawBuffer, longVal);
         return this;
     }
 
@@ -570,7 +415,7 @@ public class Buffer<T extends Buffer<T>> {
      * @throws BufferException If this would cause an underflow (less than 8 bytes available)
      */
     public long readLong(Endian endianness) throws BufferException {
-        return endianness.readLong(this);
+        return endianness.readLong(rawBuffer);
     }
 
     /**
@@ -602,11 +447,11 @@ public class Buffer<T extends Buffer<T>> {
     private String readString(Charset charset, int length, Endian endianness) throws BufferException {
         switch (charset.name()) {
             case "UTF-16":
-                return endianness.readUtf16String(this, length);
+                return endianness.readUtf16String(rawBuffer, length);
             case "UTF-16LE":
-                return Endian.LE.readUtf16String(this, length);
+                return Endian.LE.readUtf16String(rawBuffer, length);
             case "UTF-16BE":
-                return Endian.BE.readUtf16String(this, length);
+                return Endian.BE.readUtf16String(rawBuffer, length);
             case "UTF-8":
                 return new String(readRawBytes(length), charset);
             default:
@@ -631,13 +476,13 @@ public class Buffer<T extends Buffer<T>> {
     private Buffer<T> putString(String string, Charset charset, Endian endianness) {
         switch (charset.name()) {
             case "UTF-16":
-                endianness.writeUtf16String(this, string);
+                endianness.writeUtf16String(rawBuffer, string);
                 break;
             case "UTF-16LE":
-                Endian.LE.writeUtf16String(this, string);
+                Endian.LE.writeUtf16String(rawBuffer, string);
                 break;
             case "UTF-16BE":
-                Endian.BE.writeUtf16String(this, string);
+                Endian.BE.writeUtf16String(rawBuffer, string);
                 break;
             case "UTF-8":
                 byte[] bytes = string.getBytes(charset);
@@ -653,27 +498,32 @@ public class Buffer<T extends Buffer<T>> {
      * Skip the specified number of bytes.
      *
      * @param length The number of bytes to skip
-     * @return this
      * @throws BufferException If this would cause an underflow (less than <code>length</code>) bytes available).
      */
-    public Buffer<T> skip(int length) throws BufferException {
-        ensureAvailable(length);
-        rpos += length;
-        return this;
-    }
-
-    /**
-     * Gives a readable snapshot of the buffer in hex. This is useful for debugging.
-     *
-     * @return snapshot of the buffer as a hex string with each octet delimited by a space
-     */
-    public String printHex() {
-        return ByteArrayUtils.printHex(array(), rpos(), available());
+    public void skip(int length) throws BufferException {
+        rawBuffer.skip(length);
     }
 
     @Override
+    public void compact() {
+        rawBuffer.compact();
+    }
+
+    @Override
+    public byte[] getCompactData() {
+        return rawBuffer.getCompactData();
+    }
+
+    @Override
+    public byte[] array() {
+        return rawBuffer.array();
+    }
+
+
+
+    @Override
     public String toString() {
-        return "Buffer [rpos=" + rpos + ", wpos=" + wpos + ", size=" + data.length + "]";
+        return "Buffer [rawBuffer=" + rawBuffer.toString() + "]";
     }
 
     public InputStream asInputStream() {

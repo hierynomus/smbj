@@ -23,7 +23,11 @@ import spock.lang.Specification
 import java.security.Security
 
 class IntegrationTest extends Specification {
+<<<<<<< HEAD
   def IP = "172.16.37.153"
+=======
+  def IP = "172.16.37.152"
+>>>>>>> 9167fbb... Refactored buffers
   def AUTH = new AuthenticationContext("Administrator", "xeb1aLabs".toCharArray(), "")
 
   def setupSpec() {

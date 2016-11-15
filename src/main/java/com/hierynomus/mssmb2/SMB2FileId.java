@@ -16,7 +16,7 @@
 package com.hierynomus.mssmb2;
 
 import com.hierynomus.protocol.commons.ByteArrayUtils;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 /**
@@ -38,7 +38,7 @@ public class SMB2FileId {
         buffer.putRawBytes(volatileHandle);
     }
 
-    public static SMB2FileId read(SMBBuffer buffer) throws Buffer.BufferException {
+    public static SMB2FileId read(SMBBuffer buffer) throws BufferException {
         return new SMB2FileId(buffer.readRawBytes(8), buffer.readRawBytes(8));
     }
 

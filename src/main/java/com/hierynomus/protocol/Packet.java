@@ -16,10 +16,11 @@
 package com.hierynomus.protocol;
 
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 
 public interface Packet<P extends Packet<P, T>, T extends Buffer<T>> {
 
     void write(T buffer);
 
-    P read(T buffer) throws Buffer.BufferException;
+    P read(T buffer) throws BufferException;
 }

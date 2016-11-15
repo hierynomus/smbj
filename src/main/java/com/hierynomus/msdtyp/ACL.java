@@ -17,7 +17,7 @@ package com.hierynomus.msdtyp;
 
 import java.util.Arrays;
 import com.hierynomus.msdtyp.ace.ACE;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 /**
@@ -48,7 +48,7 @@ public class ACL {
         }
     }
 
-    public void read(SMBBuffer buffer) throws Buffer.BufferException {
+    public void read(SMBBuffer buffer) throws BufferException {
         revision = buffer.readByte(); // AclRevision (1 byte)
         buffer.skip(1); // Sbz1 (1 byte)
         aclSize = buffer.readUInt16(); // AclSize (2 bytes)

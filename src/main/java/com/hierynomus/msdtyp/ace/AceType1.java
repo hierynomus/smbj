@@ -18,7 +18,7 @@ package com.hierynomus.msdtyp.ace;
 import java.util.EnumSet;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SID;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
@@ -42,7 +42,7 @@ class AceType1 extends ACE {
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) throws BufferException {
         accessMask = buffer.readUInt32();
         getSid().read(buffer);
     }

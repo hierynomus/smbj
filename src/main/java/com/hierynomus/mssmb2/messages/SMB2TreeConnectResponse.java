@@ -19,7 +19,7 @@ import java.util.EnumSet;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
@@ -42,7 +42,7 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
 
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) throws BufferException {
         if (header.getStatus() == NtStatus.STATUS_SUCCESS) {
             buffer.skip(2); // StructureSize (2 bytes)
             shareType = buffer.readByte(); // ShareType (1 byte)

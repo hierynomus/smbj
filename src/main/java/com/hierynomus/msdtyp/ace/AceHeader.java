@@ -17,7 +17,7 @@ package com.hierynomus.msdtyp.ace;
 
 import java.util.EnumSet;
 import com.hierynomus.protocol.commons.EnumWithValue;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
@@ -47,7 +47,7 @@ public class AceHeader {
         buffer.putUInt16(aceSize);
     }
 
-    public void readFrom(SMBBuffer buffer) throws Buffer.BufferException {
+    public void readFrom(SMBBuffer buffer) throws BufferException {
         this.aceType = valueOf(buffer.readByte(), AceType.class, null);
         this.aceFlags = toEnumSet(buffer.readByte(), AceFlags.class);
         this.aceSize = buffer.readUInt16();

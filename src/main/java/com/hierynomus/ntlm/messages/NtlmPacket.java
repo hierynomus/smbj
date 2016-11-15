@@ -17,6 +17,7 @@ package com.hierynomus.ntlm.messages;
 
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 
 public class NtlmPacket implements Packet<NtlmPacket, Buffer.PlainBuffer> {
 
@@ -26,7 +27,7 @@ public class NtlmPacket implements Packet<NtlmPacket, Buffer.PlainBuffer> {
     }
 
     @Override
-    public NtlmPacket read(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+    public NtlmPacket read(Buffer.PlainBuffer buffer) throws BufferException {
         throw new UnsupportedOperationException("Not implemented by base class");
     }
 }

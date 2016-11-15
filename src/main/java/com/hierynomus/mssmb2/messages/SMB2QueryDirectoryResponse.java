@@ -17,7 +17,7 @@ package com.hierynomus.mssmb2.messages;
 
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 /**
@@ -32,7 +32,7 @@ public class SMB2QueryDirectoryResponse extends SMB2Packet {
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) throws BufferException {
         // TODO how to handle errors correctly
         if (header.getStatus() != NtStatus.STATUS_SUCCESS) return;
 

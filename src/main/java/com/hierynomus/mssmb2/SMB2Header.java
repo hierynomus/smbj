@@ -16,7 +16,7 @@
 package com.hierynomus.mssmb2;
 
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils;
@@ -164,7 +164,7 @@ public class SMB2Header {
         return asyncId;
     }
 
-    public void readFrom(Buffer<?> buffer) throws Buffer.BufferException {
+    public void readFrom(SMBBuffer buffer) throws BufferException {
         buffer.skip(4); // ProtocolId (4 bytes) (already verified)
         buffer.skip(2); // StructureSize (2 bytes)
         buffer.readUInt16(); // CreditCharge (2 bytes)

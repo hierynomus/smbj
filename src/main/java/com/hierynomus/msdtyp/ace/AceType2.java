@@ -20,7 +20,7 @@ import java.util.UUID;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.msdtyp.SID;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
@@ -63,7 +63,7 @@ class AceType2 extends ACE {
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) throws BufferException {
         accessMask = buffer.readUInt32();
         flags = toEnumSet(buffer.readUInt32(), AceObjectFlags.class);
         if (flags.contains(AceObjectFlags.ACE_OBJECT_TYPE_PRESENT)) {

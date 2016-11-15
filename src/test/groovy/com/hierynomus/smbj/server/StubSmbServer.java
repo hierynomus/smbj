@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.server;
 
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import org.apache.commons.io.IOUtils;
 
@@ -79,13 +80,13 @@ public class StubSmbServer {
                 }
             }
 
-        } catch (IOException | Buffer.BufferException e) {
+        } catch (IOException | BufferException e) {
             serverException.set(new RuntimeException(e));
             throw serverException.get();
         }
     }
 
-    private int readTcpHeader(InputStream inputStream) throws IOException, Buffer.BufferException {
+    private int readTcpHeader(InputStream inputStream) throws IOException, BufferException {
         byte[] b = new byte[4];
         IOUtils.read(inputStream, b);
         Buffer.PlainBuffer plainBuffer = new Buffer.PlainBuffer(b, Endian.BE);

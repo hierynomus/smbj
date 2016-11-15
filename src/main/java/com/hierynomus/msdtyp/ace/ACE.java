@@ -18,7 +18,7 @@ package com.hierynomus.msdtyp.ace;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SID;
 import com.hierynomus.protocol.commons.EnumWithValue;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.valueOf;
@@ -51,13 +51,13 @@ public abstract class ACE {
 
     protected abstract void writeTo(SMBBuffer buffer);
 
-    public final ACE read(SMBBuffer buffer) throws Buffer.BufferException {
+    public final ACE read(SMBBuffer buffer) throws BufferException {
         aceHeader.readFrom(buffer);
         readMessage(buffer);
         return this;
     }
 
-    public static ACE factory(SMBBuffer buffer) throws Buffer.BufferException {
+    public static ACE factory(SMBBuffer buffer) throws BufferException {
         AceType aceType = valueOf(buffer.readByte(), AceType.class, null);
         buffer.rpos(buffer.rpos() - 1); // Go back
         ACE ace = null;
@@ -123,7 +123,7 @@ public abstract class ACE {
             '}';
     }
 
-    protected abstract void readMessage(SMBBuffer buffer) throws Buffer.BufferException;
+    protected abstract void readMessage(SMBBuffer buffer) throws BufferException;
 
     public AceHeader getAceHeader() {
         return aceHeader;

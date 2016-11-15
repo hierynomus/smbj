@@ -18,6 +18,7 @@ package com.hierynomus.msdtyp;
 import java.util.Date;
 import java.util.UUID;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.protocol.commons.buffer.Endian;
 
 /**
@@ -53,9 +54,9 @@ public class MsDataTypes {
      * [MS-DTYP].pdf 2.3.4.2 GUID Packet representation
      *
      * @return The GUID read from the buffer
-     * @throws Buffer.BufferException If an underflow occurs by reading the GUID (less than 16 bytes available).
+     * @throws BufferException If an underflow occurs by reading the GUID (less than 16 bytes available).
      */
-    public static UUID readGuid(Buffer<?> buffer) throws Buffer.BufferException {
+    public static UUID readGuid(Buffer<?> buffer) throws BufferException {
         long mostSigBits = buffer.readUInt32();
         mostSigBits <<= 16;
         mostSigBits |= buffer.readUInt16();
@@ -72,9 +73,9 @@ public class MsDataTypes {
      * [MS-DTYP].pdf 2.3.3 FILETIME
      *
      * @return a Date converted from the Windows FILETIME stored in the buffer
-     * @throws Buffer.BufferException If an underflow occurs by reading the FILETIME (less than 8 bytes available).
+     * @throws BufferException If an underflow occurs by reading the FILETIME (less than 8 bytes available).
      */
-    public static Date readFileTime(Buffer<?> buffer) throws Buffer.BufferException {
+    public static Date readFileTime(Buffer<?> buffer) throws BufferException {
         long lowOrder = buffer.readUInt32();
         long highOrder = buffer.readUInt32();
         long windowsTimeStamp = (highOrder << 32) | lowOrder;

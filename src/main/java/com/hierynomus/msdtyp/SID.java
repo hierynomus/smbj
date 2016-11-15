@@ -17,7 +17,7 @@ package com.hierynomus.msdtyp;
 
 import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.EnumWithValue;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 import java.util.Arrays;
@@ -84,7 +84,7 @@ public class SID {
         }
     }
 
-    public void read(SMBBuffer buffer) throws Buffer.BufferException {
+    public void read(SMBBuffer buffer) throws BufferException {
         revision = buffer.readByte(); // Revision (1 byte)
         int subAuthorityCount = buffer.readByte(); // SubAuthorityCount (1 byte)
         sidIdentifierAuthority = buffer.readRawBytes(6); // IdentifierAuthority (6 bytes)

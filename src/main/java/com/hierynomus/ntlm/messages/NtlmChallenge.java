@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 
 /**
  * [MS-NLMP].pdf 2.2.1.2 CHALLENGE_MESSAGE
@@ -43,7 +44,7 @@ public class NtlmChallenge extends NtlmPacket {
     private byte[] rawTargetInfo; // TODO remove duplicate byte array
 
     @Override
-    public NtlmPacket read(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+    public NtlmPacket read(Buffer.PlainBuffer buffer) throws BufferException {
         buffer.readString(StandardCharsets.UTF_8, 8); // Signature (8 bytes) (NTLMSSP\0)
         buffer.readUInt32(); // MessageType (4 bytes)
         readTargetNameFields(buffer); // TargetNameFields (8 bytes)
@@ -57,7 +58,7 @@ public class NtlmChallenge extends NtlmPacket {
         return this;
     }
 
-    private void readTargetInfo(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+    private void readTargetInfo(Buffer.PlainBuffer buffer) throws BufferException {
         if (targetInfoLen > 0) {
             buffer.rpos(targetInfoBufferOffset);
             rawTargetInfo = buffer.readRawBytes(targetInfoLen);
@@ -96,7 +97,7 @@ public class NtlmChallenge extends NtlmPacket {
         }
     }
 
-    private void readTargetName(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+    private void readTargetName(Buffer.PlainBuffer buffer) throws BufferException {
         if (targetNameLen > 0) {
             // Move to where buffer begins
             buffer.rpos(targetNameBufferOffset);
@@ -104,7 +105,7 @@ public class NtlmChallenge extends NtlmPacket {
         }
     }
 
-    private void readVersion(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+    private void readVersion(Buffer.PlainBuffer buffer) throws BufferException {
         if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
             this.version = new WindowsVersion().readFrom(buffer);
             logger.debug("Windows version = {}", this.version);
@@ -113,13 +114,13 @@ public class NtlmChallenge extends NtlmPacket {
         }
     }
 
-    private void readTargetNameFields(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+    private void readTargetNameFields(Buffer.PlainBuffer buffer) throws BufferException {
         targetNameLen = buffer.readUInt16(); // TargetNameLen (2 bytes)
         buffer.skip(2); // TargetNameMaxLen (2 bytes)
         targetNameBufferOffset = buffer.readUInt32AsInt(); // TargetNameBufferOffset (4 bytes)
     }
 
-    private void readTargetInfoFields(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+    private void readTargetInfoFields(Buffer.PlainBuffer buffer) throws BufferException {
         if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_TARGET_INFO)) {
             targetInfoLen = buffer.readUInt16(); // TargetInfoLen (2 bytes)
             buffer.skip(2); // TargetInfoMaxLen (2 bytes)

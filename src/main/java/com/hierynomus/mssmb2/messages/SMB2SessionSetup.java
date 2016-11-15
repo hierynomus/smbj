@@ -22,7 +22,7 @@ import com.hierynomus.mssmb2.SMB2Header;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.EnumWithValue;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
@@ -65,7 +65,7 @@ public class SMB2SessionSetup extends SMB2Packet {
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) throws BufferException {
         buffer.readUInt16(); // StructureSize (2 bytes) (always 9)
         sessionFlags = toEnumSet(buffer.readUInt16(), SMB2SessionFlags.class); // SessionFlags (2 bytes)
         int securityBufferOffset = buffer.readUInt16(); // SecurityBufferOffset (2 bytes)
@@ -76,7 +76,7 @@ public class SMB2SessionSetup extends SMB2Packet {
         }
     }
 
-    private byte[] readSecurityBuffer(SMBBuffer buffer, int securityBufferOffset, int securityBufferLength) throws Buffer.BufferException {
+    private byte[] readSecurityBuffer(SMBBuffer buffer, int securityBufferOffset, int securityBufferLength) throws BufferException {
         if (securityBufferLength > 0) {
             // Just to be sure, we should already be there.
             buffer.rpos(securityBufferOffset);

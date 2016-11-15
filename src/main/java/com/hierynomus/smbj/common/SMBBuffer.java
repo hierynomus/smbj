@@ -18,18 +18,24 @@ package com.hierynomus.smbj.common;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.ByteArrayRawBuffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
+import com.hierynomus.protocol.commons.buffer.RawBuffer;
 
 public class SMBBuffer extends Buffer<SMBBuffer> {
     private static final byte[] RESERVED_2 = new byte[]{0x0, 0x0};
     private static final byte[] RESERVED_4 = new byte[]{0x0, 0x0, 0x0, 0x0};
+
+    public SMBBuffer(RawBuffer rawBuffer) {
+        super(rawBuffer, Endian.LE);
+    }
 
     public SMBBuffer() {
         super(Endian.LE);
     }
 
     public SMBBuffer(byte[] data) {
-        super(data, Endian.LE);
+        super(new ByteArrayRawBuffer(data), Endian.LE);
     }
 
     /**

@@ -17,7 +17,7 @@
 package com.hierynomus.msfscc.fileinformation;
 
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 
 public class ShareInfo {
     /*

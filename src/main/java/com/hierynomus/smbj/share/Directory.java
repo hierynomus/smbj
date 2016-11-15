@@ -30,7 +30,7 @@ import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryRequest;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryResponse;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.connection.Connection;
@@ -79,7 +79,7 @@ public class Directory extends DiskEntry {
 
                 try {
                     fileList.addAll(FileInformationFactory.parseFileInformationList(outputBuffer, FileInformationClass.FileIdBothDirectoryInformation));
-                } catch (Buffer.BufferException e) {
+                } catch (BufferException e) {
                     throw new TransportException(e);
                 }
             }

@@ -15,6 +15,7 @@
  */
 package com.hierynomus.msdtyp
 
+import com.hierynomus.protocol.commons.buffer.ByteArrayRawBuffer
 import com.hierynomus.smbj.common.SMBBuffer
 import spock.lang.Specification
 
@@ -22,7 +23,8 @@ class MsDataTypesTest extends Specification {
 
     def "should read/write UUID correctly"() {
         given:
-        def buffer = new SMBBuffer()
+        def rawBuffer = new ByteArrayRawBuffer()
+        def buffer = new SMBBuffer(rawBuffer)
         def uuid = UUID.fromString("fbbd1895-af40-48a4-a183-8dabeb1e901a")
 
         when:
@@ -30,7 +32,7 @@ class MsDataTypesTest extends Specification {
 
 
         then:
-        buffer.printHex() == "95 18 bd fb 40 af a4 48 a1 83 8d ab eb 1e 90 1a"
+        rawBuffer.printHex() == "95 18 bd fb 40 af a4 48 a1 83 8d ab eb 1e 90 1a"
         MsDataTypes.readGuid(buffer) == uuid
     }
 }

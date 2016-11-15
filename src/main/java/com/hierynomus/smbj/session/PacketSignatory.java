@@ -20,6 +20,8 @@ import com.hierynomus.mssmb2.SMB2Header;
 import com.hierynomus.mssmb2.SMB2MessageFlag;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.RawOutputBuffer;
+import com.hierynomus.protocol.commons.buffer.RawTeeOutputBuffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,29 +70,32 @@ public class PacketSignatory {
 
     // TODO make session a packet handler which wraps the incoming packets
     public boolean verify(SMB2Packet packet) {
-        try {
-            SMBBuffer buffer = packet.getBuffer();
-            Mac mac = getMac(secretKey);
-            mac.update(buffer.array(), packet.getMessageStartPos(), SMB2Header.SIGNATURE_OFFSET);
-            mac.update(EMPTY_SIGNATURE);
-            mac.update(buffer.array(), SMB2Header.STRUCTURE_SIZE, packet.getMessageEndPos() - SMB2Header.STRUCTURE_SIZE);
-            byte[] signature = mac.doFinal();
-            byte[] receivedSignature = Arrays.copyOfRange(buffer.array(), SMB2Header.SIGNATURE_OFFSET, SMB2Header.STRUCTURE_SIZE);
-            for (int i = 0; i < SIGNATURE_SIZE; i++) {
-                if (signature[i] != receivedSignature[i]) {
-                    return false;
-                }
+        SMBBuffer buffer = packet.getBuffer();
+        Mac mac = getMac(secretKey);
+        mac.update(buffer.array(), packet.getMessageStartPos(), SMB2Header.SIGNATURE_OFFSET);
+        mac.update(EMPTY_SIGNATURE);
+        mac.update(buffer.array(), SMB2Header.STRUCTURE_SIZE, packet.getMessageEndPos() - SMB2Header.STRUCTURE_SIZE);
+        byte[] signature = mac.doFinal();
+        byte[] receivedSignature = Arrays.copyOfRange(buffer.array(), SMB2Header.SIGNATURE_OFFSET, SMB2Header.STRUCTURE_SIZE);
+        for (int i = 0; i < SIGNATURE_SIZE; i++) {
+            if (signature[i] != receivedSignature[i]) {
+                return false;
             }
-
-            return true;
-        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-            throw new IllegalStateException(e);
         }
+
+        return true;
     }
 
-    private static Mac getMac(SecretKeySpec signingKeySpec) throws NoSuchAlgorithmException, InvalidKeyException {
-        Mac mac = Mac.getInstance(signingKeySpec.getAlgorithm());
-        mac.init(signingKeySpec);
+    private static Mac getMac(SecretKeySpec signingKeySpec) {
+        Mac mac = null;
+        try {
+            mac = Mac.getInstance(signingKeySpec.getAlgorithm());
+            mac.init(signingKeySpec);
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            // TODO other exception
+            throw new IllegalStateException(e);
+        }
+
         return mac;
     }
 
@@ -110,51 +115,60 @@ public class PacketSignatory {
 
         @Override
         public void write(SMBBuffer buffer) {
-            try {
-                wrappedPacket.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_SIGNED);
-                int packetStartPos = buffer.wpos();
-                SigningBuffer signingBuffer = new SigningBuffer(buffer, secretKey);
-                // Write the real packet to the buffer
-                wrappedPacket.write(signingBuffer);
-                // The MAC in the signingbuffer now contains the right signature.
-                byte[] signature = signingBuffer.mac.doFinal();
-                // Copy the signature into the buffer's data at the right point.
-                System.arraycopy(signature, 0, buffer.array(), packetStartPos + SMB2Header.SIGNATURE_OFFSET, SMB2Header.SIGNATURE_SIZE);
-            } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-                // TODO other exception
-                throw new IllegalStateException(e);
-            }
+            wrappedPacket.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_SIGNED);
+            int packetStartPos = buffer.wpos();
+            SigningBuffer signingBuffer = new SigningBuffer(secretKey);
+            new SMBBuffer(new RawTeeOutputBuffer(buffer, signingBuffer));
+            // Write the real packet to the buffer
+            wrappedPacket.write(signingBuffer);
+            // The MAC in the signingbuffer now contains the right signature.
+            byte[] signature = signingBuffer.mac.doFinal();
+            // Copy the signature into the buffer's data at the right point.
+            System.arraycopy(signature, 0, buffer.array(), packetStartPos + SMB2Header.SIGNATURE_OFFSET, SMB2Header.SIGNATURE_SIZE);
         }
 
-        private class SigningBuffer extends SMBBuffer {
-            private SMBBuffer wrappedBuffer;
+        private class SigningBuffer implements RawOutputBuffer<SigningBuffer> {
             private final Mac mac;
+            private SecretKeySpec signingKeySpec;
 
-            public SigningBuffer(SMBBuffer wrappedBuffer, SecretKeySpec signingKeySpec) throws NoSuchAlgorithmException, InvalidKeyException {
-                this.wrappedBuffer = wrappedBuffer;
+            public SigningBuffer(SecretKeySpec signingKeySpec) {
                 mac = getMac(signingKeySpec);
+                this.signingKeySpec = signingKeySpec;
             }
 
             @Override
-            public Buffer<SMBBuffer> putByte(byte b) {
+            public int wpos() {
+                throw new IllegalStateException("wpos");
+            }
+
+            @Override
+            public void clear() {
+                mac.reset();
+                try {
+                    mac.init(signingKeySpec);
+                } catch (InvalidKeyException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+
+            @Override
+            public RawOutputBuffer<SigningBuffer> putByte(byte b) {
                 mac.update(b);
-                wrappedBuffer.putByte(b);
                 return this;
             }
 
             @Override
-            public Buffer<SMBBuffer> putBuffer(Buffer<? extends Buffer<?>> buffer) {
-                mac.update(buffer.array(), buffer.rpos(), buffer.available());
-                wrappedBuffer.putBuffer(buffer);
+            public RawOutputBuffer<SigningBuffer> putRawBytes(byte[] buf) {
+                mac.update(buf);
                 return this;
             }
 
             @Override
-            public Buffer<SMBBuffer> putRawBytes(byte[] buf, int offset, int length) {
+            public RawOutputBuffer<SigningBuffer> putRawBytes(byte[] buf, int offset, int length) {
                 mac.update(buf, offset, length);
-                wrappedBuffer.putRawBytes(buf, offset, length);
                 return this;
             }
+
         }
 
         @Override

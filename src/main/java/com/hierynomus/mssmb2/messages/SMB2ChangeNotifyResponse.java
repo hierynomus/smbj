@@ -22,7 +22,7 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileNotifyAction;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.EnumWithValue;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 /**
@@ -39,7 +39,7 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) throws BufferException {
         buffer.skip(2); // StructureSize (2 bytes)
         int outputBufferOffset = buffer.readUInt16(); // OutputBufferOffset (2 bytes)
         int outBufferLength = buffer.readUInt32AsInt(); // OutputBufferLength (4 bytes)
@@ -49,7 +49,7 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
     }
 
     private List<FileNotifyInfo> readFileNotifyInfo(SMBBuffer buffer, int outputBufferOffset, int outBufferLength)
-        throws Buffer.BufferException {
+        throws BufferException {
         List<FileNotifyInfo> notifyInfoList = new ArrayList<>();
         buffer.rpos(outputBufferOffset);
         int currentPos = buffer.rpos();

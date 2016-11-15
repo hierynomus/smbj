@@ -17,7 +17,7 @@ package com.hierynomus.msdtyp;
 
 import java.util.EnumSet;
 import com.hierynomus.protocol.commons.EnumWithValue;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 /**
@@ -65,7 +65,7 @@ public class SecurityDescriptor {
 //        }
     }
 
-    public void read(SMBBuffer buffer) throws Buffer.BufferException {
+    public void read(SMBBuffer buffer) throws BufferException {
         buffer.readByte(); // Revision
         buffer.readByte(); // Sbz1
         control = EnumWithValue.EnumUtils.toEnumSet(buffer.readUInt16(), Control.class);

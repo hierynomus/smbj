@@ -22,6 +22,7 @@ import java.util.List;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.protocol.commons.buffer.Endian;
 
 public class FileInformationFactory {
@@ -52,11 +53,11 @@ public class FileInformationFactory {
      * @param data
      * @param fileInformationClass
      * @return
-     * @throws Buffer.BufferException
+     * @throws BufferException
      */
     public static List<FileInfo> parseFileInformationList(
         byte[] data, FileInformationClass fileInformationClass)
-        throws Buffer.BufferException {
+        throws BufferException {
 
         Buffer.PlainBuffer buffer = new Buffer.PlainBuffer(data, Endian.LE);
         List<FileInfo> _fileInfoList = new ArrayList<>();
@@ -92,7 +93,7 @@ public class FileInformationFactory {
      * <p>
      * [MS-FSCC] 2.4.2 FileAllInformation
      */
-    public static FileInfo parseFileAllInformation(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+    public static FileInfo parseFileAllInformation(Buffer.PlainBuffer buffer) throws BufferException {
         // Basic Information
         Date creationTime = MsDataTypes.readFileTime(buffer);
         Date lastAccessTime = MsDataTypes.readFileTime(buffer);
@@ -137,7 +138,7 @@ public class FileInformationFactory {
     /**
      * 2.4.17 FileIdBothDirectoryInformation
      */
-    public static FileInfo parseFileIdBothDirectoryInformation(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+    public static FileInfo parseFileIdBothDirectoryInformation(Buffer.PlainBuffer buffer) throws BufferException {
         Date creationTime = MsDataTypes.readFileTime(buffer);
         Date lastAccessTime = MsDataTypes.readFileTime(buffer);
         Date lastWriteTime = MsDataTypes.readFileTime(buffer);

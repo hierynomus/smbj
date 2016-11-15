@@ -21,6 +21,7 @@ import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.messages.SMB2ResponseMessageFactory;
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.transport.PacketReader;
@@ -33,7 +34,7 @@ public class DirectTcpPacketReader extends PacketReader {
         super(host, in, handler);
     }
 
-    private SMB2Packet _readSMB2Packet(int packetLength) throws IOException, Buffer.BufferException {
+    private SMB2Packet _readSMB2Packet(int packetLength) throws IOException, BufferException {
         byte[] buf = new byte[packetLength];
         int count = 0;
         int read = 0;
@@ -53,12 +54,12 @@ public class DirectTcpPacketReader extends PacketReader {
         try {
             int smb2PacketLength = _readTcpHeader();
             return _readSMB2Packet(smb2PacketLength);
-        } catch (IOException | Buffer.BufferException e) {
+        } catch (IOException | BufferException e) {
             throw new TransportException(e);
         }
     }
 
-    private int _readTcpHeader() throws IOException, Buffer.BufferException {
+    private int _readTcpHeader() throws IOException, BufferException {
         byte[] tcpHeader = new byte[4];
         in.read(tcpHeader);
         Buffer.PlainBuffer plainBuffer = new Buffer.PlainBuffer(tcpHeader, Endian.BE);

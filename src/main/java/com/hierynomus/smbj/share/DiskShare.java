@@ -15,11 +15,6 @@
  */
 package com.hierynomus.smbj.share;
 
-import java.util.EnumSet;
-import java.util.List;
-import java.util.concurrent.Future;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SecurityDescriptor;
 import com.hierynomus.msdtyp.SecurityInformation;
@@ -37,6 +32,7 @@ import com.hierynomus.mssmb2.SMB2ShareAccess;
 import com.hierynomus.mssmb2.messages.*;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.common.SMBApiException;
@@ -46,15 +42,18 @@ import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.EnumSet;
+import java.util.List;
+import java.util.concurrent.Future;
 
 import static com.hierynomus.msdtyp.AccessMask.FILE_READ_ATTRIBUTES;
 import static com.hierynomus.msdtyp.AccessMask.GENERIC_READ;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_DIRECTORY;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_NORMAL;
-import static com.hierynomus.mssmb2.SMB2ShareAccess.EnumUtils;
-import static com.hierynomus.mssmb2.SMB2ShareAccess.FILE_SHARE_DELETE;
-import static com.hierynomus.mssmb2.SMB2ShareAccess.FILE_SHARE_READ;
-import static com.hierynomus.mssmb2.SMB2ShareAccess.FILE_SHARE_WRITE;
+import static com.hierynomus.mssmb2.SMB2ShareAccess.*;
 import static com.hierynomus.mssmb2.messages.SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_SECURITY;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
 
@@ -171,7 +170,7 @@ public class DiskShare extends Share {
         try {
             return FileInformationFactory.parseFileAllInformation(
                 new Buffer.PlainBuffer(outputBuffer, Endian.LE));
-        } catch (Buffer.BufferException e) {
+        } catch (BufferException e) {
             throw new SMBRuntimeException(e);
         }
     }
@@ -188,7 +187,7 @@ public class DiskShare extends Share {
         try {
             return FileInformationFactory.parseFileAllInformation(
                 new Buffer.PlainBuffer(outputBuffer, Endian.LE));
-        } catch (Buffer.BufferException e) {
+        } catch (BufferException e) {
             throw new TransportException(e);
         }
     }
@@ -212,7 +211,7 @@ public class DiskShare extends Share {
 
         try {
             return ShareInfo.parseFsFullSizeInformation(new Buffer.PlainBuffer(outputBuffer, Endian.LE));
-        } catch (Buffer.BufferException e) {
+        } catch (BufferException e) {
             throw new SMBRuntimeException(e);
         }
     }
@@ -308,7 +307,7 @@ public class DiskShare extends Share {
         SecurityDescriptor sd = new SecurityDescriptor();
         try {
             sd.read(new SMBBuffer(outputBuffer));
-        } catch (Buffer.BufferException e) {
+        } catch (BufferException e) {
             throw new TransportException(e);
         }
         return sd;
@@ -323,7 +322,7 @@ public class DiskShare extends Share {
         SecurityDescriptor sd = new SecurityDescriptor();
         try {
             sd.read(new SMBBuffer(outputBuffer));
-        } catch (Buffer.BufferException e) {
+        } catch (BufferException e) {
             throw new TransportException(e);
         }
         return sd;

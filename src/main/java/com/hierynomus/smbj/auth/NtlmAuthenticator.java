@@ -31,6 +31,8 @@ import com.hierynomus.ntlm.messages.NtlmNegotiate;
 import com.hierynomus.ntlm.messages.NtlmNegotiateFlag;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.BufferException;
+import com.hierynomus.protocol.commons.buffer.ByteArrayRawBuffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.spnego.NegTokenInit;
@@ -74,7 +76,7 @@ public class NtlmAuthenticator implements Authenticator {
             NtlmChallenge challenge = null;
             try {
                 challenge = (NtlmChallenge) new NtlmChallenge().read(new Buffer.PlainBuffer(negTokenTarg.getResponseToken(), Endian.LE));
-            } catch (Buffer.BufferException e) {
+            } catch (BufferException e) {
                 throw new IOException(e);
             }
             logger.debug("Received NTLM challenge from: {}", challenge.getTargetName());
@@ -110,12 +112,14 @@ public class NtlmAuthenticator implements Authenticator {
     private byte[] negTokenInit(NtlmNegotiate ntlmNegotiate) {
         NegTokenInit negTokenInit = new NegTokenInit();
         negTokenInit.addSupportedMech(NTLMSSP);
-        Buffer.PlainBuffer ntlmBuffer = new Buffer.PlainBuffer(Endian.LE);
+        ByteArrayRawBuffer rawBuffer = new ByteArrayRawBuffer();
+        Buffer.PlainBuffer ntlmBuffer = new Buffer.PlainBuffer(rawBuffer, Endian.LE);
         ntlmNegotiate.write(ntlmBuffer);
-        negTokenInit.setMechToken(ntlmBuffer.getCompactData());
-        Buffer.PlainBuffer negTokenBuffer = new Buffer.PlainBuffer(Endian.LE);
+        negTokenInit.setMechToken(rawBuffer.getCompactData());
+        ByteArrayRawBuffer rawBuffer2 = new ByteArrayRawBuffer();
+        Buffer.PlainBuffer negTokenBuffer = new Buffer.PlainBuffer(rawBuffer2, Endian.LE);
         negTokenInit.write(negTokenBuffer);
-        return negTokenBuffer.getCompactData();
+        return rawBuffer2.getCompactData();
     }
 
     private byte[] negTokenTarg(NtlmAuthenticate resp, byte[] responseToken) {

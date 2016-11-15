@@ -28,7 +28,7 @@ public abstract class Endian {
     private static class Big extends Endian {
 
         @Override
-        public <T extends Buffer<T>> void writeUInt16(Buffer<T> buffer, int uint16) {
+        public <T extends RawBuffer<T>> void writeUInt16(RawBuffer<T> buffer, int uint16) {
             if (uint16 < 0 || uint16 > 0xFFFF) {
                 throw new IllegalArgumentException("Invalid uint16 value: " + uint16);
             }
@@ -36,13 +36,13 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> int readUInt16(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends RawBuffer<T>> int readUInt16(RawBuffer<T> buffer) throws BufferException {
             byte[] b = buffer.readRawBytes(2);
             return b[0] << 8 & 0xFF00 | b[1] & 0x00FF;
         }
 
         @Override
-        public <T extends Buffer<T>> void writeUInt24(Buffer<T> buffer, int uint24) {
+        public <T extends RawBuffer<T>> void writeUInt24(RawBuffer<T> buffer, int uint24) {
             if (uint24 < 0 || uint24 > 0xFFFFFF) {
                 throw new IllegalArgumentException("Invalid uint24 value: " + uint24);
             }
@@ -50,7 +50,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> int readUInt24(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends RawBuffer<T>> int readUInt24(RawBuffer<T> buffer) throws BufferException {
             byte[] b = buffer.readRawBytes(3);
             return b[0] << 16 & 0xFF0000 |
                 b[1] << 8 & 0x00FF00 |
@@ -58,7 +58,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> void writeUInt32(Buffer<T> buffer, long uint32) {
+        public <T extends RawBuffer<T>> void writeUInt32(RawBuffer<T> buffer, long uint32) {
             if (uint32 < 0 || uint32 > 0xFFFFFFFFL) {
                 throw new IllegalArgumentException("Invalid uint32 value: " + uint32);
             }
@@ -71,7 +71,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> long readUInt32(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends RawBuffer<T>> long readUInt32(RawBuffer<T> buffer) throws BufferException {
             byte[] b = buffer.readRawBytes(4);
             return b[0] << 24 & 0xFF000000L |
                 b[1] << 16 & 0x00FF0000L |
@@ -80,7 +80,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> void writeUInt64(Buffer<T> buffer, long uint64) {
+        public <T extends RawBuffer<T>> void writeUInt64(RawBuffer<T> buffer, long uint64) {
             if (uint64 < 0) {
                 throw new IllegalArgumentException("Invalid uint64 value: " + uint64);
             }
@@ -88,16 +88,16 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> long readUInt64(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends RawBuffer<T>> long readUInt64(RawBuffer<T> buffer) throws BufferException {
             long uint64 = (readUInt32(buffer) << 32) + (readUInt32(buffer) & 0xFFFFFFFFL);
             if (uint64 < 0) {
-                throw new Buffer.BufferException("Cannot handle values > " + Long.MAX_VALUE);
+                throw new BufferException("Cannot handle values > " + Long.MAX_VALUE);
             }
             return uint64;
         }
 
         @Override
-        public <T extends Buffer<T>> void writeLong(Buffer<T> buffer, long longVal) {
+        public <T extends RawBuffer<T>> void writeLong(RawBuffer<T> buffer, long longVal) {
             buffer.putRawBytes(new byte[]{
                 (byte) (longVal >> 56),
                 (byte) (longVal >> 48),
@@ -110,7 +110,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> long readLong(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends RawBuffer<T>> long readLong(RawBuffer<T> buffer) throws BufferException {
             long result = 0;
             byte[] b = buffer.readRawBytes(8);
             for (int i = 0; i < 8; i++) {
@@ -121,14 +121,14 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException {
+        public <T extends RawBuffer<T>> String readUtf16String(RawBuffer<T> buffer, int length) throws BufferException {
             byte[] stringBytes = new byte[length * 2];
             buffer.readRawBytes(stringBytes);
             return new String(stringBytes, StandardCharsets.UTF_16BE);
         }
 
         @Override
-        public <T extends Buffer<T>> void writeUtf16String(Buffer<T> buffer, String string) {
+        public <T extends RawBuffer<T>> void writeUtf16String(RawBuffer<T> buffer, String string) {
             byte[] bytes = string.getBytes(StandardCharsets.UTF_16BE);
             buffer.putRawBytes(bytes);
         }
@@ -142,7 +142,7 @@ public abstract class Endian {
     private static class Little extends Endian {
 
         @Override
-        public <T extends Buffer<T>> void writeUInt16(Buffer<T> buffer, int uint16) {
+        public <T extends RawBuffer<T>> void writeUInt16(RawBuffer<T> buffer, int uint16) {
             if (uint16 < 0 || uint16 > 0xFFFF) {
                 throw new IllegalArgumentException("Invalid uint16 value: " + uint16);
             }
@@ -152,14 +152,14 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> int readUInt16(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends RawBuffer<T>> int readUInt16(RawBuffer<T> buffer) throws BufferException {
             byte[] b = buffer.readRawBytes(2);
             return b[0] & 0x00FF |
                 b[1] << 8 & 0xFF00;
         }
 
         @Override
-        public <T extends Buffer<T>> void writeUInt24(Buffer<T> buffer, int uint24) {
+        public <T extends RawBuffer<T>> void writeUInt24(RawBuffer<T> buffer, int uint24) {
             if (uint24 < 0 || uint24 > 0xFFFFFF) {
                 throw new IllegalArgumentException("Invalid uint24 value: " + uint24);
             }
@@ -171,7 +171,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> int readUInt24(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends RawBuffer<T>> int readUInt24(RawBuffer<T> buffer) throws BufferException {
             byte[] b = buffer.readRawBytes(3);
             return b[0] & 0x0000FF |
                 b[1] << 8 & 0x00FF00 |
@@ -179,7 +179,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> void writeUInt32(Buffer<T> buffer, long uint32) {
+        public <T extends RawBuffer<T>> void writeUInt32(RawBuffer<T> buffer, long uint32) {
             if (uint32 < 0 || uint32 > 0xFFFFFFFFL) {
                 throw new IllegalArgumentException("Invalid uint32 value: " + uint32);
             }
@@ -192,7 +192,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> long readUInt32(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends RawBuffer<T>> long readUInt32(RawBuffer<T> buffer) throws BufferException {
             byte[] b = buffer.readRawBytes(4);
             return b[0] & 0x000000FFL |
                 b[1] << 8 & 0x0000FF00L |
@@ -201,7 +201,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> void writeUInt64(Buffer<T> buffer, long uint64) {
+        public <T extends RawBuffer<T>> void writeUInt64(RawBuffer<T> buffer, long uint64) {
             if (uint64 < 0) {
                 throw new IllegalArgumentException("Invalid uint64 value: " + uint64);
             }
@@ -209,16 +209,16 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> long readUInt64(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends RawBuffer<T>> long readUInt64(RawBuffer<T> buffer) throws BufferException {
             long uint64 = (readUInt32(buffer) & 0xFFFFFFFFL) + (readUInt32(buffer) << 32);
             if (uint64 < 0) {
-                throw new Buffer.BufferException("Cannot handle values > " + Long.MAX_VALUE);
+                throw new BufferException("Cannot handle values > " + Long.MAX_VALUE);
             }
             return uint64;
         }
 
         @Override
-        public <T extends Buffer<T>> void writeLong(Buffer<T> buffer, long longVal) {
+        public <T extends RawBuffer<T>> void writeLong(RawBuffer<T> buffer, long longVal) {
             buffer.putRawBytes(new byte[]{
                 (byte) longVal,
                 (byte) (longVal >> 8),
@@ -231,7 +231,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> long readLong(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends RawBuffer<T>> long readLong(RawBuffer<T> buffer) throws BufferException {
             long result = 0;
             byte[] bytes = buffer.readRawBytes(8);
             for (int i = 7; i >= 0; i--) {
@@ -243,14 +243,14 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException {
+        public <T extends RawBuffer<T>> String readUtf16String(RawBuffer<T> buffer, int length) throws BufferException {
             byte[] stringBytes = new byte[length * 2];
             buffer.readRawBytes(stringBytes);
             return new String(stringBytes, StandardCharsets.UTF_16LE);
         }
 
         @Override
-        public <T extends Buffer<T>> void writeUtf16String(Buffer<T> buffer, String string) {
+        public <T extends RawBuffer<T>> void writeUtf16String(RawBuffer<T> buffer, String string) {
             byte[] bytes = string.getBytes(StandardCharsets.UTF_16LE);
             buffer.putRawBytes(bytes);
         }
@@ -259,30 +259,31 @@ public abstract class Endian {
         public String toString() {
             return "little endian";
         }
+
     }
 
-    public abstract <T extends Buffer<T>> void writeUInt16(Buffer<T> buffer, int uint16);
+    public abstract <T extends RawBuffer<T>> void writeUInt16(RawBuffer<T> buffer, int uint16);
 
-    public abstract <T extends Buffer<T>> int readUInt16(Buffer<T> buffer) throws Buffer.BufferException;
+    public abstract <T extends RawBuffer<T>> int readUInt16(RawBuffer<T> buffer) throws BufferException;
 
-    public abstract <T extends Buffer<T>> void writeUInt24(Buffer<T> buffer, int uint24);
+    public abstract <T extends RawBuffer<T>> void writeUInt24(RawBuffer<T> buffer, int uint24);
 
-    public abstract <T extends Buffer<T>> int readUInt24(Buffer<T> buffer) throws Buffer.BufferException;
+    public abstract <T extends RawBuffer<T>> int readUInt24(RawBuffer<T> buffer) throws BufferException;
 
-    public abstract <T extends Buffer<T>> void writeUInt32(Buffer<T> buffer, long uint32);
+    public abstract <T extends RawBuffer<T>> void writeUInt32(RawBuffer<T> buffer, long uint32);
 
-    public abstract <T extends Buffer<T>> long readUInt32(Buffer<T> buffer) throws Buffer.BufferException;
+    public abstract <T extends RawBuffer<T>> long readUInt32(RawBuffer<T> buffer) throws BufferException;
 
-    public abstract <T extends Buffer<T>> void writeUInt64(Buffer<T> buffer, long uint64);
+    public abstract <T extends RawBuffer<T>> void writeUInt64(RawBuffer<T> buffer, long uint64);
 
-    public abstract <T extends Buffer<T>> long readUInt64(Buffer<T> buffer) throws Buffer.BufferException;
+    public abstract <T extends RawBuffer<T>> long readUInt64(RawBuffer<T> buffer) throws BufferException;
 
-    public abstract <T extends Buffer<T>> void writeLong(Buffer<T> buffer, long longVal);
+    public abstract <T extends RawBuffer<T>> void writeLong(RawBuffer<T> buffer, long longVal);
 
-    public abstract <T extends Buffer<T>> long readLong(Buffer<T> buffer) throws Buffer.BufferException;
+    public abstract <T extends RawBuffer<T>> long readLong(RawBuffer<T> buffer) throws BufferException;
 
-    public abstract <T extends Buffer<T>> void writeUtf16String(Buffer<T> buffer, String string);
+    public abstract <T extends RawBuffer<T>> void writeUtf16String(RawBuffer<T> buffer, String string);
 
-    public abstract <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException;
+    public abstract <T extends RawBuffer<T>> String readUtf16String(RawBuffer<T> buffer, int length) throws BufferException;
 
 }

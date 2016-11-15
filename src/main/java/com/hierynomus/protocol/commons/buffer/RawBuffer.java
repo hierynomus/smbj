@@ -13,23 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.mssmb2.messages;
+package com.hierynomus.protocol.commons.buffer;
 
-import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.protocol.commons.buffer.BufferException;
-import com.hierynomus.smbj.common.SMBBuffer;
+public interface RawBuffer<B extends RawBuffer<B>> extends RawInputBuffer, RawOutputBuffer<B> {
+    /**
+     * Compact this buffer by truncating the read bytes from the array.
+     */
+    void compact();
 
-/**
- * [MS-SMB2].pdf 2.2.40 SMB2 SET_INFO Response
- */
-public class SMB2SetInfoResponse extends SMB2Packet {
+    byte[] getCompactData();
 
-    public SMB2SetInfoResponse() {
-        super();
-    }
-
-    @Override
-    protected void readMessage(SMBBuffer buffer) throws BufferException {
-        buffer.skip(2); // StructureSize (2 bytes)
-    }
+    /**
+     * Returns the underlying byte array.
+     * <p/>
+     * <em>NOTE:</em> Be careful, the structure is mutable.
+     *
+     * @return The underlying byte array
+     */
+    byte[] array();
 }

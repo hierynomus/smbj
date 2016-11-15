@@ -25,13 +25,14 @@ class BufferTest extends Specification {
 
     def "should read and write value #value as uint#size in #endian"() {
         given:
-        def buffer = new Buffer.PlainBuffer(endian)
+        def rawBuffer = new ByteArrayRawBuffer()
+        def buffer = new Buffer.PlainBuffer(rawBuffer, endian)
 
         when:
         buffer.metaClass.invokeMethod(buffer, "putUInt$size", value)
 
         then:
-        buffer.printHex() == contents
+        rawBuffer.printHex() == contents
         buffer.metaClass.invokeMethod(buffer, "readUInt$size") == value
 
         where:
@@ -107,7 +108,7 @@ class BufferTest extends Specification {
         buffer.readUInt64()
 
         then:
-        def ex = thrown(Buffer.BufferException)
+        def ex = thrown(BufferException)
         ex.message == "Cannot handle values > " + Long.MAX_VALUE
         where:
         endian    | val1       | val2
@@ -117,14 +118,15 @@ class BufferTest extends Specification {
 
     def "should read and write string '#value' as #unicode in #endian"() {
         given:
-        def buffer = new Buffer.PlainBuffer(endian)
+        def rawBuffer = new ByteArrayRawBuffer()
+        def buffer = new Buffer.PlainBuffer(rawBuffer, endian)
         def charset = Charset.forName(unicode)
 
         when:
         buffer.putString(value, charset)
 
         then:
-        buffer.printHex() == contents
+        rawBuffer.printHex() == contents
         buffer.readString(charset, value.length()) == value
 
         where:
