@@ -17,6 +17,7 @@ package com.hierynomus.smbj.common;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 
@@ -97,4 +98,28 @@ public class SMBBuffer extends Buffer<SMBBuffer> {
         }
         return putUInt16(string.length() * 2);
     }
+    
+    /**
+     * [MS-DFSC] 2.2.1
+     * All strings in REQ_GET_DFS_REFERRAL (section 2.2.2) and RESP_GET_DFS_REFERRAL (section 2.2.4) 
+     * messages MUST be encoded as null-terminated strings of UTF-16 characters, as specified in [UNICODE].
+     *
+     * @param string The string value to write
+     * @return this
+     */
+    public Buffer<SMBBuffer> putZString(String string) {
+        putString(string, StandardCharsets.UTF_16); // write string without terminator
+        return putReserved2(); // write zero-terminator
+    }
+
+    public String readZString() throws com.hierynomus.protocol.commons.buffer.Buffer.BufferException {
+        StringBuffer buf = new StringBuffer();
+        char c = (char)readUInt16();
+        while (c != 0) {
+            buf.append(c);
+            c = (char)readUInt16();
+        }
+        return buf.toString();
+    }
+
 }
