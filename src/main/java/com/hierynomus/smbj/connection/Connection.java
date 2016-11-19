@@ -337,4 +337,8 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         connectionInfo.getSessionTable().sessionClosed(loggedOff.getSessionId());
         logger.debug("Session << {} >> logged off", loggedOff.getSessionId());
     }
+
+    public Config getConfig() {
+        return config;
+    }
 }

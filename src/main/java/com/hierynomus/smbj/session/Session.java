@@ -23,6 +23,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.dfs.DFS;
@@ -101,7 +102,9 @@ public class Session implements AutoCloseable {
         SmbPath smbPath = new SmbPath(remoteHostname, shareName);
         logger.info("Connection to {} on session {}", smbPath, sessionId);
         try {
-            DFS.resolveDFS(this,smbPath);
+            if (connection.getConfig().isDFSEnabled()) {
+                DFS.resolveDFS(this,smbPath);
+            }
             SMB2TreeConnectRequest smb2TreeConnectRequest = new SMB2TreeConnectRequest(connection.getNegotiatedProtocol().getDialect(), smbPath, sessionId);
             smb2TreeConnectRequest.getHeader().setCreditRequest(256);
             Future<SMB2TreeConnectResponse> send = this.send(smb2TreeConnectRequest);
@@ -198,19 +201,19 @@ public class Session implements AutoCloseable {
         return connection.send(packet, isSigningRequired() ? signingKeySpec : null);
     }
     
-//    public <T extends SMB2Packet> T processSendResponse(SMB2Packet packet) throws TransportException {
-//        while (true) {
-//            DFS.resolveDFS(packet);
-//            Future<T> responseFuture = send(packet);
-//            T cresponse = Futures.get(responseFuture, SMBRuntimeException.Wrapper);
-//            if (cresponse.getHeader().getStatus()==NtStatus.STATUS_PATH_NOT_COVERED) {
-//                //resolve dfs, modify packet, resend packet to new target, and hopefully it works there
-//                ...
-//            } else {
-//                return cresponse;
-//            }
-//        }
-//    }
+    public <T extends SMB2Packet> T processSendResponse(SMB2Packet packet) throws TransportException {
+        while (true) {
+            Future<T> responseFuture = send(packet);
+            T cresponse = Futures.get(responseFuture, SMBRuntimeException.Wrapper);
+            if (cresponse.getHeader().getStatus()==NtStatus.STATUS_PATH_NOT_COVERED) {
+                //resolve dfs, modify packet, resend packet to new target, and hopefully it works there
+                DFS.resolvePathNotCoveredError(packet);
+                // and we try again
+            } else {
+                return cresponse;
+            }
+        }
+    }
 
     public void setBus(SMBEventBus bus) {
         if (this.bus != null) {

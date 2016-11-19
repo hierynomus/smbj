@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2FileId;
+import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.messages.SMB2IoctlRequest;
 import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
@@ -58,9 +59,15 @@ public class DFS {
             throw new DFSException(e);
         }
     }
+    
+    public static void resolvePathNotCoveredError(SMB2Packet packet) {
+        //TODO need to implement this  
+        // See [MS-DFSC] 3.1.5.1 I/O Operation to Target Fails with STATUS_PATH_NOT_COVERED
+    }
+
 
     // called when requesting a path before an operation
-    public String resolvePath(Session session, String path) throws IOException, BufferException, DFSException {
+    String resolvePath(Session session, String path) throws IOException, BufferException, DFSException {
         boolean isDomainOrPath = false;
         boolean isDFSPath = false;
         DomainCache.DomainCacheEntry domainCacheEntry;
