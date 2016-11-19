@@ -1,112 +1,259 @@
-package com.hieronymus.mssmb2.dfs;
+/*
+ * Copyright (C)2016 - SMBJ Contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.hierynomus.mssmb2.dfs;
 
+import java.io.IOException;
 import java.util.concurrent.Future;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.messages.SMB2CreateResponse;
 import com.hierynomus.mssmb2.messages.SMB2IoctlRequest;
 import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
-import com.hierynomus.mssmb2.messages.SMB2ReadRequest;
-import com.hierynomus.mssmb2.messages.SMB2IoctlRequest.ControlCode;
+import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
 import com.hierynomus.protocol.commons.concurrent.Futures;
+import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.share.Share;
 import com.hierynomus.smbj.share.TreeConnect;
 import com.hierynomus.smbj.transport.TransportException;
+import com.hierynomus.mssmb2.dfs.DomainCache;
+import com.hierynomus.mssmb2.dfs.DomainCache.DomainCacheEntry;
+import com.hierynomus.mssmb2.dfs.ReferralCache.ReferralCacheEntry;
 
 public class DFS {
-    // called when requesting a path
-    public String resolvePath(String path) {
+    private static final Logger logger = LoggerFactory.getLogger(DFS.class);
+
+    ReferralCache referralCache = new ReferralCache();
+    DomainCache domainCache = new DomainCache();
+    static DFS dfs = new DFS();
+
+    public static void resolveDFS(Session session, SmbPath path) throws DFSException {
+        String newPath;
+        try {
+            newPath = dfs.resolvePath(session, path.toString());
+            path.parse(newPath);
+        } catch (IOException | BufferException e) {
+            // just return the old path back.
+            logger.error("Exception processing DFS", e);
+            throw new DFSException(e);
+        }
+    }
+
+    // called when requesting a path before an operation
+    public String resolvePath(Session session, String path) throws IOException, BufferException, DFSException {
+        boolean isDomainOrPath = false;
+        boolean isDFSPath = false;
+        DomainCache.DomainCacheEntry domainCacheEntry;
+        ReferralCache.ReferralCacheEntry referralCacheEntry = null;
+        String hostName = null;
+
         path = normalizePath(path);
+        
+        String[] pathEntries = parsePath(path); 
         // TODO validate path? must contain 2 components (servername\share) at least
-        if (one path component?) {
-          //12
-        } else {
-            //2
-            // look in referral cache
-            DFSReferral referral = referralCache.lookup(path);
-            if (referral != null) {
-                if referral.ttl expired {
-                    if (referral.rootOrLInk==root) {
-                        //5
-                        DFSReferral domainReferral = domainCache.lookup(path.entries[0]);
-                        if (domainReferral != null) {
-                            if (dc hint is valid) {
-                                if (path[1]=="sysvol" || path[1]=="netlogon") {
-                                    //10
-                                }
-                                else {
-                                    use dchint as hostname for dfs root referral purposes
-                                }
-                            } else {
-                                
-                            }
-                            
+
+// 1. If the path has only one path component (for example, \abc), go to step 12; otherwise, go to step 2.
+        if (pathEntries.length == 1) {
+            return path; // step12: return the original path
+        }
+        if (pathEntries[1].equals("IPC$")) { // ignore IPC$, that's magic
+            return path;
+        }
+
+        while(path != null) {
+// 2. Look up the path in ReferralCache if a cache is being maintained. If no cache is being maintained, go to step 5.
+//      1. If no matching entry is found in ReferralCache, go to step 5.
+//      2. If an entry's TTL has expired:
+//        - If RootOrLink indicates DFS root targets, go to step 5.
+//        - If RootOrLink indicates DFS link targets, go to step 9.
+//      3. If an entry contains DFS link targets as indicated by RootOrLink, go to step 4; otherwise, go to step 3.
+            if (referralCache != null && referralCacheEntry == null) {
+                referralCacheEntry = referralCache.lookup(path);
+            }
+            if (referralCacheEntry == null || 
+                    (referralCacheEntry.isExpired() && referralCacheEntry.rootOrLink == ReferralCache.RootOrLink.RCE_ROOT)) {
+// 5. [ReferralCache miss] [ReferralCache hit, expired TTL, RootOrLink=root] Look up the first path component in DomainCache.
+//   1. If no matching DomainCache entry is found, use the first path component as the host name for DFS root referral 
+//      request purposes. Go to step 6.
+//   2. If a matching DomainCache entry is found:
+//     1. If DCHint is not valid, send DC referral request, as specified in section 3.1.4.2, providing "DC", 
+//        BootstrapDC, UserCredentials, MaxOutputSizeff, and Path as parameters. The processing of the referral 
+//        response is specified in section 3.1.5.4.2. If the referral request fails, go to step 13.
+//     2. If the second path component is "SYSVOL" or "NETLOGON", go to step 10.
+//     3. Use DCHint as host name for DFS root referral request purposes.
+                domainCacheEntry = domainCache.lookup(pathEntries[0]);
+                if (domainCacheEntry == null) {
+                    // use the first path component as the host name for DFS root referral
+                    hostName = pathEntries[0];
+                    isDomainOrPath = true;
+                } else { // domainCacheEntry found
+                    isDFSPath = true; // remember that the path contained at least one DFS translation
+
+                    if (domainCacheEntry.DCHint == null || domainCacheEntry.DCHint.isEmpty()) {
+                        ReferralResult r = sendReferralRequest("DC", pathEntries[0], session, path);
+                        if (r.error != NtStatus.STATUS_SUCCESS) {
+                            throw new DFSException(r.error); // step13: fail with error
                         }
-                        else {
-                            
-                            //6
-                        }
-                        
-                    } else {
-                        //9
-                    }
-                } else {
-                    if (referral.rootOrLink==root) {
-                        //3
-                        replacePathPortion(path,referral.dfsPathPrefix,referral.targetHint);
-                        //8
-                        try operation to targetHint
-                        if fail not covered {
-                            //
-                            if (referral.rootOrLink==root) {
-                                cover.
-                            } else {
-                                
-                            }
-                            
+                        domainCacheEntry = r.domainCacheEntry;
+                    } 
+
+                    if (pathEntries[1]=="SYSVOL" || pathEntries[1]=="NETLOGON") {
+// 10. [sysvol referral request] Issue a sysvol referral request, as specified in section 3.1.4.2, providing 'SYSVOL', 
+// the DCHint DC of the DomainCache entry that corresponds to the domain name in the first path component, UserCredentials, 
+// MaxOutputSize, and Path as parameters. 
+// The processing of the referral response and/or error is as specified in 
+// section 3.1.5.4.4, which will update the ReferralCache on success. 
+// If the referral request is successful, go to step 3; 
+// otherwise, go to step 13.
+                        ReferralResult r = sendReferralRequest("SYSVOL", domainCacheEntry.DCHint, session, path ); 
+                        if (r.error==NtStatus.STATUS_SUCCESS) {
+                            referralCacheEntry = r.referralCacheEntry;
                         } else {
-                            if fail {
-                                return io/fail code
-                            } else {
-                                complete?
-                            }
+                            throw new DFSException(r.error); // step13: fail with error
                         }
-                        
-                        
                     } else {
-                        //4
-                        if (path[1]==sysvol || path[1]==netlogon) {
-                            //3
-                        }
-                        else if (referral.interlink) {
-                            //11
-                        }
-                        else {
-                            //3
-                        }
+                        //                        use dchint as hostname for dfs root referral purposes
+                        hostName = domainCacheEntry.DCHint;
+                        isDomainOrPath = true;
+                        //                goto step6;
+                    }
+                }
+            } else if (referralCacheEntry.isExpired() && referralCacheEntry.rootOrLink==ReferralCache.RootOrLink.RCE_LINK) {
+//  9. [ReferralCache hit, expired TTL, RootOrLink=link] The link referral request is issued to a DFS root target of the namespace.
+//  Find the root ReferralCache entry corresponding to the first two path components, noting that this will already be 
+//  in the cache due to processing that resulted in acquiring the expired link ReferralCache entry. Issue a DFS link referral 
+//  request, as specified in section 3.1.4.2, providing "LINK", TargetHint of the root ReferralCache entry, UserCredentials,
+//  MaxOutputSize, and Pathf as parameters, and process the DFS referral response and/or error as specified in section 3.1.5.4.3, 
+//  which will update the ReferralCache on success. If the DFS Link referral request fails, set the failure status to the last 
+//  error that occurred and go to step 14. 
+//  Otherwise:
+//    1. If the RootOrLink of the refreshed ReferralCache entry indicates DFS root targets, go to step 3.
+//    2. If the RootOrLink of the refreshed ReferralCache entry indicates DFS link targets, go to step 4.
+                referralCacheEntry = referralCache.lookup("\\"+pathEntries[0]+"\\"+pathEntries[1]);
+                //TODO assert entry not null
+                ReferralResult r = sendReferralRequest("LINK", referralCacheEntry.targetHint.TargetPath, session, path );
+                if (r.error != NtStatus.STATUS_SUCCESS) {
+                    throw new DFSException(r.error); // step14: fail with error
+                }
+            } 
+
+            if (referralCacheEntry == null) {
+                if (hostName == null) {
+                    throw new NullPointerException("Not expecting hostName to be null");
+                }
+// 6. [DFS Root referral request] Issue a DFS root referral request, as specified in section 3.1.4.2, providing "ROOT", 
+//     the first path component, UserCredentials, MaxOutputSize, and Path as parameters. The processing of the referral 
+//     response and/or error is as specified in section 3.1.5.4.3, which will update the ReferralCache on success. 
+//     On DFS root referral request success, go to step 7. 
+//     On DFS root referral request failure:
+//     1. If the immediately preceding processing step was step 5, this is a domain name or path. Go to step 13.
+//     2. If processing of this I/O request encountered a ReferralCache hit, or one of its DFS referral requests 
+//        succeeded (as would have occurred in the case of a previous Interlink - see step 11 - or a domain root 
+//        referral, when entering from step 5), the path is in a DFS namespace. Go to step 14.
+//     3. The path is not a DFS path and no further processing is required. Go to step 12.
+                ReferralResult r = sendReferralRequest("ROOT", pathEntries[0], session, path );
+
+                if (r.error == NtStatus.STATUS_SUCCESS) {
+                    isDFSPath = true; // remember that the path contained at least one DFS translation
+// 7. [DFS root referral success] If the current ReferralCache entry's RootOrLink indicates root targets, go to step 3; 
+//       otherwise, go to step 4.
+                    referralCacheEntry = r.referralCacheEntry;
+                } else {
+                    if (!isDomainOrPath && !isDFSPath) { 
+                        //path is not a dfs path
+                        return path; // step12: return the original path
+                    }
+                    else {
+                        throw new DFSException(r.error); // step13/14: fail with error
                     }
                 }
             }
-            else {
-                //5
+
+            // process the referral cache entry we ended up with
+            if (referralCacheEntry != null) {
+                isDFSPath = true; // remember that the path contained at least one DFS translation
+
+// 4. [ReferralCache hit, unexpired TTL, RootOrLink=link]
+//   1. If the second component of the path is "SYSVOL" or "NETLOGON" go to step 3.
+//   2. Check the Interlink element of the ReferralCache entry.
+//     - If Interlink is set in the ReferralCache entry, then the TargetHint is in another DFS namespace. 
+//       Go to step 11.
+//     - If Interlink is not set in the ReferralCache entry then the TargetHint is not in another 
+//       DFS namespace. Go to step 3.
+                if (referralCacheEntry.rootOrLink==ReferralCache.RootOrLink.RCE_LINK && referralCacheEntry.interlink
+                                && pathEntries[1]!="SYSVOL" && pathEntries[1]!="NETLOGON") {
+//    11. [interlink] Replace the portion of the path that matches the DFSPathPrefix of the ReferralCache entry with TargetHint. 
+//    For example, if the path is \MyDomain\MyDfs\MyLink\MyDir and the referral entry contains \MyDomain\MyDfs\MyLink 
+//    with a DFS target path of \someserver\someshare\somepath, the effective path becomes \someserver\someshare\somepath\MyDir. 
+//    Go to step 2.
+                    path = referralCacheEntry.targetHint.TargetPath + path.substring(referralCacheEntry.dfsPathPrefix.length());
+                    continue;
+                } else {
+
+// 3. [ReferralCache hit, unexpired TTL] Replace the portion of the path that matches DFSPathPrefix 
+// of the ReferralCache entry with the DFS target path of TargetHint of the ReferralCache entry. 
+// For example, if the path is \MyDomain\MyDfs\MyDir and the ReferralCache entry contains 
+// \MyDomain\MyDfs with a DFS target path of \someserver\someshare\somepath, the effective 
+// path becomes \someserver\someshare\somepath\MyDir. Go to step 8.
+                    path = referralCacheEntry.targetHint.TargetPath + path.substring(referralCacheEntry.dfsPathPrefix.length());
+                    //TODO should open transport/session/treeConnect to that server
+                    return path;
+                }
             }
-            
         }
-                        
+        return hostName;
     }
-    
-    // called when STATUS_PATH_NOT_COVERED returned
-    public String coverPath(String path) {
-        
+    // The client MUST initiate a server session with the SMB server, as specified in [MS-CIFS] section 3.4.4.7, 
+    // by passing HostName and UserCredentials as input parameters and receiving an opaque ClientGenericContext, 
+    // as specified in [MS-CIFS] section 3.4.
+    ReferralResult sendReferralRequest(String type, String hostName, Session session, String path) throws IOException, BufferException {
+        // connect to hostName,
+//TODO: allow reusing existing connection/session if we already have one to the same server/user
+//        The client MUST search for an existing Session and TreeConnect to any share on the server identified by 
+//        ServerName for the user identified by UserCredentials. If no Session and TreeConnect are found, the client 
+//        MUST establish a new Session and TreeConnect to IPC$ on the target server as described in section 3.2.4.2 
+//        using the supplied ServerName and UserCredentials
+        Connection connection;
+        Session dfsSession;
+        if (hostName.equals(session.getConnection().getRemoteHostname())) {
+            dfsSession = session;
+            Share dfsShare = dfsSession.connectShare("IPC$");
+            return getReferral(dfsShare.getTreeConnect(), path);
+        }
+        else {
+            AuthenticationContext auth = session.getAuthenticationContext();
+            
+            connection = new Connection(session.getConnection());
+            connection.connect(hostName);
+            dfsSession = connection.authenticate(auth);
+            Share dfsShare = dfsSession.connectShare("IPC$");
+            return getReferral(dfsShare.getTreeConnect(), path);
+        }
+//TODO do we close the share?
     }
-    
+
     // Execute a FSCTL_DFS_GET_REFERRALS_EX
-    public DFSReferral getReferralEx(TreeConnect treeConnect, String path) {
+    ReferralResult getReferralEx(TreeConnect treeConnect, String path) throws TransportException, BufferException {
         SMBBuffer buffer = new SMBBuffer();
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
@@ -115,36 +262,49 @@ public class DFS {
         dfsRequest.writeTo(buffer);
         SMB2IoctlRequest msg = new SMB2IoctlRequest(
                         connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
-                        SMB2IoctlRequest.ControlCode.FSCTL_DFS_GET_REFERRALS_EX, null,//TODO: is this corerct 
+                        SMB2IoctlRequest.ControlCode.FSCTL_DFS_GET_REFERRALS_EX, new SMB2FileId(), 
                         buffer.getCompactData(), true); //TODO remove the getCompactData, that is wasteful
 
         Future<SMB2IoctlResponse> sendFuture = session.send(msg);
-        SMB2IoctlResponse msgResp = Futures.get(sendFuture, TransportException.Wrapper);
-        
-        if (msgResp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(msgResp.getHeader(), "GetDFSReferralEx failed for " + path);
-        }
-        SMB2GetDFSReferralResponse resp = new SMB2GetDFSReferralResponse(msgResp.data());
+        SMB2IoctlResponse response = Futures.get(sendFuture, TransportException.Wrapper);
 
-        return new DFSReferral(resp);
+        if (response.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+            throw new SMBApiException(response.getHeader(), "GetDFSReferralEx failed for " + path);
+        }
+        return processReferralResponse(response, path);
     }
-    
+
     // Execute a FSCTL_DFS_GET_REFERRALS
-    public static DFSReferral getReferral(TreeConnect treeConnect, String path) {
+    ReferralResult getReferral(TreeConnect treeConnect, String path) throws TransportException, BufferException {
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
 
-        SMB2GetDFSReferralEx req = new SMB2GetDFSReferral( path );
+        SMB2GetDFSReferral req = new SMB2GetDFSReferral( path );
+        SMBBuffer buffer = new SMBBuffer();
+        req.writeTo(buffer);
         SMB2IoctlRequest msg = new SMB2IoctlRequest(
-                        connection.getNegotiatedProtocol(), session.getSessionId(), treeConnect,
-                        SMB2IoctlRequest.ControlCode.FSCTL_DFS_GET_REFERRALS, 0,
-                        req.data(), true);
-                    );
-        Future<SMB2IoctlResponse> msgResp = session.send(msg);
-        SMB2GetDFSReferralResponse resp = new SMB2GetDFSReferralResponse(msgResp.data());
-        return new DFSReferral(resp);
+                        connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
+                        SMB2IoctlRequest.ControlCode.FSCTL_DFS_GET_REFERRALS, new SMB2FileId(),
+                        buffer.getCompactData(), true);
+
+        Future<SMB2IoctlResponse> sendFuture = session.send(msg);
+        SMB2IoctlResponse response = Futures.get(sendFuture, TransportException.Wrapper);
+        return processReferralResponse(response, path);
     }
-    
+
+    ReferralResult processReferralResponse(SMB2IoctlResponse message, String originalPath) throws BufferException {
+        ReferralResult result = new ReferralResult();
+        result.error = message.getHeader().getStatus();
+        if (message.getHeader().getStatus() == NtStatus.STATUS_SUCCESS) {
+            SMB2GetDFSReferralResponse resp = new SMB2GetDFSReferralResponse(originalPath);
+            resp.read(new SMBBuffer(message.getOutputBuffer()));
+            ReferralCacheEntry referralCacheEntry = referralCache.new ReferralCacheEntry(resp);
+            referralCache.put(referralCacheEntry);
+            result.referralCacheEntry = referralCacheEntry;
+        }
+        return result;
+    }
+
     // [MS-DFSC] 2.2.1 Common Conventions
     // All paths in REQ_GET_DFS_REFERRAL and RESP_GET_DFS_REFERRAL messages MUST be encoded with exactly one 
     // leading backslash, not two leading backslashes as is common to user-visible UNC paths. For example, 
@@ -155,5 +315,15 @@ public class DFS {
             path = path.substring(1);
         }
         return path;
+    }
+
+    public static String[] parsePath(String path) {
+        return path.substring(1).split("\\\\");
+    }
+
+    class ReferralResult {
+        NtStatus error;
+        ReferralCacheEntry referralCacheEntry;
+        DomainCacheEntry domainCacheEntry;
     }
 }

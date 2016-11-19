@@ -1,4 +1,19 @@
-package com.hieronymus.mssmb2.dfs;
+/*
+ * Copyright (C)2016 - SMBJ Contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.hierynomus.mssmb2.dfs;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,19 +21,23 @@ import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 public class DFSReferral {
-
+    int versionNumber;
     int pathConsumed;
     long ttl;
-    String serverName;   // Server
-    String shareName;    // Share
+//    String serverName;   // Server
+//    String shareName;    // Share
+    // The ServerType field MUST be set to 0x0001 if root targets are returned. In all other cases, the ServerType 
+    // field MUST be set to 0x0000.
     int serverType;
+    public static int SERVERTYPE_LINK = 0x0000;
+    public static int SERVERTYPE_ROOT = 0x0001;
     String link;
     String path;
     int proximity;
     int timeToLive;
     String dfsPath;
     String dfsAlternatePath;
-    String networkAddress;
+//    String networkAddress;
     String specialName;
     List<String> expandedNames;
     
@@ -28,8 +47,8 @@ public class DFSReferral {
 
     public String toString() {
         return "DFSReferral[pathConsumed=" + pathConsumed +
-            ",serverName=" + serverName +
-            ",shareName=" + shareName +
+//            ",serverName=" + serverName +
+//            ",shareName=" + shareName +
             ",link=" + link +
             ",path=" + path +
             ",ttl=" + ttl + "]";
@@ -52,7 +71,7 @@ public class DFSReferral {
         
         switch(versionNumber) {
         case 1:
-            shareName = buffer.readZString();
+            path = buffer.readZString();
             break;
         case 2:
             proximity = buffer.readUInt32AsInt();
@@ -66,7 +85,7 @@ public class DFSReferral {
             buffer.rpos(start+dfsAlternatePathOffset);
             dfsAlternatePath = buffer.readZString();
             buffer.rpos(start+networkAddressOffset);
-            networkAddress = buffer.readZString();
+            path = buffer.readZString();
             
             buffer.rpos(r+size);
             break;

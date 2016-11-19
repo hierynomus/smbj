@@ -39,6 +39,29 @@ public class SmbPath {
         return b.toString();
     }
 
+    public void parse(String newPath) {
+        int n,m,o;
+        hostname = null;
+        shareName = null;
+        path = null;
+        
+        // newPath starts with one backslash
+        n = newPath.indexOf('\\',1);
+        if (n > 0) {
+            hostname = newPath.substring(1,n);
+            m = newPath.indexOf('\\',n+1);
+            if (m > 0) {
+                shareName = newPath.substring(n+1,m);
+                o = path.indexOf('\\',m+1);
+                if (o > 0) {
+                    newPath = newPath.substring(m+1);
+                }
+            } else {
+                shareName = newPath.substring(n+1);
+            }
+        }
+    }
+    
     public String getHostname() {
         return hostname;
     }

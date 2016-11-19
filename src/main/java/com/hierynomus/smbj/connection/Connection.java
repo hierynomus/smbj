@@ -83,6 +83,14 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         bus.subscribe(this);
     }
 
+    public Connection(Connection connection) {
+        super(connection.defaultPort);
+        this.config = connection.config;
+        this.transport = connection.transport;
+        this.bus = connection.bus;
+        bus.subscribe(this);
+    }
+
 
     /**
      * On connection establishment, also initializes the transport via {@link DirectTcpTransport#init}.
@@ -121,7 +129,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             req.setSecurityBuffer(securityContext);
             SMB2SessionSetup receive = sendAndReceive(req);
             long sessionId = receive.getHeader().getSessionId();
-            Session session = new Session(sessionId, this, bus, connectionInfo.isRequireSigning());
+            Session session = new Session(sessionId, this, authContext, bus, connectionInfo.isRequireSigning());
             connectionInfo.getPreauthSessionTable().registerSession(sessionId, session);
             try {
                 while (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
