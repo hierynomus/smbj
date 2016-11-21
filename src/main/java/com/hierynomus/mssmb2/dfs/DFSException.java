@@ -28,5 +28,7 @@ public class DFSException extends Exception {
         super(t);
         this.status = NtStatus.UNKNOWN;
     }
-
+    public NtStatus getStatus() {
+        return status;
+    }
 }

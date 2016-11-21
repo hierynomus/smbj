@@ -16,6 +16,7 @@
 package com.hierynomus.mssmb2.messages;
 
 import java.util.EnumSet;
+
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.smbj.common.SMBBuffer;
@@ -33,7 +34,7 @@ public class SMB2CreateRequest extends SMB2Packet {
     private final EnumSet<SMB2ShareAccess> shareAccess;
     private final SMB2CreateDisposition createDisposition;
     private final EnumSet<SMB2CreateOptions> createOptions;
-    private final String fileName; // Null to indicate the root of share
+    private String fileName; // Null to indicate the root of share
     private final long accessMask;
 
     public SMB2CreateRequest(SMB2Dialect smbDialect,
@@ -91,5 +92,9 @@ public class SMB2CreateRequest extends SMB2Packet {
 
     public String getFileName() {
         return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
     }
 }

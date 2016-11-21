@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
 import com.hierynomus.mssmb2.messages.SMB2IoctlRequest;
 import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
@@ -60,11 +60,16 @@ public class DFS {
         }
     }
     
-    public static void resolvePathNotCoveredError(SMB2Packet packet) {
-        //TODO need to implement this  
+    public static void resolvePathNotCoveredError(Session session, SMB2CreateRequest packet) throws DFSException {
+        try {
         // See [MS-DFSC] 3.1.5.1 I/O Operation to Target Fails with STATUS_PATH_NOT_COVERED
+            packet.setFileName(dfs.resolvePath(session, packet.getFileName()));
+        } catch (IOException | BufferException e) {
+            // just return the old path back.
+            logger.error("Exception processing DFS", e);
+            throw new DFSException(e);
+        }
     }
-
 
     // called when requesting a path before an operation
     String resolvePath(Session session, String path) throws IOException, BufferException, DFSException {
@@ -77,7 +82,6 @@ public class DFS {
         path = normalizePath(path);
         
         String[] pathEntries = parsePath(path); 
-        // TODO validate path? must contain 2 components (servername\share) at least
 
 // 1. If the path has only one path component (for example, \abc), go to step 12; otherwise, go to step 2.
         if (pathEntries.length == 1) {
@@ -158,7 +162,7 @@ public class DFS {
 //    2. If the RootOrLink of the refreshed ReferralCache entry indicates DFS link targets, go to step 4.
                 referralCacheEntry = referralCache.lookup("\\"+pathEntries[0]+"\\"+pathEntries[1]);
                 //TODO assert entry not null
-                ReferralResult r = sendReferralRequest("LINK", referralCacheEntry.targetHint.TargetPath, session, path );
+                ReferralResult r = sendReferralRequest("LINK", referralCacheEntry.targetHint.targetPath, session, path );
                 if (r.error != NtStatus.STATUS_SUCCESS) {
                     throw new DFSException(r.error); // step14: fail with error
                 }
@@ -213,7 +217,7 @@ public class DFS {
 //    For example, if the path is \MyDomain\MyDfs\MyLink\MyDir and the referral entry contains \MyDomain\MyDfs\MyLink 
 //    with a DFS target path of \someserver\someshare\somepath, the effective path becomes \someserver\someshare\somepath\MyDir. 
 //    Go to step 2.
-                    path = referralCacheEntry.targetHint.TargetPath + path.substring(referralCacheEntry.dfsPathPrefix.length());
+                    path = referralCacheEntry.targetHint.targetPath + path.substring(referralCacheEntry.dfsPathPrefix.length());
                     continue;
                 } else {
 
@@ -222,7 +226,7 @@ public class DFS {
 // For example, if the path is \MyDomain\MyDfs\MyDir and the ReferralCache entry contains 
 // \MyDomain\MyDfs with a DFS target path of \someserver\someshare\somepath, the effective 
 // path becomes \someserver\someshare\somepath\MyDir. Go to step 8.
-                    path = referralCacheEntry.targetHint.TargetPath + path.substring(referralCacheEntry.dfsPathPrefix.length());
+                    path = referralCacheEntry.targetHint.targetPath + path.substring(referralCacheEntry.dfsPathPrefix.length());
                     //TODO should open transport/session/treeConnect to that server
                     return path;
                 }
@@ -234,8 +238,6 @@ public class DFS {
     // by passing HostName and UserCredentials as input parameters and receiving an opaque ClientGenericContext, 
     // as specified in [MS-CIFS] section 3.4.
     ReferralResult sendReferralRequest(String type, String hostName, Session session, String path) throws IOException, BufferException {
-        // connect to hostName,
-//TODO: allow reusing existing connection/session if we already have one to the same server/user
 //        The client MUST search for an existing Session and TreeConnect to any share on the server identified by 
 //        ServerName for the user identified by UserCredentials. If no Session and TreeConnect are found, the client 
 //        MUST establish a new Session and TreeConnect to IPC$ on the target server as described in section 3.2.4.2 
@@ -249,9 +251,8 @@ public class DFS {
         }
         else {
             AuthenticationContext auth = session.getAuthenticationContext();
-            
-            connection = new Connection(session.getConnection());
-            connection.connect(hostName);
+            Connection oldConnection = session.getConnection();
+            connection = oldConnection.getClient().connect(hostName, oldConnection.getRemotePort());
             dfsSession = connection.authenticate(auth);
             Share dfsShare = dfsSession.connectShare("IPC$");
             return getReferral(dfsShare.getTreeConnect(), path);

@@ -28,6 +28,7 @@ import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.dfs.DFS;
 import com.hierynomus.mssmb2.dfs.DFSException;
+import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
 import com.hierynomus.mssmb2.messages.SMB2Logoff;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
@@ -201,13 +202,18 @@ public class Session implements AutoCloseable {
         return connection.send(packet, isSigningRequired() ? signingKeySpec : null);
     }
     
-    public <T extends SMB2Packet> T processSendResponse(SMB2Packet packet) throws TransportException {
+    public <T extends SMB2Packet> T processSendResponse(SMB2CreateRequest packet) throws TransportException {
         while (true) {
             Future<T> responseFuture = send(packet);
             T cresponse = Futures.get(responseFuture, SMBRuntimeException.Wrapper);
             if (cresponse.getHeader().getStatus()==NtStatus.STATUS_PATH_NOT_COVERED) {
+                try {
                 //resolve dfs, modify packet, resend packet to new target, and hopefully it works there
-                DFS.resolvePathNotCoveredError(packet);
+                    DFS.resolvePathNotCoveredError(this,packet);
+                }
+                catch(DFSException e) { //TODO we wouldn't have to do this if we just threw SMBApiException from inside DFS
+                    throw new SMBApiException(e.getStatus(), packet.getHeader().getMessage(), e);
+                }
                 // and we try again
             } else {
                 return cresponse;

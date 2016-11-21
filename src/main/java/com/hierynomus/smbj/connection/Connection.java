@@ -68,6 +68,11 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
     private ConnectionInfo connectionInfo;
 
+    private SMBClient client;
+    public SMBClient getClient() {
+        return client;
+    }
+
     private Config config;
     private TransportLayer transport;
     private final SMBEventBus bus;
@@ -75,9 +80,10 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     private Thread packetReaderThread;
     private final ReentrantLock lock = new ReentrantLock();
 
-    public Connection(Config config, TransportLayer transport, SMBEventBus bus) {
+    public Connection(Config config, SMBClient client, TransportLayer transport, SMBEventBus bus) {
         super(transport.getDefaultPort());
         this.config = config;
+        this.client = client;
         this.transport = transport;
         this.bus = bus;
         bus.subscribe(this);
@@ -85,6 +91,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
     public Connection(Connection connection) {
         super(connection.defaultPort);
+        this.client = connection.client;
         this.config = connection.config;
         this.transport = connection.transport;
         this.bus = connection.bus;
