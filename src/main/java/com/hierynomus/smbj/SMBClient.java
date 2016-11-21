@@ -70,11 +70,12 @@ public class SMBClient {
     }
 
     private Connection getEstablishedOrConnect(String hostname, int port) throws IOException {
+        String socketAddress = hostname+":"+port;
         synchronized (this) {
-            if (!connectionTable.containsKey(hostname)) {
-                Connection connection = new Connection(config, new DirectTcpTransport(), bus);
+            if (!connectionTable.containsKey(socketAddress)) {
+                Connection connection = new Connection(config, this, new DirectTcpTransport(), bus);
                 connection.connect(hostname, port);
-                connectionTable.put(hostname, connection);
+                connectionTable.put(socketAddress, connection);
                 return connection;
             }
             return connectionTable.get(hostname);
