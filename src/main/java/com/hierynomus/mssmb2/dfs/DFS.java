@@ -143,7 +143,7 @@ public class DFS {
                             throw new DFSException(r.error); // step13: fail with error
                         }
                     } else {
-                        //                        use dchint as hostname for dfs root referral purposes
+//                        use dchint as hostname for dfs root referral purposes
                         hostName = domainCacheEntry.DCHint;
                         isDomainOrPath = true;
                         //                goto step6;
@@ -244,10 +244,11 @@ public class DFS {
 //        using the supplied ServerName and UserCredentials
         Connection connection;
         Session dfsSession;
+        ReferralResult result;
         if (hostName.equals(session.getConnection().getRemoteHostname())) {
             dfsSession = session;
             Share dfsShare = dfsSession.connectShare("IPC$");
-            return getReferral(dfsShare.getTreeConnect(), path);
+            result = getReferral(dfsShare.getTreeConnect(), path);
         }
         else {
             AuthenticationContext auth = session.getAuthenticationContext();
@@ -255,8 +256,9 @@ public class DFS {
             connection = oldConnection.getClient().connect(hostName, oldConnection.getRemotePort());
             dfsSession = connection.authenticate(auth);
             Share dfsShare = dfsSession.connectShare("IPC$");
-            return getReferral(dfsShare.getTreeConnect(), path);
+            result = getReferral(dfsShare.getTreeConnect(), path);
         }
+        return result;
 //TODO do we close the share?
     }
 

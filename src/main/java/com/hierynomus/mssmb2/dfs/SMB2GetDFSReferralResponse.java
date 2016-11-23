@@ -61,5 +61,12 @@ public class SMB2GetDFSReferralResponse {
 
         }
     }
-
+    public void writeTo(SMBBuffer buffer) throws BufferException {
+        buffer.putUInt16(pathConsumed);
+        buffer.putUInt16(numberOfReferrals);
+        buffer.putUInt32(referralHeaderFlags);
+        for (int i=0; i<referralEntries.size(); i++) {
+            referralEntries.get(i).writeTo(buffer);
+        }
+    }
 }

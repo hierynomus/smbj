@@ -97,6 +97,8 @@ public class ReferralCache {
         List<TargetSetEntry> targetList;
 
         public ReferralCacheEntry(SMB2GetDFSReferralResponse response) {
+            ArrayList<DFSReferral> l = response.referralEntries;
+            DFSReferral rr = response.referralEntries.get(0);
             this.dfsPathPrefix = response.referralEntries.get(0).dfsPath;
             this.rootOrLink = RootOrLink.get(response.referralEntries.get(0).serverType);
             this.interlink = isSet(response.referralHeaderFlags, ReferralHeaderFlags.ReferralServers)

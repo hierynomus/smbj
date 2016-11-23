@@ -183,6 +183,10 @@ public class SMB2Header {
         buffer.readRawBytes(16); // Signature (16 bytes)
     }
 
+    public void setStatus(NtStatus status) {
+        this.status = status;
+    }
+    
     public NtStatus getStatus() {
         return status;
     }
