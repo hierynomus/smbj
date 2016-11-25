@@ -15,10 +15,10 @@
  */
 package com.hierynomus.smbj.connection;
 
-import com.hierynomus.smbj.common.SMBRuntimeException;
-
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 
 /**
  * [MS-SMB2].pdf 3.2.4.1.6 Algorithm for Handling Available Message Sequence Numbers by the Client.
@@ -35,34 +35,44 @@ import java.util.concurrent.atomic.AtomicLong;
  * <li>For a multi-credit request as specified in section 3.2.4.1.5, the client MUST use the lowest available range of consecutive sequence numbers.</li>
  * </ul>
  */
-public class SequenceWindow {
+class SequenceWindow {
+    static final int PREFERRED_MINIMUM_CREDITS = 512;
     private AtomicLong lowestAvailable = new AtomicLong(0);
     private Semaphore available = new Semaphore(1);
+    private static final long MAX_WAIT = 5000;
 
     public long get() {
-        if (available.tryAcquire()) {
-            return lowestAvailable.getAndIncrement();
+        try {
+            if (available.tryAcquire(MAX_WAIT, TimeUnit.MILLISECONDS)) {
+                return lowestAvailable.getAndIncrement();
+            }
+        } catch (InterruptedException e) {
+            //ignore
         }
         throw new SMBRuntimeException("No more credits available to hand out sequence number");
     }
 
     public long[] get(int credits) {
-        if (available.tryAcquire(credits)) {
-            long lowest = lowestAvailable.getAndAdd(credits);
-            return range(lowest, lowest + credits);
+        try {
+            if (available.tryAcquire(credits, MAX_WAIT, TimeUnit.MILLISECONDS)) {
+                long lowest = lowestAvailable.getAndAdd(credits);
+                return range(lowest, lowest + credits);
+            }
+        } catch (InterruptedException e) {
+            //ignore
         }
         throw new SMBRuntimeException("Not enough credits (" + available.availablePermits() + " available) to hand out " + credits + " sequence numbers");
     }
 
-    public void disableCredits() {
+    void disableCredits() {
         this.available = new NoopSemaphore();
     }
 
-    public int available() {
+    int available() {
         return available.availablePermits();
     }
 
-    public void creditsGranted(int credits) {
+    void creditsGranted(int credits) {
         available.release(credits);
     }
 
@@ -87,7 +97,17 @@ public class SequenceWindow {
         }
 
         @Override
+        public boolean tryAcquire(long timeout, TimeUnit unit) {
+            return true;
+        }
+
+        @Override
         public boolean tryAcquire(int permits) {
+            return true;
+        }
+
+        @Override
+        public boolean tryAcquire(int permits, long timeout, TimeUnit unit) {
             return true;
         }
 

@@ -15,23 +15,16 @@
  */
 package com.hierynomus.smbj.connection;
 
-import com.hierynomus.protocol.commons.EnumWithValue;
-import com.hierynomus.smbj.smb2.SMB2Dialect;
-import com.hierynomus.smbj.smb2.messages.SMB2NegotiateResponse;
-
 import java.util.EnumSet;
-import java.util.List;
 import java.util.UUID;
+import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
+import com.hierynomus.protocol.commons.EnumWithValue;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
 public class ConnectionInfo {
     public byte[] getGssNegotiateToken() {
         return gssNegotiateToken;
-    }
-
-    public List<Void> getOutstandingRequests() {
-        return outstandingRequests;
     }
 
     public enum GlobalCapability implements EnumWithValue<GlobalCapability> {
@@ -55,17 +48,14 @@ public class ConnectionInfo {
     }
 
     // All SMB2 Dialect
-    private List<Void> sessionTable;
-    private List<Void> preauthSessionTable;
-    private List<Void> outstandingRequests;
+    private SessionTable sessionTable = new SessionTable();
+    private SessionTable preauthSessionTable = new SessionTable();
+    private OutstandingRequests outstandingRequests = new OutstandingRequests();
     private SequenceWindow sequenceWindow;
     private byte[] gssNegotiateToken;
-    private int maxTransactSize;
-    private int maxReadSize;
-    private int maxWriteSize;
     private UUID serverGuid;
     private String serverName;
-    private SMB2Dialect dialect;
+    private NegotiatedProtocol negotiatedProtocol;
     // SMB 2.1+
     private UUID clientGuid = UUID.randomUUID();
     // For SMB 2.1+ only SMB2_GLOBAL_CAP_LEASING and SMB2_GLOBAL_CAP_LARGE_MTU
@@ -88,23 +78,27 @@ public class ConnectionInfo {
         this.clientGuid = clientGuid;
         this.sequenceWindow = new SequenceWindow();
         this.gssNegotiateToken = new byte[0];
-        this.dialect = SMB2Dialect.UNKNOWN;
         this.serverName = serverName;
     }
 
     void negotiated(SMB2NegotiateResponse response) {
         gssNegotiateToken = response.getGssToken();
-        maxTransactSize = response.getMaxTransactSize();
-        maxReadSize = response.getMaxReadSize();
-        maxWriteSize = response.getMaxWriteSize();
         serverGuid = response.getServerGuid();
-        dialect = response.getDialect();
         serverCapabilities = toEnumSet(response.getCapabilities(), GlobalCapability.class);
+        this.negotiatedProtocol = new NegotiatedProtocol(response.getDialect(), response.getMaxTransactSize(), response.getMaxReadSize(), response.getMaxWriteSize(), serverCapabilities.contains(GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU));
         serverSecurityMode = response.getSecurityMode();
     }
 
-    public SequenceWindow getSequenceWindow() {
+    SequenceWindow getSequenceWindow() {
         return sequenceWindow;
+    }
+
+    SessionTable getSessionTable() {
+        return sessionTable;
+    }
+
+    public SessionTable getPreauthSessionTable() {
+        return preauthSessionTable;
     }
 
     public UUID getClientGuid() {
@@ -115,16 +109,8 @@ public class ConnectionInfo {
         return (serverSecurityMode & 0x02) > 0;
     }
 
-    public int getMaxTransactSize() {
-        return maxTransactSize;
-    }
-
-    public int getMaxReadSize() {
-        return maxReadSize;
-    }
-
-    public int getMaxWriteSize() {
-        return maxWriteSize;
+    public NegotiatedProtocol getNegotiatedProtocol() {
+        return negotiatedProtocol;
     }
 
     public UUID getServerGuid() {
@@ -135,13 +121,27 @@ public class ConnectionInfo {
         return serverName;
     }
 
-    public SMB2Dialect getDialect() {
-        return dialect;
+    public OutstandingRequests getOutstandingRequests() {
+        return outstandingRequests;
     }
 
     public boolean supports(GlobalCapability capability) {
         return serverCapabilities.contains(capability);
     }
 
-
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("ConnectionInfo{\n");
+        sb.append("  serverGuid=").append(serverGuid).append(",\n");
+        sb.append("  serverName='").append(serverName).append("',\n");
+        sb.append("  negotiatedProtocol=").append(negotiatedProtocol).append(",\n");
+        sb.append("  clientGuid=").append(clientGuid).append(",\n");
+        sb.append("  clientCapabilities=").append(clientCapabilities).append(",\n");
+        sb.append("  serverCapabilities=").append(serverCapabilities).append(",\n");
+        sb.append("  clientSecurityMode=").append(clientSecurityMode).append(",\n");
+        sb.append("  serverSecurityMode=").append(serverSecurityMode).append(",\n");
+        sb.append("  server='").append(server).append("'\n");
+        sb.append('}');
+        return sb.toString();
+    }
 }

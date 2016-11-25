@@ -15,15 +15,18 @@
  */
 package com.hierynomus.spnego;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import com.hierynomus.asn1.ASN1InputStream;
+import com.hierynomus.asn1.encodingrules.der.DERDecoder;
+import com.hierynomus.asn1.types.*;
+import com.hierynomus.asn1.types.constructed.*;
+import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
+import com.hierynomus.asn1.types.string.ASN1OctetString;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.smbj.common.SMBRuntimeException;
-import org.bouncycastle.asn1.*;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
 
 import static com.hierynomus.spnego.ObjectIdentifiers.SPNEGO;
 
@@ -76,6 +79,7 @@ import static com.hierynomus.spnego.ObjectIdentifiers.SPNEGO;
  * </ul>
  */
 public class NegTokenInit extends SpnegoToken {
+    private static final String ADS_IGNORE_PRINCIPAL = "not_defined_in_RFC4178@please_ignore";
 
     private List<ASN1ObjectIdentifier> mechTypes = new ArrayList<>();
     private byte[] mechToken;
@@ -86,7 +90,7 @@ public class NegTokenInit extends SpnegoToken {
 
     public void write(Buffer<?> buffer) {
         try {
-            ASN1EncodableVector negTokenInit = new ASN1EncodableVector();
+            List<ASN1Object> negTokenInit = new ArrayList<>();
             addMechTypeList(negTokenInit);
             addMechToken(negTokenInit);
 
@@ -100,37 +104,27 @@ public class NegTokenInit extends SpnegoToken {
         return read(new Buffer.PlainBuffer(bytes, Endian.LE));
     }
 
-    public NegTokenInit read(Buffer<?> buffer) throws IOException {
-        try {
-            ASN1Primitive applicationSpecific = new ASN1InputStream(buffer.asInputStream()).readObject();
-            if (!(applicationSpecific instanceof BERApplicationSpecific || applicationSpecific instanceof DERApplicationSpecific)) {
+    private NegTokenInit read(Buffer<?> buffer) throws IOException {
+        try (ASN1InputStream is = new ASN1InputStream(new DERDecoder(), buffer.asInputStream())) {
+            ASN1Object applicationSpecific = is.readObject();
+            if (!(applicationSpecific instanceof ASN1TaggedObject && applicationSpecific.getTag().equals(ASN1Tag.application(0).constructed()))) {
                 throw new SpnegoException("Incorrect GSS-API ASN.1 token received, expected to find an [APPLICATION 0], not: " + applicationSpecific);
             }
-            ASN1Sequence implicitSequence = null;
-            if (applicationSpecific instanceof BERApplicationSpecific) {
-                implicitSequence = (ASN1Sequence) ((BERApplicationSpecific) applicationSpecific).getObject(BERTags.SEQUENCE);
-            } else if (applicationSpecific instanceof DERApplicationSpecific) {
-                implicitSequence = (ASN1Sequence) ((DERApplicationSpecific) applicationSpecific).getObject(BERTags.SEQUENCE);
-            } else {
-                throw new SpnegoException("Incorrect GSS-API ASN.1 token received, expected to find an [APPLICATION 0], not: " + applicationSpecific);
-            }
-
-            ASN1Encodable spnegoOid = implicitSequence.getObjectAt(0);
+            ASN1Sequence implicitSequence = ((ASN1TaggedObject) applicationSpecific).getObject(ASN1Tag.SEQUENCE);
+            ASN1Object spnegoOid = implicitSequence.get(0);
             if (!(spnegoOid instanceof ASN1ObjectIdentifier)) {
                 throw new SpnegoException("Expected to find the SPNEGO OID (" + SPNEGO + "), not: " + spnegoOid);
             }
 
-            parseSpnegoToken(implicitSequence.getObjectAt(1));
+            parseSpnegoToken(implicitSequence.get(1));
         } catch (SpnegoException e) {
             throw new SMBRuntimeException(e);
         }
         return this;
     }
 
-    static final String ADS_IGNORE_PRINCIPAL = "not_defined_in_RFC4178@please_ignore";
-
     @Override
-    protected void parseTagged(ASN1TaggedObject asn1TaggedObject) throws SpnegoException {
+    protected void parseTagged(com.hierynomus.asn1.types.constructed.ASN1TaggedObject asn1TaggedObject) throws SpnegoException {
         if (asn1TaggedObject.getObject().toString().contains(ADS_IGNORE_PRINCIPAL)) {
             // Ignore
             return;
@@ -147,20 +141,18 @@ public class NegTokenInit extends SpnegoToken {
         }
     }
 
-    private void readMechToken(ASN1Primitive mechToken) throws SpnegoException {
+    private void readMechToken(ASN1Object mechToken) throws SpnegoException {
         if (!(mechToken instanceof ASN1OctetString)) {
             throw new SpnegoException("Expected the MechToken (OCTET_STRING) contents, not: " + mechToken);
         }
-        this.mechToken = ((ASN1OctetString) mechToken).getOctets();
+        this.mechToken = ((ASN1OctetString) mechToken).getValue();
     }
 
-    private void readMechTypeList(ASN1Primitive sequence) throws SpnegoException {
+    private void readMechTypeList(ASN1Object sequence) throws SpnegoException {
         if (!(sequence instanceof ASN1Sequence)) {
             throw new SpnegoException("Expected the MechTypeList (SEQUENCE) contents, not: " + sequence);
         }
-        Enumeration mechTypeElems = ((ASN1Sequence) sequence).getObjects();
-        while (mechTypeElems.hasMoreElements()) {
-            ASN1Encodable mechType = (ASN1Encodable) mechTypeElems.nextElement();
+        for (ASN1Object mechType: (ASN1Sequence) sequence) {
             if (!(mechType instanceof ASN1ObjectIdentifier)) {
                 throw new SpnegoException("Expected a MechType (OBJECT IDENTIFIER) as contents of the MechTypeList, not: " + mechType);
             }
@@ -168,21 +160,21 @@ public class NegTokenInit extends SpnegoToken {
         }
     }
 
-    private void addMechToken(ASN1EncodableVector negTokenInit) {
+    private void addMechToken(List<ASN1Object> negTokenInit) {
         if (mechToken != null && mechToken.length > 0) {
-            ASN1Primitive token = new DERTaggedObject(true, 0x02, new DEROctetString(mechToken));
+            ASN1TaggedObject token = new ASN1TaggedObject(ASN1Tag.contextSpecific(0x02), new ASN1OctetString(mechToken));
             negTokenInit.add(token);
         }
     }
 
-    private void addMechTypeList(ASN1EncodableVector negTokenInit) {
+    private void addMechTypeList(List<ASN1Object> negTokenInit) {
         if (mechTypes.size() > 0) {
-            ASN1EncodableVector supportedMechVector = new ASN1EncodableVector();
+            List<ASN1Object> supportedMechVector = new ArrayList<>();
             for (ASN1ObjectIdentifier mechType : mechTypes) {
                 supportedMechVector.add(mechType);
             }
 
-            ASN1Primitive asn1Encodables1 = new DERTaggedObject(true, 0x0, new DERSequence(supportedMechVector));
+            ASN1TaggedObject asn1Encodables1 = new ASN1TaggedObject(ASN1Tag.contextSpecific(0x0), new ASN1Sequence(supportedMechVector));
             negTokenInit.add(asn1Encodables1);
         }
     }

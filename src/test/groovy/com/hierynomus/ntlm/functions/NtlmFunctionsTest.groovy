@@ -15,17 +15,11 @@
  */
 package com.hierynomus.ntlm.functions
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import spock.lang.Specification
-
-import java.security.Security
 
 class NtlmFunctionsTest extends Specification {
 
     def setup() {
-        if (!Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)) {
-            Security.addProvider(new BouncyCastleProvider())
-        }
     }
 
     def"should correctly determine LMOWFv1 LM hash"() {

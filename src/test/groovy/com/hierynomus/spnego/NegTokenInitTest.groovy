@@ -15,13 +15,10 @@
  */
 package com.hierynomus.spnego
 
+import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier
 import com.hierynomus.ntlm.messages.NtlmNegotiate
-import com.hierynomus.protocol.commons.ByteArrayUtils
 import com.hierynomus.protocol.commons.buffer.Buffer
 import com.hierynomus.protocol.commons.buffer.Endian
-import org.bouncycastle.asn1.DEROctetString
-import org.bouncycastle.asn1.DERTaggedObject
-import org.bouncycastle.asn1.microsoft.MicrosoftObjectIdentifiers
 import spock.lang.Specification
 
 import javax.xml.bind.DatatypeConverter
@@ -40,6 +37,18 @@ class NegTokenInitTest extends Specification {
         negTokenInit.supportedMechTypes.size() == 2
     }
 
+    def "should correctly decode GSS-API negInitToken ntlm"() {
+        given:
+        def bytes = getClass().getClassLoader().getResourceAsStream("spnego/negTokenInit_ntlm").bytes
+        def buffer = new Buffer.PlainBuffer(bytes, Endian.LE)
+
+        when:
+        def negTokenInit = new NegTokenInit().read(buffer)
+
+        then:
+        negTokenInit.supportedMechTypes.size() == 1
+    }
+
     def "should correctly encode ntlm choice negInitToken"() {
         given:
         def initToken = new NegTokenInit()
@@ -48,7 +57,7 @@ class NegTokenInitTest extends Specification {
 
         when:
         new NtlmNegotiate().write(ntlmBuffer)
-        initToken.addSupportedMech(MicrosoftObjectIdentifiers.microsoft.branch("2.2.10"))
+        initToken.addSupportedMech(new ASN1ObjectIdentifier("1.3.6.1.4.1.311.2.2.10"))
         initToken.setMechToken(ntlmBuffer.compactData)
         initToken.write(spnegoBuffer)
 

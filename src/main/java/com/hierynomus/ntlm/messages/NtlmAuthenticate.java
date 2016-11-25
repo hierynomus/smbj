@@ -15,11 +15,10 @@
  */
 package com.hierynomus.ntlm.messages;
 
+import java.nio.charset.StandardCharsets;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
-
-import java.nio.charset.Charset;
 
 import static com.hierynomus.ntlm.functions.NtlmFunctions.unicode;
 
@@ -38,9 +37,9 @@ public class NtlmAuthenticate extends NtlmPacket {
     private long negotiateFlags;
 
     public NtlmAuthenticate(
-            byte[] lmResponse, byte[] ntResponse,
-            String userName, String domainName, String workstation,
-            byte[] encryptedRandomSessionKey, long negotiateFlags
+        byte[] lmResponse, byte[] ntResponse,
+        String userName, String domainName, String workstation,
+        byte[] encryptedRandomSessionKey, long negotiateFlags
     ) {
         super();
         this.lmResponse = ensureNotNull(lmResponse);
@@ -54,7 +53,7 @@ public class NtlmAuthenticate extends NtlmPacket {
 
     @Override
     public void write(Buffer.PlainBuffer buffer) {
-        buffer.putString("NTLMSSP\0", Charset.forName("UTF-8")); // Signature (8 bytes)
+        buffer.putString("NTLMSSP\0", StandardCharsets.UTF_8); // Signature (8 bytes)
         buffer.putUInt32(0x03); // MessageType (4 bytes)
 
         int offset = 80; // for the offset
@@ -92,16 +91,17 @@ public class NtlmAuthenticate extends NtlmPacket {
 
     /**
      * MS-NLMP 2.2.2.10 VERSION
+     *
      * @return
      */
     public byte[] getVersion() {
         Buffer.PlainBuffer plainBuffer = new Buffer.PlainBuffer(Endian.LE);
-        plainBuffer.putByte((byte)0x06); // Major Version 6
-        plainBuffer.putByte((byte)0x01); // Minor Version 1
+        plainBuffer.putByte((byte) 0x06); // Major Version 6
+        plainBuffer.putByte((byte) 0x01); // Minor Version 1
         plainBuffer.putUInt16(7600); // Product Build 7600
-        byte[] reserved = {(byte)0x00, (byte)0x00, (byte)0x00};
+        byte[] reserved = {(byte) 0x00, (byte) 0x00, (byte) 0x00};
         plainBuffer.putRawBytes(reserved); // Reserver 3 bytes
-        plainBuffer.putByte((byte)0x0F); // NTLM Revision Current
+        plainBuffer.putByte((byte) 0x0F); // NTLM Revision Current
         return plainBuffer.getCompactData();
     }
 

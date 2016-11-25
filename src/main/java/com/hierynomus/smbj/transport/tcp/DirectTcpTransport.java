@@ -15,13 +15,12 @@
  */
 package com.hierynomus.smbj.transport.tcp;
 
+import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.transport.BaseTransport;
 import com.hierynomus.smbj.transport.TransportLayer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
 
 /**
  * A transport layer to do SMB2 over Direct TCP/IP.
@@ -32,8 +31,13 @@ public class DirectTcpTransport extends BaseTransport implements TransportLayer 
     @Override
     protected void doWrite(SMBBuffer packetData) throws IOException {
         // Wrap in the Direct TCP packet header
-        DirectTcpPacket directTcpPacket = new DirectTcpPacket(packetData);
-        out.write(directTcpPacket.array(), directTcpPacket.rpos(), directTcpPacket.available());
+        out.write(0);
+        int available = packetData.available();
+        out.write((byte) (available >> 16));
+        out.write((byte) (available >> 8));
+        out.write((byte) (available & 0xFF));
+        out.write(packetData.array(), packetData.rpos(), packetData.available());
+        out.flush();
     }
 
     @Override

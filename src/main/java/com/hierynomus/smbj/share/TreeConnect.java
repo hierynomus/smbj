@@ -15,7 +15,11 @@
  */
 package com.hierynomus.smbj.share;
 
-import com.hierynomus.protocol.Packet;
+import java.util.EnumSet;
+import java.util.concurrent.Future;
+import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.SMB2ShareCapabilities;
+import com.hierynomus.mssmb2.messages.SMB2TreeDisconnect;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SmbPath;
@@ -23,13 +27,7 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.TreeDisconnected;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.smb2.SMB2Packet;
-import com.hierynomus.smbj.smb2.SMB2ShareCapabilities;
-import com.hierynomus.smbj.smb2.messages.SMB2TreeDisconnect;
 import com.hierynomus.smbj.transport.TransportException;
-
-import java.util.EnumSet;
-import java.util.concurrent.Future;
 
 /**
  *
@@ -64,18 +62,21 @@ public class TreeConnect {
     }
 
     void close(Share share) throws TransportException {
-        SMB2TreeDisconnect disconnect = new SMB2TreeDisconnect(connection.getNegotiatedDialect(), session.getSessionId(), treeId);
-        Future<SMB2Packet> send = connection.send(disconnect);
+        SMB2TreeDisconnect disconnect = new SMB2TreeDisconnect(connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeId);
+        Future<SMB2Packet> send = session.send(disconnect);
         SMB2Packet smb2Packet = Futures.get(send, TransportException.Wrapper);
         if (!smb2Packet.getHeader().getStatus().isSuccess()) {
-            throw new SMBApiException(smb2Packet.getHeader().getStatus(), "Error closing connection to " + smbPath);
+            throw new SMBApiException(smb2Packet.getHeader(), "Error closing connection to " + smbPath);
         }
-        share.disconnect();
         bus.publish(new TreeDisconnected(session.getSessionId(), treeId));
     }
 
     void setHandle(Share handle) {
         this.handle = handle;
+    }
+
+    public String getShareName() {
+        return smbPath.getShareName();
     }
 
     public Share getHandle() {
@@ -90,4 +91,8 @@ public class TreeConnect {
         return session;
     }
 
+    @Override
+    public String toString() {
+        return String.format("TreeConnect[%s](%s)", treeId, smbPath);
+    }
 }

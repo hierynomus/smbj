@@ -15,6 +15,13 @@
  */
 package com.hierynomus.smbj.auth;
 
-interface Authenticator {
+import java.io.IOException;
 
+import com.hierynomus.smbj.session.Session;
+
+public interface Authenticator {
+
+    boolean supports(AuthenticationContext context);
+    
+    byte[] authenticate(AuthenticationContext context, byte[] gssToken, Session session) throws IOException;
 }

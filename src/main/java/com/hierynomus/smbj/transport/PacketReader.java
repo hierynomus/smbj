@@ -15,45 +15,58 @@
  */
 package com.hierynomus.smbj.transport;
 
-import com.hierynomus.smbj.smb2.SMB2Packet;
+import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.hierynomus.protocol.Packet;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 
-import java.io.InputStream;
-
-public abstract class PacketReader implements Runnable {
+public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(PacketReader.class);
 
     protected InputStream in;
-    private PacketHandler handler;
+    private PacketReceiver<P> handler;
 
-    public PacketReader(InputStream in, PacketHandler handler) {
+    private AtomicBoolean stopped = new AtomicBoolean(false);
+
+    public PacketReader(InputStream in, PacketReceiver<P> handler) {
         this.in = in;
         this.handler = handler;
     }
 
     @Override
     public void run() {
-        while (!Thread.currentThread().isInterrupted()) {
+        while (!Thread.currentThread().isInterrupted() && !stopped.get()) {
             try {
                 readPacket();
             } catch (TransportException e) {
+                if (stopped.get()) {
+                    logger.info("PacketReader stopped.");
+                    return;
+                }
                 handler.handleError(e);
-                throw new RuntimeException(e);
+                throw new SMBRuntimeException(e);
             }
         }
     }
 
+    public void stop() {
+        logger.debug("Stopping PacketReader...");
+        stopped.set(true);
+    }
+
     private void readPacket() throws TransportException {
-        SMB2Packet smb2Packet = doRead();
+        P smb2Packet = doRead();
         logger.debug("Received packet << {} >>", smb2Packet);
         handler.handle(smb2Packet);
     }
 
     /**
      * Read the actual SMB2 Packet from the {@link InputStream}
+     *
      * @return the read SMB2Packet
      * @throws TransportException
      */
-    protected abstract SMB2Packet doRead() throws TransportException;
+    protected abstract P doRead() throws TransportException;
 }

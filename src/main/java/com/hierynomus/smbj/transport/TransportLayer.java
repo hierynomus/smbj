@@ -15,16 +15,16 @@
  */
 package com.hierynomus.smbj.transport;
 
-import com.hierynomus.smbj.smb2.SMB2Packet;
-
 import java.io.InputStream;
 import java.io.OutputStream;
+import javax.crypto.spec.SecretKeySpec;
+import com.hierynomus.mssmb2.SMB2Packet;
 
 public interface TransportLayer {
 
     /**
      * Initialize the Transport layer.
-     *
+     * <p>
      * This is called directly after a connection has been established.
      */
     void init(InputStream in, OutputStream out);
@@ -32,14 +32,24 @@ public interface TransportLayer {
     /**
      * The default port for the specified SMB transport layer.
      *
-      * @return the default port
+     * @return the default port
      */
     int getDefaultPort();
 
     /**
      * Write the packet to the transport.
+     *
      * @param packet The packet to write.
      * @return The sequence number of the packet.
      */
     void write(SMB2Packet packet) throws TransportException;
+
+    /**
+     * Write the packet to the transport, signed using the given signing key.
+     *
+     * @param packet         The packet to write.
+     * @param signingKeySpec a SecretKeySpec to use while signing.  If null, no signing should be done.
+     * @return The sequence number of the packet.
+     */
+    void writeSigned(SMB2Packet packet, SecretKeySpec signingKeySpec) throws TransportException;
 }

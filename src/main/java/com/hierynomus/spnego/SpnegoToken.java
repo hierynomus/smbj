@@ -15,16 +15,21 @@
  */
 package com.hierynomus.spnego;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.hierynomus.asn1.ASN1OutputStream;
 import com.hierynomus.asn1.ASN1ParseException;
-import com.hierynomus.asn1.types.*;
+import com.hierynomus.asn1.encodingrules.der.DEREncoder;
+import com.hierynomus.asn1.types.ASN1Object;
+import com.hierynomus.asn1.types.ASN1Tag;
+import com.hierynomus.asn1.types.ASN1TagClass;
 import com.hierynomus.asn1.types.constructed.ASN1Sequence;
 import com.hierynomus.asn1.types.constructed.ASN1TaggedObject;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.Enumeration;
 
 import static com.hierynomus.spnego.ObjectIdentifiers.SPNEGO;
 
@@ -39,30 +44,36 @@ abstract class SpnegoToken {
         this.tokenName = tokenName;
     }
 
-//    protected void writeGss(Buffer<?> buffer, ASN1EncodableVector negToken) throws IOException {
-//        DERTaggedObject negotiationToken = new DERTaggedObject(true, tokenTagNo, new DERSequence(negToken));
-//
-//        ASN1EncodableVector implicitSeqGssApi = new ASN1EncodableVector();
-//        implicitSeqGssApi.add(SPNEGO);
-//        implicitSeqGssApi.add(negotiationToken);
-//
-//        DERApplicationSpecific gssApiHeader = new DERApplicationSpecific(0x0, implicitSeqGssApi);
-//        buffer.putRawBytes(gssApiHeader.getEncoded());
-//    }
+    protected void writeGss(Buffer<?> buffer, List<ASN1Object> negToken) throws IOException {
+        ASN1TaggedObject negotiationToken = new ASN1TaggedObject(ASN1Tag.contextSpecific(tokenTagNo), new ASN1Sequence(negToken));
 
-    protected void parseSpnegoToken(com.hierynomus.asn1.types.ASN1Object spnegoToken) throws IOException {
+        List<ASN1Object> implicitSeqGssApi = new ArrayList<>();
+        implicitSeqGssApi.add(SPNEGO);
+        implicitSeqGssApi.add(negotiationToken);
+
+        ASN1TaggedObject gssApiHeader = new ASN1TaggedObject(ASN1Tag.application(0x0).constructed(), new ASN1Sequence(implicitSeqGssApi), false);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        new ASN1OutputStream(new DEREncoder(), out).writeObject(gssApiHeader);
+        buffer.putRawBytes(out.toByteArray());
+    }
+
+    protected void parseSpnegoToken(ASN1Object spnegoToken) throws IOException {
         if (!(spnegoToken instanceof ASN1TaggedObject) || spnegoToken.getTag().getTag() != tokenTagNo) {
             throw new SpnegoException("Expected to find the " + tokenName + " (CHOICE [" + tokenTagNo + "]) header, not: " + spnegoToken);
         }
 
-        ASN1Sequence negToken = null;
+        ASN1Object negToken = null;
         try {
-            negToken = ((ASN1TaggedObject) spnegoToken).getObject(ASN1Tag.SEQUENCE);
+            negToken = ((ASN1TaggedObject) spnegoToken).getObject();
         } catch (ASN1ParseException pe) {
             throw new SpnegoException("Expected a " + tokenName + " (SEQUENCE)", pe);
         }
 
-        for (ASN1Object asn1Object : negToken) {
+        if (!(negToken instanceof ASN1Sequence)) {
+            throw new SpnegoException("Expected to find the " + tokenName + " (SEQUENCE), not: " + negToken);
+        }
+
+        for (ASN1Object asn1Object : (ASN1Sequence) negToken) {
             if (!(asn1Object instanceof ASN1TaggedObject)) {
                 throw new SpnegoException("Expected an ASN.1 TaggedObject as " + tokenName + " contents, not: " + asn1Object);
             }

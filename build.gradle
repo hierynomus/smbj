@@ -1,92 +1,99 @@
+import java.text.SimpleDateFormat
+
 plugins {
-    id "java"
-    id "groovy"
-    id "idea"
-    id "maven"
-    id "org.ajoberstar.release-opinion" version "1.4.2"
-    id "com.github.hierynomus.license" version "0.12.1"
+  id "java"
+  id "groovy"
+  id "maven-publish"
+  id "org.ajoberstar.release-opinion" version "1.4.2"
+  id "com.github.hierynomus.license" version "0.12.1"
+  id "com.jfrog.bintray" version "1.7"
+  id 'ru.vyarus.pom' version '1.0.3'
+  id 'ru.vyarus.github-info' version '1.1.0'
 }
 
+group = "com.hierynomus"
+defaultTasks "build"
+
 repositories {
-    mavenCentral()
-    mavenLocal()
+  mavenLocal()
+  mavenCentral()
 }
 
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
-
-idea {
-    module {
-        downloadJavadoc = true
-        downloadSources = true
-    }
-}
 
 configurations.compile.transitive = false
 
 def bouncycastleVersion = "1.54"
 
 dependencies {
-    compile "org.slf4j:slf4j-api:1.7.13"
-    compile "com.hierynomus.asn-one:asn-one:0.0.1-dev.6.uncommitted+2740c45"
-    compile "org.bouncycastle:bcprov-jdk15on:$bouncycastleVersion"
-    compile "org.bouncycastle:bcpkix-jdk15on:$bouncycastleVersion"
-    compile 'net.engio:mbassador:1.2.4.2'
-    testCompile 'org.spockframework:spock-core:1.0-groovy-2.4'
-    testCompile 'commons-io:commons-io:2.5'
-    testRuntime 'ch.qos.logback:logback-classic:1.1.3'
+  compile "org.slf4j:slf4j-api:1.7.13"
+  compile "com.hierynomus.asn-one:asn-one:0.0.1-dev.22.uncommitted+5dec373"
+//  compile "org.bouncycastle:bcprov-jdk15on:$bouncycastleVersion"
+//  compile "org.bouncycastle:bcpkix-jdk15on:$bouncycastleVersion"
+  compile 'net.engio:mbassador:1.2.4.2'
+  testCompile 'org.spockframework:spock-core:1.0-groovy-2.4'
+  testCompile 'commons-io:commons-io:2.5'
+  testRuntime 'ch.qos.logback:logback-classic:1.1.3'
 }
 
 license {
-    mapping {
-        java = 'SLASHSTAR_STYLE'
-    }
-    exclude 'com/hierynomus/protocol/commons/Base64.java'
+  header rootProject.file('LICENSE_HEADER')
+  strictCheck true
+  mapping {
+    java = 'SLASHSTAR_STYLE'
+  }
+  excludes(['com/hierynomus/protocol/commons/Base64.java', '**/*.txt', '**/*.properties'])
 }
 
 release {
-    grgit = org.ajoberstar.grgit.Grgit.open(project.projectDir)
+  grgit = org.ajoberstar.grgit.Grgit.open(project.projectDir)
 }
 
 // This disables the pedantic doclint feature of JDK8
 if (JavaVersion.current().isJava8Compatible()) {
-    tasks.withType(Javadoc) {
-        options.addStringOption('Xdoclint:none', '-quiet')
-    }
+  tasks.withType(Javadoc) {
+    options.addStringOption('Xdoclint:none', '-quiet')
+  }
 }
 
 task sourcesJar(type: Jar) {
-    from sourceSets.main.allSource
-    classifier = 'sources'
+  from sourceSets.main.allSource
+  classifier = 'sources'
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.destinationDir
+  classifier = 'javadoc'
+  from javadoc.destinationDir
 }
 
 configurations {
-    integrationTestCompile.extendsFrom testCompile
-    integrationTestRuntime.extendsFrom testRuntime
+  integrationTestCompile.extendsFrom testCompile
+  integrationTestRuntime.extendsFrom testRuntime
 }
 
 sourceSets {
-    integrationTest {
-        groovy {
-            compileClasspath += sourceSets.main.output + sourceSets.test.output
-            runtimeClasspath += sourceSets.main.output + sourceSets.test.output
-            srcDir file('src/it/groovy')
-        }
-        resources.srcDir file('src/it/resources')
+  integrationTest {
+    groovy {
+      compileClasspath += sourceSets.main.output + sourceSets.test.output
+      runtimeClasspath += sourceSets.main.output + sourceSets.test.output
+      srcDir file('src/it/groovy')
     }
+    resources.srcDir file('src/it/resources')
+  }
 }
 
 task integrationTest(type: Test) {
-    testClassesDir = sourceSets.integrationTest.output.classesDir
-    classpath = sourceSets.integrationTest.runtimeClasspath
+  testClassesDir = sourceSets.integrationTest.output.classesDir
+  classpath = sourceSets.integrationTest.runtimeClasspath
 }
 
 tasks.withType(Test) {
+  testLogging {
+    exceptionFormat = 'full'
+  }
+  include "**/*Test.*"
+  include "**/*Spec.*"
   afterSuite { descriptor, result ->
     def indicator = "\u001B[32m✓\u001b[0m"
     if (result.failedTestCount > 0) {
@@ -96,10 +103,76 @@ tasks.withType(Test) {
   }
 }
 
-license {
-    header rootProject.file('LICENSE')
-    strictCheck true
-    excludes(['**/*.txt', '**/*.properties'])
+project.tasks.compileGroovy.onlyIf { false }
+
+github {
+  user 'hierynomus'
+  license 'Apache'
 }
 
-project.tasks.compileGroovy.onlyIf { false }
+pom {
+  description 'SMB2 protocol library for communication with Windows servers'
+  url 'https://github.com/hierynomus/smbj'
+  developers {
+    developer {
+      id "hierynomus"
+      name "Jeroen van Erp"
+      email "jeroen@hierynomus.com"
+      roles {
+        role "Lead developer"
+      }
+    }
+    developer {
+      id "sbellan"
+      name "Saravanan Bellan"
+      email "sbellan@gmail.com"
+      roles {
+        role "Developer"
+      }
+    }
+  }
+}
+
+publishing {
+  publications {
+    Smbj(MavenPublication) {
+      from components.java
+      artifact sourcesJar
+      artifact javadocJar
+    }
+  }
+}
+
+if (project.hasProperty("bintrayUsername") && project.hasProperty("bintrayApiKey")) {
+  bintray {
+    user = project.property("bintrayUsername")
+    key = project.property("bintrayApiKey")
+    publish = true
+    publications = ["Smbj"]
+    pkg {
+      repo = "maven"
+      name = project.name
+      licenses = ["Apache-2.0"]
+      vcsUrl = "https://github.com/hierynomus/smbj.git"
+      labels = ["smb", "smb2", "smb3", "network", "windows", "file-transfer"]
+      githubRepo = "hierynomus/smbj"
+      version {
+        name = project.version.toString()
+        vcsTag = "v${project.version}"
+        released = new SimpleDateFormat('yyyy-MM-dd\'T\'HH:mm:ss.SSSZZ').format(new Date())
+        gpg {
+          sign = true
+          passphrase = project.property("signing.password")
+        }
+        mavenCentralSync {
+          sync = true
+          user = project.property("sonatypeUsername")
+          password = project.property("sonatypePassword")
+          close = 1
+        }
+      }
+    }
+  }
+}
+
+project.tasks.release.dependsOn(project.tasks.bintrayUpload)

@@ -19,7 +19,7 @@ import com.hierynomus.protocol.commons.EnumWithValue;
 
 /**
  * [MS-ERREF].pdf 2.3.1 NTSTATUS values
- *
+ * <p>
  * Subset of the possible values which are useful for SMB2 communication
  */
 public enum NtStatus implements EnumWithValue<NtStatus> {

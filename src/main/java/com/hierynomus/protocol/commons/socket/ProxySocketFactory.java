@@ -15,12 +15,14 @@
  */
 package com.hierynomus.protocol.commons.socket;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.Socket;
+import javax.net.SocketFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.net.SocketFactory;
-import java.io.IOException;
-import java.net.*;
 
 public class ProxySocketFactory extends SocketFactory {
     private static final Logger logger = LoggerFactory.getLogger(ProxySocketFactory.class);
@@ -51,12 +53,12 @@ public class ProxySocketFactory extends SocketFactory {
     }
 
     @Override
-    public Socket createSocket(String address, int port) throws IOException, UnknownHostException {
+    public Socket createSocket(String address, int port) throws IOException {
         return createSocket(new InetSocketAddress(address, port), null);
     }
 
     @Override
-    public Socket createSocket(String address, int port, InetAddress localAddress, int localPort) throws IOException, UnknownHostException {
+    public Socket createSocket(String address, int port, InetAddress localAddress, int localPort) throws IOException {
         return createSocket(new InetSocketAddress(address, port), new InetSocketAddress(localAddress, localPort));
     }
 

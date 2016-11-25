@@ -15,17 +15,21 @@
  */
 package com.hierynomus.smbj;
 
-import com.hierynomus.smbj.smb2.SMB2Dialect;
-
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.protocol.commons.Factory;
+import com.hierynomus.smbj.auth.Authenticator;
 
 public class ConfigImpl implements Config {
 
     protected EnumSet<SMB2Dialect> dialects;
+    protected List<Factory.Named<Authenticator>> authenticators;
     protected Random random;
     protected UUID clientGuid;
+    protected boolean isStrictSigning;
 
     @Override
     public Random getRandomProvider() {
@@ -40,5 +44,15 @@ public class ConfigImpl implements Config {
     @Override
     public UUID getClientGuid() {
         return clientGuid;
+    }
+
+    @Override
+    public boolean isStrictSigning() {
+        return isStrictSigning;
+    }
+
+    @Override
+    public List<Factory.Named<Authenticator>> getSupportedAuthenticators() {
+        return authenticators;
     }
 }

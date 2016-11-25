@@ -15,18 +15,31 @@
  */
 package com.hierynomus.smbj;
 
-import com.hierynomus.smbj.smb2.SMB2Dialect;
-
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.Random;
 import java.util.UUID;
+
+import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.protocol.commons.Factory;
+import com.hierynomus.smbj.auth.Authenticator;
+import com.hierynomus.smbj.auth.NtlmAuthenticator;
+import com.hierynomus.smbj.auth.SpnegoAuthenticator;
 
 public class DefaultConfig extends ConfigImpl {
 
     public DefaultConfig() {
         random = new SecureRandom();
-        dialects = EnumSet.of(SMB2Dialect.SMB_2_0_2);
+        dialects = EnumSet.of(SMB2Dialect.SMB_2_1, SMB2Dialect.SMB_2_0_2);
         clientGuid = UUID.randomUUID();
+        isStrictSigning = false; //TODO change to true when we are more confident
+        registerDefaultAuthenticators();
+    }
+
+    private void registerDefaultAuthenticators() {
+        authenticators = new ArrayList<Factory.Named<Authenticator>>();
+        // order is important.  The authenticators listed first will be selected
+        authenticators.add(new SpnegoAuthenticator.Factory());
+        authenticators.add(new NtlmAuthenticator.Factory());
     }
 }

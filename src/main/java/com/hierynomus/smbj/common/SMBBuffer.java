@@ -15,11 +15,10 @@
  */
 package com.hierynomus.smbj.common;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
-
-import java.nio.charset.Charset;
-import java.util.Arrays;
 
 public class SMBBuffer extends Buffer<SMBBuffer> {
     private static final byte[] RESERVED_2 = new byte[]{0x0, 0x0};
@@ -83,7 +82,7 @@ public class SMBBuffer extends Buffer<SMBBuffer> {
      * @return this
      */
     public Buffer<SMBBuffer> putString(String string) {
-        return putString(string, Charset.forName("UTF-16"));
+        return putString(string, StandardCharsets.UTF_16);
     }
 
     /**

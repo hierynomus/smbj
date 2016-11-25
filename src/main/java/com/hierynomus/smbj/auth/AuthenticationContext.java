@@ -15,14 +15,16 @@
  */
 package com.hierynomus.smbj.auth;
 
+import java.util.Arrays;
+
 public class AuthenticationContext {
-    private String username;
-    private char[] password;
-    private String domain;
+    private final String username;
+    private final char[] password;
+    private final String domain;
 
     public AuthenticationContext(String username, char[] password, String domain) {
         this.username = username;
-        this.password = password;
+        this.password = Arrays.copyOf(password, password.length);
         this.domain = domain;
     }
 
@@ -37,4 +39,6 @@ public class AuthenticationContext {
     public String getDomain() {
         return domain;
     }
+
+
 }
