@@ -121,7 +121,9 @@ public class DFS {
                     isDFSPath = true; // remember that the path contained at least one DFS translation
 
                     if (domainCacheEntry.DCHint == null || domainCacheEntry.DCHint.isEmpty()) {
-                        ReferralResult r = sendReferralRequest("DC", pathEntries[0], session, path);
+                        // we will send the domain referral request to the user's domain
+                        String bootstrapDC = session.getAuthenticationContext().getDomain();
+                        ReferralResult r = sendReferralRequest("DC", bootstrapDC, session, path);
                         if (r.error != NtStatus.STATUS_SUCCESS) {
                             throw new DFSException(r.error); // step13: fail with error
                         }
@@ -245,25 +247,25 @@ public class DFS {
         Connection connection;
         Session dfsSession;
         ReferralResult result;
+//TODO if type is DC or DOMAIN, MaxReferralLevel is 3 or higher.  otherwise can be 4.        
         if (hostName.equals(session.getConnection().getRemoteHostname())) {
             dfsSession = session;
             Share dfsShare = dfsSession.connectShare("IPC$");
-            result = getReferral(dfsShare.getTreeConnect(), path);
-        }
-        else {
+            result = getReferral(type, dfsShare.getTreeConnect(), path);
+        } else {
             AuthenticationContext auth = session.getAuthenticationContext();
             Connection oldConnection = session.getConnection();
             connection = oldConnection.getClient().connect(hostName, oldConnection.getRemotePort());
             dfsSession = connection.authenticate(auth);
             Share dfsShare = dfsSession.connectShare("IPC$");
-            result = getReferral(dfsShare.getTreeConnect(), path);
+            result = getReferral(type, dfsShare.getTreeConnect(), path);
         }
         return result;
 //TODO do we close the share?
     }
 
     // Execute a FSCTL_DFS_GET_REFERRALS_EX
-    ReferralResult getReferralEx(TreeConnect treeConnect, String path) throws TransportException, BufferException {
+    ReferralResult getReferralEx(String type, TreeConnect treeConnect, String path) throws TransportException, BufferException {
         SMBBuffer buffer = new SMBBuffer();
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
@@ -281,11 +283,11 @@ public class DFS {
         if (response.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
             throw new SMBApiException(response.getHeader(), "GetDFSReferralEx failed for " + path);
         }
-        return processReferralResponse(response, path);
+        return processReferralResponse(type, response, path);
     }
 
     // Execute a FSCTL_DFS_GET_REFERRALS
-    ReferralResult getReferral(TreeConnect treeConnect, String path) throws TransportException, BufferException {
+    ReferralResult getReferral(String type, TreeConnect treeConnect, String path) throws TransportException, BufferException {
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
 
@@ -299,18 +301,25 @@ public class DFS {
 
         Future<SMB2IoctlResponse> sendFuture = session.send(msg);
         SMB2IoctlResponse response = Futures.get(sendFuture, TransportException.Wrapper);
-        return processReferralResponse(response, path);
+        return processReferralResponse(type, response, path);
     }
 
-    ReferralResult processReferralResponse(SMB2IoctlResponse message, String originalPath) throws BufferException {
+    ReferralResult processReferralResponse(String type, SMB2IoctlResponse message, String originalPath) throws BufferException {
         ReferralResult result = new ReferralResult();
         result.error = message.getHeader().getStatus();
         if (message.getHeader().getStatus() == NtStatus.STATUS_SUCCESS) {
             SMB2GetDFSReferralResponse resp = new SMB2GetDFSReferralResponse(originalPath);
             resp.read(new SMBBuffer(message.getOutputBuffer()));
-            ReferralCacheEntry referralCacheEntry = referralCache.new ReferralCacheEntry(resp);
-            referralCache.put(referralCacheEntry);
-            result.referralCacheEntry = referralCacheEntry;
+
+            if (type.equals("DC")) {
+                DomainCacheEntry domainCacheEntry = domainCache.new DomainCacheEntry(resp);
+                domainCache.put(domainCacheEntry);;
+                result.domainCacheEntry = domainCacheEntry;
+            } else {
+                ReferralCacheEntry referralCacheEntry = referralCache.new ReferralCacheEntry(resp);
+                referralCache.put(referralCacheEntry);
+                result.referralCacheEntry = referralCacheEntry;
+            }
         }
         return result;
     }
@@ -321,14 +330,19 @@ public class DFS {
     // the UNC path "\\server\namespace\directory\subdirectory\file" would be encoded 
     // as "\server\namespace\directory\subdirectory\file".
     String normalizePath(String path) {
-        if (path.startsWith("\\\\")) {
-            path = path.substring(1);
+        if (path.startsWith("\\\\")) { // if starts with two backslashes
+            path = path.substring(1);  // remove the first backslash
         }
         return path;
     }
 
+    /**
+     * split a path of the form "\a\b\c\d" into an array of strings: {"a", "b", "c", "d"}
+     * @param path
+     * @return the array of Strings with the path elements
+     */
     public static String[] parsePath(String path) {
-        return path.substring(1).split("\\\\");
+        return path.substring(1).split("\\\\"); // this is a regex, so it means "split on single backslash"
     }
 
     class ReferralResult {
