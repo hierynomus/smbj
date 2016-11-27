@@ -110,8 +110,6 @@ public class Session implements AutoCloseable {
             smb2TreeConnectRequest.getHeader().setCreditRequest(256);
             Future<SMB2TreeConnectResponse> send = this.send(smb2TreeConnectRequest);
             SMB2TreeConnectResponse response = Futures.get(send, TransportException.Wrapper);
-            response.getHeader();
-            response.getHeader().getStatus();
             if (response.getHeader().getStatus().isError()) {
                 logger.debug(response.getHeader().toString());
                 throw new SMBApiException(response.getHeader(), "Could not connect to " + smbPath);
