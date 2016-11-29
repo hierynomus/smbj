@@ -115,7 +115,7 @@ public class ReferralCache {
             List<TargetSetEntry> targetList = new ArrayList<TargetSetEntry>(response.referralEntries.size());
             for (DFSReferral r : response.referralEntries) {
                 TargetSetEntry e = new TargetSetEntry();
-                e.TargetPath = r.path;
+                e.targetPath = r.path;
                 targetList.add(e);
             }
             this.targetHint = targetList.get(0);
@@ -129,8 +129,8 @@ public class ReferralCache {
     }
 
     public class TargetSetEntry {
-        String TargetPath;
-        boolean TargetSetBoundary;
+        String targetPath;
+        boolean targetSetBoundary;
     }
 
     public ReferralCacheEntry lookup(String path) {

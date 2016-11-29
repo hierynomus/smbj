@@ -17,42 +17,70 @@ package com.hierynomus.mssmb2.dfs;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 public class DFSReferral {
+    private static final int REFERRAL_V34_SIZE = 34;
+    private static final int REFERRAL_V2_SIZE = 22;
     int versionNumber;
     int pathConsumed;
     long ttl;
-//    String serverName;   // Server
-//    String shareName;    // Share
     // The ServerType field MUST be set to 0x0001 if root targets are returned. In all other cases, the ServerType 
     // field MUST be set to 0x0000.
     int serverType;
     public static int SERVERTYPE_LINK = 0x0000;
     public static int SERVERTYPE_ROOT = 0x0001;
-    String link;
+    int referralEntryFlags;
     String path;
     int proximity;
     int timeToLive;
     String dfsPath;
     String dfsAlternatePath;
-//    String networkAddress;
     String specialName;
     List<String> expandedNames;
     
     public DFSReferral()
     {
     }
-
+    
+    public DFSReferral(
+        int versionNumber,
+        long ttl,
+        int serverType,
+        int referralEntryFlags,
+        String link,
+        String path,
+        int proximity,
+        int timeToLive,
+        String dfsPath,
+        String dfsAlternatePath,
+        String specialName,
+        List<String> expandedNames
+    ){
+        this.versionNumber = versionNumber;
+        this.ttl = ttl;
+        this.serverType = serverType;
+        this.referralEntryFlags = referralEntryFlags;
+        this.path = path;
+        this.proximity = proximity;
+        this.timeToLive = timeToLive;
+        this.dfsPath = dfsPath;
+        this.dfsAlternatePath = dfsAlternatePath;
+        this.specialName = specialName;
+        this.expandedNames = expandedNames;
+    }
+    
     public String toString() {
         return "DFSReferral[pathConsumed=" + pathConsumed +
-//            ",serverName=" + serverName +
-//            ",shareName=" + shareName +
-            ",link=" + link +
             ",path=" + path +
+            ",dfsPath=" + dfsPath +
+            ",dfsAlternatePath=" + dfsAlternatePath +
+            ",specialName=" + specialName +
             ",ttl=" + ttl + "]";
     }
+    
     public static DFSReferral read(SMBBuffer buffer) throws BufferException {
         DFSReferral dfsr = new DFSReferral();
         dfsr.readRef(buffer);
@@ -60,7 +88,7 @@ public class DFSReferral {
     }
 
     private void readRef(SMBBuffer buffer) throws BufferException {
-        int versionNumber, size, referralEntryFlags, dfsPathOffset, dfsAlternatePathOffset, networkAddressOffset;
+        int size, dfsPathOffset, dfsAlternatePathOffset, networkAddressOffset;
         int start, specialNameOffset, numberOfExpandedNames, expandedNameOffset;
         int r;
         start = buffer.rpos();
@@ -97,7 +125,13 @@ public class DFSReferral {
                 dfsAlternatePathOffset = buffer.readUInt16();
                 networkAddressOffset = buffer.readUInt16();
                 buffer.readUInt16(); // skip GUID
-                //TODO handle offsets. load strings.
+                r = buffer.rpos();
+                buffer.rpos(start+dfsPathOffset);
+                dfsPath = buffer.readZString();
+                buffer.rpos(start+dfsAlternatePathOffset);
+                dfsAlternatePath = buffer.readZString();
+                buffer.rpos(start+networkAddressOffset);
+                path = buffer.readZString();
             } else {
                 specialNameOffset = buffer.readUInt16();
                 numberOfExpandedNames = buffer.readUInt16();
@@ -114,42 +148,83 @@ public class DFSReferral {
             }
             break;
         default:
-            // TODO error
+            throw new RuntimeException("error");
         }
     }
 
-//    class DFSReferral_V1 {
-//        int versionNumber;
-//        int size;
-//        int serverType;
-//        int referralEntryFlags;
-//        String shareName;
-//    }
-//    class DFSReferral_V2 {
-//        int versionNumber;
-//        int size;
-//        int serverType;
-//        int referralEntryFlags;
-//        int proximity;
-//        int timeToLive;
-//        int dfsPathOffset;
-//        int dfsAlternatePathOffset;
-//        int networkAddressOffset;
-//        //...
-//    }
-//    class DFSReferral_V3 {
-//        int versionNumber;
-//        int size;
-//        int serverType;
-//        int referralEntryFlags;
-//        int timeToLive;
-//    
-//    }
-//    class DFSReferral_V4 {
-//        int versionNumber;
-//        int size;
-//        int serverType;
-//        int referralEntryFlags;
-//        int timeToLive;
-//    }
+    public void writeTo(SMBBuffer buffer) throws BufferException {
+        int b;
+        buffer.putUInt16(versionNumber);
+        int size;
+        switch(versionNumber){
+        case 1: 
+            size = 8+(path.length()+1)*2;
+            break;
+        case 2:
+            size = REFERRAL_V2_SIZE;
+            break;
+        case 3:
+        case 4:
+            size = REFERRAL_V34_SIZE;
+            break;
+        default:
+            throw new IllegalStateException("Invalid versionNumber");
+        }
+        buffer.putUInt16(size); //size
+        buffer.putUInt16(serverType);
+//        if (expandedNames != null && expandedNames.size() > 0) {
+//            referralEntryFlags = 0x0002;
+//        }
+        buffer.putUInt16(referralEntryFlags);
+        
+        switch(versionNumber) {
+        case 1:
+            buffer.putZString(path);
+            break;
+        case 2:
+            buffer.putUInt32(proximity);
+            buffer.putUInt32(ttl);
+            b = REFERRAL_V2_SIZE;
+            buffer.putUInt16(b+6);
+            buffer.putUInt16(b+6+(dfsPath.length()+1)*2);
+            buffer.putUInt16(b+6+((dfsPath.length()+1)*2)+((dfsAlternatePath.length()+1)*2));
+            buffer.putZString(dfsPath);
+            buffer.putZString(dfsAlternatePath);
+            buffer.putZString(path);
+            break;
+        case 3:
+        case 4:
+            buffer.putUInt32(ttl);
+            if ((referralEntryFlags & 0x0002) == 0) {
+                b = REFERRAL_V34_SIZE;
+                buffer.putUInt16(b);
+                b += ((dfsPath!=null)?((dfsPath.length()+1)*2):0);
+                buffer.putUInt16(b);
+                b += ((dfsAlternatePath!=null)?((dfsAlternatePath.length()+1)*2):0);
+                buffer.putUInt16(b);
+                buffer.putReserved4(); // padding
+                buffer.putReserved4();
+                buffer.putReserved4();
+                buffer.putReserved4();
+                if (dfsPath != null)
+                    buffer.putZString(dfsPath);
+                if (dfsAlternatePath != null)
+                    buffer.putZString(dfsAlternatePath);
+                if (path != null)
+                    buffer.putZString(path);
+            } else {
+                b = buffer.wpos();
+                buffer.putUInt16(b+6);
+                buffer.putUInt16(expandedNames.size());
+                buffer.putUInt16(b+6+(specialName.length()+1)*2);
+                buffer.putZString(specialName);
+                for (int i=0; i<expandedNames.size(); i++) {
+                    buffer.putZString(expandedNames.get(i));
+                }
+            }
+            break;
+        default:
+            throw new IllegalStateException("Invalid versionNumber");
+        }
+    }
 }

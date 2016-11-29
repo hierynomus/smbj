@@ -26,6 +26,7 @@ import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMB2FileId;
+import com.hierynomus.mssmb2.SMB2MessageFlag;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
 import com.hierynomus.mssmb2.messages.SMB2Close;
 import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
@@ -77,8 +78,7 @@ public class Share implements AutoCloseable {
         SMB2CreateRequest cr = openFileRequest(
             treeConnect, path, accessMask, shareAccess, fileAttributes, createDisposition, createOptions);
         try {
-            Future<SMB2CreateResponse> responseFuture = session.send(cr);
-            SMB2CreateResponse cresponse = Futures.get(responseFuture, SMBRuntimeException.Wrapper);
+            SMB2CreateResponse cresponse = session.processSendResponse(cr);
             if (cresponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
                 throw new SMBApiException(cresponse.getHeader(), "Create failed for " + path);
             }
@@ -87,9 +87,7 @@ public class Share implements AutoCloseable {
         } catch (TransportException e) {
             throw SMBRuntimeException.Wrapper.wrap(e);
         }
-
     }
-
 
     protected static SMB2CreateRequest openFileRequest(
         TreeConnect treeConnect, String path,
@@ -100,6 +98,10 @@ public class Share implements AutoCloseable {
         EnumSet<SMB2CreateOptions> createOptions) {
 
         Session session = treeConnect.getSession();
+        
+        if (treeConnect.isDfsShare()) {
+            path = treeConnect.getConnection().getRemoteHostname()+"\\"+treeConnect.getShareName()+"\\"+path;
+        }
         SMB2CreateRequest cr = new SMB2CreateRequest(
             session.getConnection().getNegotiatedProtocol().getDialect(),
             session.getSessionId(), treeConnect.getTreeId(),
@@ -108,6 +110,10 @@ public class Share implements AutoCloseable {
             shareAccess,
             createDisposition,
             createOptions, path);
+        if (treeConnect.isDfsShare()) {
+            cr.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_DFS_OPERATIONS);
+        }
+
         return cr;
     }
 

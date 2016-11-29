@@ -16,6 +16,7 @@
 package com.hierynomus.mssmb2.dfs;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
@@ -26,11 +27,28 @@ public class SMB2GetDFSReferralResponse {
     int pathConsumed;
     int numberOfReferrals;
     int referralHeaderFlags;
-    ArrayList<DFSReferral> referralEntries = new ArrayList<DFSReferral>();
+    List<DFSReferral> referralEntries = new ArrayList<DFSReferral>();
     String stringBuffer;
-    SMB2GetDFSReferralResponse(String originalPath) {
+    
+    public SMB2GetDFSReferralResponse(String originalPath) {
         this.originalPath = originalPath;
     }
+    
+    public SMB2GetDFSReferralResponse(String originalPath,
+        int pathConsumed,
+        int numberOfReferrals,
+        int referralHeaderFlags,
+        List<DFSReferral> referralEntries,
+        String stringBuffer) 
+    {
+        this.originalPath = originalPath;
+        this.pathConsumed = pathConsumed;
+        this.numberOfReferrals = numberOfReferrals;
+        this.referralHeaderFlags = referralHeaderFlags;
+        this.referralEntries = referralEntries;
+        this.stringBuffer = stringBuffer;
+    }
+
     
     enum ReferralHeaderFlags implements EnumWithValue<ReferralHeaderFlags> {
         ReferralServers(0x1),
@@ -61,5 +79,22 @@ public class SMB2GetDFSReferralResponse {
 
         }
     }
-
+    public void writeTo(SMBBuffer buffer) throws BufferException {
+        buffer.putUInt16(pathConsumed);
+        buffer.putUInt16(numberOfReferrals);
+        buffer.putUInt32(referralHeaderFlags);
+        for (int i=0; i<referralEntries.size(); i++) {
+            referralEntries.get(i).writeTo(buffer);
+        }
+    }
+    
+//    public String toString() {
+//        System.outString originalPath;
+//        int pathConsumed;
+//        int numberOfReferrals;
+//        int referralHeaderFlags;
+//        List<DFSReferral> referralEntries = new ArrayList<DFSReferral>();
+//        String stringBuffer;
+//        
+//    }
 }

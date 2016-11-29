@@ -28,15 +28,21 @@ import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.smbj.transport.TransportLayer;
 import com.hierynomus.smbj.auth.AuthenticationContext
+import com.hierynomus.smbj.SMBClient
 
 import spock.lang.Specification
 
 class UserHostSessionTableTest extends Specification {
     def "find and retrieve a session"() {
         given:
+        def connection
+        def client = Stub(SMBClient) {
+            connect(_) >> connection
+            connect(_,_) >> connection
+        }
         def transport = Mock(TransportLayer)
         def bus = new SMBEventBus()
-        def connection = Stub(Connection, constructorArgs: [new DefaultConfig(),transport,bus]) {
+        connection = Stub(Connection, constructorArgs: [new DefaultConfig(),client,transport,bus]) {
             getRemoteHostname() >> "domain"
         }
         def auth = new AuthenticationContext("username","password".toCharArray(),"domain")

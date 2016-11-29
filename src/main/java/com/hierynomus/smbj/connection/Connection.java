@@ -38,6 +38,7 @@ import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.commons.socket.SocketClient;
 import com.hierynomus.smbj.Config;
+import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.common.MessageSigning;
@@ -68,6 +69,11 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
     private ConnectionInfo connectionInfo;
 
+    private SMBClient client;
+    public SMBClient getClient() {
+        return client;
+    }
+
     private Config config;
     private TransportLayer transport;
     private final SMBEventBus bus;
@@ -75,9 +81,10 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     private Thread packetReaderThread;
     private final ReentrantLock lock = new ReentrantLock();
 
-    public Connection(Config config, TransportLayer transport, SMBEventBus bus) {
+    public Connection(Config config, SMBClient client, TransportLayer transport, SMBEventBus bus) {
         super(transport.getDefaultPort());
         this.config = config;
+        this.client = client;
         this.transport = transport;
         this.bus = bus;
         bus.subscribe(this);
@@ -85,6 +92,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
     public Connection(Connection connection) {
         super(connection.defaultPort);
+        this.client = connection.client;
         this.config = connection.config;
         this.transport = connection.transport;
         this.bus = connection.bus;
@@ -336,5 +344,9 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     private void sessionLogoff(SessionLoggedOff loggedOff) {
         connectionInfo.getSessionTable().sessionClosed(loggedOff.getSessionId());
         logger.debug("Session << {} >> logged off", loggedOff.getSessionId());
+    }
+
+    public Config getConfig() {
+        return config;
     }
 }

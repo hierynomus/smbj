@@ -53,6 +53,10 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
         }
     }
 
+    public void setShareType(byte shareType) {
+        this.shareType = shareType;
+    }
+    
     /**
      * Whether the ShareType returned is SMB2_SHARE_TYPE_DISK (0x01)
      *
@@ -86,6 +90,10 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
 
     public EnumSet<SMB2ShareCapabilities> getCapabilities() {
         return capabilities;
+    }
+    
+    public void setCapabilities(EnumSet<SMB2ShareCapabilities> capabilities) {
+        this.capabilities = capabilities;
     }
 
     public long getMaximalAccess() {
