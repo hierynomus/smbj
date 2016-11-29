@@ -51,6 +51,6 @@ public class SMBApiException extends SMBRuntimeException {
 
     @Override
     public String getMessage() {
-        return status + "(" + status.getValue() + "): " + super.getMessage();
+        return status + "(" + Long.toHexString(status.getValue()) + "): " + super.getMessage();
     }
 }

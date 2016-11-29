@@ -342,7 +342,13 @@ public class DFS {
      * @return the array of Strings with the path elements
      */
     public static String[] parsePath(String path) {
+        if (path.startsWith("\\\\")) {
+            return path.substring(2).split("\\\\"); // this is a regex, so it means "split on single backslash"
+        } else if (path.startsWith("\\")) {
         return path.substring(1).split("\\\\"); // this is a regex, so it means "split on single backslash"
+        } else {
+            return path.split("\\\\"); // this is a regex, so it means "split on single backslash"
+        }
     }
 
     class ReferralResult {

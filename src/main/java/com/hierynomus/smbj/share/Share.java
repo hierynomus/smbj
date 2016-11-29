@@ -26,6 +26,7 @@ import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMB2FileId;
+import com.hierynomus.mssmb2.SMB2MessageFlag;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
 import com.hierynomus.mssmb2.messages.SMB2Close;
 import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
@@ -97,6 +98,10 @@ public class Share implements AutoCloseable {
         EnumSet<SMB2CreateOptions> createOptions) {
 
         Session session = treeConnect.getSession();
+        
+        if (treeConnect.isDfsShare()) {
+            path = treeConnect.getConnection().getRemoteHostname()+"\\"+treeConnect.getShareName()+"\\"+path;
+        }
         SMB2CreateRequest cr = new SMB2CreateRequest(
             session.getConnection().getNegotiatedProtocol().getDialect(),
             session.getSessionId(), treeConnect.getTreeId(),
@@ -105,6 +110,10 @@ public class Share implements AutoCloseable {
             shareAccess,
             createDisposition,
             createOptions, path);
+        if (treeConnect.isDfsShare()) {
+            cr.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_DFS_OPERATIONS);
+        }
+
         return cr;
     }
 

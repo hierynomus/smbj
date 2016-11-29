@@ -91,6 +91,10 @@ public class TreeConnect {
         return session;
     }
 
+    public boolean isDfsShare() {
+        return isDfsShare;
+    }
+    
     @Override
     public String toString() {
         return String.format("TreeConnect[%s](%s)", treeId, smbPath);
