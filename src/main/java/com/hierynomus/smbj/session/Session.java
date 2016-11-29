@@ -141,18 +141,18 @@ public class Session implements AutoCloseable {
     @Handler
     private void disconnectTree(TreeDisconnected disconnectEvent) {
         if (disconnectEvent.getSessionId() == sessionId) {
-            logger.debug("Notified of TreeDisconnected <<" + disconnectEvent.getTreeId() + ">>");
+            logger.debug("Notified of TreeDisconnected <<{}>>", disconnectEvent.getTreeId());
             treeConnectTable.closed(disconnectEvent.getTreeId());
         }
     }
 
     public void logoff() throws TransportException {
-        logger.info("Logging off session " + sessionId + " from host " + connection.getRemoteHostname());
+        logger.info("Logging off session {} from host {}", sessionId, connection.getRemoteHostname());
         for (TreeConnect treeConnect : treeConnectTable.getOpenTreeConnects()) {
             try {
                 treeConnect.getHandle().close();
             } catch (IOException e) {
-                logger.error(String.format("Caught exception while closing TreeConnect with id: %s", treeConnect.getTreeId()), e);
+                logger.error("Caught exception while closing TreeConnect with id: {}", treeConnect.getTreeId(), e);
             }
         }
         SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
@@ -199,7 +199,7 @@ public class Session implements AutoCloseable {
         if (signingRequired && signingKeySpec == null) {
             throw new TransportException("Message signing is required, but no signing key is negotiated");
         }
-        return connection.send(packet, isSigningRequired() ? signingKeySpec : null);
+        return connection.send(packet, signingKeySpec);
     }
     
     public <T extends SMB2Packet> T processSendResponse(SMB2CreateRequest packet) throws TransportException {
@@ -232,5 +232,9 @@ public class Session implements AutoCloseable {
 
     public AuthenticationContext getAuthenticationContext() {
         return auth;
+    }
+    
+    public void setSessionId(long sessionId) {
+        this.sessionId = sessionId;
     }
 }

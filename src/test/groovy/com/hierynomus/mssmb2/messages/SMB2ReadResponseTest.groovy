@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.mssmb2
+package com.hierynomus.mssmb2.messages
 
 import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse

@@ -22,10 +22,13 @@ import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
+
 import javax.crypto.spec.SecretKeySpec;
+
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2MessageFlag;
@@ -117,7 +120,13 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
     @Override
     public void close() throws Exception {
-        connectionInfo.getSessionTable().closeRemainingSessions();
+        for (Session session : connectionInfo.getSessionTable().activeSessions()) {
+            try {
+                session.close();
+            } catch (IOException e) {
+                logger.warn("Exception while closing session {}", session.getSessionId(), e);
+            }
+        }
         packetReader.stop();
         logger.info("Closed connection to {}", getRemoteHostname());
         super.disconnect();
@@ -131,26 +140,25 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     public Session authenticate(AuthenticationContext authContext) {
         try {
             NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
-            Authenticator authenticator = getAuthenticator(negTokenInit.getSupportedMechTypes());
-            byte[] securityContext = authenticator.authenticate(authContext, connectionInfo.getGssNegotiateToken(), null);
-            SMB2SessionSetup req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED));
-            req.setSecurityBuffer(securityContext);
-            SMB2SessionSetup receive = sendAndReceive(req);
+            Authenticator authenticator = getAuthenticator(negTokenInit.getSupportedMechTypes(), authContext);
+            Session session = new Session(0, this, authContext, bus, connectionInfo.isRequireSigning());
+            SMB2SessionSetup receive = authenticationRound(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
             long sessionId = receive.getHeader().getSessionId();
-            Session session = new Session(sessionId, this, authContext, bus, connectionInfo.isRequireSigning());
+            session.setSessionId(sessionId);
             connectionInfo.getPreauthSessionTable().registerSession(sessionId, session);
             try {
                 while (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
                     logger.debug("More processing required for authentication of {} using {}", authContext.getUsername(), authenticator);
-                    securityContext = authenticator.authenticate(authContext, receive.getSecurityBuffer(), session);
-                    req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED));
-                    req.getHeader().setSessionId(sessionId);
-                    req.setSecurityBuffer(securityContext);
-                    receive = sendAndReceive(req);
+                    receive = authenticationRound(authenticator, authContext, receive.getSecurityBuffer(), session);
                 }
 
                 if (receive.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
                     throw new SMBApiException(receive.getHeader(), format("Authentication failed for '%s' using %s", authContext.getUsername(), authenticator));
+                }
+
+                if (receive.getSecurityBuffer() != null) {
+                    // process the last received buffer
+                    authenticator.authenticate(authContext, receive.getSecurityBuffer(), session);
                 }
                 logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), getRemoteHostname(), session.getSessionId());
                 connectionInfo.getSessionTable().registerSession(session.getSessionId(), session);
@@ -163,10 +171,21 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         }
     }
 
-    private Authenticator getAuthenticator(List<ASN1ObjectIdentifier> mechTypes) {
+    private SMB2SessionSetup authenticationRound(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {
+        byte[] securityContext = authenticator.authenticate(authContext, inputToken, session);
+        SMB2SessionSetup req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED));
+        req.setSecurityBuffer(securityContext);
+        req.getHeader().setSessionId(session.getSessionId());
+        return sendAndReceive(req);
+    }
+
+    private Authenticator getAuthenticator(List<ASN1ObjectIdentifier> mechTypes, AuthenticationContext context) {
         for (Factory.Named<Authenticator> factory : config.getSupportedAuthenticators()) {
             if (mechTypes.contains(new ASN1ObjectIdentifier(factory.getName()))) {
-                return factory.create();
+                Authenticator authenticator = factory.create();
+                if (authenticator.supports(context)) {
+                    return authenticator;
+                }
             }
         }
         throw new SMBRuntimeException("No authenticator is configured for the supported mechtypes: " + mechTypes);
@@ -183,7 +202,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         return send(packet, null);
     }
 
-    public <T extends SMB2Packet> T sendAndReceive(SMB2Packet packet) throws TransportException {
+    private <T extends SMB2Packet> T sendAndReceive(SMB2Packet packet) throws TransportException {
         return Futures.get(this.<T>send(packet), TransportException.Wrapper);
     }
 
@@ -191,7 +210,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
      * send a packet, potentially signed
      *
      * @param packet     SMBPacket to send
-     * @param signingKey if null, do not sign the packet.  Otherwise, the signingKey will be used to sign the packet.
+     * @param signingKeySpec if null, do not sign the packet.  Otherwise, the signingKey will be used to sign the packet.
      * @return a Future to be used to retrieve the response packet
      * @throws TransportException
      */

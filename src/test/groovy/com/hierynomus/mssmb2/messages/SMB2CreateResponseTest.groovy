@@ -13,26 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.mssmb2
+package com.hierynomus.mssmb2.messages
 
-import com.hierynomus.mssmb2.messages.SMB2WriteResponse
+import com.hierynomus.mssmb2.messages.SMB2CreateResponse
 import com.hierynomus.smbj.common.SMBBuffer
 import spock.lang.Specification
 
 import javax.xml.bind.DatatypeConverter
 
-class SMB2WriteResponseTest extends Specification {
+class SMB2CreateResponseTest extends Specification {
 
-    def "should parse write response"() {
+    def "should parse SMB2 Create Response without Maximal Content"() {
         given:
-        String hexString1 = "fe534d4240000000000000000900010001000000000000004d00000000000000000000000100000061000000007400000000000000000000000000000000000011000000002000000000000000000000";
+        String hexString1 = "fe534d4240000000000000000500010001000000000000000400000000000000000000000100000009000000004000000000000000000000000000000000000059000000010000006aa787efa59dd1016aa787efa59dd1016aa787efa59dd101954ff5efa59dd101000000000000000000000000000000001000000000000000030000001000000001000000100000000000000000000000";
         byte[] bytes1 = DatatypeConverter.parseHexBinary(hexString1);
-        SMB2WriteResponse response = new SMB2WriteResponse();
+        SMB2CreateResponse resp = new SMB2CreateResponse();
 
         when:
-        response.read(new SMBBuffer(bytes1))
+        resp.read(new SMBBuffer(bytes1))
 
         then:
-        response.bytesWritten == 8192
+        resp.getCreationTime() == new Date(1461446418426L)
+        Arrays.equals(([0x03,0x00,0x00,0x00,0x10,0x00,0x00,0x00] as byte[]), resp.fileId.persistentHandle)
     }
+
 }
