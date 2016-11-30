@@ -72,14 +72,14 @@ public class DFS {
     }
 
     // called when requesting a path before an operation
-    String resolvePath(Session session, String path) throws IOException, BufferException, DFSException {
+    String resolvePath(Session session, String pathToResolve) throws IOException, BufferException, DFSException {
         boolean isDomainOrPath = false;
         boolean isDFSPath = false;
         DomainCache.DomainCacheEntry domainCacheEntry;
         ReferralCache.ReferralCacheEntry referralCacheEntry = null;
         String hostName = null;
 
-        path = normalizePath(path);
+        String path = normalizePath(pathToResolve);
         
         String[] pathEntries = parsePath(path); 
 
@@ -330,10 +330,13 @@ public class DFS {
     // the UNC path "\\server\namespace\directory\subdirectory\file" would be encoded 
     // as "\server\namespace\directory\subdirectory\file".
     String normalizePath(String path) {
+        String newPath;
         if (path.startsWith("\\\\")) { // if starts with two backslashes
-            path = path.substring(1);  // remove the first backslash
+            newPath = path.substring(1);  // remove the first backslash
+        } else {
+            newPath = path;
         }
-        return path;
+        return newPath;
     }
 
     /**
