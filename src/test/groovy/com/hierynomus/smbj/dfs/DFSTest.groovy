@@ -47,6 +47,7 @@ import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.NegotiatedProtocol
 import com.hierynomus.smbj.connection.Request
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.smbj.common.SMBBuffer
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.dfs.SMB2GetDFSReferralResponse;
 
@@ -97,7 +98,6 @@ class DFSTest  extends Specification {
 
         when:
         DFS.resolveDFS(session, path)
-        System.out.println(path);
         
         then:
         with(path) {
@@ -156,7 +156,6 @@ class DFSTest  extends Specification {
 
         when:
         DFS.resolveDFS(session, path)
-        System.out.println(path);
         
         then:
         with(path) {
@@ -175,11 +174,13 @@ class DFSTest  extends Specification {
         referralEntry.dfsAlternatePath = "\\52.53.184.91\\Sales";
         referralEntry.path = "\\WIN-NQU9IOBE4VJ\\Sales";
         
+        def referrals = [referralEntry ] as ArrayList
+        
         def dfsRefResp = new SMB2GetDFSReferralResponse("\\WIN-NQU9IOBE4VJ\\Sales",
             int pathConsumed,
             1,
             0,
-            new ArrayList<DFSReferral>(){referralEntry},
+            referrals,
             String stringBuffer);
     
         def buf = new SMBBuffer();
@@ -194,17 +195,57 @@ class DFSTest  extends Specification {
     
 
     def testResolvePath() {
+        def connection
+        def session
+        def client = Stub(SMBClient) {
+            connect(_) >> { String host -> connection }
+            connect(_,_) >> { String host, int port ->
+                connection
+            }
+        }
+        def transport = Mock(TransportLayer)
+        def bus = new SMBEventBus()
+        def protocol = new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 1000,1000,1000,false)
+        connection = Stub(Connection, constructorArgs: [new DefaultConfig(),client,transport,bus]) {
+            getRemoteHostname() >> "52.53.184.91"
+            getRemotePort() >> 445
+            getClient() >> client
+            getNegotiatedProtocol() >> protocol
+            send(_ as SMB2TreeConnectRequest,null) >> {
+                c,k->Mock(Future) {
+                    get() >> {
+                        def response = new SMB2TreeConnectResponse();
+                        response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
+                        response.setCapabilities(EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS));
+                        response.setShareType((byte)0x01);
+                        response
+                    }
+                }
+            }
+            send(_ as SMB2IoctlRequest,null) >> {
+                c,k->Mock(Future) {
+                    get() >> {
+                        def response = new SMB2IoctlResponse()
+                        response.setOutputBuffer("260001000300000004002200010004002c01000022004a007200000000000000000000000000000000005c00350032002e00350033002e003100380034002e00390031005c00730061006c006500730000005c00350032002e00350033002e003100380034002e00390031005c00730061006c006500730000005c00570049004e002d004e0051005500390049004f0042004500340056004a005c00530061006c00650073000000".decodeHex())
+                        response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
+                        response
+                    }
+                }
+            }
+            authenticate(_) >> { AuthenticationContext auth ->
+                new Session(0, connection, auth, null, false);
+            }
+        }
         DFS dfs = new DFS();
-        Connection connection = new Connection(null, null, null, null);
         AuthenticationContext auth = new AuthenticationContext("username","password".toCharArray(),"domain");
-        Session session = new Session(0, connection, auth, null, false);//TODO fill me in
-        String path = "\\WIN-NQU9IOBE4VJ\\Sales";
+        session = new Session(0, connection, auth, null, false);//TODO fill me in
+        String path = "\\52.53.184.91\\Sales";
        
         when:
-        newPath = dfs.resolvePath(session, path);
+        def newPath = dfs.resolvePath(session, path);
         
         then:
-        "\\52.53.184.91\\sales"==newPath
+        "\\WIN-NQU9IOBE4VJ\\Sales"==newPath
 
     }
     // test resolve with domain cache populated
