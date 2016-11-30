@@ -34,7 +34,7 @@ public class UserHostSessionTable {
         table.put(new Index(session.getAuthenticationContext(),session.getConnection().getRemoteHostname()), session);
     }
     public void remove(Session session) {
-        table.remove(new Index(session.getAuthenticationContext(),session.getConnection().getRemoteHostname()), session);
+        table.remove(new Index(session.getAuthenticationContext(),session.getConnection().getRemoteHostname()));
     }
     
     //helper class to merge the two keys into one key for the hash table
