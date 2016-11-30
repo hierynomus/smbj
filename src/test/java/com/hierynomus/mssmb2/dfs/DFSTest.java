@@ -15,23 +15,15 @@
  */
 package com.hierynomus.mssmb2.dfs;
 
-import java.io.IOException;
 import java.util.Arrays;
 
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.Test;
 
-import com.hierynomus.mssmb2.dfs.DFS;
-import com.hierynomus.mssmb2.dfs.DFSException;
 import com.hierynomus.mssmb2.dfs.DFSReferral;
 import com.hierynomus.mssmb2.dfs.SMB2GetDFSReferralResponse;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
-import com.hierynomus.smbj.SMBClient;
-import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.session.Session;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
