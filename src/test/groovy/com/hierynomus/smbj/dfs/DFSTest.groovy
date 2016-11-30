@@ -23,10 +23,11 @@ import java.util.concurrent.Future;
 
 import org.junit.Test;
 
-import com.hierynomus.mssmb2.dfs.DFS;
-import com.hierynomus.mssmb2.dfs.DFSException;
-import com.hierynomus.mssmb2.dfs.DFSReferral;
-import com.hierynomus.mssmb2.dfs.DFS.ReferralResult;
+import com.hierynomus.msdfsc.DFS;
+import com.hierynomus.msdfsc.DFSException;
+import com.hierynomus.msdfsc.DFSReferral;
+import com.hierynomus.msdfsc.DFS.ReferralResult;
+import com.hierynomus.msdfsc.SMB2GetDFSReferralResponse;
 import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
 import com.hierynomus.mssmb2.messages.SMB2IoctlRequest;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
@@ -49,7 +50,6 @@ import com.hierynomus.smbj.connection.Request
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.smbj.common.SMBBuffer
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
-import com.hierynomus.mssmb2.dfs.SMB2GetDFSReferralResponse;
 
 import spock.lang.Specification
 

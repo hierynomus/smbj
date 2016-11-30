@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 package com.hierynomus.smbj.dfs
-import com.hierynomus.mssmb2.dfs.DFS;
-import com.hierynomus.mssmb2.dfs.DFSException;
-import com.hierynomus.mssmb2.dfs.UserHostSessionTable
-import com.hierynomus.mssmb2.dfs.DFS.ReferralResult;
+import com.hierynomus.msdfsc.DFS;
+import com.hierynomus.msdfsc.DFSException;
+import com.hierynomus.msdfsc.UserHostSessionTable
+import com.hierynomus.msdfsc.DFS.ReferralResult;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
 import com.hierynomus.smbj.DefaultConfig
 import com.hierynomus.smbj.common.SmbPath;
