@@ -16,53 +16,69 @@
 package com.hierynomus.mssmb2.dfs;
 
 import java.util.Hashtable;
+
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.session.Session;
 
 /**
  * table to store Sessions indexed by domain/user and remote host name.
+ * 
  * @author cherrmann
  *
  */
 public class UserHostSessionTable {
-    private Hashtable<Index,Session> table = new Hashtable<Index,Session>();
+    private Hashtable<Index, Session> table = new Hashtable<Index, Session>();
+
     public Session lookup(AuthenticationContext auth, String hostName) {
-        Index i = new Index(auth,hostName);
+        Index i = new Index(auth, hostName);
         return table.get(i);
     }
+
     public void register(Session session) {
-        table.put(new Index(session.getAuthenticationContext(),session.getConnection().getRemoteHostname()), session);
+        table.put(new Index(session.getAuthenticationContext(), session.getConnection().getRemoteHostname()), session);
     }
+
     public void remove(Session session) {
-        table.remove(new Index(session.getAuthenticationContext(),session.getConnection().getRemoteHostname()));
+        table.remove(new Index(session.getAuthenticationContext(), session.getConnection().getRemoteHostname()));
     }
-    
+
     //helper class to merge the two keys into one key for the hash table
     class Index {
         AuthenticationContext auth;
         String hostName;
+
         Index(AuthenticationContext auth, String hostName) {
-            if (auth == null || hostName == null)
+            if (auth == null || hostName == null) {
                 throw new NullPointerException();
+            }
             this.auth = auth;
             this.hostName = hostName;
         }
+
+        @Override
         public boolean equals(Object o) {
-            if (this == o) 
+            if (this == o) {
                 return true;
-            if (o == null)
+            }
+            if (o == null) {
                 return false;
-            if (getClass() != o.getClass())
+            }
+            if (getClass() != o.getClass()) {
                 return false;
+            }
             Index i = (Index) o;
             return (auth.getUsername().equals(i.auth.getUsername()) && auth.getDomain().equals(i.auth.getDomain()));
         }
+
+        @Override
         public int hashCode() {
             int h = (auth.getUsername().hashCode() ^ auth.getDomain().hashCode() ^ hostName.hashCode());
             return h;
         }
+
+        @Override
         public String toString() {
-            return "["+auth.getUsername()+","+auth.getDomain()+","+hostName+"]";
+            return "[" + auth.getUsername() + "," + auth.getDomain() + "," + hostName + "]";
         }
     }
 }

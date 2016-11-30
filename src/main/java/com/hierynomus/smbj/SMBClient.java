@@ -18,6 +18,7 @@ package com.hierynomus.smbj;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
@@ -70,7 +71,7 @@ public class SMBClient {
     }
 
     private Connection getEstablishedOrConnect(String hostname, int port) throws IOException {
-        String socketAddress = hostname+":"+port;
+        String socketAddress = hostname + ":" + port;
         synchronized (this) {
             if (!connectionTable.containsKey(socketAddress)) {
                 Connection connection = new Connection(config, this, new DirectTcpTransport(), bus);

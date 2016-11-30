@@ -73,6 +73,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     private ConnectionInfo connectionInfo;
 
     private SMBClient client;
+
     public SMBClient getClient() {
         return client;
     }
@@ -101,7 +102,6 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         this.bus = connection.bus;
         bus.subscribe(this);
     }
-
 
     /**
      * On connection establishment, also initializes the transport via {@link DirectTcpTransport#init}.
@@ -173,7 +173,9 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
     private SMB2SessionSetup authenticationRound(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {
         byte[] securityContext = authenticator.authenticate(authContext, inputToken, session);
-        SMB2SessionSetup req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED));
+
+        SMB2SessionSetup req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED), 
+                connectionInfo.getClientCapabilities());
         req.setSecurityBuffer(securityContext);
         req.getHeader().setSessionId(session.getSessionId());
         return sendAndReceive(req);
@@ -269,7 +271,6 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         logger.info("Negotiated the following connection settings: {}", connectionInfo);
     }
 
-
     /**
      * [MS-SMB2].pdf 3.1.5.2 Calculating the CreditCharge
      */
@@ -357,7 +358,6 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     public void handleError(Throwable t) {
         connectionInfo.getOutstandingRequests().handleError(t);
     }
-
 
     @Handler
     private void sessionLogoff(SessionLoggedOff loggedOff) {

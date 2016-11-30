@@ -17,6 +17,7 @@ package com.hierynomus.smbj.connection;
 
 import java.util.EnumSet;
 import java.util.UUID;
+
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.protocol.commons.EnumWithValue;
 
@@ -71,7 +72,6 @@ public class ConnectionInfo {
     private byte[] preauthIntegrityHashValue;
     private String cipherId;
 
-
     public ConnectionInfo(UUID clientGuid, String serverName) {
         // new SessionTable
         // new OutstandingRequests
@@ -79,6 +79,7 @@ public class ConnectionInfo {
         this.sequenceWindow = new SequenceWindow();
         this.gssNegotiateToken = new byte[0];
         this.serverName = serverName;
+        this.clientCapabilities = EnumSet.of(GlobalCapability.SMB2_GLOBAL_CAP_DFS);
     }
 
     void negotiated(SMB2NegotiateResponse response) {
@@ -127,6 +128,10 @@ public class ConnectionInfo {
 
     public boolean supports(GlobalCapability capability) {
         return serverCapabilities.contains(capability);
+    }
+
+    public EnumSet<GlobalCapability> getClientCapabilities() {
+        return clientCapabilities;
     }
 
     @Override
