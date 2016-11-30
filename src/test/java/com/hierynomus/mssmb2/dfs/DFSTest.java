@@ -20,10 +20,11 @@ import java.util.Arrays;
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.Test;
 
-import com.hierynomus.mssmb2.dfs.DFSReferral;
-import com.hierynomus.mssmb2.dfs.SMB2GetDFSReferralResponse;
+import com.hierynomus.msdfsc.DFSReferral;
+import com.hierynomus.msdfsc.SMB2GetDFSReferralResponse;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
 import com.hierynomus.smbj.common.SMBBuffer;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 

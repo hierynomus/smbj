@@ -23,11 +23,11 @@ import javax.crypto.spec.SecretKeySpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.hierynomus.msdfsc.DFS;
+import com.hierynomus.msdfsc.DFSException;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
-import com.hierynomus.mssmb2.dfs.DFS;
-import com.hierynomus.mssmb2.dfs.DFSException;
 import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
 import com.hierynomus.mssmb2.messages.SMB2Logoff;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;

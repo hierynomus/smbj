@@ -13,21 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.mssmb2.dfs;
+package com.hierynomus.msdfsc;
 
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.mserref.NtStatus;
 
-public class SMB2GetDFSReferral {
+public class DFSException extends Exception {
+    NtStatus status;
     
-    int maxReferralLevel = 1; //TODO shall we support version 1,2,3,4?
-    String requestFileName;
-    
-    public SMB2GetDFSReferral(String path) {
-        requestFileName = path;
+    public DFSException(NtStatus status) {
+        super();
+        this.status = status;
     }
-    
-    public void writeTo(SMBBuffer buffer) {
-        buffer.putUInt16(maxReferralLevel);
-        buffer.putZString(requestFileName);
+    public DFSException(Throwable t) {
+        super(t);
+        this.status = NtStatus.UNKNOWN;
+    }
+    public NtStatus getStatus() {
+        return status;
     }
 }

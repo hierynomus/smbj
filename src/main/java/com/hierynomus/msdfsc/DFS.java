@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.mssmb2.dfs;
+package com.hierynomus.msdfsc;
 
 import java.io.IOException;
 import java.util.concurrent.Future;
@@ -21,6 +21,9 @@ import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.hierynomus.msdfsc.DomainCache;
+import com.hierynomus.msdfsc.DomainCache.DomainCacheEntry;
+import com.hierynomus.msdfsc.ReferralCache.ReferralCacheEntry;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
@@ -37,9 +40,6 @@ import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.Share;
 import com.hierynomus.smbj.share.TreeConnect;
 import com.hierynomus.smbj.transport.TransportException;
-import com.hierynomus.mssmb2.dfs.DomainCache;
-import com.hierynomus.mssmb2.dfs.DomainCache.DomainCacheEntry;
-import com.hierynomus.mssmb2.dfs.ReferralCache.ReferralCacheEntry;
 
 public class DFS {
     private static final Logger logger = LoggerFactory.getLogger(DFS.class);
