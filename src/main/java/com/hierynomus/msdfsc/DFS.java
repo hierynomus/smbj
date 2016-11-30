@@ -130,7 +130,7 @@ public class DFS {
                         domainCacheEntry = r.domainCacheEntry;
                     } 
 
-                    if (pathEntries[1]=="SYSVOL" || pathEntries[1]=="NETLOGON") {
+                    if ("SYSVOL".equals(pathEntries[1]) || "NETLOGON".equals(pathEntries[1])) {
 // 10. [sysvol referral request] Issue a sysvol referral request, as specified in section 3.1.4.2, providing 'SYSVOL', 
 // the DCHint DC of the DomainCache entry that corresponds to the domain name in the first path component, UserCredentials, 
 // MaxOutputSize, and Path as parameters. 
@@ -214,7 +214,7 @@ public class DFS {
 //     - If Interlink is not set in the ReferralCache entry then the TargetHint is not in another 
 //       DFS namespace. Go to step 3.
                 if (referralCacheEntry.rootOrLink==ReferralCache.RootOrLink.RCE_LINK && referralCacheEntry.interlink
-                                && pathEntries[1]!="SYSVOL" && pathEntries[1]!="NETLOGON") {
+                                && !"SYSVOL".equals(pathEntries[1]) && !"NETLOGON".equals(pathEntries[1])) {
 //    11. [interlink] Replace the portion of the path that matches the DFSPathPrefix of the ReferralCache entry with TargetHint. 
 //    For example, if the path is \MyDomain\MyDfs\MyLink\MyDir and the referral entry contains \MyDomain\MyDfs\MyLink 
 //    with a DFS target path of \someserver\someshare\somepath, the effective path becomes \someserver\someshare\somepath\MyDir. 
@@ -311,9 +311,9 @@ public class DFS {
             SMB2GetDFSReferralResponse resp = new SMB2GetDFSReferralResponse(originalPath);
             resp.read(new SMBBuffer(message.getOutputBuffer()));
 
-            if (type.equals("DC")) {
+            if ("DC".equals(type)) {
                 DomainCacheEntry domainCacheEntry = domainCache.new DomainCacheEntry(resp);
-                domainCache.put(domainCacheEntry);;
+                domainCache.put(domainCacheEntry);
                 result.domainCacheEntry = domainCacheEntry;
             } else {
                 ReferralCacheEntry referralCacheEntry = referralCache.new ReferralCacheEntry(resp);

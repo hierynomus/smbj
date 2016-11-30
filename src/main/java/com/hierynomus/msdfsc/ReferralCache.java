@@ -103,11 +103,9 @@ public class ReferralCache {
             this.interlink = isSet(response.referralHeaderFlags, ReferralHeaderFlags.ReferralServers)
                     && !isSet(response.referralHeaderFlags, ReferralHeaderFlags.StorageServers);
             // TODO this is ugly
-            if (!this.interlink) {
-                if (response.referralEntries.size() == 1) {
-                    String[] pathEntries = DFS.parsePath(response.referralEntries.get(0).path);
-                    DFS.dfs.domainCache.lookup(pathEntries[0]);
-                }
+            if (!this.interlink && response.referralEntries.size() == 1) {
+                String[] pathEntries = DFS.parsePath(response.referralEntries.get(0).path);
+                DFS.dfs.domainCache.lookup(pathEntries[0]);
             }
             this.ttl = response.referralEntries.get(0).timeToLive;
             this.expires = System.currentTimeMillis() + this.ttl * 1000L;

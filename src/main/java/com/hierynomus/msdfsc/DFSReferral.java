@@ -98,33 +98,15 @@ public class DFSReferral {
         referralEntryFlags = buffer.readUInt16();
         
         switch(versionNumber) {
-        case 1:
-            path = buffer.readZString();
-            break;
-        case 2:
-            proximity = buffer.readUInt32AsInt();
-            ttl = buffer.readUInt32AsInt();
-            dfsPathOffset = buffer.readUInt16();
-            dfsAlternatePathOffset = buffer.readUInt16();
-            networkAddressOffset = buffer.readUInt16();
-            r = buffer.rpos();
-            buffer.rpos(start+dfsPathOffset);
-            dfsPath = buffer.readZString();
-            buffer.rpos(start+dfsAlternatePathOffset);
-            dfsAlternatePath = buffer.readZString();
-            buffer.rpos(start+networkAddressOffset);
-            path = buffer.readZString();
-            
-            buffer.rpos(r+size);
-            break;
-        case 3:
-        case 4:
-            ttl = buffer.readUInt32AsInt();
-            if ((referralEntryFlags & 0x0002) == 0) {
+            case 1:
+                path = buffer.readZString();
+                break;
+            case 2:
+                proximity = buffer.readUInt32AsInt();
+                ttl = buffer.readUInt32AsInt();
                 dfsPathOffset = buffer.readUInt16();
                 dfsAlternatePathOffset = buffer.readUInt16();
                 networkAddressOffset = buffer.readUInt16();
-                buffer.readUInt16(); // skip GUID
                 r = buffer.rpos();
                 buffer.rpos(start+dfsPathOffset);
                 dfsPath = buffer.readZString();
@@ -132,23 +114,41 @@ public class DFSReferral {
                 dfsAlternatePath = buffer.readZString();
                 buffer.rpos(start+networkAddressOffset);
                 path = buffer.readZString();
-            } else {
-                specialNameOffset = buffer.readUInt16();
-                numberOfExpandedNames = buffer.readUInt16();
-                expandedNameOffset = buffer.readUInt16();
-                r = buffer.rpos();
-                buffer.rpos(start+specialNameOffset);
-                specialName = buffer.readZString();
-                buffer.rpos(start+expandedNameOffset);
-                expandedNames = new ArrayList<String>(numberOfExpandedNames);
-                for (int i=0; i<numberOfExpandedNames; i++) {
-                    expandedNames.add(buffer.readZString());
-                }
+                
                 buffer.rpos(r+size);
-            }
-            break;
-        default:
-            throw new RuntimeException("error");
+                break;
+            case 3:
+            case 4:
+                ttl = buffer.readUInt32AsInt();
+                if ((referralEntryFlags & 0x0002) == 0) {
+                    dfsPathOffset = buffer.readUInt16();
+                    dfsAlternatePathOffset = buffer.readUInt16();
+                    networkAddressOffset = buffer.readUInt16();
+                    buffer.readUInt16(); // skip GUID
+                    r = buffer.rpos();
+                    buffer.rpos(start+dfsPathOffset);
+                    dfsPath = buffer.readZString();
+                    buffer.rpos(start+dfsAlternatePathOffset);
+                    dfsAlternatePath = buffer.readZString();
+                    buffer.rpos(start+networkAddressOffset);
+                    path = buffer.readZString();
+                } else {
+                    specialNameOffset = buffer.readUInt16();
+                    numberOfExpandedNames = buffer.readUInt16();
+                    expandedNameOffset = buffer.readUInt16();
+                    r = buffer.rpos();
+                    buffer.rpos(start+specialNameOffset);
+                    specialName = buffer.readZString();
+                    buffer.rpos(start+expandedNameOffset);
+                    expandedNames = new ArrayList<String>(numberOfExpandedNames);
+                    for (int i=0; i<numberOfExpandedNames; i++) {
+                        expandedNames.add(buffer.readZString());
+                    }
+                    buffer.rpos(r+size);
+                }
+                break;
+            default:
+                throw new RuntimeException("error");
         }
     }
 
@@ -157,18 +157,18 @@ public class DFSReferral {
         buffer.putUInt16(versionNumber);
         int size;
         switch(versionNumber){
-        case 1: 
-            size = 8+(path.length()+1)*2;
-            break;
-        case 2:
-            size = REFERRAL_V2_SIZE;
-            break;
-        case 3:
-        case 4:
-            size = REFERRAL_V34_SIZE;
-            break;
-        default:
-            throw new IllegalStateException("Invalid versionNumber");
+            case 1: 
+                size = 8+(path.length()+1)*2;
+                break;
+            case 2:
+                size = REFERRAL_V2_SIZE;
+                break;
+            case 3:
+            case 4:
+                size = REFERRAL_V34_SIZE;
+                break;
+            default:
+                throw new IllegalStateException("Invalid versionNumber");
         }
         buffer.putUInt16(size); //size
         buffer.putUInt16(serverType);
@@ -178,53 +178,53 @@ public class DFSReferral {
         buffer.putUInt16(referralEntryFlags);
         
         switch(versionNumber) {
-        case 1:
-            buffer.putZString(path);
-            break;
-        case 2:
-            buffer.putUInt32(proximity);
-            buffer.putUInt32(ttl);
-            b = REFERRAL_V2_SIZE;
-            buffer.putUInt16(b+6);
-            buffer.putUInt16(b+6+(dfsPath.length()+1)*2);
-            buffer.putUInt16(b+6+((dfsPath.length()+1)*2)+((dfsAlternatePath.length()+1)*2));
-            buffer.putZString(dfsPath);
-            buffer.putZString(dfsAlternatePath);
-            buffer.putZString(path);
-            break;
-        case 3:
-        case 4:
-            buffer.putUInt32(ttl);
-            if ((referralEntryFlags & 0x0002) == 0) {
-                b = REFERRAL_V34_SIZE;
-                buffer.putUInt16(b);
-                b += ((dfsPath!=null)?((dfsPath.length()+1)*2):0);
-                buffer.putUInt16(b);
-                b += ((dfsAlternatePath!=null)?((dfsAlternatePath.length()+1)*2):0);
-                buffer.putUInt16(b);
-                buffer.putReserved4(); // padding
-                buffer.putReserved4();
-                buffer.putReserved4();
-                buffer.putReserved4();
-                if (dfsPath != null)
-                    buffer.putZString(dfsPath);
-                if (dfsAlternatePath != null)
-                    buffer.putZString(dfsAlternatePath);
-                if (path != null)
-                    buffer.putZString(path);
-            } else {
-                b = buffer.wpos();
+            case 1:
+                buffer.putZString(path);
+                break;
+            case 2:
+                buffer.putUInt32(proximity);
+                buffer.putUInt32(ttl);
+                b = REFERRAL_V2_SIZE;
                 buffer.putUInt16(b+6);
-                buffer.putUInt16(expandedNames.size());
-                buffer.putUInt16(b+6+(specialName.length()+1)*2);
-                buffer.putZString(specialName);
-                for (int i=0; i<expandedNames.size(); i++) {
-                    buffer.putZString(expandedNames.get(i));
+                buffer.putUInt16(b+6+(dfsPath.length()+1)*2);
+                buffer.putUInt16(b+6+((dfsPath.length()+1)*2)+((dfsAlternatePath.length()+1)*2));
+                buffer.putZString(dfsPath);
+                buffer.putZString(dfsAlternatePath);
+                buffer.putZString(path);
+                break;
+            case 3:
+            case 4:
+                buffer.putUInt32(ttl);
+                if ((referralEntryFlags & 0x0002) == 0) {
+                    b = REFERRAL_V34_SIZE;
+                    buffer.putUInt16(b);
+                    b += ((dfsPath!=null)?((dfsPath.length()+1)*2):0);
+                    buffer.putUInt16(b);
+                    b += ((dfsAlternatePath!=null)?((dfsAlternatePath.length()+1)*2):0);
+                    buffer.putUInt16(b);
+                    buffer.putReserved4(); // padding
+                    buffer.putReserved4();
+                    buffer.putReserved4();
+                    buffer.putReserved4();
+                    if (dfsPath != null)
+                        buffer.putZString(dfsPath);
+                    if (dfsAlternatePath != null)
+                        buffer.putZString(dfsAlternatePath);
+                    if (path != null)
+                        buffer.putZString(path);
+                } else {
+                    b = buffer.wpos();
+                    buffer.putUInt16(b+6);
+                    buffer.putUInt16(expandedNames.size());
+                    buffer.putUInt16(b+6+(specialName.length()+1)*2);
+                    buffer.putZString(specialName);
+                    for (int i=0; i<expandedNames.size(); i++) {
+                        buffer.putZString(expandedNames.get(i));
+                    }
                 }
-            }
-            break;
-        default:
-            throw new IllegalStateException("Invalid versionNumber");
+                break;
+            default:
+                throw new IllegalStateException("Invalid versionNumber");
         }
     }
 }

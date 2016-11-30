@@ -57,8 +57,6 @@ public class DomainCache {
         //      corresponds to the domain name. If the DomainCache entry's DCList is not empty, the client MUST replace
         //      it with the DC list from the referral response and set DCHint to the first DC in the new DCList.
         public DomainCacheEntry(SMB2GetDFSReferralResponse response) {
-            List<DFSReferral> l = response.referralEntries;
-            DFSReferral rr = response.referralEntries.get(0);
             if (response.referralEntries.size() != 1) {
                 // throw error
             }
