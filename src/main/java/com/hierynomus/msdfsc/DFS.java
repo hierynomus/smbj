@@ -348,7 +348,7 @@ public class DFS {
         if (path.startsWith("\\\\")) {
             return path.substring(2).split("\\\\"); // this is a regex, so it means "split on single backslash"
         } else if (path.startsWith("\\")) {
-        return path.substring(1).split("\\\\"); // this is a regex, so it means "split on single backslash"
+            return path.substring(1).split("\\\\"); // this is a regex, so it means "split on single backslash"
         } else {
             return path.split("\\\\"); // this is a regex, so it means "split on single backslash"
         }
