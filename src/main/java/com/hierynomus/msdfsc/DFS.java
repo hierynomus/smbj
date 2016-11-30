@@ -172,7 +172,7 @@ public class DFS {
 
             if (referralCacheEntry == null) {
                 if (hostName == null) {
-                    throw new NullPointerException("Not expecting hostName to be null");
+                    throw new IllegalStateException("Not expecting hostName to be null");
                 }
 // 6. [DFS Root referral request] Issue a DFS root referral request, as specified in section 3.1.4.2, providing "ROOT", 
 //     the first path component, UserCredentials, MaxOutputSize, and Path as parameters. The processing of the referral 
@@ -184,7 +184,7 @@ public class DFS {
 //        succeeded (as would have occurred in the case of a previous Interlink - see step 11 - or a domain root 
 //        referral, when entering from step 5), the path is in a DFS namespace. Go to step 14.
 //     3. The path is not a DFS path and no further processing is required. Go to step 12.
-                ReferralResult r = sendReferralRequest("ROOT", pathEntries[0], session, path );
+                ReferralResult r = sendReferralRequest("ROOT", pathEntries[0], session, path);
 
                 if (r.error == NtStatus.STATUS_SUCCESS) {
                     isDFSPath = true; // remember that the path contained at least one DFS translation

@@ -15,6 +15,7 @@
  */
 package com.hierynomus.msdfsc;
 
+import java.security.InvalidParameterException;
 import java.util.Hashtable;
 
 import com.hierynomus.smbj.auth.AuthenticationContext;
@@ -49,7 +50,7 @@ public class UserHostSessionTable {
 
         Index(AuthenticationContext auth, String hostName) {
             if (auth == null || hostName == null) {
-                throw new NullPointerException();
+                throw new InvalidParameterException("Cannot use null as index key");
             }
             this.auth = auth;
             this.hostName = hostName;

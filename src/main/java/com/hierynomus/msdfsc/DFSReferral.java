@@ -88,8 +88,14 @@ public class DFSReferral {
     }
 
     private void readRef(SMBBuffer buffer) throws BufferException {
-        int size, dfsPathOffset, dfsAlternatePathOffset, networkAddressOffset;
-        int start, specialNameOffset, numberOfExpandedNames, expandedNameOffset;
+        int size;
+        int dfsPathOffset;
+        int dfsAlternatePathOffset;
+        int networkAddressOffset;
+        int start;
+        int specialNameOffset;
+        int numberOfExpandedNames;
+        int expandedNameOffset;
         int r;
         start = buffer.rpos();
         versionNumber = buffer.readUInt16();
@@ -148,7 +154,7 @@ public class DFSReferral {
                 }
                 break;
             default:
-                throw new RuntimeException("error");
+                throw new IllegalStateException("Invalid referral version number");
         }
     }
 
