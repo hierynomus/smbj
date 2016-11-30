@@ -23,4 +23,10 @@ class SIDTest extends Specification {
         expect:
         SID.EVERYONE.toString() == "S-1-1-0"
     }
+
+    def "SID identity"() {
+      SID s1 = new SID((byte) 1, [0, 0, 0, 0, 0, 1] as byte[], [0] as long[]);
+      SID s2 = new SID((byte) 1, [0, 0, 0, 0, 0, 1] as byte[], [0] as long[]);
+      s1 == s2
+    }
 }
