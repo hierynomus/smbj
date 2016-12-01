@@ -100,7 +100,11 @@ public class Share implements AutoCloseable {
         Session session = treeConnect.getSession();
         
         if (treeConnect.isDfsShare()) {
+            if (path != null) {
             path = treeConnect.getConnection().getRemoteHostname()+"\\"+treeConnect.getShareName()+"\\"+path;
+            } else {
+                path = treeConnect.getConnection().getRemoteHostname()+"\\"+treeConnect.getShareName();
+            }
         }
         SMB2CreateRequest cr = new SMB2CreateRequest(
             session.getConnection().getNegotiatedProtocol().getDialect(),
