@@ -332,7 +332,6 @@ public class SmbjTest {
         }
     }
 
-
     //@Test
     public void manualTestNotify() throws IOException {
 
