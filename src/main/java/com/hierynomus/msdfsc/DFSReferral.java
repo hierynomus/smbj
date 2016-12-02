@@ -49,7 +49,6 @@ public class DFSReferral {
         int ttl,
         int serverType,
         int referralEntryFlags,
-        String link,
         String path,
         int proximity,
         String dfsPath,

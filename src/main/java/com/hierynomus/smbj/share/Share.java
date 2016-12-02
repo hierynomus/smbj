@@ -101,7 +101,7 @@ public class Share implements AutoCloseable {
         
         if (treeConnect.isDfsShare()) {
             if (path != null) {
-            path = treeConnect.getConnection().getRemoteHostname()+"\\"+treeConnect.getShareName()+"\\"+path;
+                path = treeConnect.getConnection().getRemoteHostname()+"\\"+treeConnect.getShareName()+"\\"+path;
             } else {
                 path = treeConnect.getConnection().getRemoteHostname()+"\\"+treeConnect.getShareName();
             }

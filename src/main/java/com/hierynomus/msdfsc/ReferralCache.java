@@ -113,7 +113,7 @@ public class ReferralCache {
             if (!this.interlink && response.referralEntries.size() == 1) {
                 String[] pathEntries = DFS.parsePath(response.referralEntries.get(0).path);
                 DFS.dfs.domainCache.lookup(pathEntries[0]);
-                //TODO: and then what?
+                //TODO and then what?
             }
             this.ttl = response.referralEntries.get(0).ttl;
             this.expires = System.currentTimeMillis() + this.ttl * 1000L;

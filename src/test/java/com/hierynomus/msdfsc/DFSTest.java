@@ -37,22 +37,22 @@ public class DFSTest{
 
     @Test 
     public void decodeDFSReferral() throws BufferException {
-       String s = "260001000300000004002200010004002c01000022004a007200000000000000000000000000000000005c00350032002e00350033002e003100380034002e00390031005c00730061006c006500730000005c00350032002e00350033002e003100380034002e00390031005c00730061006c006500730000005c00570049004e002d004e0051005500390049004f0042004500340056004a005c00530061006c00650073000000";
-       SMBBuffer buf = new SMBBuffer(Hex.decode(s));
-       SMB2GetDFSReferralResponse resp  = new SMB2GetDFSReferralResponse("\\52.53.184.91\\Sales");
-       resp.read(buf);
-       SMBBuffer buf2 = new SMBBuffer();
-       resp.writeTo(buf2);
-       buf.rpos(0);
-       buf2.rpos(0);
-       byte[] b1 = buf.getCompactData();
-       byte[] b2 = buf2.getCompactData();
-       assertTrue(Arrays.equals(b1,b2));
+        String s = "260001000300000004002200010004002c01000022004a007200000000000000000000000000000000005c00350032002e00350033002e003100380034002e00390031005c00730061006c006500730000005c00350032002e00350033002e003100380034002e00390031005c00730061006c006500730000005c00570049004e002d004e0051005500390049004f0042004500340056004a005c00530061006c00650073000000";
+        SMBBuffer buf = new SMBBuffer(Hex.decode(s));
+        SMB2GetDFSReferralResponse resp  = new SMB2GetDFSReferralResponse("\\52.53.184.91\\Sales");
+        resp.read(buf);
+        SMBBuffer buf2 = new SMBBuffer();
+        resp.writeTo(buf2);
+        buf.rpos(0);
+        buf2.rpos(0);
+        byte[] b1 = buf.getCompactData();
+        byte[] b2 = buf2.getCompactData();
+        assertTrue(Arrays.equals(b1,b2));
     }
     
     @Test
     public void encodeDFSReferralResponse() throws BufferException {
-        DFSReferral referralEntry = new DFSReferral(4, 300, DFSReferral.SERVERTYPE_ROOT, 4, "\\WIN-NQU9IOBE4VJ\\Sales", 
+        DFSReferral referralEntry = new DFSReferral(4, 300, DFSReferral.SERVERTYPE_ROOT, 4,  
                         "\\WIN-NQU9IOBE4VJ\\Sales", 0, "\\52.53.184.91\\sales", "\\52.53.184.91\\sales", null, null);
         
         DFSReferral[] referrals = new DFSReferral[]{referralEntry};

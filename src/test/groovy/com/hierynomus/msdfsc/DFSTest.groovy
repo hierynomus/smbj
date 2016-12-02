@@ -157,7 +157,6 @@ class DFSTest  extends Specification {
                                 1000,
                                 DFSReferral.SERVERTYPE_ROOT,
                                 2, // NameListReferral
-                                null,
                                 "\\domain.com",
                                 0,
                                 destination,
@@ -179,7 +178,6 @@ class DFSTest  extends Specification {
                                 1000, // ttl
                                 DFSReferral.SERVERTYPE_ROOT,
                                 0,    // referralEntryFlags: non-NameListReferral
-                                null, // link
                                 "\\WIN-NQU9IOBE4VJ\\Sales", // networkAddress
                                 0,    // proximity
                                 "\\domain.com\\Sales", // dfsPath
