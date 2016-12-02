@@ -19,7 +19,7 @@ import com.hierynomus.smbj.common.SMBBuffer;
 
 public class SMB2GetDFSReferral {
     
-    int maxReferralLevel = 1; //TODO shall we support version 1,2,3,4?
+    int maxReferralLevel = 4;
     String requestFileName;
     
     public SMB2GetDFSReferral(String path) {

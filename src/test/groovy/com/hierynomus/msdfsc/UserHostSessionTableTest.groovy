@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.dfs
+package com.hierynomus.msdfsc
 import com.hierynomus.msdfsc.DFS;
 import com.hierynomus.msdfsc.DFSException;
 import com.hierynomus.msdfsc.UserHostSessionTable

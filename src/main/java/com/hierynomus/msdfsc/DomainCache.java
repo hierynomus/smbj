@@ -58,11 +58,15 @@ public class DomainCache {
         //      it with the DC list from the referral response and set DCHint to the first DC in the new DCList.
         public DomainCacheEntry(SMB2GetDFSReferralResponse response) {
             if (response.referralEntries.size() != 1) {
-                throw new IllegalStateException("Expecting exactly 1 referral for a domain referral");
+                throw new IllegalStateException("Expecting exactly 1 referral for a domain referral, found: "+response.referralEntries.size());
             }
             domainName = response.referralEntries.get(0).specialName;
             DCHint = response.referralEntries.get(0).expandedNames.get(0);
             DCList = response.referralEntries.get(0).expandedNames;
+        }
+        
+        public String toString() {
+            return domainName+"->"+DCHint+", "+DCList;
         }
     }
 

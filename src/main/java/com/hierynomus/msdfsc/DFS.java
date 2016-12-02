@@ -115,20 +115,30 @@ public class DFS {
                 domainCacheEntry = domainCache.lookup(pathEntries[0]);
                 if (domainCacheEntry == null) {
                     // use the first path component as the host name for DFS root referral
+                    String bootstrapDC = session.getAuthenticationContext().getDomain();
                     hostName = pathEntries[0];
-                    isDomainOrPath = true;
-                } else { // domainCacheEntry found
-                    isDFSPath = true; // remember that the path contained at least one DFS translation
-
-                    if (domainCacheEntry.DCHint == null || domainCacheEntry.DCHint.isEmpty()) {
+                    if (hostName.equals(bootstrapDC)) {
                         // we will send the domain referral request to the user's domain
-                        String bootstrapDC = session.getAuthenticationContext().getDomain();
-                        ReferralResult r = sendReferralRequest("DC", bootstrapDC, session, path);
+                        ReferralResult r = sendReferralRequest("DC", bootstrapDC, session, pathEntries[0]);
                         if (r.error != NtStatus.STATUS_SUCCESS) {
                             throw new DFSException(r.error); // step13: fail with error
                         }
                         domainCacheEntry = r.domainCacheEntry;
-                    } 
+                    }
+                    isDomainOrPath = true;
+                }
+                if (domainCacheEntry != null) { // domainCacheEntry found
+                    isDFSPath = true; // remember that the path contained at least one DFS translation
+//TODO figure this out
+//                    if (domainCacheEntry.DCHint == null || domainCacheEntry.DCHint.isEmpty()) {
+//                        // we will send the domain referral request to the user's domain
+//                        String bootstrapDC = session.getAuthenticationContext().getDomain();
+//                        ReferralResult r = sendReferralRequest("DC", bootstrapDC, session, path);
+//                        if (r.error != NtStatus.STATUS_SUCCESS) {
+//                            throw new DFSException(r.error); // step13: fail with error
+//                        }
+//                        domainCacheEntry = r.domainCacheEntry;
+//                    } 
 
                     if ("SYSVOL".equals(pathEntries[1]) || "NETLOGON".equals(pathEntries[1])) {
 // 10. [sysvol referral request] Issue a sysvol referral request, as specified in section 3.1.4.2, providing 'SYSVOL', 
@@ -168,7 +178,7 @@ public class DFS {
                 if (r.error != NtStatus.STATUS_SUCCESS) {
                     throw new DFSException(r.error); // step14: fail with error
                 }
-            } 
+            }
 
             if (referralCacheEntry == null) {
                 if (hostName == null) {
@@ -184,7 +194,7 @@ public class DFS {
 //        succeeded (as would have occurred in the case of a previous Interlink - see step 11 - or a domain root 
 //        referral, when entering from step 5), the path is in a DFS namespace. Go to step 14.
 //     3. The path is not a DFS path and no further processing is required. Go to step 12.
-                ReferralResult r = sendReferralRequest("ROOT", pathEntries[0], session, path);
+                ReferralResult r = sendReferralRequest("ROOT", hostName, session, path);
 
                 if (r.error == NtStatus.STATUS_SUCCESS) {
                     isDFSPath = true; // remember that the path contained at least one DFS translation
@@ -228,7 +238,9 @@ public class DFS {
 // For example, if the path is \MyDomain\MyDfs\MyDir and the ReferralCache entry contains 
 // \MyDomain\MyDfs with a DFS target path of \someserver\someshare\somepath, the effective 
 // path becomes \someserver\someshare\somepath\MyDir. Go to step 8.
-                    path = referralCacheEntry.targetHint.targetPath + path.substring(referralCacheEntry.dfsPathPrefix.length());
+                    path = referralCacheEntry.targetHint.targetPath + 
+                                ((path.length() > referralCacheEntry.dfsPathPrefix.length()) ? 
+                                    path.substring(referralCacheEntry.dfsPathPrefix.length()) : "");
                     //TODO should open transport/session/treeConnect to that server
                     return path;
                 }
@@ -247,7 +259,7 @@ public class DFS {
         Connection connection;
         Session dfsSession;
         ReferralResult result;
-//TODO if type is DC or DOMAIN, MaxReferralLevel is 3 or higher.  otherwise can be 4.        
+        
         if (hostName.equals(session.getConnection().getRemoteHostname())) {
             dfsSession = session;
             Share dfsShare = dfsSession.connectShare("IPC$");

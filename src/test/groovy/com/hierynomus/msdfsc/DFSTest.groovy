@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.dfs
+package com.hierynomus.msdfsc
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.UUID;
 import java.util.concurrent.Future;
+import java.util.List;
 
 import org.junit.Test;
 
@@ -106,27 +107,30 @@ class DFSTest  extends Specification {
         }
     }
     
-    def "test domain" () {
+    def "testdomain" () {
+        println "testdomain test"
         given:
+        def destination = "WIN-NQU9IOBE4VJ"
         def connection
+        def session
         def client = Stub(SMBClient) {
-            connect(_) >> connection
-            connect(_,_) >> connection
+            connect(_) >> { String host -> connection }
+            connect(_,_) >> { String host, int port ->
+                connection
+            }
         }
         def transport = Mock(TransportLayer)
         def bus = new SMBEventBus()
         def protocol = new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 1000,1000,1000,false)
-        def dfsRefResp = new SMB2GetDFSReferralResponse(String originalPath,
-            int pathConsumed,
-            int numberOfReferrals,
-            int referralHeaderFlags,
-            ArrayList<DFSReferral> referralEntries,
-            String stringBuffer)
     
         connection = Stub(Connection, constructorArgs: [new DefaultConfig(),client,transport,bus]) {
             getRemoteHostname() >> "52.53.184.91"
             getRemotePort() >> 445
             getNegotiatedProtocol() >> protocol
+            getClient() >> client
+            authenticate(_) >> {AuthenticationContext authContext -> 
+                session
+            }
             send(_ as SMB2TreeConnectRequest,null) >> {
                 c,k->Mock(Future) {
                     get() >> {
@@ -139,10 +143,62 @@ class DFSTest  extends Specification {
                 }
             }
             send(_ as SMB2IoctlRequest,null) >> {
-                c,k->Mock(Future) {
+                SMB2IoctlRequest request,k -> Mock(Future) {
                     get() >> {
+                        def d = request.inputData[2..-1] as byte[]
+                        def dbuf = new SMBBuffer(d);
+                        def path = dbuf.readZString();
                         def response = new SMB2IoctlResponse()
-                        response.setOutputBuffer("260001000300000004002200010004002c01000022004a007200000000000000000000000000000000005c00350032002e00350033002e003100380034002e00390031005c00730061006c006500730000005c00350032002e00350033002e003100380034002e00390031005c00730061006c006500730000005c00570049004e002d004e0051005500390049004f0042004500340056004a005c00530061006c00650073000000".decodeHex())
+                        def referralResponse
+                        if (path=="domain.com") {
+                            // the dc request
+                            def referralEntry = new DFSReferral(
+                                4,
+                                1000,
+                                DFSReferral.SERVERTYPE_ROOT,
+                                2, // NameListReferral
+                                null,
+                                "\\domain.com",
+                                0,
+                                destination,
+                                destination,
+                                "domain.com",
+                                [destination] as ArrayList
+                            );
+                            referralResponse = new SMB2GetDFSReferralResponse(
+                                "\\domain.com",
+                                0,
+                                1,
+                                0,
+                                [referralEntry] as ArrayList,
+                                "")
+                        } else if (path=="\\domain.com\\Sales"){
+                            //the root request
+                            def referralEntry = new DFSReferral(
+                                4,    // referral version
+                                1000, // ttl
+                                DFSReferral.SERVERTYPE_ROOT,
+                                0,    // referralEntryFlags: non-NameListReferral
+                                null, // link
+                                "\\WIN-NQU9IOBE4VJ\\Sales", // networkAddress
+                                0,    // proximity
+                                "\\domain.com\\Sales", // dfsPath
+                                "\\domain.com\\Sales", // dfsAltPath
+                                null, // no specialName
+                                null  // no expandedNames
+                            );
+                            referralResponse = new SMB2GetDFSReferralResponse(
+                                path,
+                                0,
+                                1,
+                                0,
+                                [referralEntry] as ArrayList,
+                                "")
+                        }
+                        def buf = new SMBBuffer();
+                        referralResponse.writeTo(buf);
+                        
+                        response.setOutputBuffer(buf.getCompactData())
                         response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
                         response
                     }
@@ -150,16 +206,16 @@ class DFSTest  extends Specification {
             }
         }
         
-        def auth = new AuthenticationContext("username","password".toCharArray(),"domain")
-        def session = new Session(123,connection,auth,bus,false)
-        def path = new SmbPath("52.53.184.91","Sales")
+        def auth = new AuthenticationContext("username","password".toCharArray(),"domain.com")
+        session = new Session(123,connection,auth,bus,false)
+        def path = new SmbPath("domain.com","Sales")
 
         when:
         DFS.resolveDFS(session, path)
         
         then:
         with(path) {
-            hostname=="WIN-NQU9IOBE4VJ"
+            hostname==destination
             shareName=="Sales"
         }
 

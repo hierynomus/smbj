@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.mssmb2.dfs;
+package com.hierynomus.msdfsc;
 
+import java.io.IOException;
 import java.util.Arrays;
 
 import org.bouncycastle.util.encoders.Hex;
@@ -23,7 +24,11 @@ import org.junit.Test;
 import com.hierynomus.msdfsc.DFSReferral;
 import com.hierynomus.msdfsc.SMB2GetDFSReferralResponse;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
+import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.session.Session;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -48,7 +53,7 @@ public class DFSTest{
     @Test
     public void encodeDFSReferralResponse() throws BufferException {
         DFSReferral referralEntry = new DFSReferral(4, 300, DFSReferral.SERVERTYPE_ROOT, 4, "\\WIN-NQU9IOBE4VJ\\Sales", 
-                        "\\WIN-NQU9IOBE4VJ\\Sales", 0, 0, "\\52.53.184.91\\sales", "\\52.53.184.91\\sales", null, null);
+                        "\\WIN-NQU9IOBE4VJ\\Sales", 0, "\\52.53.184.91\\sales", "\\52.53.184.91\\sales", null, null);
         
         DFSReferral[] referrals = new DFSReferral[]{referralEntry};
         
@@ -71,19 +76,18 @@ public class DFSTest{
 
     }
     
-//    @Test
-//    public void testResolvePath() throws IOException, BufferException, DFSException {
-//        SMBClient client = new SMBClient();
-//        DFS dfs = new DFS();
-//        Connection connection = client.connect("hostname");
-//        AuthenticationContext auth = new AuthenticationContext("username","password".toCharArray(),"domain");
-//        Session session = new Session(0, connection, auth, null, false);//TODO fill me in
-//        String path = "\\WIN-NQU9IOBE4VJ\\Sales";
-//        String newPath = dfs.resolvePath(session, path);
-//        
-//        assertEquals("\\52.53.184.91\\sales",newPath);
-//
-//    }
+    @Test
+    public void testResolvePath() throws IOException, BufferException, DFSException {
+        SMBClient client = new SMBClient();
+        DFS dfs = new DFS();
+        Connection connection = client.connect("hostname");
+        AuthenticationContext auth = new AuthenticationContext("username","password".toCharArray(),"domain.com");
+        Session session = new Session(0, connection, auth, null, false);//TODO fill me in
+        String path = "\\domain.com\\Sales";
+        String newPath = dfs.resolvePath(session, path);
+        
+        assertEquals("\\52.53.184.91\\sales",newPath);
+    }
     // test resolve with domain cache populated
     // test resolve with referral cache populated
     // test resolve with link resolve

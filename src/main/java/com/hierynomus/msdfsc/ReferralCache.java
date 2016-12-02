@@ -98,6 +98,13 @@ public class ReferralCache {
         List<TargetSetEntry> targetList;
 
         public ReferralCacheEntry(SMB2GetDFSReferralResponse response) {
+            for (int i = 0; i < response.referralEntries.size(); i++) {
+                if (response.referralEntries.get(i).path == null) {
+                    // illegal value for referral cache entry.
+                    throw new IllegalStateException("Path cannot be null for a ReferralCacheEntry?");
+                }
+            }
+            
             this.dfsPathPrefix = response.referralEntries.get(0).dfsPath;
             this.rootOrLink = RootOrLink.get(response.referralEntries.get(0).serverType);
             this.interlink = isSet(response.referralHeaderFlags, ReferralHeaderFlags.ReferralServers)
@@ -106,12 +113,12 @@ public class ReferralCache {
             if (!this.interlink && response.referralEntries.size() == 1) {
                 String[] pathEntries = DFS.parsePath(response.referralEntries.get(0).path);
                 DFS.dfs.domainCache.lookup(pathEntries[0]);
+                //TODO: and then what?
             }
-            this.ttl = response.referralEntries.get(0).timeToLive;
+            this.ttl = response.referralEntries.get(0).ttl;
             this.expires = System.currentTimeMillis() + this.ttl * 1000L;
-            this.targetFailback = isSet(response.referralHeaderFlags,
-                    SMB2GetDFSReferralResponse.ReferralHeaderFlags.TargetFailback);
-            List<TargetSetEntry> targetList = new ArrayList<TargetSetEntry>(response.referralEntries.size());
+            this.targetFailback = isSet(response.referralHeaderFlags, SMB2GetDFSReferralResponse.ReferralHeaderFlags.TargetFailback);
+            targetList = new ArrayList<TargetSetEntry>(response.referralEntries.size());
             for (DFSReferral r : response.referralEntries) {
                 TargetSetEntry e = new TargetSetEntry();
                 e.targetPath = r.path;
@@ -123,6 +130,10 @@ public class ReferralCache {
         boolean isExpired() {
             long now = System.currentTimeMillis();
             return (now < expires);
+        }
+        
+        public String toString() {
+            return dfsPathPrefix+"->"+targetHint.targetPath+", "+targetList;
         }
 
     }
