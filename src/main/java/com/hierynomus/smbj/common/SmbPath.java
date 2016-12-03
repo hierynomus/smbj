@@ -37,8 +37,9 @@ public class SmbPath {
         b.append(hostname);
         if (shareName != null) {
             // Clients can either pass \share or share
-            if (shareName.charAt(0) != '\\')
+            if (shareName.charAt(0) != '\\') {
                 b.append("\\");
+            }
             b.append(shareName);
             if (path != null) {
                 b.append("\\").append(path);
@@ -48,7 +49,9 @@ public class SmbPath {
     }
 
     public void parse(String newPath) {
-        int l,n,m,o;
+        int l;
+        int n;
+        int m;
         hostname = null;
         shareName = null;
         path = null;
