@@ -67,7 +67,7 @@ class DFSTest  extends Specification {
         def protocol = new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 1000,1000,1000,false)
 
         connection = Stub(Connection, constructorArgs: [new DefaultConfig(),client,transport,bus]) {
-            getRemoteHostname() >> "52.53.184.91"
+            getRemoteHostname() >> "10.0.0.10"
             getRemotePort() >> 445
             getNegotiatedProtocol() >> protocol
             send(_ as SMB2TreeConnectRequest,null) >> {
@@ -85,7 +85,9 @@ class DFSTest  extends Specification {
                 c,k->Mock(Future) {
                     get() >> {
                         def response = new SMB2IoctlResponse()
-                        response.setOutputBuffer("260001000300000004002200010004002c01000022004a007200000000000000000000000000000000005c00350032002e00350033002e003100380034002e00390031005c00730061006c006500730000005c00350032002e00350033002e003100380034002e00390031005c00730061006c006500730000005c00570049004e002d004e0051005500390049004f0042004500340056004a005c00530061006c00650073000000".decodeHex())
+                        response.setOutputBuffer("260001000300000004002200010004002c010000220044006600000000000000000000000000000000005C00310030002E0030002E0030002E00310030005C00730061006C006500730000005C00310030002E0030002E0030002E00310030005C00730061006C006500730000005C0053004500520056004500520048004F00530054005C00530061006C00650073000000".decodeHex())
+                        
+                        //response.setOutputBuffer("260001000300000004002200010004002c01000022004a007200000000000000000000000000000000005c00350032002e00350033002e003100380034002e00390031005c00730061006c006500730000005c00350032002e00350033002e003100380034002e00390031005c00730061006c006500730000005c00570049004e002d004e0051005500390049004f0042004500340056004a005c00530061006c00650073000000".decodeHex())
                         response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
                         response
                     }
@@ -93,16 +95,16 @@ class DFSTest  extends Specification {
             }
         }
         
-        def auth = new AuthenticationContext("username","password".toCharArray(),"domain")
+        def auth = new AuthenticationContext("username","password".toCharArray(),"domain.com")
         def session = new Session(123,connection,auth,bus,false)
-        def path = new SmbPath("52.53.184.91","Sales")
+        def path = new SmbPath("10.0.0.10","Sales")
 
         when:
         DFS.resolveDFS(session, path)
         
         then:
         with(path) {
-            hostname=="WIN-NQU9IOBE4VJ"
+            hostname=="SERVERHOST"
             shareName=="Sales"
         }
     }
@@ -110,7 +112,7 @@ class DFSTest  extends Specification {
     def "testdomain" () {
         println "testdomain test"
         given:
-        def destination = "WIN-NQU9IOBE4VJ"
+        def destination = "SERVERHOST"
         def connection
         def session
         def client = Stub(SMBClient) {
@@ -124,7 +126,7 @@ class DFSTest  extends Specification {
         def protocol = new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 1000,1000,1000,false)
     
         connection = Stub(Connection, constructorArgs: [new DefaultConfig(),client,transport,bus]) {
-            getRemoteHostname() >> "52.53.184.91"
+            getRemoteHostname() >> "10.0.0.10"
             getRemotePort() >> 445
             getNegotiatedProtocol() >> protocol
             getClient() >> client
@@ -178,7 +180,7 @@ class DFSTest  extends Specification {
                                 1000, // ttl
                                 DFSReferral.SERVERTYPE_ROOT,
                                 0,    // referralEntryFlags: non-NameListReferral
-                                "\\WIN-NQU9IOBE4VJ\\Sales", // networkAddress
+                                "\\SERVERHOST\\Sales", // networkAddress
                                 0,    // proximity
                                 "\\domain.com\\Sales", // dfsPath
                                 "\\domain.com\\Sales", // dfsAltPath
@@ -220,30 +222,31 @@ class DFSTest  extends Specification {
     }
     
     def "encode dfs referral response" () {
+        when:
         def referralEntry = new DFSReferral();
         referralEntry.versionNumber = 4;
-        referralEntry.serverType = DFSReferral.SERVERTYPE_LINK;
-        referralEntry.referralEntryFlags = 3;
-        referralEntry.dfsPath = "\\52.53.184.91\\Sales";
-        referralEntry.dfsAlternatePath = "\\52.53.184.91\\Sales";
-        referralEntry.path = "\\WIN-NQU9IOBE4VJ\\Sales";
+        referralEntry.serverType = DFSReferral.SERVERTYPE_ROOT;
+        referralEntry.referralEntryFlags = 4;
+        referralEntry.dfsPath = "\\10.0.0.10\\sales";
+        referralEntry.dfsAlternatePath = "\\10.0.0.10\\sales";
+        referralEntry.path = "\\SERVERHOST\\Sales";
+        referralEntry.ttl = 300;
         
         def referrals = [referralEntry ] as ArrayList
         
-        def dfsRefResp = new SMB2GetDFSReferralResponse("\\WIN-NQU9IOBE4VJ\\Sales",
-            int pathConsumed,
+        def dfsRefResp = new SMB2GetDFSReferralResponse("\\SERVERHOST\\Sales",
+            38,
             1,
-            0,
+            3,
             referrals,
-            String stringBuffer);
+            "");
     
         def buf = new SMBBuffer();
         dfsRefResp.writeTo(buf);
+        def data = buf.getCompactData();
         
-        buf.getCompactedData();
-        
-        response.setOutputBuffer("260001000300000004002200010004002c01000022004a007200000000000000000000000000000000005c00350032002e00350033002e003100380034002e00390031005c00730061006c006500730000005c00350032002e00350033002e003100380034002e00390031005c00730061006c006500730000005c00570049004e002d004e0051005500390049004f0042004500340056004a005c00530061006c00650073000000".decodeHex())
-
+        then:
+        data=="260001000300000004002200010004002c010000220044006600000000000000000000000000000000005C00310030002E0030002E0030002E00310030005C00730061006C006500730000005C00310030002E0030002E0030002E00310030005C00730061006C006500730000005C0053004500520056004500520048004F00530054005C00530061006C00650073000000".decodeHex()
     }
     
     
@@ -261,7 +264,7 @@ class DFSTest  extends Specification {
         def bus = new SMBEventBus()
         def protocol = new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 1000,1000,1000,false)
         connection = Stub(Connection, constructorArgs: [new DefaultConfig(),client,transport,bus]) {
-            getRemoteHostname() >> "52.53.184.91"
+            getRemoteHostname() >> "10.0.0.10"
             getRemotePort() >> 445
             getClient() >> client
             getNegotiatedProtocol() >> protocol
@@ -280,7 +283,7 @@ class DFSTest  extends Specification {
                 c,k->Mock(Future) {
                     get() >> {
                         def response = new SMB2IoctlResponse()
-                        response.setOutputBuffer("260001000300000004002200010004002c01000022004a007200000000000000000000000000000000005c00350032002e00350033002e003100380034002e00390031005c00730061006c006500730000005c00350032002e00350033002e003100380034002e00390031005c00730061006c006500730000005c00570049004e002d004e0051005500390049004f0042004500340056004a005c00530061006c00650073000000".decodeHex())
+                        response.setOutputBuffer("260001000300000004002200010004002c010000220044006600000000000000000000000000000000005C00310030002E0030002E0030002E00310030005C00730061006C006500730000005C00310030002E0030002E0030002E00310030005C00730061006C006500730000005C0053004500520056004500520048004F00530054005C00530061006C00650073000000".decodeHex());
                         response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
                         response
                     }
@@ -291,15 +294,15 @@ class DFSTest  extends Specification {
             }
         }
         DFS dfs = new DFS();
-        AuthenticationContext auth = new AuthenticationContext("username","password".toCharArray(),"domain");
+        AuthenticationContext auth = new AuthenticationContext("username","password".toCharArray(),"domain.com");
         session = new Session(0, connection, auth, null, false);//TODO fill me in
-        String path = "\\52.53.184.91\\Sales";
+        String path = "\\10.0.0.10\\Sales";
        
         when:
         def newPath = dfs.resolvePath(session, path);
         
         then:
-        "\\WIN-NQU9IOBE4VJ\\Sales"==newPath
+        "\\SERVERHOST\\Sales"==newPath
 
     }
     // test resolve with domain cache populated
