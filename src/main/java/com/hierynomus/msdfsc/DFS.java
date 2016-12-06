@@ -31,6 +31,7 @@ import com.hierynomus.mssmb2.messages.SMB2IoctlRequest;
 import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
 import com.hierynomus.protocol.commons.concurrent.Futures;
+import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBBuffer;
@@ -279,7 +280,7 @@ public class DFS {
         SMB2IoctlRequest msg = new SMB2IoctlRequest(
                         connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
                         SMB2IoctlRequest.ControlCode.FSCTL_DFS_GET_REFERRALS_EX, new SMB2FileId(), 
-                        buffer, true); //TODO remove the getCompactData, that is wasteful
+                        buffer.getCompactData(), true); //TODO remove the getCompactData, that is wasteful
 
         Future<SMB2IoctlResponse> sendFuture = session.send(msg);
         SMB2IoctlResponse response = Futures.get(sendFuture, TransportException.Wrapper);
@@ -363,4 +364,10 @@ public class DFS {
         ReferralCacheEntry referralCacheEntry;
         DomainCacheEntry domainCacheEntry;
     }
+    
+    public static void clearCaches() {
+        dfs.referralCache.clear();
+        dfs.domainCache.clear();
+    }
+
 }

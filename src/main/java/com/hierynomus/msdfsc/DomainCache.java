@@ -75,4 +75,8 @@ public class DomainCache {
     public void put(DomainCacheEntry domainCacheEntry) {
         cache.put(domainCacheEntry.domainName, domainCacheEntry);
     }
+
+    public void clear() {
+        cache.clear();
+    }
 }

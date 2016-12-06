@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 package com.hierynomus.msdfsc
+import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
@@ -28,6 +29,7 @@ import com.hierynomus.msdfsc.DFS;
 import com.hierynomus.msdfsc.DFSException;
 import com.hierynomus.msdfsc.DFSReferral;
 import com.hierynomus.msdfsc.DFS.ReferralResult;
+import com.hierynomus.msdfsc.SMB2GetDFSReferralResponse.ReferralHeaderFlags;
 import com.hierynomus.msdfsc.SMB2GetDFSReferralResponse;
 import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
 import com.hierynomus.mssmb2.messages.SMB2IoctlRequest;
@@ -216,7 +218,6 @@ class DFSTest extends Specification {
             hostname==destination
             shareName=="Sales"
         }
-
     }
     
     def testResolvePath() {
@@ -362,80 +363,100 @@ class DFSTest extends Specification {
             path.path=="Region1"
     }
     
+    // test resolve with link resolve
+    def "testinterlink" () {
+        given:
+        def destination = "SERVERHOST"
+        def connection
+        def session
+        def client = Stub(SMBClient) {
+            connect(_) >> { String host -> connection }
+            connect(_,_) >> { String host, int port ->
+                connection
+            }
+        }
+        def transport = Mock(TransportLayer)
+        def bus = new SMBEventBus()
+        def protocol = new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 1000,1000,1000,false)
+
+        connection = Stub(Connection, constructorArgs: [new DefaultConfig(),client,transport,bus]) {
+            getRemoteHostname() >> "10.0.0.10"
+            getRemotePort() >> 445
+            getNegotiatedProtocol() >> protocol
+            getClient() >> client
+            authenticate(_) >> {AuthenticationContext authContext ->
+                session
+            }
+            send(_ as SMB2TreeConnectRequest,null) >> {
+                c,k->Mock(Future) {
+                    get() >> {
+                        def response = new SMB2TreeConnectResponse();
+                        response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
+                        response.setCapabilities(EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS));
+                        response.setShareType((byte)0x01);
+                        response
+                    }
+                }
+            }
+            send(_ as SMB2IoctlRequest,null) >> {
+                SMB2IoctlRequest request,k -> Mock(Future) {
+                    get() >> {
+                        def d = request.inputData[2..-1] as byte[]
+                        def dbuf = new SMBBuffer(d);
+                        def path = dbuf.readZString();
+                        def response = new SMB2IoctlResponse()
+                        def referralResponse
+                        
+                        if (path=="\\SERVERHOST\\Sales\\NorthAmerica") {
+                            //the root request
+                            def referralEntry = new DFSReferral(
+                                4,    // referral version
+                                1000, // ttl
+                                DFSReferral.SERVERTYPE_LINK,
+                                1, //ReferralServers
+                                "\\ALTER\\Region1", // target networkAddress
+                                0,    // proximity
+                                "\\SERVERHOST\\Sales\\NorthAmerica", // dfsPath
+                                "\\SERVERHOST\\Sales\\NorthAmerica", // dfsAltPath
+                                null, // no specialName
+                                null  // no expandedNames
+                            );
+                            referralResponse = new SMB2GetDFSReferralResponse(
+                                path,
+                                0,
+                                1,
+                                0,
+                                [referralEntry] as ArrayList,
+                                "")
+                        }
+                        def buf = new SMBBuffer();
+                        referralResponse.writeTo(buf);
+                        
+                        response.setOutputBuffer(buf.getCompactData())
+                        response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
+                        response
+                    }
+                }
+            }
+        }
+        
+        def auth = new AuthenticationContext("username","password".toCharArray(),"domain.com")
+        session = new Session(123,connection,auth,bus,false)
+        def SmbPath path = new SmbPath("SERVERHOST","Sales","NorthAmerica")
+
+        when:
+            DFS.clearCaches();
+            DFS.resolveDFS(session, path)
+        
+        then:
+            path.hostname=="ALTER"
+            path.shareName=="Regions"
+            path.path=="Region1"
+    }
+    
+    
     // test resolve from not-covered error
 
-    def "test parsePath typical path"() {
-        def out;
-        when:
-        out = DFS.parsePath("\\a\\b\\c\\d");
-        
-        then:
-        out.length == 4;
-        out[0]=="a";
-        out[1]=="b";
-        out[2]=="c";
-        out[3]=="d";
-    }
-    
-    def "test parsePath starts with double slash"() {
-        def out;
-        when:
-        out = DFS.parsePath("\\\\a\\b\\c\\d");
-        
-        then:
-        out.length == 4;
-        out[0]=="a";
-        out[1]=="b";
-        out[2]=="c";
-        out[3]=="d";
-    }
-    def "test parsePath starts with no slash"() {
-        def out;
-        when:
-        out = DFS.parsePath("a\\b\\c\\d");
-        
-        then:
-        out.length == 4;
-        out[0]=="a";
-        out[1]=="b";
-        out[2]=="c";
-        out[3]=="d";
-    }
-    def "test parsePath single element"() {
-        def out;
-        when:
-        out = DFS.parsePath("a");
-        
-        then:
-        out.length == 1;
-        out[0]=="a";
-    }
-    
-    def "test normalizePath typical path"() {
-        def out;
-        when:
-        out = DFS.normalizePath("\\a\\b\\c\\d");
-        
-        then:
-        out=="\\a\\b\\c\\d";
-    }
-    
-    def "test normalizePath starts with double slash"() {
-        def out;
-        when:
-        out = DFS.normalizePath("\\\\a\\b\\c\\d");
-        
-        then:
-        out=="\\a\\b\\c\\d";
-    }
-    def "test normalizePath single element"() {
-        def out;
-        when:
-        out = DFS.normalizePath("\\a");
-        
-        then:
-        out=="\\a";
-    }
     // test resolve with domain cache populated
     // test resolve with referral cache populated
 }

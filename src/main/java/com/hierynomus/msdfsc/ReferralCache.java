@@ -155,4 +155,8 @@ public class ReferralCache {
     public void put(ReferralCacheEntry referralCacheEntry) {
         cache.put(referralCacheEntry.dfsPathPrefix, referralCacheEntry);
     }
+    
+    public void clear() {
+        cache.clear();
+    }
 }
