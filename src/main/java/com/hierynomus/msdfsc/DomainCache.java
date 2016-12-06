@@ -32,8 +32,6 @@ import java.util.List;
 public class DomainCache {
     private Hashtable<String, DomainCacheEntry> cache = new Hashtable<String, DomainCacheEntry>();
 
-    // TODO reasonable initial size
-
     public class DomainCacheEntry {
         String domainName;
         String DCHint;

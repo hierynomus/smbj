@@ -113,7 +113,7 @@ public class DFS {
 //     2. If the second path component is "SYSVOL" or "NETLOGON", go to step 10.
 //     3. Use DCHint as host name for DFS root referral request purposes.
                 domainCacheEntry = domainCache.lookup(pathEntries[0]);
-                if (domainCacheEntry == null) {
+                if (domainCacheEntry == null || domainCacheEntry.DCHint == null || domainCacheEntry.DCHint.isEmpty()) {
                     // use the first path component as the host name for DFS root referral
                     String bootstrapDC = session.getAuthenticationContext().getDomain();
                     hostName = pathEntries[0];
@@ -129,16 +129,6 @@ public class DFS {
                 }
                 if (domainCacheEntry != null) { // domainCacheEntry found
                     isDFSPath = true; // remember that the path contained at least one DFS translation
-//TODO figure this out
-//                    if (domainCacheEntry.DCHint == null || domainCacheEntry.DCHint.isEmpty()) {
-//                        // we will send the domain referral request to the user's domain
-//                        String bootstrapDC = session.getAuthenticationContext().getDomain();
-//                        ReferralResult r = sendReferralRequest("DC", bootstrapDC, session, path);
-//                        if (r.error != NtStatus.STATUS_SUCCESS) {
-//                            throw new DFSException(r.error); // step13: fail with error
-//                        }
-//                        domainCacheEntry = r.domainCacheEntry;
-//                    } 
 
                     if ("SYSVOL".equals(pathEntries[1]) || "NETLOGON".equals(pathEntries[1])) {
 // 10. [sysvol referral request] Issue a sysvol referral request, as specified in section 3.1.4.2, providing 'SYSVOL', 
@@ -173,7 +163,9 @@ public class DFS {
 //    1. If the RootOrLink of the refreshed ReferralCache entry indicates DFS root targets, go to step 3.
 //    2. If the RootOrLink of the refreshed ReferralCache entry indicates DFS link targets, go to step 4.
                 referralCacheEntry = referralCache.lookup("\\"+pathEntries[0]+"\\"+pathEntries[1]);
-                //TODO assert entry not null
+                if (referralCacheEntry == null) {
+                    throw new IllegalStateException("Missing referral cache entry for "+"\\"+pathEntries[0]+"\\"+pathEntries[1]);
+                }
                 ReferralResult r = sendReferralRequest("LINK", referralCacheEntry.targetHint.targetPath, session, path );
                 if (r.error != NtStatus.STATUS_SUCCESS) {
                     throw new DFSException(r.error); // step14: fail with error
@@ -287,7 +279,7 @@ public class DFS {
         SMB2IoctlRequest msg = new SMB2IoctlRequest(
                         connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
                         SMB2IoctlRequest.ControlCode.FSCTL_DFS_GET_REFERRALS_EX, new SMB2FileId(), 
-                        buffer.getCompactData(), true); //TODO remove the getCompactData, that is wasteful
+                        buffer, true); //TODO remove the getCompactData, that is wasteful
 
         Future<SMB2IoctlResponse> sendFuture = session.send(msg);
         SMB2IoctlResponse response = Futures.get(sendFuture, TransportException.Wrapper);
@@ -341,7 +333,7 @@ public class DFS {
     // leading backslash, not two leading backslashes as is common to user-visible UNC paths. For example, 
     // the UNC path "\\server\namespace\directory\subdirectory\file" would be encoded 
     // as "\server\namespace\directory\subdirectory\file".
-    String normalizePath(String path) {
+    static String normalizePath(String path) {
         String newPath;
         if (path.startsWith("\\\\")) { // if starts with two backslashes
             newPath = path.substring(1);  // remove the first backslash
@@ -356,7 +348,7 @@ public class DFS {
      * @param path
      * @return the array of Strings with the path elements
      */
-    public static String[] parsePath(String path) {
+    static String[] parsePath(String path) {
         if (path.startsWith("\\\\")) {
             return path.substring(2).split("\\\\"); // this is a regex, so it means "split on single backslash"
         } else if (path.startsWith("\\")) {

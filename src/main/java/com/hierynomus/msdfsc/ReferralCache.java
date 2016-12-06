@@ -62,8 +62,6 @@ public class ReferralCache {
 
     Hashtable<String, ReferralCacheEntry> cache = new Hashtable<String, ReferralCacheEntry>();
 
-    // TODO what's a reasonable initial capacity? Large?
-
     public enum RootOrLink {
         RCE_LINK(0x0),
         RCE_ROOT(0x1);
@@ -107,13 +105,19 @@ public class ReferralCache {
             
             this.dfsPathPrefix = response.referralEntries.get(0).dfsPath;
             this.rootOrLink = RootOrLink.get(response.referralEntries.get(0).serverType);
+            
+// 3.1.5.4.5 Determining Whether a Referral Response is an Interlink
+// A referral response is an Interlink if either of the following two conditions holds:
+// - If the ReferralServers and StorageServers bits of the ReferralHeaderFlags field in the referral header 
+//   (as specified in section 2.2.4) are set to 1 and 0 respectively.
+// - If the TargetList has one entry, and a lookup of the first path component of the TargetList entry 
+//   against the DomainCache results in a cache hit, indicating that the path refers to a domain namespace.
+            
             this.interlink = isSet(response.referralHeaderFlags, ReferralHeaderFlags.ReferralServers)
                     && !isSet(response.referralHeaderFlags, ReferralHeaderFlags.StorageServers);
-            // TODO this is ugly
             if (!this.interlink && response.referralEntries.size() == 1) {
                 String[] pathEntries = DFS.parsePath(response.referralEntries.get(0).path);
-                DFS.dfs.domainCache.lookup(pathEntries[0]);
-                //TODO and then what?
+                this.interlink = (DFS.dfs.domainCache.lookup(pathEntries[0]) != null);
             }
             this.ttl = response.referralEntries.get(0).ttl;
             this.expires = System.currentTimeMillis() + this.ttl * 1000L;
@@ -132,6 +136,7 @@ public class ReferralCache {
             return (now < expires);
         }
         
+        @Override
         public String toString() {
             return dfsPathPrefix+"->"+targetHint.targetPath+", "+targetList;
         }

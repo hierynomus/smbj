@@ -54,7 +54,7 @@ import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 
 import spock.lang.Specification
 
-class DFSTest  extends Specification {
+class DFSTest extends Specification {
     def "should resolve dfs for a path"() {
         given:
         def connection
@@ -219,36 +219,6 @@ class DFSTest  extends Specification {
 
     }
     
-    def "encode dfs referral response" () {
-        when:
-        def referralEntry = new DFSReferral();
-        referralEntry.versionNumber = 4;
-        referralEntry.serverType = DFSReferral.SERVERTYPE_ROOT;
-        referralEntry.referralEntryFlags = 4;
-        referralEntry.dfsPath = "\\10.0.0.10\\sales";
-        referralEntry.dfsAlternatePath = "\\10.0.0.10\\sales";
-        referralEntry.path = "\\SERVERHOST\\Sales";
-        referralEntry.ttl = 300;
-        
-        def referrals = [referralEntry ] as ArrayList
-        
-        def dfsRefResp = new SMB2GetDFSReferralResponse("\\SERVERHOST\\Sales",
-            38,
-            1,
-            3,
-            referrals,
-            "");
-    
-        def buf = new SMBBuffer();
-        dfsRefResp.writeTo(buf);
-        def data = buf.getCompactData();
-        
-        then:
-        data=="260001000300000004002200010004002c010000220044006600000000000000000000000000000000005C00310030002E0030002E0030002E00310030005C00730061006C006500730000005C00310030002E0030002E0030002E00310030005C00730061006C006500730000005C0053004500520056004500520048004F00530054005C00530061006C00650073000000".decodeHex()
-    }
-    
-    
-
     def testResolvePath() {
         def connection
         def session
@@ -303,8 +273,6 @@ class DFSTest  extends Specification {
         "\\SERVERHOST\\Sales"==newPath
 
     }
-    // test resolve with domain cache populated
-    // test resolve with referral cache populated
     // test resolve with link resolve
     def "testlink" () {
         given:
@@ -396,5 +364,78 @@ class DFSTest  extends Specification {
     
     // test resolve from not-covered error
 
+    def "test parsePath typical path"() {
+        def out;
+        when:
+        out = DFS.parsePath("\\a\\b\\c\\d");
+        
+        then:
+        out.length == 4;
+        out[0]=="a";
+        out[1]=="b";
+        out[2]=="c";
+        out[3]=="d";
+    }
     
+    def "test parsePath starts with double slash"() {
+        def out;
+        when:
+        out = DFS.parsePath("\\\\a\\b\\c\\d");
+        
+        then:
+        out.length == 4;
+        out[0]=="a";
+        out[1]=="b";
+        out[2]=="c";
+        out[3]=="d";
+    }
+    def "test parsePath starts with no slash"() {
+        def out;
+        when:
+        out = DFS.parsePath("a\\b\\c\\d");
+        
+        then:
+        out.length == 4;
+        out[0]=="a";
+        out[1]=="b";
+        out[2]=="c";
+        out[3]=="d";
+    }
+    def "test parsePath single element"() {
+        def out;
+        when:
+        out = DFS.parsePath("a");
+        
+        then:
+        out.length == 1;
+        out[0]=="a";
+    }
+    
+    def "test normalizePath typical path"() {
+        def out;
+        when:
+        out = DFS.normalizePath("\\a\\b\\c\\d");
+        
+        then:
+        out=="\\a\\b\\c\\d";
+    }
+    
+    def "test normalizePath starts with double slash"() {
+        def out;
+        when:
+        out = DFS.normalizePath("\\\\a\\b\\c\\d");
+        
+        then:
+        out=="\\a\\b\\c\\d";
+    }
+    def "test normalizePath single element"() {
+        def out;
+        when:
+        out = DFS.normalizePath("\\a");
+        
+        then:
+        out=="\\a";
+    }
+    // test resolve with domain cache populated
+    // test resolve with referral cache populated
 }
