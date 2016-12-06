@@ -414,7 +414,7 @@ class DFSTest extends Specification {
                                 1000, // ttl
                                 DFSReferral.SERVERTYPE_LINK,
                                 1, //ReferralServers
-                                "\\ALTER\\Region1", // target networkAddress
+                                "\\ALTER\\Regions\\Region1", // target networkAddress
                                 0,    // proximity
                                 "\\SERVERHOST\\Sales\\NorthAmerica", // dfsPath
                                 "\\SERVERHOST\\Sales\\NorthAmerica", // dfsAltPath
