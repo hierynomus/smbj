@@ -22,27 +22,35 @@ import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 public class SMBApiException extends SMBRuntimeException {
     private final NtStatus status;
     private final SMB2MessageCommandCode failedCommand;
+    private long statusCode;
 
-    public SMBApiException(NtStatus status, SMB2MessageCommandCode failedCommand, String message) {
+    public SMBApiException(NtStatus status, long statusCode, SMB2MessageCommandCode failedCommand, String message) {
         super(message);
         this.status = status;
+        this.statusCode = statusCode;
         this.failedCommand = failedCommand;
     }
 
-    public SMBApiException(NtStatus status, SMB2MessageCommandCode failedCommand, Throwable t) {
+    public SMBApiException(NtStatus status, long statusCode, SMB2MessageCommandCode failedCommand, Throwable t) {
         super(t);
         this.status = status;
+        this.statusCode = statusCode;
         this.failedCommand = failedCommand;
     }
 
     public SMBApiException(SMB2Header header, String message) {
         super(message);
         this.status = header.getStatus();
+        this.statusCode = header.getStatusCode();
         this.failedCommand = header.getMessage();
     }
 
     public NtStatus getStatus() {
         return status;
+    }
+
+    public long getStatusCode() {
+        return statusCode;
     }
 
     public SMB2MessageCommandCode getFailedCommand() {
@@ -51,6 +59,6 @@ public class SMBApiException extends SMBRuntimeException {
 
     @Override
     public String getMessage() {
-        return status + "(" + Long.toHexString(status.getValue()) + "): " + super.getMessage();
+        return status + "(" + status.getValue() + "/" + statusCode + "): " + super.getMessage();
     }
 }
