@@ -212,7 +212,7 @@ public class Session implements AutoCloseable {
                     DFS.resolvePathNotCoveredError(this,packet);
                 }
                 catch(DFSException e) { //TODO we wouldn't have to do this if we just threw SMBApiException from inside DFS
-                    throw new SMBApiException(e.getStatus(), packet.getHeader().getMessage(), e);
+                    throw new SMBApiException(e.getStatus(), e.getStatus().getValue(), packet.getHeader().getMessage(), e);
                 }
                 // and we try again
             } else {
