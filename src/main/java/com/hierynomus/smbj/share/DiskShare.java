@@ -62,25 +62,6 @@ public class DiskShare extends Share {
 
     private static final Logger logger = LoggerFactory.getLogger(DiskShare.class);
 
-    protected ShareInfo shareInfo = null;
-    protected long attrExpiration = 0L;
-    protected static final long attrExpirationPeriod;
-    
-    protected static final long DEFAULT_ATTR_EXPIRATION_PERIOD = 5000;
-    
-    static {
-    	long period = DEFAULT_ATTR_EXPIRATION_PERIOD;
-    	try {
-    		String value = System.getProperty("hierynomus.smb.client.attrExpirationPeriod");
-    		if ( value != null ) {
-    			period = Long.valueOf(value);
-    		}
-    	} catch (Exception e) {
-    		
-    	}
-    	attrExpirationPeriod = period;
-    }
-
     public DiskShare(SmbPath smbPath, TreeConnect treeConnect) {
         super(smbPath, treeConnect);
     }
@@ -214,34 +195,26 @@ public class DiskShare extends Share {
 
     /**
      * Get Share Information for the current Disk Share
+     * 
      * @return the ShareInfo
      * @throws SMBApiException
      */
     public ShareInfo getShareInformation() throws TransportException, SMBApiException {
-    	final String path = "";
 
-    	if ( shareInfo != null && attrExpiration > System.currentTimeMillis() ) {
-    		return shareInfo;
-    	}
-    	
-		Directory directory = openDirectory(path, EnumSet.of(AccessMask.FILE_READ_ATTRIBUTES),
-                EnumSet.of(SMB2ShareAccess.FILE_SHARE_DELETE, SMB2ShareAccess.FILE_SHARE_WRITE,
-                SMB2ShareAccess.FILE_SHARE_READ),
+        Directory directory = openDirectory("",
+                EnumSet.of(AccessMask.FILE_READ_ATTRIBUTES), EnumSet.of(SMB2ShareAccess.FILE_SHARE_DELETE,
+                        SMB2ShareAccess.FILE_SHARE_WRITE, SMB2ShareAccess.FILE_SHARE_READ),
                 SMB2CreateDisposition.FILE_OPEN);
-		
-		try {
-        	byte[] outputBuffer = queryInfoCommon(directory.getFileId(), 
-        			SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILESYSTEM, 
-        			null, null, FileSysemInformationClass.FileFsFullSizeInformation);
-    	
-        	shareInfo = ShareInfo.parseFsFullSizeInformation(new Buffer.PlainBuffer(outputBuffer, Endian.LE));
-        	attrExpiration = System.currentTimeMillis() + attrExpirationPeriod;
-        	
-        	return shareInfo;
-        	
-    	} catch (Buffer.BufferException e) {
-    		throw new SMBRuntimeException(e);
-    	}   			
+
+        byte[] outputBuffer = queryInfoCommon(directory.getFileId(),
+                SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILESYSTEM, null, null,
+                FileSysemInformationClass.FileFsFullSizeInformation);
+
+        try {
+            return ShareInfo.parseFsFullSizeInformation(new Buffer.PlainBuffer(outputBuffer, Endian.LE));
+        } catch (Buffer.BufferException e) {
+            throw new SMBRuntimeException(e);
+        }
     }
     
     /**

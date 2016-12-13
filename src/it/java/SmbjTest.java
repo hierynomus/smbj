@@ -328,10 +328,10 @@ public class SmbjTest {
                 System.out.println(ace.getSid() + "-" + ace.getAceHeader());
                 sids.add(ace.getSid());
             }
-            
-        	ShareInfo info = share.getShareInformation(); 
-        	System.out.printf("total space of share = %d\n", info.getTotalSpace());
-        	System.out.printf("free space of share = %d\n", info.getFreeSpace());
+
+            ShareInfo info = share.getShareInformation();
+            System.out.printf("total space of share = %d\n", info.getTotalSpace());
+            System.out.printf("free space of share = %d\n", info.getFreeSpace());
 
         } finally {
             session.close();
