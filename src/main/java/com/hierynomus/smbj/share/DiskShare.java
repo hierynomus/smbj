@@ -202,8 +202,8 @@ public class DiskShare extends Share {
     public ShareInfo getShareInformation() throws TransportException, SMBApiException {
 
         Directory directory = openDirectory("",
-                EnumSet.of(AccessMask.FILE_READ_ATTRIBUTES), EnumSet.of(SMB2ShareAccess.FILE_SHARE_DELETE,
-                        SMB2ShareAccess.FILE_SHARE_WRITE, SMB2ShareAccess.FILE_SHARE_READ),
+                EnumSet.of(FILE_READ_ATTRIBUTES), 
+                EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ),
                 SMB2CreateDisposition.FILE_OPEN);
 
         byte[] outputBuffer = queryInfoCommon(directory.getFileId(),
