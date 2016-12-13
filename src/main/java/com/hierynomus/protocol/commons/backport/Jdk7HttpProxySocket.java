@@ -55,7 +55,7 @@ public class Jdk7HttpProxySocket extends Socket {
         checkAndFlushProxyResponse();
     }
 
-    private void checkAndFlushProxyResponse()throws IOException {
+    private void checkAndFlushProxyResponse() throws IOException {
         InputStream socketInput = getInputStream();
         byte[] tmpBuffer = new byte[512];
         int len = socketInput.read(tmpBuffer, 0, tmpBuffer.length);

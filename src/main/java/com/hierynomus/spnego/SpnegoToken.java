@@ -15,13 +15,12 @@
  */
 package com.hierynomus.spnego;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import java.io.IOException;
+import java.util.Enumeration;
 import org.bouncycastle.asn1.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.Enumeration;
+import com.hierynomus.protocol.commons.buffer.Buffer;
 
 import static com.hierynomus.spnego.ObjectIdentifiers.SPNEGO;
 
@@ -58,8 +57,8 @@ abstract class SpnegoToken {
         }
 
         Enumeration tokenObjects = ((ASN1Sequence) negToken).getObjects();
-        while(tokenObjects.hasMoreElements()) {
-            ASN1Encodable asn1Encodable = (ASN1Encodable)tokenObjects.nextElement();
+        while (tokenObjects.hasMoreElements()) {
+            ASN1Encodable asn1Encodable = (ASN1Encodable) tokenObjects.nextElement();
             if (!(asn1Encodable instanceof ASN1TaggedObject)) {
                 throw new SpnegoException("Expected an ASN.1 TaggedObject as " + tokenName + " contents, not: " + asn1Encodable);
             }

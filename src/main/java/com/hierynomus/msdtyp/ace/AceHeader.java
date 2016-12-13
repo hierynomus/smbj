@@ -15,11 +15,10 @@
  */
 package com.hierynomus.msdtyp.ace;
 
+import java.util.EnumSet;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
-
-import java.util.EnumSet;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.valueOf;
@@ -73,9 +72,9 @@ public class AceHeader {
     @Override
     public String toString() {
         return "AceHeader{" +
-                "aceType=" + aceType +
-                ", aceFlags=" + aceFlags +
-                ", aceSize=" + aceSize +
-                '}';
+            "aceType=" + aceType +
+            ", aceFlags=" + aceFlags +
+            ", aceSize=" + aceSize +
+            '}';
     }
 }

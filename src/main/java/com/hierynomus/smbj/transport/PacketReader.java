@@ -15,13 +15,12 @@
  */
 package com.hierynomus.smbj.transport;
 
-import com.hierynomus.protocol.Packet;
-import com.hierynomus.smbj.common.SMBRuntimeException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.hierynomus.protocol.Packet;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 
 public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(PacketReader.class);
@@ -65,6 +64,7 @@ public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
 
     /**
      * Read the actual SMB2 Packet from the {@link InputStream}
+     *
      * @return the read SMB2Packet
      * @throws TransportException
      */

@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.mssmb2
+package com.hierynomus.mssmb2.messages
 
+import com.hierynomus.mssmb2.SMB2ShareCapabilities
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse
 import com.hierynomus.smbj.common.SMBBuffer
 import spock.lang.Specification

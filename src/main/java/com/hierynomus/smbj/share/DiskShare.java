@@ -15,6 +15,11 @@
  */
 package com.hierynomus.smbj.share;
 
+import java.util.EnumSet;
+import java.util.List;
+import java.util.concurrent.Future;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SecurityDescriptor;
 import com.hierynomus.msdtyp.SecurityInformation;
@@ -41,18 +46,15 @@ import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.EnumSet;
-import java.util.List;
-import java.util.concurrent.Future;
 
 import static com.hierynomus.msdtyp.AccessMask.FILE_READ_ATTRIBUTES;
 import static com.hierynomus.msdtyp.AccessMask.GENERIC_READ;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_DIRECTORY;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_NORMAL;
-import static com.hierynomus.mssmb2.SMB2ShareAccess.*;
+import static com.hierynomus.mssmb2.SMB2ShareAccess.EnumUtils;
+import static com.hierynomus.mssmb2.SMB2ShareAccess.FILE_SHARE_DELETE;
+import static com.hierynomus.mssmb2.SMB2ShareAccess.FILE_SHARE_READ;
+import static com.hierynomus.mssmb2.SMB2ShareAccess.FILE_SHARE_WRITE;
 import static com.hierynomus.mssmb2.messages.SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_SECURITY;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
 
@@ -122,10 +124,10 @@ public class DiskShare extends Share {
      * Get a handle to a directory in the given path
      */
     public Directory openDirectory(
-            String path,
-            EnumSet<AccessMask> accessMask,
-            EnumSet<SMB2ShareAccess> shareAccess,
-            SMB2CreateDisposition createDisposition) throws TransportException, SMBApiException {
+        String path,
+        EnumSet<AccessMask> accessMask,
+        EnumSet<SMB2ShareAccess> shareAccess,
+        SMB2CreateDisposition createDisposition) throws TransportException, SMBApiException {
         logger.info("OpenDirectory {},{},{},{},{}", path, accessMask, shareAccess, createDisposition);
 
         SMB2FileId fileId = open(path, toLong(accessMask), EnumSet.of(FILE_ATTRIBUTE_DIRECTORY), shareAccess, createDisposition, EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE));
@@ -136,7 +138,7 @@ public class DiskShare extends Share {
     /**
      * Get a handle to a file
      */
-    public File openFile( String path, EnumSet<AccessMask> accessMask, SMB2CreateDisposition createDisposition) throws TransportException, SMBApiException {
+    public File openFile(String path, EnumSet<AccessMask> accessMask, SMB2CreateDisposition createDisposition) throws TransportException, SMBApiException {
         logger.info("OpenFile {},{},{}", path, accessMask, createDisposition);
 
         SMB2FileId fileId = open(path, toLong(accessMask), null, EnumSet.of(FILE_SHARE_READ), createDisposition, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
@@ -365,13 +367,13 @@ public class DiskShare extends Share {
     }
 
     private void deleteCommon(String path, SMB2CreateRequest smb2CreateRequest)
-            throws TransportException, SMBApiException {
+        throws TransportException, SMBApiException {
 
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
 
         // TODO Use Compounding
-        Future<SMB2CreateResponse> sendFuture = connection.send(smb2CreateRequest);
+        Future<SMB2CreateResponse> sendFuture = session.send(smb2CreateRequest);
         SMB2CreateResponse response = Futures.get(sendFuture, TransportException.Wrapper);
 
         if (response.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
@@ -390,7 +392,7 @@ public class DiskShare extends Share {
             SMB2SetInfoResponse setInfoResponse = Futures.get(setInfoFuture, TransportException.Wrapper);
 
             if (setInfoResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(response.getHeader(), "SetInfo failed for " + path);
+                throw new SMBApiException(setInfoResponse.getHeader(), "SetInfo failed for " + path);
             }
         } finally {
             SMB2Close closeReq = new SMB2Close(connection.getNegotiatedProtocol().getDialect(),
@@ -399,7 +401,7 @@ public class DiskShare extends Share {
             SMB2Close closeResponse = Futures.get(closeFuture, TransportException.Wrapper);
 
             if (closeResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(response.getHeader(), "Close failed for " + path);
+                throw new SMBApiException(closeResponse.getHeader(), "Close failed for " + path);
             }
 
         }
@@ -431,11 +433,11 @@ public class DiskShare extends Share {
     }
 
     private byte[] queryInfoCommon(
-            String path,
-            SMB2QueryInfoRequest.SMB2QueryInfoType infoType,
-            EnumSet<SecurityInformation> securityInfo,
-            FileInformationClass fileInformationClass)
-            throws SMBApiException {
+        String path,
+        SMB2QueryInfoRequest.SMB2QueryInfoType infoType,
+        EnumSet<SecurityInformation> securityInfo,
+        FileInformationClass fileInformationClass)
+        throws SMBApiException {
 
         SMB2FileId fileId = null;
         try {
@@ -478,7 +480,7 @@ public class DiskShare extends Share {
             fileId, infoType,
             fileInformationClass, fileSysemInformationClass, null, securityInfo);
         try {
-            Future<SMB2QueryInfoResponse> qiResponseFuture = connection.send(qreq);
+            Future<SMB2QueryInfoResponse> qiResponseFuture = session.send(qreq);
             SMB2QueryInfoResponse qresp = Futures.get(qiResponseFuture, SMBRuntimeException.Wrapper);
 
             if (qresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {

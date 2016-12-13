@@ -15,6 +15,11 @@
  */
 package com.hierynomus.smbj.share;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.concurrent.Future;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.messages.SMB2ReadRequest;
@@ -25,12 +30,6 @@ import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.concurrent.Future;
 
 public class FileInputStream extends InputStream {
 
@@ -121,6 +120,6 @@ public class FileInputStream extends InputStream {
     private Future<SMB2ReadResponse> sendRequest() throws IOException {
         SMB2ReadRequest rreq = new SMB2ReadRequest(connection.getNegotiatedProtocol(), fileId,
             session.getSessionId(), treeConnect.getTreeId(), offset);
-        return connection.send(rreq);
+        return session.send(rreq);
     }
 }

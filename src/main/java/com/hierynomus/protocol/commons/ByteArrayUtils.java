@@ -15,7 +15,9 @@
  */
 package com.hierynomus.protocol.commons;
 
-/** Utility functions for byte arrays. */
+/**
+ * Utility functions for byte arrays.
+ */
 public class ByteArrayUtils {
 
     final static char[] digits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
@@ -29,7 +31,6 @@ public class ByteArrayUtils {
      * @param a2
      * @param a2Offset
      * @param length
-     *
      * @return <code>true</code> or <code>false</code>
      */
     public static boolean equals(byte[] a1, final int a1Offset, byte[] a2, final int a2Offset, final int length) {
@@ -48,7 +49,6 @@ public class ByteArrayUtils {
      * Get a hexadecimal representation of the full byte array, with each octet separated by a space.
      *
      * @param array
-     *
      * @return hex string, each octet delimited by a space
      */
     public static String printHex(byte[] array) {
@@ -62,7 +62,6 @@ public class ByteArrayUtils {
      * @param array
      * @param offset
      * @param len
-     *
      * @return hex string, each octet delimited by a space
      */
     public static String printHex(byte[] array, int offset, int len) {
@@ -81,7 +80,6 @@ public class ByteArrayUtils {
      * Get the hexadecimal representation of a byte array.
      *
      * @param array
-     *
      * @return hex string
      */
     public static String toHex(byte[] array) {
@@ -95,7 +93,6 @@ public class ByteArrayUtils {
      * @param array
      * @param offset
      * @param len
-     *
      * @return hex string
      */
     public static String toHex(byte[] array, int offset, int len) {

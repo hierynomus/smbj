@@ -15,11 +15,10 @@
  */
 package com.hierynomus.msdtyp;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.buffer.Endian;
-
 import java.util.Date;
 import java.util.UUID;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.Endian;
 
 /**
  * Utility class that can read and write data types from the [MS-DTYP].pdf specification document from buffers.
@@ -28,7 +27,8 @@ public class MsDataTypes {
     public static final int NANO100_TO_MILLI = 10000;
     public static final long WINDOWS_TO_UNIX_EPOCH = 0x19DB1DED53E8000L;
 
-    private MsDataTypes() {}
+    private MsDataTypes() {
+    }
 
     /**
      * [MS-DTYP].pdf 2.3.4.2 GUID Packet representation

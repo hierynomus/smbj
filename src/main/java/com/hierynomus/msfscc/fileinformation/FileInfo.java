@@ -58,9 +58,9 @@ public class FileInfo {
     @Override
     public String toString() {
         return "FileInfo{" +
-                "fileName='" + fileName + '\'' +
-                "fileSize='" + fileSize + '\'' +
-                ", fileAttributes=" + EnumWithValue.EnumUtils.toEnumSet(fileAttributes, FileAttributes.class) +
-                '}';
+            "fileName='" + fileName + '\'' +
+            "fileSize='" + fileSize + '\'' +
+            ", fileAttributes=" + EnumWithValue.EnumUtils.toEnumSet(fileAttributes, FileAttributes.class) +
+            '}';
     }
 }

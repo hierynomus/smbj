@@ -15,6 +15,8 @@
  */
 package com.hierynomus.smbj.share;
 
+import java.util.EnumSet;
+import java.util.concurrent.Future;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.messages.SMB2TreeDisconnect;
@@ -26,9 +28,6 @@ import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.TreeDisconnected;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
-
-import java.util.EnumSet;
-import java.util.concurrent.Future;
 
 /**
  *
@@ -64,7 +63,7 @@ public class TreeConnect {
 
     void close(Share share) throws TransportException {
         SMB2TreeDisconnect disconnect = new SMB2TreeDisconnect(connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeId);
-        Future<SMB2Packet> send = connection.send(disconnect);
+        Future<SMB2Packet> send = session.send(disconnect);
         SMB2Packet smb2Packet = Futures.get(send, TransportException.Wrapper);
         if (!smb2Packet.getHeader().getStatus().isSuccess()) {
             throw new SMBApiException(smb2Packet.getHeader(), "Error closing connection to " + smbPath);

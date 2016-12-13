@@ -15,21 +15,21 @@
  */
 package com.hierynomus.smbj.io;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 
-import java.io.IOException;
-import java.io.OutputStream;
-
 public abstract class ByteChunkProvider {
-    static final int CHUNK_SIZE = 64 * 1024;
+    protected static final int CHUNK_SIZE = 64 * 1024;
 
-    protected long offset = 0;
+    protected long offset;
+    protected int chunkSize = CHUNK_SIZE;
 
     public abstract boolean isAvailable();
 
     public void writeChunk(OutputStream os) {
-        byte[] chunk = new byte[CHUNK_SIZE];
+        byte[] chunk = new byte[chunkSize];
         try {
             int size = getChunk(chunk);
             os.write(chunk, 0, size);
@@ -40,7 +40,7 @@ public abstract class ByteChunkProvider {
     }
 
     public void writeChunks(Buffer<?> buffer, int nrChunks) {
-        byte[] chunk = new byte[CHUNK_SIZE];
+        byte[] chunk = new byte[chunkSize];
         for (int i = 0; i < nrChunks; i++) {
             try {
                 int size = getChunk(chunk);
@@ -53,7 +53,7 @@ public abstract class ByteChunkProvider {
     }
 
     public void writeChunk(Buffer<?> buffer) {
-        byte[] chunk = new byte[CHUNK_SIZE];
+        byte[] chunk = new byte[chunkSize];
         try {
             int size = getChunk(chunk);
             buffer.putRawBytes(chunk, 0, size);

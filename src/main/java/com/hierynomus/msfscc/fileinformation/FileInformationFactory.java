@@ -15,15 +15,14 @@
  */
 package com.hierynomus.msfscc.fileinformation;
 
-import com.hierynomus.msdtyp.MsDataTypes;
-import com.hierynomus.msfscc.FileInformationClass;
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.buffer.Endian;
-
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import com.hierynomus.msdtyp.MsDataTypes;
+import com.hierynomus.msfscc.FileInformationClass;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.Endian;
 
 public class FileInformationFactory {
 
@@ -44,9 +43,7 @@ public class FileInformationFactory {
      * MS-FSCC 2.4.11 FileDispositionInformation for SMB2
      */
     public static byte[] getFileDispositionInfo(boolean deleteOnClose) {
-        Buffer.PlainBuffer fileDispBuf = new Buffer.PlainBuffer(Endian.LE);
-        fileDispBuf.putByte((byte) (deleteOnClose ? 1 : 0));
-        return fileDispBuf.getCompactData();
+        return deleteOnClose ? new byte[]{1} : new byte[]{0};
     }
 
     /**
@@ -58,16 +55,16 @@ public class FileInformationFactory {
      * @throws Buffer.BufferException
      */
     public static List<FileInfo> parseFileInformationList(
-            byte[] data, FileInformationClass fileInformationClass)
-            throws Buffer.BufferException {
+        byte[] data, FileInformationClass fileInformationClass)
+        throws Buffer.BufferException {
 
         Buffer.PlainBuffer buffer = new Buffer.PlainBuffer(data, Endian.LE);
         List<FileInfo> _fileInfoList = new ArrayList<>();
         int offsetStart = 0;
         int nextEntryOffset = offsetStart;
         long fileIndex = 0;
-        do  {
-            nextEntryOffset = (int)buffer.readUInt32();
+        do {
+            nextEntryOffset = (int) buffer.readUInt32();
             fileIndex = buffer.readUInt32();
             FileInfo fileInfo = null;
             switch (fileInformationClass) {
@@ -92,7 +89,7 @@ public class FileInformationFactory {
 
     /**
      * [MS-SMB2] 2.2.38 SMB2 QUERY_INFO Response, SMB2_0_INFO_FILE/FileAllInformation
-     *
+     * <p>
      * [MS-FSCC] 2.4.2 FileAllInformation
      */
     public static FileInfo parseFileAllInformation(Buffer.PlainBuffer buffer) throws Buffer.BufferException {

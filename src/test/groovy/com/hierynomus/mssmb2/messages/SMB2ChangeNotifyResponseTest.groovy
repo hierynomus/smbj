@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.mssmb2
+package com.hierynomus.mssmb2.messages
 
 import com.hierynomus.mssmb2.messages.SMB2ChangeNotifyResponse
 import com.hierynomus.smbj.common.SMBBuffer
@@ -21,7 +21,7 @@ import spock.lang.Specification
 
 import javax.xml.bind.DatatypeConverter
 
-class SMB2NotifyResponseTest extends Specification {
+class SMB2ChangeNotifyResponseTest extends Specification {
 
     def "should parse notifications"() {
         given:

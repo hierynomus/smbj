@@ -42,6 +42,7 @@ public enum SMB2Dialect {
 
     /**
      * Whether any of the dialects in the set is an SMB 3.x dialect.
+     *
      * @param dialects The supported dialects enumset.
      * @return true if there is (at least) one SMB 3.x dialect in the set.
      */

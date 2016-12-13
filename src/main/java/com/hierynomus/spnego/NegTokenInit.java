@@ -15,15 +15,14 @@
  */
 package com.hierynomus.spnego;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.buffer.Endian;
-import com.hierynomus.smbj.common.SMBRuntimeException;
-import org.bouncycastle.asn1.*;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import org.bouncycastle.asn1.*;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.Endian;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 
 import static com.hierynomus.spnego.ObjectIdentifiers.SPNEGO;
 
@@ -102,7 +101,7 @@ public class NegTokenInit extends SpnegoToken {
     }
 
     private NegTokenInit read(Buffer<?> buffer) throws IOException {
-        try(ASN1InputStream is = new ASN1InputStream(buffer.asInputStream())) {
+        try (ASN1InputStream is = new ASN1InputStream(buffer.asInputStream())) {
             ASN1Primitive applicationSpecific = is.readObject();
             if (!(applicationSpecific instanceof BERApplicationSpecific || applicationSpecific instanceof DERApplicationSpecific)) {
                 throw new SpnegoException("Incorrect GSS-API ASN.1 token received, expected to find an [APPLICATION 0], not: " + applicationSpecific);

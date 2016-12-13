@@ -15,12 +15,10 @@
  */
 package com.hierynomus.smbj.connection;
 
+import java.util.EnumSet;
+import java.util.UUID;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.protocol.commons.EnumWithValue;
-
-import java.util.EnumSet;
-import java.util.List;
-import java.util.UUID;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
@@ -51,7 +49,7 @@ public class ConnectionInfo {
 
     // All SMB2 Dialect
     private SessionTable sessionTable = new SessionTable();
-    private List<Void> preauthSessionTable;
+    private SessionTable preauthSessionTable = new SessionTable();
     private OutstandingRequests outstandingRequests = new OutstandingRequests();
     private SequenceWindow sequenceWindow;
     private byte[] gssNegotiateToken;
@@ -97,6 +95,10 @@ public class ConnectionInfo {
 
     SessionTable getSessionTable() {
         return sessionTable;
+    }
+
+    public SessionTable getPreauthSessionTable() {
+        return preauthSessionTable;
     }
 
     public UUID getClientGuid() {

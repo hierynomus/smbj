@@ -15,6 +15,8 @@
  */
 package com.hierynomus.smbj.transport.tcp;
 
+import java.io.IOException;
+import java.io.InputStream;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.messages.SMB2ResponseMessageFactory;
 import com.hierynomus.protocol.Packet;
@@ -24,9 +26,6 @@ import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.transport.PacketReader;
 import com.hierynomus.smbj.transport.PacketReceiver;
 import com.hierynomus.smbj.transport.TransportException;
-
-import java.io.IOException;
-import java.io.InputStream;
 
 public class DirectTcpPacketReader extends PacketReader {
 

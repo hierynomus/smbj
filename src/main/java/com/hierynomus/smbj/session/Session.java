@@ -17,13 +17,16 @@ package com.hierynomus.smbj.session;
 
 import java.io.IOException;
 import java.util.concurrent.Future;
+import javax.crypto.spec.SecretKeySpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.messages.SMB2Logoff;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
+import com.hierynomus.smbj.common.MessageSigning;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
@@ -41,16 +44,24 @@ import net.engio.mbassy.listener.Handler;
  */
 public class Session implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(Session.class);
-    long sessionId;
+    private long sessionId;
+
+    private SecretKeySpec signingKeySpec;
+    private boolean signingRequired;
+
     private Connection connection;
     private SMBEventBus bus;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
 
-    public Session(long sessionId, Connection connection, SMBEventBus bus) {
+    public Session(long sessionId, Connection connection, SMBEventBus bus, boolean signingRequired) {
         this.sessionId = sessionId;
         this.connection = connection;
         this.bus = bus;
-        bus.subscribe(this);
+        this.signingKeySpec = null;
+        this.signingRequired = signingRequired;
+        if (bus != null) {
+            bus.subscribe(this);
+        }
     }
 
     public long getSessionId() {
@@ -84,9 +95,10 @@ public class Session implements AutoCloseable {
         try {
             SMB2TreeConnectRequest smb2TreeConnectRequest = new SMB2TreeConnectRequest(connection.getNegotiatedProtocol().getDialect(), smbPath, sessionId);
             smb2TreeConnectRequest.getHeader().setCreditRequest(256);
-            Future<SMB2TreeConnectResponse> send = connection.send(smb2TreeConnectRequest);
+            Future<SMB2TreeConnectResponse> send = this.send(smb2TreeConnectRequest);
             SMB2TreeConnectResponse response = Futures.get(send, TransportException.Wrapper);
             if (response.getHeader().getStatus().isError()) {
+                logger.debug(response.getHeader().toString());
                 throw new SMBApiException(response.getHeader(), "Could not connect to " + smbPath);
             }
 
@@ -114,28 +126,43 @@ public class Session implements AutoCloseable {
     @Handler
     private void disconnectTree(TreeDisconnected disconnectEvent) {
         if (disconnectEvent.getSessionId() == sessionId) {
-            logger.debug("Notified of TreeDisconnected <<" + disconnectEvent.getTreeId() + ">>");
+            logger.debug("Notified of TreeDisconnected <<{}>>", disconnectEvent.getTreeId());
             treeConnectTable.closed(disconnectEvent.getTreeId());
         }
     }
 
     public void logoff() throws TransportException {
-        logger.info("Logging off session " + sessionId + " from host " + connection.getRemoteHostname());
+        logger.info("Logging off session {} from host {}", sessionId, connection.getRemoteHostname());
         for (TreeConnect treeConnect : treeConnectTable.getOpenTreeConnects()) {
             try {
                 treeConnect.getHandle().close();
             } catch (IOException e) {
-                logger.error(String.format("Caught exception while closing TreeConnect with id: %s", treeConnect.getTreeId()), e);
+                logger.error("Caught exception while closing TreeConnect with id: {}", treeConnect.getTreeId(), e);
             }
         }
         SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
-        SMB2Logoff response = Futures.get(connection.<SMB2Logoff>send(logoff), TransportException.Wrapper);
+        SMB2Logoff response = Futures.get(this.<SMB2Logoff>send(logoff), TransportException.Wrapper);
         if (!response.getHeader().getStatus().isSuccess()) {
             throw new SMBApiException(response.getHeader(), "Could not logoff session <<" + sessionId + ">>");
         }
         bus.publish(new SessionLoggedOff(sessionId));
     }
 
+    public boolean isSigningRequired() {
+        return signingRequired;
+    }
+
+    public void setSigningKey(byte[] signingKeyBytes) {
+        if (connection.getNegotiatedProtocol().getDialect().isSmb3x()) {
+            throw new IllegalStateException("Cannot set a signing key (yet) for SMB3.x");
+        } else {
+            this.signingKeySpec = new SecretKeySpec(signingKeyBytes, MessageSigning.HMAC_SHA256_ALGORITHM);
+        }
+    }
+
+    public SecretKeySpec getSigningKeySpec() {
+        return signingKeySpec;
+    }
 
     @Override
     public void close() throws IOException {
@@ -144,5 +171,32 @@ public class Session implements AutoCloseable {
 
     public Connection getConnection() {
         return connection;
+    }
+
+    /**
+     * send a packet.  The packet will be signed or not depending on the session's flags.
+     *
+     * @param packet SMBPacket to send
+     * @return a Future to be used to retrieve the response packet
+     * @throws TransportException
+     */
+    public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
+        if (signingRequired && signingKeySpec == null) {
+            throw new TransportException("Message signing is required, but no signing key is negotiated");
+        }
+        return connection.send(packet, signingKeySpec);
+    }
+
+    public void setBus(SMBEventBus bus) {
+        if (this.bus != null) {
+            this.bus.unsubscribe(this);
+            this.bus = null;
+        }
+        this.bus = bus;
+        bus.subscribe(this);
+    }
+
+    public void setSessionId(long sessionId) {
+        this.sessionId = sessionId;
     }
 }

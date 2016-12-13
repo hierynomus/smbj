@@ -15,11 +15,13 @@
  */
 package com.hierynomus.smbj;
 
-import com.hierynomus.mssmb2.SMB2Dialect;
-
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.protocol.commons.Factory;
+import com.hierynomus.smbj.auth.Authenticator;
 
 public interface Config {
 
@@ -27,5 +29,13 @@ public interface Config {
 
     EnumSet<SMB2Dialect> getSupportedDialects();
 
+    List<Factory.Named<Authenticator>> getSupportedAuthenticators();
+
     UUID getClientGuid();
+
+    /**
+     * enforces message signing.  When message signing is enforced a received message that is not signed properly
+     * will be dropped.
+     */
+    boolean isStrictSigning();
 }

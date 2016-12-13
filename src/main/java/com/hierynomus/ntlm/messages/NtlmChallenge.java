@@ -15,16 +15,15 @@
  */
 package com.hierynomus.ntlm.messages;
 
-import com.hierynomus.msdtyp.MsDataTypes;
-import com.hierynomus.protocol.commons.EnumWithValue;
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.hierynomus.msdtyp.MsDataTypes;
+import com.hierynomus.protocol.commons.EnumWithValue;
+import com.hierynomus.protocol.commons.buffer.Buffer;
 
 /**
  * [MS-NLMP].pdf 2.2.1.2 CHALLENGE_MESSAGE

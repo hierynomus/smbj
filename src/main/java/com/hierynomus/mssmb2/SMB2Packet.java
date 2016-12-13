@@ -22,6 +22,7 @@ import com.hierynomus.smbj.common.SMBBuffer;
 public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
     protected final SMB2Header header = new SMB2Header();
     protected int structureSize;
+    SMBBuffer buffer;
 
     public SMB2Packet() {
     }
@@ -54,6 +55,10 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
         return structureSize;
     }
 
+    public SMBBuffer getBuffer() {
+        return buffer;
+    }
+
     public final void write(SMBBuffer buffer) {
         header.writeTo(buffer);
         writeTo(buffer);
@@ -61,6 +66,7 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
 
     /**
      * Write the message fields into the buffer, as specified in the [MS-SMB2].pdf specification.
+     *
      * @param buffer
      */
     protected void writeTo(SMBBuffer buffer) {
@@ -68,6 +74,7 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
     }
 
     public final SMB2Packet read(SMBBuffer buffer) throws Buffer.BufferException {
+        this.buffer = buffer; // remember the buffer we read it from
         header.readFrom(buffer);
         readMessage(buffer);
         return this;

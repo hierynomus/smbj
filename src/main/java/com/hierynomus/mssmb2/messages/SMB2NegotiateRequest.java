@@ -15,14 +15,13 @@
  */
 package com.hierynomus.mssmb2.messages;
 
+import java.util.EnumSet;
+import java.util.UUID;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.smbj.common.SMBBuffer;
-
-import java.util.EnumSet;
-import java.util.UUID;
 
 /**
  * [MS-SMB2].pdf 2.2.3 SMB2 Negotiate
@@ -34,6 +33,7 @@ public class SMB2NegotiateRequest extends SMB2Packet {
 
     /**
      * Request constructor.
+     *
      * @param dialects
      * @param clientGuid
      */
@@ -45,6 +45,7 @@ public class SMB2NegotiateRequest extends SMB2Packet {
 
     /**
      * The Request packet
+     *
      * @param buffer
      */
     @Override

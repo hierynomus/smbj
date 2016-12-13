@@ -21,13 +21,14 @@ import com.hierynomus.smbj.common.SMBBuffer;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
-import static com.hierynomus.smbj.connection.NegotiatedProtocol.SINGLE_CREDIT_PAYLOAD_SIZE;
 
 /**
  * [MS-SMB2].pdf 2.2.1 SMB2 Packet Header
  */
 public class SMB2Header {
     public static final int STRUCTURE_SIZE = 64;
+    public static final int SIGNATURE_OFFSET = 48;
+    public static final int SIGNATURE_SIZE = 16;
 
     private SMB2Dialect dialect;
     private int creditCharge = 1;
@@ -63,12 +64,12 @@ public class SMB2Header {
             buffer.putUInt32(treeId); // TreeId (4 bytes)
         }
         buffer.putLong(sessionId); // SessionId (8 bytes)
-        buffer.putRawBytes(new byte[] {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}); // Signature (16 bytes)
+        buffer.putRawBytes(new byte[]{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}); // Signature (16 bytes)
     }
 
     private void writeChannelSequenceReserved(SMBBuffer buffer) {
         if (dialect.isSmb3x()) {
-            buffer.putRawBytes(new byte[] {0x0, 0x0}); // ChannelSequence (2 bytes)
+            buffer.putRawBytes(new byte[]{0x0, 0x0}); // ChannelSequence (2 bytes)
             buffer.putReserved(2); // Reserved (2 bytes)
             throw new UnsupportedOperationException("SMB 3.x not yet implemented");
         } else {
@@ -78,7 +79,7 @@ public class SMB2Header {
 
     /**
      * [MS-SMB2].pdf 3.2.4.1.2 Requesting Credits from the Server
-     *
+     * <p>
      * We should at least request the number of credits this request consumes, but we can request more (by calling {@link #setCreditRequest(int)}).
      */
     private void writeCreditRequest(SMBBuffer buffer) {
@@ -135,6 +136,10 @@ public class SMB2Header {
 
     public void setDialect(SMB2Dialect dialect) {
         this.dialect = dialect;
+    }
+
+    public boolean isFlagSet(SMB2MessageFlag flag) {
+        return isSet(this.flags, flag);
     }
 
     public void setFlag(SMB2MessageFlag flag) {
@@ -204,5 +209,24 @@ public class SMB2Header {
 
     public void setCreditCharge(int creditCharge) {
         this.creditCharge = creditCharge;
+    }
+
+    public String toString() {
+        return String.format(
+            "dialect=%s, creditCharge=%s, creditRequest=%s, creditResponse=%s, message=%s, messageId=%s, asyncId=%s, sessionId=%s, treeId=%s, status=%s, statusCode=%s, flags=%s, nextCommandOffset=%s",
+            dialect,
+            creditCharge,
+            creditRequest,
+            creditResponse,
+            message,
+            messageId,
+            asyncId,
+            sessionId,
+            treeId,
+            status,
+            statusCode,
+            flags,
+            nextCommandOffset);
+
     }
 }

@@ -15,14 +15,13 @@
  */
 package com.hierynomus.mssmb2.messages;
 
+import java.util.EnumSet;
 import com.hierynomus.msdtyp.SecurityInformation;
 import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.msfscc.FileSysemInformationClass;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smbj.common.SMBBuffer;
-
-import java.util.EnumSet;
 
 /**
  * [MS-SMB2].pdf 2.2.37 SMB2 QUERY_INFO Request

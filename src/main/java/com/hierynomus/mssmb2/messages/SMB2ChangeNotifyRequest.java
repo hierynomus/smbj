@@ -15,11 +15,10 @@
  */
 package com.hierynomus.mssmb2.messages;
 
+import java.util.EnumSet;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smbj.common.SMBBuffer;
-
-import java.util.EnumSet;
 
 /**
  * [MS-SMB2].pdf 2.2.35 SMB2 CHANGE_NOTIFY Request

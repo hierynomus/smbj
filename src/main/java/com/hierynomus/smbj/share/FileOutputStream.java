@@ -15,6 +15,11 @@
  */
 package com.hierynomus.smbj.share;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.concurrent.Future;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.messages.SMB2WriteRequest;
@@ -26,12 +31,6 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.io.ByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.concurrent.Future;
 
 public class FileOutputStream extends OutputStream {
 
@@ -98,7 +97,7 @@ public class FileOutputStream extends OutputStream {
     private void sendWriteRequest() throws TransportException {
         SMB2WriteRequest wreq = new SMB2WriteRequest(connection.getNegotiatedProtocol().getDialect(), fileId,
             session.getSessionId(), treeConnect.getTreeId(), provider, connection.getNegotiatedProtocol().getMaxWriteSize());
-        Future<SMB2WriteResponse> writeFuture = connection.send(wreq);
+        Future<SMB2WriteResponse> writeFuture = session.send(wreq);
         SMB2WriteResponse wresp = Futures.get(writeFuture, TransportException.Wrapper);
         if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
             throw new SMBApiException(wresp.getHeader(), "Write failed for " + this);
