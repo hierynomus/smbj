@@ -113,7 +113,7 @@ public class DFS {
                 referralCacheEntry = referralCache.lookup(resolveState.path);
             }
             if (referralCacheEntry == null || (referralCacheEntry.isExpired() && referralCacheEntry.isRoot())) {
-                referralCacheEntry = resolveRoot(session, referralCacheEntry, resolveState.path, pathEntries, resolveState);
+                referralCacheEntry = resolveRoot(session, resolveState.path, pathEntries, resolveState);
             } else if (referralCacheEntry.isExpired() && referralCacheEntry.isLink()) {
                 referralCacheEntry = resolveLink(session, resolveState.path, pathEntries);
             }
@@ -122,7 +122,7 @@ public class DFS {
                 if (resolveState.hostName == null) {
                     throw new IllegalStateException("Not expecting hostName to be null");
                 }
-                referralCacheEntry = resolveFromHost(session, referralCacheEntry, resolveState);
+                referralCacheEntry = resolveFromHost(session, resolveState);
             }
 
             // process the referral cache entry we ended up with
@@ -161,8 +161,8 @@ public class DFS {
         return resolveState.hostName;
     }
 
-    private ReferralCache.ReferralCacheEntry resolveFromHost(Session session, ReferralCache.ReferralCacheEntry referralCacheEntry,
-            ResolveState resolveState) throws IOException, BufferException, DFSException {
+    private ReferralCache.ReferralCacheEntry resolveFromHost(Session session, ResolveState resolveState) throws IOException, BufferException, DFSException {
+        ReferralCache.ReferralCacheEntry referralCacheEntry;
 // 6. [DFS Root referral request] Issue a DFS root referral request, as specified in section 3.1.4.2, providing "ROOT", 
 //     the first path component, UserCredentials, MaxOutputSize, and Path as parameters. The processing of the referral 
 //     response and/or error is as specified in section 3.1.5.4.3, which will update the ReferralCache on success. 
@@ -173,24 +173,24 @@ public class DFS {
 //        succeeded (as would have occurred in the case of a previous Interlink - see step 11 - or a domain root 
 //        referral, when entering from step 5), the path is in a DFS namespace. Go to step 14.
 //     3. The path is not a DFS path and no further processing is required. Go to step 12.
-            ReferralResult r = sendReferralRequest("ROOT", resolveState.hostName, session, resolveState.path);
+        ReferralResult r = sendReferralRequest("ROOT", resolveState.hostName, session, resolveState.path);
 
-            if (r.error == NtStatus.STATUS_SUCCESS) {
-                resolveState.isDFSPath = true; // remember that the path contained at least one DFS translation
+        if (r.error == NtStatus.STATUS_SUCCESS) {
+            resolveState.isDFSPath = true; // remember that the path contained at least one DFS translation
 // 7. [DFS root referral success] If the current ReferralCache entry's RootOrLink indicates root targets, go to step 3; 
 //       otherwise, go to step 4.
-                referralCacheEntry = r.referralCacheEntry;
-            } else {
-                if (!resolveState.isDomainOrPath && !resolveState.isDFSPath) { 
-                    //path is not a dfs path
-                    resolveState.hostName = resolveState.path;
-                    
-                    return null; // step12: return the original path
-                }
-                else {
-                    throw new DFSException(r.error); // step13/14: fail with error
-                }
+            referralCacheEntry = r.referralCacheEntry;
+        } else {
+            if (!resolveState.isDomainOrPath && !resolveState.isDFSPath) { 
+                //path is not a dfs path
+                resolveState.hostName = resolveState.path;
+                
+                return null; // step12: return the original path
             }
+            else {
+                throw new DFSException(r.error); // step13/14: fail with error
+            }
+        }
         return referralCacheEntry;
     }
 
@@ -218,8 +218,9 @@ public class DFS {
         return referralCacheEntry;
     }
 
-    private ReferralCache.ReferralCacheEntry resolveRoot(Session session, ReferralCache.ReferralCacheEntry referralCacheEntry, String path,
+    private ReferralCache.ReferralCacheEntry resolveRoot(Session session,String path,
             final String[] pathEntries, ResolveState resolveState) throws IOException, BufferException, DFSException {
+        ReferralCache.ReferralCacheEntry referralCacheEntry = null;
         DomainCache.DomainCacheEntry domainCacheEntry;
 // 5. [ReferralCache miss] [ReferralCache hit, expired TTL, RootOrLink=root] Look up the first path component in DomainCache.
 //   1. If no matching DomainCache entry is found, use the first path component as the host name for DFS root referral 
