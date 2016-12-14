@@ -136,6 +136,18 @@ public class ReferralCache {
             return (now < expires);
         }
         
+        boolean isLink() {
+            return rootOrLink == RootOrLink.RCE_LINK;
+        }
+        
+        boolean isRoot() {
+            return rootOrLink == RootOrLink.RCE_ROOT;
+        }
+        
+        boolean isInterlink() {
+            return rootOrLink == RootOrLink.RCE_LINK && interlink;
+        }
+        
         @Override
         public String toString() {
             return dfsPathPrefix+"->"+targetHint.targetPath+", "+targetList;
