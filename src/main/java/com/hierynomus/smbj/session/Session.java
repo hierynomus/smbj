@@ -23,7 +23,6 @@ import javax.crypto.spec.SecretKeySpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hierynomus.msdfsc.DFS;
 import com.hierynomus.msdfsc.DFSException;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
@@ -104,7 +103,7 @@ public class Session implements AutoCloseable {
         logger.info("Connection to {} on session {}", smbPath, sessionId);
         try {
             if (connection.getConfig().isDFSEnabled()) {
-                DFS.resolveDFS(this,smbPath);
+                connection.getClient().resolveDFS(this,smbPath);
             }
             SMB2TreeConnectRequest smb2TreeConnectRequest = new SMB2TreeConnectRequest(connection.getNegotiatedProtocol().getDialect(), smbPath, sessionId);
             smb2TreeConnectRequest.getHeader().setCreditRequest(256);
@@ -209,7 +208,7 @@ public class Session implements AutoCloseable {
             if (cresponse.getHeader().getStatus()==NtStatus.STATUS_PATH_NOT_COVERED) {
                 try {
                 //resolve dfs, modify packet, resend packet to new target, and hopefully it works there
-                    DFS.resolvePathNotCoveredError(this,packet);
+                    connection.getClient().resolvePathNotCoveredError(this,packet);
                 }
                 catch(DFSException e) { //TODO we wouldn't have to do this if we just threw SMBApiException from inside DFS
                     throw new SMBApiException(e.getStatus(), e.getStatus().getValue(), packet.getHeader().getMessage(), e);

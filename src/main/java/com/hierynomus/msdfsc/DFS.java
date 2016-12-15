@@ -44,10 +44,9 @@ import com.hierynomus.smbj.transport.TransportException;
 public class DFS {
     private static final Logger logger = LoggerFactory.getLogger(DFS.class);
 
-    ReferralCache referralCache = new ReferralCache();
+    ReferralCache referralCache = new ReferralCache(this);
     DomainCache domainCache = new DomainCache();
-    static DFS dfs = new DFS();
-    
+
     class ResolveState {
         boolean isDomainOrPath = false;
         boolean isDFSPath = false;
@@ -58,11 +57,11 @@ public class DFS {
             this.path = path;
         }
     }
-    
-    public static void resolveDFS(Session session, SmbPath path) throws DFSException {
+
+    public void resolveDFS(Session session, SmbPath path) throws DFSException {
         String newPath;
         try {
-            newPath = dfs.resolvePath(session, path.toString());
+            newPath = resolvePath(session, path.toString());
             path.parse(newPath);
         } catch (IOException | BufferException e) {
             // just return the old path back.
@@ -71,10 +70,10 @@ public class DFS {
         }
     }
     
-    public static void resolvePathNotCoveredError(Session session, SMB2CreateRequest packet) throws DFSException {
+    public void resolvePathNotCoveredError(Session session, SMB2CreateRequest packet) throws DFSException {
         try {
         // See [MS-DFSC] 3.1.5.1 I/O Operation to Target Fails with STATUS_PATH_NOT_COVERED
-            packet.setFileName(dfs.resolvePath(session, packet.getFileName()));
+            packet.setFileName(resolvePath(session, packet.getFileName()));
         } catch (IOException | BufferException e) {
             // just return the old path back.
             logger.error("Exception processing DFS", e);
@@ -288,17 +287,24 @@ public class DFS {
         if (hostName.equals(session.getConnection().getRemoteHostname())) {
             dfsSession = session;
             Share dfsShare = dfsSession.connectShare("IPC$");
-            result = getReferral(type, dfsShare.getTreeConnect(), path);
+            try {
+                result = getReferral(type, dfsShare.getTreeConnect(), path);
+            } finally {
+                dfsShare.close();
+            }
         } else {
             AuthenticationContext auth = session.getAuthenticationContext();
             Connection oldConnection = session.getConnection();
             connection = oldConnection.getClient().connect(hostName, oldConnection.getRemotePort());
             dfsSession = connection.authenticate(auth);
             Share dfsShare = dfsSession.connectShare("IPC$");
-            result = getReferral(type, dfsShare.getTreeConnect(), path);
+            try {
+                result = getReferral(type, dfsShare.getTreeConnect(), path);
+            } finally {
+                dfsShare.close();
+            }
         }
         return result;
-//TODO do we close the share?
     }
 
     // Execute a FSCTL_DFS_GET_REFERRALS_EX
@@ -397,9 +403,9 @@ public class DFS {
         DomainCacheEntry domainCacheEntry;
     }
     
-    public static void clearCaches() {
-        dfs.referralCache.clear();
-        dfs.domainCache.clear();
+    public void clearCaches() {
+        referralCache.clear();
+        domainCache.clear();
     }
 
 }

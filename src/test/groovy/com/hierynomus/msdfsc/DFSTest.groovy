@@ -35,6 +35,7 @@ import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
 import com.hierynomus.mssmb2.messages.SMB2IoctlRequest;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
+import com.hierynomus.mssmb2.messages.SMB2TreeDisconnect;
 import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
 import com.hierynomus.smbj.DefaultConfig
@@ -83,6 +84,15 @@ class DFSTest extends Specification {
                     }
                 }
             }
+            send(_ as SMB2TreeDisconnect,null) >> {
+                c,k->Mock(Future) {
+                    get() >> {
+                        def response = new SMB2TreeDisconnect();
+                        response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
+                        response
+                    }
+                }
+            }
             send(_ as SMB2IoctlRequest,null) >> {
                 c,k->Mock(Future) {
                     get() >> {
@@ -99,9 +109,10 @@ class DFSTest extends Specification {
         def auth = new AuthenticationContext("username","password".toCharArray(),"domain.com")
         def session = new Session(123,connection,auth,bus,false)
         def SmbPath path = new SmbPath("10.0.0.10","Sales")
+        def dfs = new DFS();
 
         when:
-        DFS.resolveDFS(session, path)
+        dfs.resolveDFS(session, path)
         
         then:
         with(path) {
@@ -140,6 +151,15 @@ class DFSTest extends Specification {
                         response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
                         response.setCapabilities(EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS));
                         response.setShareType((byte)0x01);
+                        response
+                    }
+                }
+            }
+            send(_ as SMB2TreeDisconnect,null) >> {
+                c,k->Mock(Future) {
+                    get() >> {
+                        def response = new SMB2TreeDisconnect();
+                        response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
                         response
                     }
                 }
@@ -209,9 +229,10 @@ class DFSTest extends Specification {
         def auth = new AuthenticationContext("username","password".toCharArray(),"domain.com")
         session = new Session(123,connection,auth,bus,false)
         def path = new SmbPath("domain.com","Sales")
+        def dfs = new DFS()
 
         when:
-        DFS.resolveDFS(session, path)
+        dfs.resolveDFS(session, path)
         
         then:
         with(path) {
@@ -248,6 +269,15 @@ class DFSTest extends Specification {
                     }
                 }
             }
+            send(_ as SMB2TreeDisconnect,null) >> {
+                c,k->Mock(Future) {
+                    get() >> {
+                        def response = new SMB2TreeDisconnect();
+                        response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
+                        response
+                    }
+                }
+            }
             send(_ as SMB2IoctlRequest,null) >> {
                 c,k->Mock(Future) {
                     get() >> {
@@ -259,12 +289,12 @@ class DFSTest extends Specification {
                 }
             }
             authenticate(_) >> { AuthenticationContext auth ->
-                new Session(0, connection, auth, null, false);
+                new Session(0, connection, auth, bus, false);
             }
         }
         DFS dfs = new DFS();
         AuthenticationContext auth = new AuthenticationContext("username","password".toCharArray(),"domain.com");
-        session = new Session(0, connection, auth, null, false);//TODO fill me in
+        session = new Session(0, connection, auth, bus, false);//TODO fill me in
         String path = "\\10.0.0.10\\Sales";
        
         when:
@@ -305,6 +335,15 @@ class DFSTest extends Specification {
                         response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
                         response.setCapabilities(EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS));
                         response.setShareType((byte)0x01);
+                        response
+                    }
+                }
+            }
+            send(_ as SMB2TreeDisconnect,null) >> {
+                c,k->Mock(Future) {
+                    get() >> {
+                        def response = new SMB2TreeDisconnect();
+                        response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
                         response
                     }
                 }
@@ -353,9 +392,10 @@ class DFSTest extends Specification {
         def auth = new AuthenticationContext("username","password".toCharArray(),"domain.com")
         session = new Session(123,connection,auth,bus,false)
         def SmbPath path = new SmbPath("SERVERHOST","Sales","NorthAmerica")
-
+        DFS dfs = new DFS();
+        
         when:
-            DFS.resolveDFS(session, path)
+            dfs.resolveDFS(session, path)
         
         then:
             path.hostname=="SERVERHOST"
@@ -394,6 +434,15 @@ class DFSTest extends Specification {
                         response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
                         response.setCapabilities(EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS));
                         response.setShareType((byte)0x01);
+                        response
+                    }
+                }
+            }
+            send(_ as SMB2TreeDisconnect,null) >> {
+                c,k->Mock(Future) {
+                    get() >> {
+                        def response = new SMB2TreeDisconnect();
+                        response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
                         response
                     }
                 }
@@ -443,10 +492,11 @@ class DFSTest extends Specification {
         def auth = new AuthenticationContext("username","password".toCharArray(),"domain.com")
         session = new Session(123,connection,auth,bus,false)
         def SmbPath path = new SmbPath("SERVERHOST","Sales","NorthAmerica")
+        def DFS dfs = new DFS()
 
         when:
-            DFS.clearCaches();
-            DFS.resolveDFS(session, path)
+            dfs.clearCaches();
+            dfs.resolveDFS(session, path)
         
         then:
             path.hostname=="ALTER"

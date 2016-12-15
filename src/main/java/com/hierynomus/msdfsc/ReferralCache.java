@@ -61,6 +61,7 @@ import com.hierynomus.msdfsc.SMB2GetDFSReferralResponse.ReferralHeaderFlags;
 public class ReferralCache {
 
     Hashtable<String, ReferralCacheEntry> cache = new Hashtable<String, ReferralCacheEntry>();
+    DFS dfs; // the owner
 
     public enum RootOrLink {
         RCE_LINK(0x0),
@@ -117,7 +118,7 @@ public class ReferralCache {
                     && !isSet(response.referralHeaderFlags, ReferralHeaderFlags.StorageServers);
             if (!this.interlink && response.referralEntries.size() == 1) {
                 String[] pathEntries = DFS.parsePath(response.referralEntries.get(0).path);
-                this.interlink = (DFS.dfs.domainCache.lookup(pathEntries[0]) != null);
+                this.interlink = (dfs.domainCache.lookup(pathEntries[0]) != null);
             }
             this.ttl = response.referralEntries.get(0).ttl;
             this.expires = System.currentTimeMillis() + this.ttl * 1000L;
@@ -160,6 +161,9 @@ public class ReferralCache {
         boolean targetSetBoundary;
     }
 
+    ReferralCache(DFS dfs) {
+        this.dfs = dfs;
+    }
     public ReferralCacheEntry lookup(String path) {
         return cache.get(path);
     }
