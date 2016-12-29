@@ -26,8 +26,10 @@ import com.hierynomus.msdtyp.SecurityInformation;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.FileInformationClass;
+import com.hierynomus.msfscc.FileSysemInformationClass;
 import com.hierynomus.msfscc.fileinformation.FileInfo;
 import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
+import com.hierynomus.msfscc.fileinformation.ShareInfo;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMB2FileId;
@@ -192,6 +194,30 @@ public class DiskShare extends Share {
     }
 
     /**
+     * Get Share Information for the current Disk Share
+     * 
+     * @return the ShareInfo
+     * @throws SMBApiException
+     */
+    public ShareInfo getShareInformation() throws TransportException, SMBApiException {
+
+        Directory directory = openDirectory("",
+                EnumSet.of(FILE_READ_ATTRIBUTES), 
+                EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ),
+                SMB2CreateDisposition.FILE_OPEN);
+
+        byte[] outputBuffer = queryInfoCommon(directory.getFileId(),
+                SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILESYSTEM, null, null,
+                FileSysemInformationClass.FileFsFullSizeInformation);
+
+        try {
+            return ShareInfo.parseFsFullSizeInformation(new Buffer.PlainBuffer(outputBuffer, Endian.LE));
+        } catch (Buffer.BufferException e) {
+            throw new SMBRuntimeException(e);
+        }
+    }
+    
+    /**
      * Remove the directory at the given path.
      */
     public void rmdir(String path, boolean recursive) throws TransportException, SMBApiException {
@@ -339,7 +365,7 @@ public class DiskShare extends Share {
             SMB2SetInfoResponse setInfoResponse = Futures.get(setInfoFuture, TransportException.Wrapper);
 
             if (setInfoResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(response.getHeader(), "SetInfo failed for " + path);
+                throw new SMBApiException(setInfoResponse.getHeader(), "SetInfo failed for " + path);
             }
         } finally {
             SMB2Close closeReq = new SMB2Close(connection.getNegotiatedProtocol().getDialect(),
@@ -348,7 +374,7 @@ public class DiskShare extends Share {
             SMB2Close closeResponse = Futures.get(closeFuture, TransportException.Wrapper);
 
             if (closeResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(response.getHeader(), "Close failed for " + path);
+                throw new SMBApiException(closeResponse.getHeader(), "Close failed for " + path);
             }
 
         }
@@ -403,10 +429,20 @@ public class DiskShare extends Share {
     }
 
     private byte[] queryInfoCommon(
+            SMB2FileId fileId,
+            SMB2QueryInfoRequest.SMB2QueryInfoType infoType,
+            EnumSet<SecurityInformation> securityInfo,
+            FileInformationClass fileInformationClass)
+            throws SMBApiException {
+    	return queryInfoCommon(fileId, infoType, securityInfo, fileInformationClass, null);
+    }
+    
+    private byte[] queryInfoCommon(
         SMB2FileId fileId,
         SMB2QueryInfoRequest.SMB2QueryInfoType infoType,
         EnumSet<SecurityInformation> securityInfo,
-        FileInformationClass fileInformationClass)
+        FileInformationClass fileInformationClass,
+        FileSysemInformationClass fileSysemInformationClass)
         throws SMBApiException {
 
         Session session = treeConnect.getSession();
@@ -415,7 +451,7 @@ public class DiskShare extends Share {
         SMB2QueryInfoRequest qreq = new SMB2QueryInfoRequest(
             connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
             fileId, infoType,
-            fileInformationClass, null, null, securityInfo);
+            fileInformationClass, fileSysemInformationClass, null, securityInfo);
         try {
             Future<SMB2QueryInfoResponse> qiResponseFuture = session.send(qreq);
             SMB2QueryInfoResponse qresp = Futures.get(qiResponseFuture, SMBRuntimeException.Wrapper);

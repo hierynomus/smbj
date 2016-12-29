@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.transport;
 
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,10 +30,12 @@ public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
     private PacketReceiver<P> handler;
 
     private AtomicBoolean stopped = new AtomicBoolean(false);
+    private Thread thread;
 
-    public PacketReader(InputStream in, PacketReceiver<P> handler) {
+    public PacketReader(String host, InputStream in, PacketReceiver<P> handler) {
         this.in = in;
         this.handler = handler;
+        this.thread = new Thread(this, "Packet Reader for " + host);
     }
 
     @Override
@@ -49,11 +52,15 @@ public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
                 throw new SMBRuntimeException(e);
             }
         }
+        if (stopped.get()) {
+            logger.info("PacketReader stopped.");
+        }
     }
 
     public void stop() {
         logger.debug("Stopping PacketReader...");
         stopped.set(true);
+        thread.interrupt();
     }
 
     private void readPacket() throws TransportException {
@@ -69,4 +76,9 @@ public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
      * @throws TransportException
      */
     protected abstract P doRead() throws TransportException;
+
+    public void start() {
+        logger.debug("Starting PacketReader on thread: {}", thread.getName());
+        this.thread.start();
+    }
 }
