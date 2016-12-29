@@ -110,9 +110,8 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     protected void onConnect() throws IOException {
         super.onConnect();
         this.connectionInfo = new ConnectionInfo(config.getClientGuid(), getRemoteHostname());
-        packetReader = new DirectTcpPacketReader(getInputStream(), this);
-        packetReaderThread = new Thread(packetReader);
-        packetReaderThread.start();
+        packetReader = new DirectTcpPacketReader(getRemoteHostname(), getInputStream(), this);
+        packetReader.start();
         transport.init(getInputStream(), getOutputStream());
         negotiateDialect();
         logger.info("Successfully connected to: {}", getRemoteHostname());
