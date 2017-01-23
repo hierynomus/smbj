@@ -17,7 +17,6 @@ package com.hierynomus.smbj.transport.tcp;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetAddress;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.messages.SMB2ResponseMessageFactory;
 import com.hierynomus.protocol.Packet;

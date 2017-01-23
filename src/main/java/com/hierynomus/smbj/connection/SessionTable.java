@@ -15,7 +15,6 @@
  */
 package com.hierynomus.smbj.connection;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
