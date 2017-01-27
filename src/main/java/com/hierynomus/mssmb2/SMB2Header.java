@@ -233,4 +233,8 @@ public class SMB2Header {
             nextCommandOffset);
 
     }
+
+    public int getCreditCharge() {
+        return creditCharge;
+    }
 }

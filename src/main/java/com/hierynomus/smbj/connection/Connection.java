@@ -15,20 +15,6 @@
  */
 package com.hierynomus.smbj.connection;
 
-import java.io.IOException;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.UUID;
-import java.util.concurrent.Future;
-import java.util.concurrent.locks.ReentrantLock;
-
-import javax.crypto.spec.SecretKeySpec;
-
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2MessageFlag;
@@ -57,12 +43,23 @@ import com.hierynomus.smbj.transport.TransportLayer;
 import com.hierynomus.smbj.transport.tcp.DirectTcpPacketReader;
 import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
 import com.hierynomus.spnego.NegTokenInit;
-
 import net.engio.mbassy.listener.Handler;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.UUID;
+import java.util.concurrent.Future;
+import java.util.concurrent.locks.ReentrantLock;
+
+import static com.hierynomus.mssmb2.SMB2Packet.SINGLE_CREDIT_PAYLOAD_SIZE;
 import static com.hierynomus.mssmb2.messages.SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_ENABLED;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
-import static com.hierynomus.smbj.connection.NegotiatedProtocol.SINGLE_CREDIT_PAYLOAD_SIZE;
 import static java.lang.String.format;
 
 /**
@@ -82,7 +79,6 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     private TransportLayer transport;
     private final SMBEventBus bus;
     private PacketReader packetReader;
-    private Thread packetReaderThread;
     private final ReentrantLock lock = new ReentrantLock();
 
     public Connection(Config config, SMBClient client, TransportLayer transport, SMBEventBus bus) {
@@ -210,8 +206,8 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     /**
      * send a packet, potentially signed
      *
-     * @param packet     SMBPacket to send
-     * @param signingKeySpec if null, do not sign the packet.  Otherwise, the signingKey will be used to sign the packet.
+     * @param packet         SMBPacket to send
+     * @param signingKeySpec if null, do not sign the packet. Otherwise, the signingKeySpec will be used to sign the packet.
      * @return a Future to be used to retrieve the response packet
      * @throws TransportException
      */
@@ -219,29 +215,14 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         lock.lock();
         try {
             int availableCredits = connectionInfo.getSequenceWindow().available();
-            int grantCredits;
-            if (packet instanceof SMB2MultiCreditPacket) {
-                int payloadSize = ((SMB2MultiCreditPacket) packet).getPayloadSize();
-                int creditsNeeded = creditsNeeded(payloadSize);
-                // Scale the credits granted to the message dynamically.
-                if (availableCredits == 0) {
-                    throw new NoSuchElementException("TODO ([MS-SMB2].pdf 3.2.5.1.4 Granting Message Credits)! No credits left.");
-                } else if (creditsNeeded < availableCredits) {
-                    grantCredits = creditsNeeded;
-                } else if (creditsNeeded > 1 && availableCredits > 1) { // creditsNeeded >= availableCredits
-                    grantCredits = availableCredits - 1; // Keep 1 credit left for a simple request
-                } else {
-                    grantCredits = 1;
-                }
-                long[] messageIds = connectionInfo.getSequenceWindow().get(grantCredits);
-                ((SMB2MultiCreditPacket) packet).setCreditsAssigned(grantCredits);
-                packet.getHeader().setMessageId(messageIds[0]);
-                logger.debug("Granted {} credits to {} with message id << {} >>", grantCredits, packet.getHeader().getMessage(), packet.getHeader().getMessageId());
-            } else {
-                grantCredits = 1;
-                long messageId = connectionInfo.getSequenceWindow().get();
-                packet.getHeader().setMessageId(messageId);
+            if (availableCredits == 0) {
+                throw new NoSuchElementException("TODO ([MS-SMB2].pdf 3.2.5.1.4 Granting Message Credits)! No credits left.");
             }
+
+            int grantCredits = calculateGrantedCredits(packet, availableCredits);
+            long[] messageIds = connectionInfo.getSequenceWindow().get(grantCredits);
+            packet.getHeader().setMessageId(messageIds[0]);
+            logger.debug("Granted {} credits to {} with message id << {} >>", grantCredits, packet.getHeader().getMessage(), packet.getHeader().getMessageId());
             packet.getHeader().setCreditRequest(Math.max(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits, grantCredits));
 
             Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID(), packet);
@@ -255,6 +236,26 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         } finally {
             lock.unlock();
         }
+    }
+
+    private int calculateGrantedCredits(final SMB2Packet packet, final int availableCredits) {
+        final int grantCredits;
+        if (packet instanceof SMB2MultiCreditPacket) {
+            int maxPayloadSize = ((SMB2MultiCreditPacket) packet).getMaxPayloadSize();
+            int creditsNeeded = creditsNeeded(maxPayloadSize);
+            // Scale the credits granted to the message dynamically.
+            if (creditsNeeded < availableCredits) {
+                grantCredits = creditsNeeded;
+            } else if (creditsNeeded > 1 && availableCredits > 1) { // creditsNeeded >= availableCredits
+                grantCredits = availableCredits - 1; // Keep 1 credit left for a simple request
+            } else {
+                grantCredits = 1;
+            }
+            ((SMB2MultiCreditPacket) packet).setCreditsAssigned(grantCredits);
+        } else {
+            grantCredits = 1;
+        }
+        return grantCredits;
     }
 
     private void negotiateDialect() throws TransportException {

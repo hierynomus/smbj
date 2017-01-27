@@ -16,7 +16,6 @@
 package com.hierynomus.smbj.transport;
 
 import java.io.InputStream;
-import java.net.InetAddress;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -15,15 +15,15 @@
  */
 package com.hierynomus.smbj.connection;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.hierynomus.smbj.session.Session;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
+
 class SessionTable {
-    private static final Logger logger = LoggerFactory.getLogger(SessionTable.class);
     private ReentrantLock lock = new ReentrantLock();
     private Map<Long, Session> lookup = new HashMap<>();
 
