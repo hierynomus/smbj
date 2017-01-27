@@ -18,8 +18,14 @@ package com.hierynomus.smbj;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import com.hierynomus.msdfsc.DFS;
+import com.hierynomus.msdfsc.DFSException;
+import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
+import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.event.SMBEventBus;
+import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
 
 /**
@@ -34,6 +40,8 @@ public class SMBClient {
     private Map<String, Connection> connectionTable = new ConcurrentHashMap<>();
 
     private Config config;
+    
+    private DFS dfs;
 
     private SMBEventBus bus;
 
@@ -44,6 +52,7 @@ public class SMBClient {
     public SMBClient(Config config) {
         this.config = config;
         bus = new SMBEventBus();
+        dfs = new DFS();
     }
 
     /**
@@ -70,14 +79,25 @@ public class SMBClient {
     }
 
     private Connection getEstablishedOrConnect(String hostname, int port) throws IOException {
+        String socketAddress = hostname + ":" + port;
         synchronized (this) {
-            if (!connectionTable.containsKey(hostname)) {
-                Connection connection = new Connection(config, new DirectTcpTransport(), bus);
+            if (!connectionTable.containsKey(socketAddress)) {
+                Connection connection = new Connection(config, this, new DirectTcpTransport(), bus);
                 connection.connect(hostname, port);
-                connectionTable.put(hostname, connection);
+                connectionTable.put(socketAddress, connection);
                 return connection;
             }
             return connectionTable.get(hostname);
         }
     }
+
+    public void resolvePathNotCoveredError(Session session, SMB2CreateRequest packet) throws DFSException {
+        dfs.resolvePathNotCoveredError(session, packet);
+    }
+
+    public void resolveDFS(Session session, SmbPath smbPath) throws DFSException {
+        dfs.resolveDFS(session, smbPath);
+    }
+    
+    
 }

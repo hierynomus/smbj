@@ -34,6 +34,7 @@ public class DefaultConfig extends ConfigImpl {
         clientGuid = UUID.randomUUID();
         isStrictSigning = false; //TODO change to true when we are more confident
         registerDefaultAuthenticators();
+        isDFSEnabled = true;
     }
 
     private void registerDefaultAuthenticators() {

@@ -25,20 +25,59 @@ public class SmbPath {
         this.hostname = hostname;
     }
 
+    public SmbPath(String hostname, String shareName, String path) {
+        this.shareName = shareName;
+        this.hostname = hostname;
+        this.path = path;
+    }
+    
     @Override
     public String toString() {
         StringBuilder b = new StringBuilder("\\\\");
         b.append(hostname);
-        // Clients can either pass \share or share
-        if (shareName.charAt(0) != '\\')
-            b.append("\\");
-        b.append(shareName);
-        if (path != null) {
-            b.append("\\").append(path);
+        if (shareName != null) {
+            // Clients can either pass \share or share
+            if (shareName.charAt(0) != '\\') {
+                b.append("\\");
+            }
+            b.append(shareName);
+            if (path != null) {
+                b.append("\\").append(path);
+            }
         }
         return b.toString();
     }
 
+    public void parse(String newPath) {
+        int l;
+        int n;
+        int m;
+        hostname = null;
+        shareName = null;
+        path = null;
+        
+        // newPath starts with one backslash
+        if (newPath.startsWith("\\\\")) {
+            l = 2;
+        } else if (newPath.startsWith("\\")) {
+            l = 1;
+        } else {
+            l = 0;
+        }
+
+        n = newPath.indexOf('\\',l);
+        if (n > 0) {
+            hostname = newPath.substring(l,n);
+            m = newPath.indexOf('\\',n+1);
+            if (m > 0) {
+                shareName = newPath.substring(n+1,m);
+                path = newPath.substring(m+1);
+            } else {
+                shareName = newPath.substring(n+1);
+            }
+        }
+    }
+    
     public String getHostname() {
         return hostname;
     }

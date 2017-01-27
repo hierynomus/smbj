@@ -30,6 +30,7 @@ public class ConfigImpl implements Config {
     protected Random random;
     protected UUID clientGuid;
     protected boolean isStrictSigning;
+    protected boolean isDFSEnabled;
 
     @Override
     public Random getRandomProvider() {
@@ -49,6 +50,11 @@ public class ConfigImpl implements Config {
     @Override
     public boolean isStrictSigning() {
         return isStrictSigning;
+    }
+    
+    @Override
+    public boolean isDFSEnabled() {
+        return isDFSEnabled;
     }
 
     @Override

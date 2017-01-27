@@ -27,6 +27,7 @@ import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.commons.socket.SocketClient;
 import com.hierynomus.smbj.Config;
+import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.common.MessageSigning;
@@ -68,20 +69,35 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
     private ConnectionInfo connectionInfo;
 
+    private SMBClient client;
+
+    public SMBClient getClient() {
+        return client;
+    }
+
     private Config config;
     private TransportLayer transport;
     private final SMBEventBus bus;
     private PacketReader packetReader;
     private final ReentrantLock lock = new ReentrantLock();
 
-    public Connection(Config config, TransportLayer transport, SMBEventBus bus) {
+    public Connection(Config config, SMBClient client, TransportLayer transport, SMBEventBus bus) {
         super(transport.getDefaultPort());
         this.config = config;
+        this.client = client;
         this.transport = transport;
         this.bus = bus;
         bus.subscribe(this);
     }
 
+    public Connection(Connection connection) {
+        super(connection.defaultPort);
+        this.client = connection.client;
+        this.config = connection.config;
+        this.transport = connection.transport;
+        this.bus = connection.bus;
+        bus.subscribe(this);
+    }
 
     /**
      * On connection establishment, also initializes the transport via {@link DirectTcpTransport#init}.
@@ -120,7 +136,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         try {
             NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
             Authenticator authenticator = getAuthenticator(negTokenInit.getSupportedMechTypes(), authContext);
-            Session session = new Session(0, this, bus, connectionInfo.isRequireSigning());
+            Session session = new Session(0, this, authContext, bus, connectionInfo.isRequireSigning());
             SMB2SessionSetup receive = authenticationRound(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
             long sessionId = receive.getHeader().getSessionId();
             session.setSessionId(sessionId);
@@ -152,7 +168,9 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
     private SMB2SessionSetup authenticationRound(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {
         byte[] securityContext = authenticator.authenticate(authContext, inputToken, session);
-        SMB2SessionSetup req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED));
+
+        SMB2SessionSetup req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED), 
+                connectionInfo.getClientCapabilities());
         req.setSecurityBuffer(securityContext);
         req.getHeader().setSessionId(session.getSessionId());
         return sendAndReceive(req);
@@ -253,7 +271,6 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         logger.info("Negotiated the following connection settings: {}", connectionInfo);
     }
 
-
     /**
      * [MS-SMB2].pdf 3.1.5.2 Calculating the CreditCharge
      */
@@ -342,10 +359,13 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         connectionInfo.getOutstandingRequests().handleError(t);
     }
 
-
     @Handler
     private void sessionLogoff(SessionLoggedOff loggedOff) {
         connectionInfo.getSessionTable().sessionClosed(loggedOff.getSessionId());
         logger.debug("Session << {} >> logged off", loggedOff.getSessionId());
+    }
+
+    public Config getConfig() {
+        return config;
     }
 }

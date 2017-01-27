@@ -17,15 +17,22 @@ package com.hierynomus.smbj.session;
 
 import java.io.IOException;
 import java.util.concurrent.Future;
+
 import javax.crypto.spec.SecretKeySpec;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.hierynomus.msdfsc.DFSException;
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
+import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
 import com.hierynomus.mssmb2.messages.SMB2Logoff;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
+import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.MessageSigning;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
@@ -52,13 +59,15 @@ public class Session implements AutoCloseable {
     private Connection connection;
     private SMBEventBus bus;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
+    private AuthenticationContext auth;
 
-    public Session(long sessionId, Connection connection, SMBEventBus bus, boolean signingRequired) {
+    public Session(long sessionId, Connection connection, AuthenticationContext auth, SMBEventBus bus, boolean signingRequired) {
         this.sessionId = sessionId;
         this.connection = connection;
         this.bus = bus;
         this.signingKeySpec = null;
         this.signingRequired = signingRequired;
+        this.auth = auth;
         if (bus != null) {
             bus.subscribe(this);
         }
@@ -93,6 +102,9 @@ public class Session implements AutoCloseable {
         SmbPath smbPath = new SmbPath(remoteHostname, shareName);
         logger.info("Connection to {} on session {}", smbPath, sessionId);
         try {
+            if (connection.getConfig().isDFSEnabled()) {
+                connection.getClient().resolveDFS(this,smbPath);
+            }
             SMB2TreeConnectRequest smb2TreeConnectRequest = new SMB2TreeConnectRequest(connection.getNegotiatedProtocol().getDialect(), smbPath, sessionId);
             smb2TreeConnectRequest.getHeader().setCreditRequest(256);
             Future<SMB2TreeConnectResponse> send = this.send(smb2TreeConnectRequest);
@@ -118,6 +130,8 @@ public class Session implements AutoCloseable {
             } else {
                 throw new SMBRuntimeException("Unknown ShareType returned in the TREE_CONNECT Response");
             }
+        } catch (DFSException e) {
+            throw new SMBRuntimeException(e);
         } catch (TransportException e) {
             throw new SMBRuntimeException(e);
         }
@@ -186,6 +200,25 @@ public class Session implements AutoCloseable {
         }
         return connection.send(packet, signingKeySpec);
     }
+    
+    public <T extends SMB2Packet> T processSendResponse(SMB2CreateRequest packet) throws TransportException {
+        while (true) {
+            Future<T> responseFuture = send(packet);
+            T cresponse = Futures.get(responseFuture, SMBRuntimeException.Wrapper);
+            if (cresponse.getHeader().getStatus()==NtStatus.STATUS_PATH_NOT_COVERED) {
+                try {
+                //resolve dfs, modify packet, resend packet to new target, and hopefully it works there
+                    connection.getClient().resolvePathNotCoveredError(this,packet);
+                }
+                catch(DFSException e) { //TODO we wouldn't have to do this if we just threw SMBApiException from inside DFS
+                    throw new SMBApiException(e.getStatus(), e.getStatus().getValue(), packet.getHeader().getMessage(), e);
+                }
+                // and we try again
+            } else {
+                return cresponse;
+            }
+        }
+    }
 
     public void setBus(SMBEventBus bus) {
         if (this.bus != null) {
@@ -196,6 +229,10 @@ public class Session implements AutoCloseable {
         bus.subscribe(this);
     }
 
+    public AuthenticationContext getAuthenticationContext() {
+        return auth;
+    }
+    
     public void setSessionId(long sessionId) {
         this.sessionId = sessionId;
     }

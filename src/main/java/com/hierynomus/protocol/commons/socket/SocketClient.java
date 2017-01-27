@@ -26,7 +26,7 @@ import javax.net.SocketFactory;
 public abstract class SocketClient {
     private static final int INITIAL_BUFFER_SIZE = 9000; // Size of a Jumbo frame.
 
-    private final int defaultPort;
+    protected final int defaultPort;
 
     private Socket socket;
     private InputStream input;

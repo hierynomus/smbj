@@ -346,8 +346,7 @@ public class DiskShare extends Share {
         Connection connection = session.getConnection();
 
         // TODO Use Compounding
-        Future<SMB2CreateResponse> sendFuture = session.send(smb2CreateRequest);
-        SMB2CreateResponse response = Futures.get(sendFuture, TransportException.Wrapper);
+        SMB2CreateResponse response = session.processSendResponse(smb2CreateRequest);
 
         if (response.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
             throw new SMBApiException(response.getHeader(), "Create failed for " + path);
