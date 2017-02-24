@@ -16,13 +16,12 @@
 package com.hierynomus.smbj.common;
 
 public class SmbPath {
-    private String hostname;
-    private String shareName;
-    private String path;
+    private final String hostname;
+    private final String shareName;
+    private final String path;
 
     public SmbPath(String hostname, String shareName) {
-        this.shareName = shareName;
-        this.hostname = hostname;
+        this(hostname, shareName, null);
     }
 
     public SmbPath(String hostname, String shareName, String path) {
@@ -48,36 +47,24 @@ public class SmbPath {
         return b.toString();
     }
 
-    public void parse(String newPath) {
-        int l;
-        int n;
-        int m;
-        hostname = null;
-        shareName = null;
-        path = null;
-        
-        // newPath starts with one backslash
-        if (newPath.startsWith("\\\\")) {
-            l = 2;
-        } else if (newPath.startsWith("\\")) {
-            l = 1;
-        } else {
-            l = 0;
-        }
-
-        n = newPath.indexOf('\\',l);
-        if (n > 0) {
-            hostname = newPath.substring(l,n);
-            m = newPath.indexOf('\\',n+1);
-            if (m > 0) {
-                shareName = newPath.substring(n+1,m);
-                path = newPath.substring(m+1);
+    public static SmbPath parse(String path) {
+        String splitPath = path;
+        if (path.charAt(0) == '\\') {
+            if (path.charAt(1) == '\\') {
+                splitPath = path.substring(2);
             } else {
-                shareName = newPath.substring(n+1);
+                splitPath = path.substring(1);
             }
         }
+
+        String[] split = splitPath.split("\\\\", 3);
+        if (split.length == 2) {
+            return new SmbPath(split[0], split[1]);
+        } else {
+            return new SmbPath(split[0], split[1], split[2]);
+        }
     }
-    
+
     public String getHostname() {
         return hostname;
     }

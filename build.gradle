@@ -4,6 +4,7 @@ plugins {
   id "java"
   id "groovy"
   id "jacoco"
+  id "jdepend"
   id "maven-publish"
   id "org.ajoberstar.release-opinion" version "1.4.2"
   id "com.github.hierynomus.license" version "0.12.1"
@@ -34,6 +35,7 @@ dependencies {
   compile "org.bouncycastle:bcprov-jdk15on:$bouncycastleVersion"
   compile "org.bouncycastle:bcpkix-jdk15on:$bouncycastleVersion"
   compile 'net.engio:mbassador:1.2.4.2'
+  testCompile 'org.codehaus.groovy:groovy-all:2.4.4'
   testCompile 'org.spockframework:spock-core:1.0-groovy-2.4'
   testCompile 'commons-io:commons-io:2.5'
   testRuntime 'ch.qos.logback:logback-classic:1.1.3'

@@ -58,16 +58,18 @@ public class Session implements AutoCloseable {
 
     private Connection connection;
     private SMBEventBus bus;
+    private PathResolver pathResolver;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
     private AuthenticationContext auth;
 
-    public Session(long sessionId, Connection connection, AuthenticationContext auth, SMBEventBus bus, boolean signingRequired) {
+    public Session(long sessionId, Connection connection, AuthenticationContext auth,
+                   SMBEventBus bus, boolean signingRequired, PathResolver pathResolver) {
         this.sessionId = sessionId;
         this.connection = connection;
-        this.bus = bus;
-        this.signingKeySpec = null;
         this.signingRequired = signingRequired;
         this.auth = auth;
+        this.bus = bus;
+        this.pathResolver = pathResolver;
         if (bus != null) {
             bus.subscribe(this);
         }
@@ -102,9 +104,7 @@ public class Session implements AutoCloseable {
         SmbPath smbPath = new SmbPath(remoteHostname, shareName);
         logger.info("Connection to {} on session {}", smbPath, sessionId);
         try {
-            if (connection.getConfig().isDFSEnabled()) {
-                connection.getClient().resolveDFS(this,smbPath);
-            }
+            smbPath = pathResolver.resolve(this, smbPath);
             SMB2TreeConnectRequest smb2TreeConnectRequest = new SMB2TreeConnectRequest(connection.getNegotiatedProtocol().getDialect(), smbPath, sessionId);
             smb2TreeConnectRequest.getHeader().setCreditRequest(256);
             Future<SMB2TreeConnectResponse> send = this.send(smb2TreeConnectRequest);
@@ -130,14 +130,13 @@ public class Session implements AutoCloseable {
             } else {
                 throw new SMBRuntimeException("Unknown ShareType returned in the TREE_CONNECT Response");
             }
-        } catch (DFSException e) {
-            throw new SMBRuntimeException(e);
-        } catch (TransportException e) {
+        } catch (PathResolveException | TransportException e) {
             throw new SMBRuntimeException(e);
         }
     }
 
     @Handler
+    @SuppressWarnings("unused")
     private void disconnectTree(TreeDisconnected disconnectEvent) {
         if (disconnectEvent.getSessionId() == sessionId) {
             logger.debug("Notified of TreeDisconnected <<{}>>", disconnectEvent.getTreeId());

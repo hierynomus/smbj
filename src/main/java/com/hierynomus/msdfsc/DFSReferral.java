@@ -40,21 +40,19 @@ public class DFSReferral {
     String specialName;
     List<String> expandedNames;
 
-    public DFSReferral()
-    {
+    public DFSReferral() {
     }
 
-    public DFSReferral(
-        int versionNumber,
-        int ttl,
-        int serverType,
-        int referralEntryFlags,
-        String path,
-        int proximity,
-        String dfsPath,
-        String dfsAlternatePath,
-        String specialName,
-        List<String> expandedNames) {
+    public DFSReferral(int versionNumber,
+            int ttl,
+            int serverType,
+            int referralEntryFlags,
+            String path,
+            int proximity,
+            String dfsPath,
+            String dfsAlternatePath,
+            String specialName,
+            List<String> expandedNames) {
         this.versionNumber = versionNumber;
         this.ttl = ttl;
         this.serverType = serverType;
@@ -84,21 +82,13 @@ public class DFSReferral {
     }
 
     private void readRef(SMBBuffer buffer) throws BufferException {
-        int size;
-        int dfsPathOffset;
-        int dfsAlternatePathOffset;
-        int networkAddressOffset;
-        int start;
-        int specialNameOffset;
-        int numberOfExpandedNames;
-        int expandedNameOffset;
-        int r;
-        start = buffer.rpos();
+        int start = buffer.rpos();
         versionNumber = buffer.readUInt16();
-        size = buffer.readUInt16();
+        int size = buffer.readUInt16();
         serverType = buffer.readUInt16();
         referralEntryFlags = buffer.readUInt16();
 
+        int dfsPathOffset, dfsAlternatePathOffset, networkAddressOffset, r;
         switch (versionNumber) {
             case 1:
                 path = buffer.readZString();
@@ -116,7 +106,7 @@ public class DFSReferral {
                 dfsAlternatePath = buffer.readZString();
                 buffer.rpos(start + networkAddressOffset);
                 path = buffer.readZString();
-    
+
                 buffer.rpos(r + size);
                 break;
             case 3:
@@ -135,9 +125,9 @@ public class DFSReferral {
                     buffer.rpos(start + networkAddressOffset);
                     path = buffer.readZString();
                 } else {
-                    specialNameOffset = buffer.readUInt16();
-                    numberOfExpandedNames = buffer.readUInt16();
-                    expandedNameOffset = buffer.readUInt16();
+                    int specialNameOffset = buffer.readUInt16();
+                    int numberOfExpandedNames = buffer.readUInt16();
+                    int expandedNameOffset = buffer.readUInt16();
                     r = buffer.rpos();
                     buffer.rpos(start + specialNameOffset);
                     specialName = buffer.readZString();
@@ -157,22 +147,7 @@ public class DFSReferral {
     public void writeTo(SMBBuffer buffer) throws BufferException {
         int offset;
         buffer.putUInt16(versionNumber);
-        int size;
-        switch (versionNumber) {
-            case 1:
-                size = 8 + ((path.length() + 1) * 2);
-                break;
-            case 2:
-                size = REFERRAL_V2_SIZE;
-                break;
-            case 3:
-            case 4:
-                size = REFERRAL_V34_SIZE;
-                break;
-            default:
-                throw new IllegalStateException("Invalid versionNumber");
-        }
-        buffer.putUInt16(size); //size
+        buffer.putUInt16(determineSize()); // Size
         buffer.putUInt16(serverType);
         if (expandedNames != null && expandedNames.size() > 0) {
             referralEntryFlags = referralEntryFlags | 0x0002;
@@ -228,11 +203,25 @@ public class DFSReferral {
                     buffer.putReserved4();
                     buffer.putReserved4();
                     buffer.putZString(specialName);
-                    for (int i = 0; i < expandedNames.size(); i++) {
-                        buffer.putZString(expandedNames.get(i));
+                    for (String expandedName : expandedNames) {
+                        buffer.putZString(expandedName);
                     }
                 }
                 break;
+            default:
+                throw new IllegalStateException("Invalid versionNumber");
+        }
+    }
+
+    private int determineSize() {
+        switch (versionNumber) {
+            case 1:
+                return 8 + ((path.length() + 1) * 2);
+            case 2:
+                return REFERRAL_V2_SIZE;
+            case 3:
+            case 4:
+                return REFERRAL_V34_SIZE;
             default:
                 throw new IllegalStateException("Invalid versionNumber");
         }

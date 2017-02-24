@@ -21,7 +21,8 @@ import com.hierynomus.msdfsc.DFS.ReferralResult;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
 import com.hierynomus.smbj.DefaultConfig
 import com.hierynomus.smbj.common.SmbPath;
-import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.session.Session
+import com.hierynomus.smbj.share.LocalPathResolver;
 import com.hierynomus.smbj.share.TreeConnect;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.event.SMBEventBus;
@@ -46,7 +47,7 @@ class UserHostSessionTableTest extends Specification {
             getRemoteHostname() >> "domain"
         }
         def auth = new AuthenticationContext("username","password".toCharArray(),"domain")
-        def session = new Session(123,connection,auth,bus,false)
+        def session = new Session(123,connection,auth,bus,false, new LocalPathResolver())
         def uhs = new UserHostSessionTable()
         
         

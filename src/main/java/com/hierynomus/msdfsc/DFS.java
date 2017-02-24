@@ -44,7 +44,7 @@ import com.hierynomus.smbj.transport.TransportException;
 public class DFS {
     private static final Logger logger = LoggerFactory.getLogger(DFS.class);
 
-    ReferralCache referralCache = new ReferralCache(this);
+    private final ReferralCache referralCache = new ReferralCache(this);
     DomainCache domainCache = new DomainCache();
 
     class ResolveState {
@@ -58,11 +58,11 @@ public class DFS {
         }
     }
 
-    public void resolveDFS(Session session, SmbPath path) throws DFSException {
+    public SmbPath resolveDFS(Session session, SmbPath path) throws DFSException {
         String newPath;
         try {
             newPath = resolvePath(session, path.toString());
-            path.parse(newPath);
+            return SmbPath.parse(newPath);
         } catch (IOException | BufferException e) {
             // just return the old path back.
             logger.error("Exception processing DFS", e);

@@ -36,6 +36,7 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.share.LocalPathResolver;
 import com.hierynomus.smbj.transport.PacketReader;
 import com.hierynomus.smbj.transport.PacketReceiver;
 import com.hierynomus.smbj.transport.TransportException;
@@ -136,7 +137,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         try {
             NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
             Authenticator authenticator = getAuthenticator(negTokenInit.getSupportedMechTypes(), authContext);
-            Session session = new Session(0, this, authContext, bus, connectionInfo.isRequireSigning());
+            Session session = new Session(0, this, authContext, bus, connectionInfo.isRequireSigning(), new LocalPathResolver());
             SMB2SessionSetup receive = authenticationRound(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
             long sessionId = receive.getHeader().getSessionId();
             session.setSessionId(sessionId);
