@@ -197,11 +197,10 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         lock.lock();
         try {
             int availableCredits = connectionInfo.getSequenceWindow().available();
-            if (availableCredits == 0) {
-                throw new NoSuchElementException("TODO ([MS-SMB2].pdf 3.2.5.1.4 Granting Message Credits)! No credits left.");
-            }
-
             int grantCredits = calculateGrantedCredits(packet, availableCredits);
+            if (availableCredits == 0) {
+                logger.info("There are no credits left to send {}, will block until there are more credits available.", packet.getHeader().getMessage());
+            }
             long[] messageIds = connectionInfo.getSequenceWindow().get(grantCredits);
             packet.getHeader().setMessageId(messageIds[0]);
             logger.debug("Granted {} credits to {} with message id << {} >>", grantCredits, packet.getHeader().getMessage(), packet.getHeader().getMessageId());
