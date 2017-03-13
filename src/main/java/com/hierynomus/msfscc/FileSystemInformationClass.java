@@ -20,7 +20,7 @@ import com.hierynomus.protocol.commons.EnumWithValue;
 /**
  * MS-FSCC 2.5 File System Information Classes
  */
-public enum FileSysemInformationClass implements EnumWithValue<FileSysemInformationClass> {
+public enum FileSystemInformationClass implements EnumWithValue<FileSystemInformationClass> {
 
     FileFsVolumeInformation(0x01L),
     FileFsLabelInformation(0x02L),
@@ -36,7 +36,7 @@ public enum FileSysemInformationClass implements EnumWithValue<FileSysemInformat
 
     private long value;
 
-    FileSysemInformationClass(long value) {
+    FileSystemInformationClass(long value) {
         this.value = value;
     }
 
