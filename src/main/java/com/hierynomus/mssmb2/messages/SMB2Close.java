@@ -73,19 +73,19 @@ public class SMB2Close extends SMB2Packet {
     }
 
     public Date getCreationTime() {
-        return creationTime;
+        return copyOf(creationTime);
     }
 
     public Date getLastAccessTime() {
-        return lastAccessTime;
+        return copyOf(lastAccessTime);
     }
 
     public Date getLastWriteTime() {
-        return lastWriteTime;
+        return copyOf(lastWriteTime);
     }
 
     public Date getChangeTime() {
-        return changeTime;
+        return copyOf(changeTime);
     }
 
     public long getAllocationSize() {
@@ -102,5 +102,9 @@ public class SMB2Close extends SMB2Packet {
 
     public void setFileId(SMB2FileId fileId) {
         this.fileId = fileId;
+    }
+
+    private Date copyOf(Date date) {
+        return date != null ? new Date(date.getTime()) : null;
     }
 }
