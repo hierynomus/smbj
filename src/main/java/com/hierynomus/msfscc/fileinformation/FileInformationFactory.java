@@ -130,7 +130,7 @@ public class FileInformationFactory {
         // FileNameInformation
         long fileNameLen = buffer.readUInt32(); // File name length
         String fileName = buffer.readString(StandardCharsets.UTF_16LE, (int) fileNameLen / 2);
-        FileInfo fi = new FileInfo(fileName, fileId, fileAttributes, fileSize, accessMask);
+        FileInfo fi = new FileInfo(fileName, fileId, creationTime, lastAccessTime, lastWriteTime, changeTime, fileAttributes, fileSize, accessMask);
         return fi;
     }
 
@@ -153,7 +153,7 @@ public class FileInformationFactory {
         buffer.readUInt16(); // Reserved2
         byte[] fileId = buffer.readRawBytes(8);
         String fileName = buffer.readString(StandardCharsets.UTF_16LE, (int) fileNameLen / 2);
-        FileInfo fi = new FileInfo(fileName, fileId, fileAttributes, fileSize, 0);
+        FileInfo fi = new FileInfo(fileName, fileId, creationTime, lastAccessTime, lastWriteTime, changeTime, fileAttributes, fileSize, 0);
         return fi;
     }
 }
