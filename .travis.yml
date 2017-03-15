@@ -8,10 +8,4 @@ cache:
 jdk:
   - oraclejdk7
   - oraclejdk8
-script:
-  - ./gradlew check
-  - ./gradlew sendCoverageToCodacy
 sudo: false
-env:
-  global:
-    secure: B+bAD/TfuccYpmkPmabMb/mZgyWp0Fd3DZhkuu4ot6iqYMIrLL055GXgKliDe/GFfXrhNSsiIUSEN9nbsza0ftBqok5QBcgHUpFI3q+HZTSMWWxmgzbkdzVIIBBUMNYD8QJNuqvcYkNP4BnqxoJ+9+3z+O0vyZBTv+Vld87HiSL9bFke6NmfYY/1NChdzSQ9d2lF4PTigbjb047kfD1K0bo/PelCIcWwbitHIOJw1WvA2J4E2AYN6hBIK149310DrfRzx4h3mmp6kN2/lASHblEY+MmptBCmyU7jC5xdidH/bnA7xKvH+3BQIPU27wvh1xBrWhDczFFIXGtZRoFqAJqTWlxtNk8PX3OcgQUXffVXRid+qr+1f1rLoW/tXomutUre6H7lxptAGnUPfK0yS1EhbvjUSYoQDIguq8SfoH9ldaK+wqZujNNIOf3mz03RnkmXRLRX1F1BYTTeX3/LH7Q5gFlB4a+AuN1Y7ZGmtmjglOPtb4fEjWLd6wtWfR+HeS6M9UWZcSttJNQUxamMP2DEArzG48qpgqG9+TTwsbliL0xGUrBRVkohKn98jLmhkhUlVVGtvupu3ymrGXjjRP1y/ZZpoaHWwN1Utv4i3jcosSTH0LJ7Bo20RMUo2UNqKV5a3UCIbIO9wODpHSmyz6dvf0Ef09S93Y2E97HX/Pw=
