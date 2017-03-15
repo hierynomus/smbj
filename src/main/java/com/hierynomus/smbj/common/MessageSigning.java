@@ -58,7 +58,7 @@ public class MessageSigning {
      * @param len        message length. Note that the buffer array might contain more
      *                   bytes than the message length. The len parameter indicates how
      *                   many bytes of the buffer array are in the message.
-     * @param signingKey the session's signing key.
+     * @param signingKeySpec the session's signing key.
      * @throws InvalidKeyException
      * @throws NoSuchAlgorithmException
      */

@@ -15,20 +15,6 @@
  */
 package com.hierynomus.smbj.connection;
 
-import java.io.IOException;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.UUID;
-import java.util.concurrent.Future;
-import java.util.concurrent.locks.ReentrantLock;
-
-import javax.crypto.spec.SecretKeySpec;
-
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2MessageFlag;
@@ -56,8 +42,19 @@ import com.hierynomus.smbj.transport.TransportLayer;
 import com.hierynomus.smbj.transport.tcp.DirectTcpPacketReader;
 import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
 import com.hierynomus.spnego.NegTokenInit;
-
 import net.engio.mbassy.listener.Handler;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.UUID;
+import java.util.concurrent.Future;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static com.hierynomus.mssmb2.SMB2Packet.SINGLE_CREDIT_PAYLOAD_SIZE;
 import static com.hierynomus.mssmb2.messages.SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_ENABLED;
@@ -75,7 +72,6 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     private TransportLayer transport;
     private final SMBEventBus bus;
     private PacketReader packetReader;
-    private Thread packetReaderThread;
     private final ReentrantLock lock = new ReentrantLock();
 
     public Connection(Config config, TransportLayer transport, SMBEventBus bus) {
@@ -201,11 +197,10 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         lock.lock();
         try {
             int availableCredits = connectionInfo.getSequenceWindow().available();
-            if (availableCredits == 0) {
-                throw new NoSuchElementException("TODO ([MS-SMB2].pdf 3.2.5.1.4 Granting Message Credits)! No credits left.");
-            }
-
             int grantCredits = calculateGrantedCredits(packet, availableCredits);
+            if (availableCredits == 0) {
+                logger.info("There are no credits left to send {}, will block until there are more credits available.", packet.getHeader().getMessage());
+            }
             long[] messageIds = connectionInfo.getSequenceWindow().get(grantCredits);
             packet.getHeader().setMessageId(messageIds[0]);
             logger.debug("Granted {} credits to {} with message id << {} >>", grantCredits, packet.getHeader().getMessage(), packet.getHeader().getMessageId());

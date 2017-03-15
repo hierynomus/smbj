@@ -17,34 +17,15 @@ package com.hierynomus.smbj.connection;
 
 import java.util.EnumSet;
 import java.util.UUID;
+
+import com.hierynomus.mssmb2.SMB2GlobalCapability;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
-import com.hierynomus.protocol.commons.EnumWithValue;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
 public class ConnectionInfo {
     public byte[] getGssNegotiateToken() {
         return gssNegotiateToken;
-    }
-
-    public enum GlobalCapability implements EnumWithValue<GlobalCapability> {
-        SMB2_GLOBAL_CAP_DFS(0x01L),
-        SMB2_GLOBAL_CAP_LEASING(0x02L),
-        SMB2_GLOBAL_CAP_LARGE_MTU(0x04L), // Multi-Credit support
-        SMB2_GLOBAL_CAP_MULTI_CHANNEL(0x08L),
-        SMB2_GLOBAL_CAP_PERSISTENT_HANDLES(0x10L),
-        SMB2_GLOBAL_CAP_DIRECTORY_LEASING(0x20L),
-        SMB2_GLOBAL_CAP_ENCRYPTION(0x40L);
-
-        private long i;
-
-        GlobalCapability(long i) {
-            this.i = i;
-        }
-
-        public long getValue() {
-            return i;
-        }
     }
 
     // All SMB2 Dialect
@@ -60,8 +41,8 @@ public class ConnectionInfo {
     private UUID clientGuid = UUID.randomUUID();
     // For SMB 2.1+ only SMB2_GLOBAL_CAP_LEASING and SMB2_GLOBAL_CAP_LARGE_MTU
     // For SMB 3.x+ all capabilities supported
-    private EnumSet<GlobalCapability> clientCapabilities;
-    private EnumSet<GlobalCapability> serverCapabilities;
+    private EnumSet<SMB2GlobalCapability> clientCapabilities;
+    private EnumSet<SMB2GlobalCapability> serverCapabilities;
     // SMB 3.x+
     private int clientSecurityMode;
     private int serverSecurityMode;
@@ -84,8 +65,8 @@ public class ConnectionInfo {
     void negotiated(SMB2NegotiateResponse response) {
         gssNegotiateToken = response.getGssToken();
         serverGuid = response.getServerGuid();
-        serverCapabilities = toEnumSet(response.getCapabilities(), GlobalCapability.class);
-        this.negotiatedProtocol = new NegotiatedProtocol(response.getDialect(), response.getMaxTransactSize(), response.getMaxReadSize(), response.getMaxWriteSize(), serverCapabilities.contains(GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU));
+        serverCapabilities = toEnumSet(response.getCapabilities(), SMB2GlobalCapability.class);
+        this.negotiatedProtocol = new NegotiatedProtocol(response.getDialect(), response.getMaxTransactSize(), response.getMaxReadSize(), response.getMaxWriteSize(), serverCapabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU));
         serverSecurityMode = response.getSecurityMode();
     }
 
@@ -125,7 +106,7 @@ public class ConnectionInfo {
         return outstandingRequests;
     }
 
-    public boolean supports(GlobalCapability capability) {
+    public boolean supports(SMB2GlobalCapability capability) {
         return serverCapabilities.contains(capability);
     }
 

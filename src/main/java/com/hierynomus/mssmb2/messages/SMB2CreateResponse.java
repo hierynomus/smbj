@@ -67,19 +67,19 @@ public class SMB2CreateResponse extends SMB2Packet {
     }
 
     public Date getCreationTime() {
-        return creationTime;
+        return copyOf(creationTime);
     }
 
     public Date getLastAccessTime() {
-        return lastAccessTime;
+        return copyOf(lastAccessTime);
     }
 
     public Date getLastWriteTime() {
-        return lastWriteTime;
+        return copyOf(lastWriteTime);
     }
 
     public Date getChangeTime() {
-        return changeTime;
+        return copyOf(changeTime);
     }
 
     public EnumSet<FileAttributes> getFileAttributes() {
@@ -88,6 +88,10 @@ public class SMB2CreateResponse extends SMB2Packet {
 
     public SMB2FileId getFileId() {
         return fileId;
+    }
+
+    private Date copyOf(Date d) {
+        return d != null ? new Date(d.getTime()) : null;
     }
 
 }
