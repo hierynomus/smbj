@@ -15,11 +15,11 @@
  */
 package com.hierynomus.smbj.connection;
 
-import java.util.EnumSet;
-import java.util.UUID;
-
 import com.hierynomus.mssmb2.SMB2GlobalCapability;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
+
+import java.util.EnumSet;
+import java.util.UUID;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 

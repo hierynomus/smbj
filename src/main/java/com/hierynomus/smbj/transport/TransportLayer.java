@@ -15,10 +15,10 @@
  */
 package com.hierynomus.smbj.transport;
 
+import com.hierynomus.mssmb2.SMB2Packet;
+
 import java.io.InputStream;
 import java.io.OutputStream;
-import javax.crypto.spec.SecretKeySpec;
-import com.hierynomus.mssmb2.SMB2Packet;
 
 public interface TransportLayer {
 
@@ -43,13 +43,4 @@ public interface TransportLayer {
      * @return The sequence number of the packet.
      */
     void write(SMB2Packet packet) throws TransportException;
-
-    /**
-     * Write the packet to the transport, signed using the given signing key.
-     *
-     * @param packet         The packet to write.
-     * @param signingKeySpec a SecretKeySpec to use while signing.  If null, no signing should be done.
-     * @return The sequence number of the packet.
-     */
-    void writeSigned(SMB2Packet packet, SecretKeySpec signingKeySpec) throws TransportException;
 }

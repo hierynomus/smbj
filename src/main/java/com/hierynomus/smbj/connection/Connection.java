@@ -29,7 +29,6 @@ import com.hierynomus.protocol.commons.socket.SocketClient;
 import com.hierynomus.smbj.Config;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
-import com.hierynomus.smbj.common.MessageSigning;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.event.SMBEventBus;
@@ -47,11 +46,9 @@ import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
@@ -171,29 +168,13 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     }
 
     /**
-     * send a packet, unsigned.
+     * send a packet.
      *
      * @param packet SMBPacket to send
      * @return a Future to be used to retrieve the response packet
      * @throws TransportException
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
-        return send(packet, null);
-    }
-
-    private <T extends SMB2Packet> T sendAndReceive(SMB2Packet packet) throws TransportException {
-        return Futures.get(this.<T>send(packet), TransportException.Wrapper);
-    }
-
-    /**
-     * send a packet, potentially signed
-     *
-     * @param packet         SMBPacket to send
-     * @param signingKeySpec if null, do not sign the packet. Otherwise, the signingKeySpec will be used to sign the packet.
-     * @return a Future to be used to retrieve the response packet
-     * @throws TransportException
-     */
-    public <T extends SMB2Packet> Future<T> send(SMB2Packet packet, SecretKeySpec signingKeySpec) throws TransportException {
         lock.lock();
         try {
             int availableCredits = connectionInfo.getSequenceWindow().available();
@@ -208,34 +189,30 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
             Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID(), packet);
             connectionInfo.getOutstandingRequests().registerOutstanding(request);
-            if (signingKeySpec != null) {
-                transport.writeSigned(packet, signingKeySpec);
-            } else {
-                transport.write(packet);
-            }
+            transport.write(packet);
             return request.getFuture(null); // TODO cancel callback
         } finally {
             lock.unlock();
         }
     }
 
+    private <T extends SMB2Packet> T sendAndReceive(SMB2Packet packet) throws TransportException {
+        return Futures.get(this.<T>send(packet), TransportException.Wrapper);
+    }
+
     private int calculateGrantedCredits(final SMB2Packet packet, final int availableCredits) {
         final int grantCredits;
-        if (packet instanceof SMB2MultiCreditPacket) {
-            int maxPayloadSize = ((SMB2MultiCreditPacket) packet).getMaxPayloadSize();
-            int creditsNeeded = creditsNeeded(maxPayloadSize);
-            // Scale the credits granted to the message dynamically.
-            if (creditsNeeded < availableCredits) {
-                grantCredits = creditsNeeded;
-            } else if (creditsNeeded > 1 && availableCredits > 1) { // creditsNeeded >= availableCredits
-                grantCredits = availableCredits - 1; // Keep 1 credit left for a simple request
-            } else {
-                grantCredits = 1;
-            }
-            ((SMB2MultiCreditPacket) packet).setCreditsAssigned(grantCredits);
+        int maxPayloadSize = packet.getMaxPayloadSize();
+        int creditsNeeded = creditsNeeded(maxPayloadSize);
+        // Scale the credits granted to the message dynamically.
+        if (creditsNeeded < availableCredits) {
+            grantCredits = creditsNeeded;
+        } else if (creditsNeeded > 1 && availableCredits > 1) { // creditsNeeded >= availableCredits
+            grantCredits = availableCredits - 1; // Keep 1 credit left for a simple request
         } else {
             grantCredits = 1;
         }
+        packet.setCreditsAssigned(grantCredits);
         return grantCredits;
     }
 
@@ -313,11 +290,10 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             // check packet signature.  Drop the packet if it is not correct.
             if (session.isSigningRequired()) {
                 if (packet.getHeader().isFlagSet(SMB2MessageFlag.SMB2_FLAGS_SIGNED)) {
-                    packet.getBuffer().rpos(0);
-                    if (!MessageSigning.validateSignature(packet.getBuffer().array(), packet.getBuffer().available(), session.getSigningKeySpec())) {
-                        logger.warn("Invalid packet signature");
+                    if (!session.getPacketSignatory().verify(packet)) {
+                        logger.warn("Invalid packet signature for packet {} with message id << {} >>", packet.getHeader().getMessage(), packet.getHeader().getMessageId());
                         if (config.isStrictSigning()) {
-                            return; // drop the packet
+                            throw new SMBRuntimeException("Packet signature for packet " + packet.getHeader().getMessage() + " with message id << " + packet.getHeader().getMessageId() + " >> was not correct");
                         }
                     }
                 } else {

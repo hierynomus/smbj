@@ -18,15 +18,11 @@ package com.hierynomus.smbj.transport;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.locks.ReentrantLock;
-import javax.crypto.spec.SecretKeySpec;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.hierynomus.mssmb2.SMB2MessageFlag;
 import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.smbj.common.MessageSigning;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 public abstract class BaseTransport implements TransportLayer {
@@ -62,34 +58,5 @@ public abstract class BaseTransport implements TransportLayer {
         }
     }
 
-    @Override
-    public void writeSigned(SMB2Packet packet, SecretKeySpec signingKeySpec) throws TransportException {
-        logger.trace("Acquiring write lock to send packet << {} >> with signing key {}", packet.getHeader().getMessage(), signingKeySpec);
-        writeLock.lock();
-        try {
-            try {
-                SMBBuffer buffer = new SMBBuffer();
-                packet.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_SIGNED); // set the SMB2_FLAGS_SIGNED flag
-                packet.write(buffer);
-
-                signBuffer(buffer, signingKeySpec);
-
-                logger.debug("Writing signed packet << {} >>, sequence number << {} >>", packet.getHeader().getMessage(), packet.getSequenceNumber());
-                doWrite(buffer);
-                out.flush();
-            } catch (IOException | InvalidKeyException | NoSuchAlgorithmException ioe) {
-                throw new TransportException(ioe);
-            }
-        } finally {
-            writeLock.unlock();
-            logger.trace("Signed Packet << {} >> sent, lock released.", packet.getHeader().getMessage());
-        }
-    }
-
     protected abstract void doWrite(SMBBuffer packetData) throws IOException;
-
-
-    private static void signBuffer(SMBBuffer buffer, SecretKeySpec signingKeySpec) throws InvalidKeyException, NoSuchAlgorithmException {
-        MessageSigning.signBuffer(buffer.array(), buffer.available(), signingKeySpec);
-    }
 }
