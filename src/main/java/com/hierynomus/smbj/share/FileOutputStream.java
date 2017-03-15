@@ -77,7 +77,7 @@ public class FileOutputStream extends OutputStream {
     public void write(byte b[], int off, int len) throws IOException {
         verifyConnectionNotClosed();
 
-        if (provider.isBufferFull(len)) {
+        while (provider.isBufferFull(len)) {
             flush();
         }
 
@@ -90,8 +90,9 @@ public class FileOutputStream extends OutputStream {
     @Override
     public void flush() throws IOException {
         verifyConnectionNotClosed();
-        if (provider.isAvailable())
+        if (provider.isAvailable()) {
             sendWriteRequest();
+        }
     }
 
     private void sendWriteRequest() throws TransportException {
@@ -138,7 +139,7 @@ public class FileOutputStream extends OutputStream {
 
         @Override
         public boolean isAvailable() {
-            return buf.hasData();
+            return !buf.isEmpty();
         }
 
         @Override
@@ -148,7 +149,7 @@ public class FileOutputStream extends OutputStream {
 
         @Override
         public int bytesLeft() {
-            return buf.getUsedSize();
+            return buf.size();
         }
 
         public void writeBytes(byte[] b, int off, int len) {
