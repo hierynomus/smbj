@@ -203,7 +203,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             }
             long[] messageIds = connectionInfo.getSequenceWindow().get(grantCredits);
             packet.getHeader().setMessageId(messageIds[0]);
-            logger.debug("Granted {} credits to {} with message id << {} >>", grantCredits, packet.getHeader().getMessage(), packet.getHeader().getMessageId());
+            logger.debug("Granted {} (out of {}) credits to {} with message id << {} >>", grantCredits, availableCredits, packet.getHeader().getMessage(), packet.getHeader().getMessageId());
             packet.getHeader().setCreditRequest(Math.max(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits, grantCredits));
 
             Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID(), packet);
@@ -278,7 +278,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
         // [MS-SMB2].pdf 3.2.5.1.4 Granting Message Credits
         connectionInfo.getSequenceWindow().creditsGranted(packet.getHeader().getCreditResponse());
-        logger.debug("Server granted us {} credits for message with sequence number << {} >>", packet.getHeader().getCreditResponse(), messageId);
+        logger.debug("Server granted us {} credits for message with sequence number << {} >>, now available: {} credits", packet.getHeader().getCreditResponse(), messageId, connectionInfo.getSequenceWindow().available());
 
         Request request = connectionInfo.getOutstandingRequests().getRequestByMessageId(messageId);
         logger.trace("Send/Recv of packet with message id << {} >> took << {} ms >>", messageId, System.currentTimeMillis() - request.getTimestamp().getTime());

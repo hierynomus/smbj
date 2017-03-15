@@ -47,7 +47,7 @@ class SequenceWindowTest extends Specification {
 
         then:
         def ex = thrown(SMBRuntimeException)
-        ex.getMessage() == "No more credits available to hand out sequence number"
+        ex.getMessage() == "Not enough credits (0 available) to hand out 1 sequence numbers"
     }
 
     def "should return array of sequence numbers for multi-credit request"() {

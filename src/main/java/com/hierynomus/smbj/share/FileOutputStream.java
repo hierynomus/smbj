@@ -97,6 +97,7 @@ public class FileOutputStream extends OutputStream {
     private void sendWriteRequest() throws TransportException {
         SMB2WriteRequest wreq = new SMB2WriteRequest(connection.getNegotiatedProtocol().getDialect(), fileId,
             session.getSessionId(), treeConnect.getTreeId(), provider, connection.getNegotiatedProtocol().getMaxWriteSize());
+        logger.trace("Sending {} for file {}, byte offset {}, bytes available {}", wreq, treeConnect.getHandle().smbPath, provider.getOffset(), provider.bytesLeft());
         Future<SMB2WriteResponse> writeFuture = session.send(wreq);
         SMB2WriteResponse wresp = Futures.get(writeFuture, TransportException.Wrapper);
         if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {

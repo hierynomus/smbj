@@ -44,12 +44,13 @@ public abstract class BaseTransport implements TransportLayer {
 
     @Override
     public void write(SMB2Packet packet) throws TransportException {
+        logger.trace("Acquiring write lock to send packet << {} >>", packet.getHeader().getMessage());
         writeLock.lock();
         try {
             try {
                 SMBBuffer buffer = new SMBBuffer();
                 packet.write(buffer);
-                logger.trace("Writing packet << {} >>, sequence number << {} >>", packet.getHeader().getMessage(), packet.getSequenceNumber());
+                logger.debug("Writing packet << {} >>, sequence number << {} >>", packet.getHeader().getMessage(), packet.getSequenceNumber());
                 doWrite(buffer);
                 out.flush();
             } catch (IOException ioe) {
@@ -57,11 +58,13 @@ public abstract class BaseTransport implements TransportLayer {
             }
         } finally {
             writeLock.unlock();
+            logger.trace("Packet << {} >> sent, lock released.", packet.getHeader().getMessage());
         }
     }
 
     @Override
     public void writeSigned(SMB2Packet packet, SecretKeySpec signingKeySpec) throws TransportException {
+        logger.trace("Acquiring write lock to send packet << {} >> with signing key {}", packet.getHeader().getMessage(), signingKeySpec);
         writeLock.lock();
         try {
             try {
@@ -71,7 +74,7 @@ public abstract class BaseTransport implements TransportLayer {
 
                 signBuffer(buffer, signingKeySpec);
 
-                logger.trace("Writing packet << {} >>, sequence number << {} >>", packet.getHeader().getMessage(), packet.getSequenceNumber());
+                logger.debug("Writing signed packet << {} >>, sequence number << {} >>", packet.getHeader().getMessage(), packet.getSequenceNumber());
                 doWrite(buffer);
                 out.flush();
             } catch (IOException | InvalidKeyException | NoSuchAlgorithmException ioe) {
@@ -79,6 +82,7 @@ public abstract class BaseTransport implements TransportLayer {
             }
         } finally {
             writeLock.unlock();
+            logger.trace("Signed Packet << {} >> sent, lock released.", packet.getHeader().getMessage());
         }
     }
 
