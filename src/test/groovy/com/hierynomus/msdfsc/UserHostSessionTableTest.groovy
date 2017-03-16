@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 package com.hierynomus.msdfsc
+
 import com.hierynomus.msdfsc.DFS;
 import com.hierynomus.msdfsc.DFSException;
 import com.hierynomus.msdfsc.UserHostSessionTable
-import com.hierynomus.msdfsc.DFS.ReferralResult;
+import com.hierynomus.msdfsc.DFS.ReferralResult
+import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
 import com.hierynomus.smbj.DefaultConfig
-import com.hierynomus.smbj.common.SmbPath;
+import com.hierynomus.smbj.common.SmbPath
+import com.hierynomus.smbj.connection.NegotiatedProtocol;
 import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.share.LocalPathResolver;
 import com.hierynomus.smbj.share.TreeConnect;
@@ -34,31 +37,32 @@ import com.hierynomus.smbj.SMBClient
 import spock.lang.Specification
 
 class UserHostSessionTableTest extends Specification {
-    def "find and retrieve a session"() {
-        given:
-        def connection
-        def client = Stub(SMBClient) {
-            connect(_) >> connection
-            connect(_,_) >> connection
-        }
-        def transport = Mock(TransportLayer)
-        def bus = new SMBEventBus()
-        connection = Stub(Connection, constructorArgs: [new DefaultConfig(),client,transport,bus]) {
-            getRemoteHostname() >> "domain"
-        }
-        def auth = new AuthenticationContext("username","password".toCharArray(),"domain")
-        def session = new Session(123,connection,auth,bus,false, new LocalPathResolver())
-        def uhs = new UserHostSessionTable()
-        
-        
-        when:
-        uhs.register(session);
-        def auth2 = new AuthenticationContext("username","password".toCharArray(),"domain");
-        def session2 = uhs.lookup(auth2, "domain");
-        
-        then:
-        session.getConnection().getRemoteHostname() == "domain"
-        session2.equals(session)
+  def "find and retrieve a session"() {
+    given:
+    def connection
+    def client = Stub(SMBClient) {
+      connect(_) >> connection
+      connect(_, _) >> connection
     }
+    def transport = Mock(TransportLayer)
+    def bus = new SMBEventBus()
+    connection = Stub(Connection, constructorArgs: [new DefaultConfig(), client, transport, bus]) {
+      getRemoteHostname() >> "domain"
+      getNegotiatedProtocol() >> new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 8*1024*1024, 8*1024*1024, 8*1024*1024, true)
+    }
+    def auth = new AuthenticationContext("username", "password".toCharArray(), "domain")
+    def session = new Session(123, connection, auth, bus, false, new LocalPathResolver())
+    def uhs = new UserHostSessionTable()
+
+
+    when:
+    uhs.register(session);
+    def auth2 = new AuthenticationContext("username", "password".toCharArray(), "domain");
+    def session2 = uhs.lookup(auth2, "domain");
+
+    then:
+    session.getConnection().getRemoteHostname() == "domain"
+    session2.equals(session)
+  }
 
 }

@@ -49,8 +49,8 @@ class DFSTest extends Specification {
       getRemoteHostname() >> "10.0.0.10"
       getRemotePort() >> 445
       getNegotiatedProtocol() >> protocol
-      send(_ as SMB2TreeConnectRequest, null) >> {
-        c, k ->
+      send(_ as SMB2TreeConnectRequest) >> {
+        c ->
           Mock(Future) {
             get() >> {
               def response = new SMB2TreeConnectResponse();
@@ -61,8 +61,8 @@ class DFSTest extends Specification {
             }
           }
       }
-      send(_ as SMB2TreeDisconnect, null) >> {
-        c, k ->
+      send(_ as SMB2TreeDisconnect) >> {
+        c ->
           Mock(Future) {
             get() >> {
               def response = new SMB2TreeDisconnect();
@@ -71,8 +71,8 @@ class DFSTest extends Specification {
             }
           }
       }
-      send(_ as SMB2IoctlRequest, null) >> {
-        c, k ->
+      send(_ as SMB2IoctlRequest) >> {
+        c ->
           Mock(Future) {
             get() >> {
               def response = new SMB2IoctlResponse()
@@ -123,8 +123,8 @@ class DFSTest extends Specification {
       authenticate(_) >> { AuthenticationContext authContext ->
         session
       }
-      send(_ as SMB2TreeConnectRequest, null) >> {
-        c, k ->
+      send(_ as SMB2TreeConnectRequest) >> {
+        c ->
           Mock(Future) {
             get() >> {
               def response = new SMB2TreeConnectResponse();
@@ -135,8 +135,8 @@ class DFSTest extends Specification {
             }
           }
       }
-      send(_ as SMB2TreeDisconnect, null) >> {
-        c, k ->
+      send(_ as SMB2TreeDisconnect) >> {
+        c ->
           Mock(Future) {
             get() >> {
               def response = new SMB2TreeDisconnect();
@@ -145,8 +145,8 @@ class DFSTest extends Specification {
             }
           }
       }
-      send(_ as SMB2IoctlRequest, null) >> {
-        SMB2IoctlRequest request, k ->
+      send(_ as SMB2IoctlRequest) >> {
+        SMB2IoctlRequest request ->
           Mock(Future) {
             get() >> {
               def d = request.inputData[2..-1] as byte[]
@@ -240,8 +240,8 @@ class DFSTest extends Specification {
       getRemotePort() >> 445
       getClient() >> client
       getNegotiatedProtocol() >> protocol
-      send(_ as SMB2TreeConnectRequest, null) >> {
-        c, k ->
+      send(_ as SMB2TreeConnectRequest) >> {
+        c ->
           Mock(Future) {
             get() >> {
               def response = new SMB2TreeConnectResponse();
@@ -252,8 +252,8 @@ class DFSTest extends Specification {
             }
           }
       }
-      send(_ as SMB2TreeDisconnect, null) >> {
-        c, k ->
+      send(_ as SMB2TreeDisconnect) >> {
+        c ->
           Mock(Future) {
             get() >> {
               def response = new SMB2TreeDisconnect();
@@ -262,8 +262,8 @@ class DFSTest extends Specification {
             }
           }
       }
-      send(_ as SMB2IoctlRequest, null) >> {
-        c, k ->
+      send(_ as SMB2IoctlRequest) >> {
+        c ->
           Mock(Future) {
             get() >> {
               def response = new SMB2IoctlResponse()
@@ -313,8 +313,8 @@ class DFSTest extends Specification {
       authenticate(_) >> { AuthenticationContext authContext ->
         session
       }
-      send(_ as SMB2TreeConnectRequest, null) >> {
-        c, k ->
+      send(_ as SMB2TreeConnectRequest) >> {
+        c ->
           Mock(Future) {
             get() >> {
               def response = new SMB2TreeConnectResponse();
@@ -325,8 +325,8 @@ class DFSTest extends Specification {
             }
           }
       }
-      send(_ as SMB2TreeDisconnect, null) >> {
-        c, k ->
+      send(_ as SMB2TreeDisconnect) >> {
+        c ->
           Mock(Future) {
             get() >> {
               def response = new SMB2TreeDisconnect();
@@ -335,8 +335,8 @@ class DFSTest extends Specification {
             }
           }
       }
-      send(_ as SMB2IoctlRequest, null) >> {
-        SMB2IoctlRequest request, k ->
+      send(_ as SMB2IoctlRequest) >> {
+        SMB2IoctlRequest request ->
           Mock(Future) {
             get() >> {
               def d = request.inputData[2..-1] as byte[]
@@ -415,8 +415,8 @@ class DFSTest extends Specification {
       authenticate(_) >> { AuthenticationContext authContext ->
         session
       }
-      send(_ as SMB2TreeConnectRequest, null) >> {
-        c, k ->
+      send(_ as SMB2TreeConnectRequest) >> {
+        c ->
           Mock(Future) {
             get() >> {
               def response = new SMB2TreeConnectResponse();
@@ -427,8 +427,8 @@ class DFSTest extends Specification {
             }
           }
       }
-      send(_ as SMB2TreeDisconnect, null) >> {
-        c, k ->
+      send(_ as SMB2TreeDisconnect) >> {
+        c ->
           Mock(Future) {
             get() >> {
               def response = new SMB2TreeDisconnect();
@@ -437,8 +437,8 @@ class DFSTest extends Specification {
             }
           }
       }
-      send(_ as SMB2IoctlRequest, null) >> {
-        SMB2IoctlRequest request, k ->
+      send(_ as SMB2IoctlRequest) >> {
+        SMB2IoctlRequest request ->
           Mock(Future) {
             get() >> {
               def d = request.inputData[2..-1] as byte[]

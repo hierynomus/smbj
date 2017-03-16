@@ -18,10 +18,7 @@ package com.hierynomus.mssmb2.messages;
 import java.util.EnumSet;
 
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.mssmb2.SMB2Dialect;
-import com.hierynomus.mssmb2.SMB2Header;
-import com.hierynomus.mssmb2.SMB2MessageCommandCode;
-import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.*;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
@@ -46,7 +43,7 @@ public class SMB2SessionSetup extends SMB2Packet {
     }
 
     public SMB2SessionSetup(SMB2Dialect negotiatedDialect, EnumSet<SMB2SecurityMode> securityMode,
-            EnumSet<ConnectionInfo.GlobalCapability> capabilities) {
+            EnumSet<SMB2GlobalCapability> capabilities) {
         super(25, negotiatedDialect, SMB2MessageCommandCode.SMB2_SESSION_SETUP);
         this.negotiatedDialect = negotiatedDialect;
         this.securityMode = (byte) EnumWithValue.EnumUtils.toLong(securityMode);
