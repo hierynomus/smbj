@@ -26,7 +26,7 @@ import com.hierynomus.msdtyp.SecurityInformation;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.FileInformationClass;
-import com.hierynomus.msfscc.FileSysemInformationClass;
+import com.hierynomus.msfscc.FileSystemInformationClass;
 import com.hierynomus.msfscc.fileinformation.FileInfo;
 import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
 import com.hierynomus.msfscc.fileinformation.ShareInfo;
@@ -208,7 +208,7 @@ public class DiskShare extends Share {
 
         byte[] outputBuffer = queryInfoCommon(directory.getFileId(),
                 SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILESYSTEM, null, null,
-                FileSysemInformationClass.FileFsFullSizeInformation);
+                FileSystemInformationClass.FileFsFullSizeInformation);
 
         try {
             return ShareInfo.parseFsFullSizeInformation(new Buffer.PlainBuffer(outputBuffer, Endian.LE));
@@ -441,7 +441,7 @@ public class DiskShare extends Share {
         SMB2QueryInfoRequest.SMB2QueryInfoType infoType,
         EnumSet<SecurityInformation> securityInfo,
         FileInformationClass fileInformationClass,
-        FileSysemInformationClass fileSysemInformationClass)
+        FileSystemInformationClass fileSystemInformationClass)
         throws SMBApiException {
 
         Session session = treeConnect.getSession();
@@ -450,7 +450,7 @@ public class DiskShare extends Share {
         SMB2QueryInfoRequest qreq = new SMB2QueryInfoRequest(
             connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
             fileId, infoType,
-            fileInformationClass, fileSysemInformationClass, null, securityInfo);
+            fileInformationClass, fileSystemInformationClass, null, securityInfo);
         try {
             Future<SMB2QueryInfoResponse> qiResponseFuture = session.send(qreq);
             SMB2QueryInfoResponse qresp = Futures.get(qiResponseFuture, SMBRuntimeException.Wrapper);

@@ -36,7 +36,7 @@ public class RingBufferTest extends Specification {
     cBuf.write(actual, 0, 5);
 
     then:
-    cBuf.getUsedSize() == 5
+    cBuf.size() == 5
     cBuf.read(byteArray)
     byteArray == actual
   }
@@ -50,7 +50,7 @@ public class RingBufferTest extends Specification {
     cBuf.write(actual, 2, 3);
 
     then:
-    cBuf.getUsedSize() == 3
+    cBuf.size() == 3
     cBuf.read(byteArray);
     byteArray == [6, 7, 1] as byte[]
   }
@@ -76,7 +76,7 @@ public class RingBufferTest extends Specification {
     cBuf.write(2);
 
     then:
-    cBuf.getUsedSize() == 4
+    cBuf.size() == 4
     cBuf.read(byteArray);
     byteArray == [6, 7, 1, 2] as byte[]
   }
@@ -92,7 +92,7 @@ public class RingBufferTest extends Specification {
     cBuf.write(b2, 0, 2);
 
     then:
-    cBuf.getUsedSize() == 5
+    cBuf.size() == 5
     cBuf.read(byteArray);
     byteArray == [4, 5, 6, 12, 13] as byte[]
   }
@@ -120,7 +120,7 @@ public class RingBufferTest extends Specification {
     cBuf.write(b, 0, 6);
 
     then:
-    cBuf.getUsedSize() == 6
+    cBuf.size() == 6
     cBuf.read(b1);
     b1 == [4, 5] as byte[]
     cBuf.read(b2);
@@ -137,11 +137,11 @@ public class RingBufferTest extends Specification {
     cBuf.write(b, 0, 3);
 
     then:
-    cBuf.getUsedSize() == 3
+    cBuf.size() == 3
     cBuf.read(new byte[3])
-    cBuf.getUsedSize() == 0
+    cBuf.size() == 0
     cBuf.read(new byte[0]) == 0
-    cBuf.getUsedSize() == 0
+    cBuf.size() == 0
   }
 
   def "should read available bytes when read is called with larger than available byte buffer"() {
@@ -153,9 +153,9 @@ public class RingBufferTest extends Specification {
     cBuf.write(b, 0, 3);
 
     then:
-    cBuf.getUsedSize() == 3
+    cBuf.size() == 3
     cBuf.read(byteArray) == 3
-    cBuf.getUsedSize() == 0
+    cBuf.size() == 0
     byteArray == [4, 5, 6, 0, 0, 0] as byte[]
   }
 
@@ -167,13 +167,13 @@ public class RingBufferTest extends Specification {
     cBuf.write(b, 0, 5);
 
     then:
-    cBuf.getUsedSize() == 5
+    cBuf.size() == 5
     cBuf.read(new byte[1]);
-    cBuf.getUsedSize() == 4
+    cBuf.size() == 4
     cBuf.read(new byte[2]);
-    cBuf.getUsedSize() == 2
+    cBuf.size() == 2
     cBuf.read(new byte[2]);
-    cBuf.getUsedSize() == 0
+    cBuf.size() == 0
   }
 
   def "should be able to append more bytes if bytes are read"() {
@@ -189,7 +189,7 @@ public class RingBufferTest extends Specification {
 
 
     then:
-    cBuf.getUsedSize() == 3
+    cBuf.size() == 3
     cBuf.read(byteArray);
     byteArray == [5, 6, 30] as byte[]
   }
@@ -209,7 +209,7 @@ public class RingBufferTest extends Specification {
 
 
     then:
-    cBuf.getUsedSize() == 6
+    cBuf.size() == 6
     cBuf.read(byteArray);
     byteArray == [5, 6, 7, 8, 9, 10] as byte[]
   }

@@ -42,14 +42,7 @@ class SequenceWindow {
     private static final long MAX_WAIT = 5000;
 
     public long get() {
-        try {
-            if (available.tryAcquire(MAX_WAIT, TimeUnit.MILLISECONDS)) {
-                return lowestAvailable.getAndIncrement();
-            }
-        } catch (InterruptedException e) {
-            //ignore
-        }
-        throw new SMBRuntimeException("No more credits available to hand out sequence number");
+        return get(1)[0];
     }
 
     public long[] get(int credits) {

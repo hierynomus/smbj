@@ -60,7 +60,7 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
         return buffer;
     }
 
-    public final void write(SMBBuffer buffer) {
+    public void write(SMBBuffer buffer) {
         header.writeTo(buffer);
         writeTo(buffer);
     }
@@ -84,4 +84,22 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         throw new UnsupportedOperationException("Should be implemented by specific message type");
     }
+
+    /**
+     * Returns the maximum payload size of this packet. Normally this is the {@link #SINGLE_CREDIT_PAYLOAD_SIZE}.
+     * Can be overridden in subclasses to support multi-credit messages.
+     *
+     * @return
+     */
+    public int getMaxPayloadSize() {
+        return SINGLE_CREDIT_PAYLOAD_SIZE;
+    }
+
+    public int getCreditsAssigned() {
+        return getHeader().getCreditCharge();
+    }
+    public void setCreditsAssigned(int creditsAssigned) {
+        getHeader().setCreditCharge(creditsAssigned);
+    }
+
 }

@@ -15,6 +15,8 @@
  */
 package com.hierynomus.smbj
 
+import com.hierynomus.msdtyp.AccessMask
+import com.hierynomus.mssmb2.SMB2CreateDisposition
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.session.Session
@@ -77,5 +79,27 @@ class SMB2FileIntegrationTest extends Specification {
     expect:
     file instanceof File
     dir instanceof Directory
+  }
+
+  def "should transfer big file to share"() {
+    given:
+    def file = share.openFile("bigfile", EnumSet.of(AccessMask.FILE_WRITE_DATA), SMB2CreateDisposition.FILE_OVERWRITE_IF)
+    def bytes = new byte[32 * 1024 * 1024 + 10]
+    Random.newInstance().nextBytes(bytes)
+    def istream = new ByteArrayInputStream(bytes)
+
+    when:
+    def ostream = file.getOutputStream()
+    byte[] buffer = new byte[4096];
+    int len;
+    while ((len = istream.read(buffer)) != -1) {
+      ostream.write(buffer, 0, len);
+    }
+    ostream.close()
+    file.close()
+
+    then:
+    share.fileExists("bigfile")
+    share.rm("bigfile")
   }
 }

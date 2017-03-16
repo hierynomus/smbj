@@ -18,18 +18,28 @@ package com.hierynomus.msfscc.fileinformation;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.protocol.commons.EnumWithValue;
 
+import java.util.Date;
+
 public class FileInfo {
 
     private byte[] fileId; // This is not the SMB2FileId, but not sure what one can do with this id.
     private String fileName;
+    private final Date creationTime;
+    private final Date lastAccessTime;
+    private final Date lastWriteTime;
+    private final Date changeTime;
     private long fileAttributes;
     private long fileSize;
     private long accessMask;
 
 
-    public FileInfo(String fileName, byte[] fileId, long fileAttributes, long fileSize, long accessMask) {
+    FileInfo(String fileName, byte[] fileId, Date creationTime, Date lastAccessTime, Date lastWriteTime, Date changeTime, long fileAttributes, long fileSize, long accessMask) {
         this.fileName = fileName;
         this.fileId = fileId;
+        this.creationTime = creationTime;
+        this.lastAccessTime = lastAccessTime;
+        this.lastWriteTime = lastWriteTime;
+        this.changeTime = changeTime;
         this.fileAttributes = fileAttributes;
         this.fileSize = fileSize;
         this.accessMask = accessMask;
@@ -53,6 +63,26 @@ public class FileInfo {
 
     public long getAccessMask() {
         return accessMask;
+    }
+
+    public Date getCreationTime() {
+        return copyOf(creationTime);
+    }
+
+    public Date getLastAccessTime() {
+        return copyOf(lastAccessTime);
+    }
+
+    public Date getLastWriteTime() {
+        return copyOf(lastWriteTime);
+    }
+
+    public Date getChangeTime() {
+        return copyOf(changeTime);
+    }
+
+    private Date copyOf(Date date) {
+        return date != null ? new Date(date.getTime()) : null;
     }
 
     @Override

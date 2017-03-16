@@ -76,7 +76,7 @@ public class Promise<V, T extends Throwable> {
     public void deliver(V val) {
         lock.lock();
         try {
-            log.debug("Setting <<{}>> to `{}`", name, val);
+            log.debug("Setting << {} >> to `{}`", name, val);
             this.val = val;
             cond.signalAll();
         } finally {
@@ -159,7 +159,7 @@ public class Promise<V, T extends Throwable> {
                 throw pendingEx;
             if (val != null)
                 return val;
-            log.debug("Awaiting <<{}>>", name);
+            log.debug("Awaiting << {} >>", name);
             if (timeout == 0) {
                 while (val == null && pendingEx == null) {
                     cond.await();
@@ -170,7 +170,7 @@ public class Promise<V, T extends Throwable> {
                 }
             }
             if (pendingEx != null) {
-                log.error("<<{}>> woke to: {}", name, pendingEx.toString());
+                log.error("<< {} >> woke to: {}", name, pendingEx.toString());
                 throw pendingEx;
             }
             return val;
