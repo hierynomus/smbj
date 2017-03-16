@@ -38,4 +38,10 @@ public interface Config {
      * will be dropped.
      */
     boolean isStrictSigning();
+
+    /**
+     * Whether the client requires that messages from the server are signed.  When message signing is enforced a received message that is not signed properly
+     * will result in an exception.
+     */
+    boolean isSigningRequired();
 }

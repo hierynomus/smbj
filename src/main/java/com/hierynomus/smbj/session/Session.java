@@ -45,7 +45,7 @@ public class Session implements AutoCloseable {
     private long sessionId;
 
     private PacketSignatory packetSignatory;
-    private boolean signingRequired;
+    private boolean serverSigningRequired;
 
     private Connection connection;
     private SMBEventBus bus;
@@ -56,7 +56,7 @@ public class Session implements AutoCloseable {
         this.connection = connection;
         this.bus = bus;
         this.packetSignatory = new PacketSignatory(connection.getNegotiatedProtocol().getDialect());
-        this.signingRequired = signingRequired;
+        this.serverSigningRequired = signingRequired;
         if (bus != null) {
             bus.subscribe(this);
         }
@@ -147,7 +147,7 @@ public class Session implements AutoCloseable {
     }
 
     public boolean isSigningRequired() {
-        return signingRequired;
+        return serverSigningRequired;
     }
 
     public void setSigningKey(byte[] signingKeyBytes) {
@@ -171,7 +171,7 @@ public class Session implements AutoCloseable {
      * @throws TransportException
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
-        if (signingRequired && !packetSignatory.isInitialized()) {
+        if (serverSigningRequired && !packetSignatory.isInitialized()) {
             throw new TransportException("Message signing is required, but no signing key is negotiated");
         }
         return connection.send(packetSignatory.sign(packet));

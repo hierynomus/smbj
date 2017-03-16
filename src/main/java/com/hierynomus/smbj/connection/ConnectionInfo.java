@@ -86,7 +86,7 @@ public class ConnectionInfo {
         return clientGuid;
     }
 
-    public boolean isRequireSigning() {
+    public boolean isServerRequiresSigning() {
         return (serverSecurityMode & 0x02) > 0;
     }
 

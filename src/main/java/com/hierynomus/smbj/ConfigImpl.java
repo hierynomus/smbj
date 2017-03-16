@@ -29,7 +29,7 @@ public class ConfigImpl implements Config {
     protected List<Factory.Named<Authenticator>> authenticators;
     protected Random random;
     protected UUID clientGuid;
-    protected boolean isStrictSigning;
+    protected boolean signingRequired;
 
     @Override
     public Random getRandomProvider() {
@@ -48,11 +48,16 @@ public class ConfigImpl implements Config {
 
     @Override
     public boolean isStrictSigning() {
-        return isStrictSigning;
+        return signingRequired;
     }
 
     @Override
     public List<Factory.Named<Authenticator>> getSupportedAuthenticators() {
         return authenticators;
+    }
+
+    @Override
+    public boolean isSigningRequired() {
+        return signingRequired;
     }
 }
