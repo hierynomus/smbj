@@ -18,7 +18,6 @@ package com.hierynomus.smbj.connection;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2MessageFlag;
-import com.hierynomus.mssmb2.SMB2MultiCreditPacket;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
@@ -134,7 +133,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         try {
             NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
             Authenticator authenticator = getAuthenticator(negTokenInit.getSupportedMechTypes(), authContext);
-            Session session = new Session(0, this, authContext, bus, connectionInfo.isRequireSigning(), new LocalPathResolver());
+            Session session = new Session(0, this, authContext, bus, connectionInfo.isServerRequiresSigning(), new LocalPathResolver());
             SMB2SessionSetup receive = authenticationRound(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
             long sessionId = receive.getHeader().getSessionId();
             session.setSessionId(sessionId);
@@ -237,7 +236,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
     private void negotiateDialect() throws TransportException {
         logger.info("Negotiating dialects {} with server {}", config.getSupportedDialects(), getRemoteHostname());
-        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid());
+        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid(), config.isSigningRequired());
         Future<SMB2Packet> send = send(negotiatePacket);
         SMB2Packet negotiateResponse = Futures.get(send, TransportException.Wrapper);
         if (!(negotiateResponse instanceof SMB2NegotiateResponse)) {
@@ -306,29 +305,29 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             }
 
             // check packet signature.  Drop the packet if it is not correct.
-            if (session.isSigningRequired()) {
-                if (packet.getHeader().isFlagSet(SMB2MessageFlag.SMB2_FLAGS_SIGNED)) {
-                    if (!session.getPacketSignatory().verify(packet)) {
-                        logger.warn("Invalid packet signature for packet {} with message id << {} >>", packet.getHeader().getMessage(), packet.getHeader().getMessageId());
-                        if (config.isStrictSigning()) {
-                            throw new SMBRuntimeException("Packet signature for packet " + packet.getHeader().getMessage() + " with message id << " + packet.getHeader().getMessageId() + " >> was not correct");
-                        }
+            if (packet.getHeader().isFlagSet(SMB2MessageFlag.SMB2_FLAGS_SIGNED)) {
+                if (!session.getPacketSignatory().verify(packet)) {
+                    logger.warn("Invalid packet signature for packet {} with message id << {} >>", packet.getHeader().getMessage(), packet.getHeader().getMessageId());
+                    if (config.isSigningRequired()) {
+                        throw new SMBRuntimeException("Packet signature for packet " + packet.getHeader().getMessage() + " with message id << " + packet.getHeader().getMessageId() + " >> was not correct");
                     }
-                } else {
-                    logger.warn("Illegal request, session requires message signing, but the message is not signed.");
-                    return;
                 }
-            } else {
-                if (packet.getHeader().isFlagSet(SMB2MessageFlag.SMB2_FLAGS_SIGNED)) {
-                    logger.trace("Received a signed packet, but signing is not required on this session.");
-                    // but this is OK, so we fall through.
-                }
+            } else if (config.isSigningRequired()) {
+                logger.warn("Illegal request, client requires message signing, but the received message is not signed.");
+                throw new SMBRuntimeException("Client requires signing, but packet " + packet.getHeader().getMessage() + " with message id << " + packet.getHeader().getMessageId() + " >> was not signed");
             }
-        }
-
-        // [MS-SMB2].pdf 3.2.5.1.8 Processing the Response
-        connectionInfo.getOutstandingRequests().receivedResponseFor(messageId).getPromise().deliver(packet);
     }
+
+    // [MS-SMB2].pdf 3.2.5.1.8 Processing the Response
+        connectionInfo.getOutstandingRequests().
+
+    receivedResponseFor(messageId).
+
+    getPromise().
+
+    deliver(packet);
+
+}
 
     @Override
     public void handleError(Throwable t) {

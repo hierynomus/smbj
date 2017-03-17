@@ -38,10 +38,16 @@ public interface Config {
      * will be dropped.
      */
     boolean isStrictSigning();
-    
+
     /**
      * See [MS-SMB2] 2.2.3 SMB2 NEGOTIATE Request
      * SMB2_GLOBAL_CAP_DFS
      */
     boolean isDFSEnabled();
+
+    /**
+     * Whether the client requires that messages from the server are signed.  When message signing is enforced a received message that is not signed properly
+     * will result in an exception.
+     */
+    boolean isSigningRequired();
 }

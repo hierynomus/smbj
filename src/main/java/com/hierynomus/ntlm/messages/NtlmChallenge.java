@@ -35,6 +35,7 @@ public class NtlmChallenge extends NtlmPacket {
     private int targetNameBufferOffset;
     private EnumSet<NtlmNegotiateFlag> negotiateFlags;
     private byte[] serverChallenge;
+    private WindowsVersion version;
     private int targetInfoLen;
     private int targetInfoBufferOffset;
     private String targetName;
@@ -105,7 +106,8 @@ public class NtlmChallenge extends NtlmPacket {
 
     private void readVersion(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
         if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
-            buffer.skip(8); // TODO read version
+            this.version = new WindowsVersion().readFrom(buffer);
+            logger.debug("Windows version = {}", this.version);
         } else {
             buffer.skip(8);
         }

@@ -20,7 +20,7 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
-    public static int SINGLE_CREDIT_PAYLOAD_SIZE = 64 * 1024;
+    public static final int SINGLE_CREDIT_PAYLOAD_SIZE = 64 * 1024;
     protected final SMB2Header header = new SMB2Header();
     protected int structureSize;
     SMBBuffer buffer;
