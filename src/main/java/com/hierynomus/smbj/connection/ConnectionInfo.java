@@ -18,15 +18,13 @@ package com.hierynomus.smbj.connection;
 import com.hierynomus.mssmb2.SMB2GlobalCapability;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.UUID;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
 public class ConnectionInfo {
-    public byte[] getGssNegotiateToken() {
-        return gssNegotiateToken;
-    }
 
     // All SMB2 Dialect
     private SessionTable sessionTable = new SessionTable();
@@ -92,6 +90,10 @@ public class ConnectionInfo {
 
     public NegotiatedProtocol getNegotiatedProtocol() {
         return negotiatedProtocol;
+    }
+
+    public byte[] getGssNegotiateToken() {
+        return Arrays.copyOf(gssNegotiateToken, gssNegotiateToken.length);
     }
 
     public UUID getServerGuid() {

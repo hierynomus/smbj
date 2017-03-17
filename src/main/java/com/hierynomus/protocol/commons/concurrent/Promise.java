@@ -151,15 +151,19 @@ public class Promise<V, T extends Throwable> {
      * @return the value or {@code null}
      * @throws T in case another thread informs the promise of an error meanwhile
      */
-    public V tryRetrieve(long timeout, TimeUnit unit)
-        throws T {
+    public V tryRetrieve(long timeout, TimeUnit unit) throws T {
         lock.lock();
         try {
-            if (pendingEx != null)
+            if (pendingEx != null) {
                 throw pendingEx;
-            if (val != null)
+            }
+
+            if (val != null) {
                 return val;
+            }
+
             log.debug("Awaiting << {} >>", name);
+
             if (timeout == 0) {
                 while (val == null && pendingEx == null) {
                     cond.await();
@@ -169,10 +173,12 @@ public class Promise<V, T extends Throwable> {
                     return null;
                 }
             }
+
             if (pendingEx != null) {
                 log.error("<< {} >> woke to: {}", name, pendingEx.toString());
                 throw pendingEx;
             }
+
             return val;
         } catch (InterruptedException ie) {
             throw wrapper.wrap(ie);
