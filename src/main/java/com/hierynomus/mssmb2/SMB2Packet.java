@@ -20,10 +20,12 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
-    public static int SINGLE_CREDIT_PAYLOAD_SIZE = 64 * 1024;
+    public static final int SINGLE_CREDIT_PAYLOAD_SIZE = 64 * 1024;
     protected final SMB2Header header = new SMB2Header();
     protected int structureSize;
-    SMBBuffer buffer;
+    private SMBBuffer buffer;
+    private int messageStartPos;
+    private int messageEndPos;
 
     public SMB2Packet() {
     }
@@ -56,11 +58,33 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
         return structureSize;
     }
 
+    /**
+     * The buffer from which this packet is read if it was a received packet
+     * @return The buffer
+     */
     public SMBBuffer getBuffer() {
         return buffer;
     }
 
-    public final void write(SMBBuffer buffer) {
+    /**
+     * The start position of this packet in the {@link #getBuffer()}. Normally this is 0, except
+     * when this packet was compounded.
+     * @return The start position of this received packet in the buffer
+     */
+    public int getMessageStartPos() {
+        return messageStartPos;
+    }
+
+    /**
+     * THe end position of this packet in the {@link #getBuffer()}. Normally this is the last written position,
+     * except when this packet was compounded.
+     * @return The end position of this received packet in the buffer
+     */
+    public int getMessageEndPos() {
+        return messageEndPos;
+    }
+
+    public void write(SMBBuffer buffer) {
         header.writeTo(buffer);
         writeTo(buffer);
     }
@@ -76,12 +100,32 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
 
     public final SMB2Packet read(SMBBuffer buffer) throws Buffer.BufferException {
         this.buffer = buffer; // remember the buffer we read it from
+        this.messageStartPos = buffer.rpos();
         header.readFrom(buffer);
         readMessage(buffer);
+        this.messageEndPos = buffer.rpos();
         return this;
     }
 
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         throw new UnsupportedOperationException("Should be implemented by specific message type");
     }
+
+    /**
+     * Returns the maximum payload size of this packet. Normally this is the {@link #SINGLE_CREDIT_PAYLOAD_SIZE}.
+     * Can be overridden in subclasses to support multi-credit messages.
+     *
+     * @return
+     */
+    public int getMaxPayloadSize() {
+        return SINGLE_CREDIT_PAYLOAD_SIZE;
+    }
+
+    public int getCreditsAssigned() {
+        return getHeader().getCreditCharge();
+    }
+    public void setCreditsAssigned(int creditsAssigned) {
+        getHeader().setCreditCharge(creditsAssigned);
+    }
+
 }

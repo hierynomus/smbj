@@ -18,7 +18,6 @@ package com.hierynomus.smbj.connection;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2MessageFlag;
-import com.hierynomus.mssmb2.SMB2MultiCreditPacket;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
@@ -29,7 +28,6 @@ import com.hierynomus.protocol.commons.socket.SocketClient;
 import com.hierynomus.smbj.Config;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
-import com.hierynomus.smbj.common.MessageSigning;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.event.SMBEventBus;
@@ -47,11 +45,9 @@ import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
@@ -120,7 +116,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         try {
             NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
             Authenticator authenticator = getAuthenticator(negTokenInit.getSupportedMechTypes(), authContext);
-            Session session = new Session(0, this, bus, connectionInfo.isRequireSigning());
+            Session session = new Session(0, this, bus, connectionInfo.isServerRequiresSigning());
             SMB2SessionSetup receive = authenticationRound(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
             long sessionId = receive.getHeader().getSessionId();
             session.setSessionId(sessionId);
@@ -171,29 +167,13 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     }
 
     /**
-     * send a packet, unsigned.
+     * send a packet.
      *
      * @param packet SMBPacket to send
      * @return a Future to be used to retrieve the response packet
      * @throws TransportException
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
-        return send(packet, null);
-    }
-
-    private <T extends SMB2Packet> T sendAndReceive(SMB2Packet packet) throws TransportException {
-        return Futures.get(this.<T>send(packet), TransportException.Wrapper);
-    }
-
-    /**
-     * send a packet, potentially signed
-     *
-     * @param packet         SMBPacket to send
-     * @param signingKeySpec if null, do not sign the packet. Otherwise, the signingKeySpec will be used to sign the packet.
-     * @return a Future to be used to retrieve the response packet
-     * @throws TransportException
-     */
-    public <T extends SMB2Packet> Future<T> send(SMB2Packet packet, SecretKeySpec signingKeySpec) throws TransportException {
         lock.lock();
         try {
             int availableCredits = connectionInfo.getSequenceWindow().available();
@@ -203,45 +183,41 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             }
             long[] messageIds = connectionInfo.getSequenceWindow().get(grantCredits);
             packet.getHeader().setMessageId(messageIds[0]);
-            logger.debug("Granted {} credits to {} with message id << {} >>", grantCredits, packet.getHeader().getMessage(), packet.getHeader().getMessageId());
+            logger.debug("Granted {} (out of {}) credits to {} with message id << {} >>", grantCredits, availableCredits, packet.getHeader().getMessage(), packet.getHeader().getMessageId());
             packet.getHeader().setCreditRequest(Math.max(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits, grantCredits));
 
             Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID(), packet);
             connectionInfo.getOutstandingRequests().registerOutstanding(request);
-            if (signingKeySpec != null) {
-                transport.writeSigned(packet, signingKeySpec);
-            } else {
-                transport.write(packet);
-            }
+            transport.write(packet);
             return request.getFuture(null); // TODO cancel callback
         } finally {
             lock.unlock();
         }
     }
 
+    private <T extends SMB2Packet> T sendAndReceive(SMB2Packet packet) throws TransportException {
+        return Futures.get(this.<T>send(packet), TransportException.Wrapper);
+    }
+
     private int calculateGrantedCredits(final SMB2Packet packet, final int availableCredits) {
         final int grantCredits;
-        if (packet instanceof SMB2MultiCreditPacket) {
-            int maxPayloadSize = ((SMB2MultiCreditPacket) packet).getMaxPayloadSize();
-            int creditsNeeded = creditsNeeded(maxPayloadSize);
-            // Scale the credits granted to the message dynamically.
-            if (creditsNeeded < availableCredits) {
-                grantCredits = creditsNeeded;
-            } else if (creditsNeeded > 1 && availableCredits > 1) { // creditsNeeded >= availableCredits
-                grantCredits = availableCredits - 1; // Keep 1 credit left for a simple request
-            } else {
-                grantCredits = 1;
-            }
-            ((SMB2MultiCreditPacket) packet).setCreditsAssigned(grantCredits);
+        int maxPayloadSize = packet.getMaxPayloadSize();
+        int creditsNeeded = creditsNeeded(maxPayloadSize);
+        // Scale the credits granted to the message dynamically.
+        if (creditsNeeded < availableCredits) {
+            grantCredits = creditsNeeded;
+        } else if (creditsNeeded > 1 && availableCredits > 1) { // creditsNeeded >= availableCredits
+            grantCredits = availableCredits - 1; // Keep 1 credit left for a simple request
         } else {
             grantCredits = 1;
         }
+        packet.setCreditsAssigned(grantCredits);
         return grantCredits;
     }
 
     private void negotiateDialect() throws TransportException {
         logger.info("Negotiating dialects {} with server {}", config.getSupportedDialects(), getRemoteHostname());
-        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid());
+        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid(), config.isSigningRequired());
         Future<SMB2Packet> send = send(negotiatePacket);
         SMB2Packet negotiateResponse = Futures.get(send, TransportException.Wrapper);
         if (!(negotiateResponse instanceof SMB2NegotiateResponse)) {
@@ -278,7 +254,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
         // [MS-SMB2].pdf 3.2.5.1.4 Granting Message Credits
         connectionInfo.getSequenceWindow().creditsGranted(packet.getHeader().getCreditResponse());
-        logger.debug("Server granted us {} credits for message with sequence number << {} >>", packet.getHeader().getCreditResponse(), messageId);
+        logger.debug("Server granted us {} credits for message with sequence number << {} >>, now available: {} credits", packet.getHeader().getCreditResponse(), messageId, connectionInfo.getSequenceWindow().available());
 
         Request request = connectionInfo.getOutstandingRequests().getRequestByMessageId(messageId);
         logger.trace("Send/Recv of packet with message id << {} >> took << {} ms >>", messageId, System.currentTimeMillis() - request.getTimestamp().getTime());
@@ -311,29 +287,22 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             }
 
             // check packet signature.  Drop the packet if it is not correct.
-            if (session.isSigningRequired()) {
-                if (packet.getHeader().isFlagSet(SMB2MessageFlag.SMB2_FLAGS_SIGNED)) {
-                    packet.getBuffer().rpos(0);
-                    if (!MessageSigning.validateSignature(packet.getBuffer().array(), packet.getBuffer().available(), session.getSigningKeySpec())) {
-                        logger.warn("Invalid packet signature");
-                        if (config.isStrictSigning()) {
-                            return; // drop the packet
-                        }
+            if (packet.getHeader().isFlagSet(SMB2MessageFlag.SMB2_FLAGS_SIGNED)) {
+                if (!session.getPacketSignatory().verify(packet)) {
+                    logger.warn("Invalid packet signature for packet {} with message id << {} >>", packet.getHeader().getMessage(), packet.getHeader().getMessageId());
+                    if (config.isSigningRequired()) {
+                        throw new TransportException("Packet signature for packet " + packet.getHeader().getMessage() + " with message id << " + packet.getHeader().getMessageId() + " >> was not correct");
                     }
-                } else {
-                    logger.warn("Illegal request, session requires message signing, but the message is not signed.");
-                    return;
                 }
-            } else {
-                if (packet.getHeader().isFlagSet(SMB2MessageFlag.SMB2_FLAGS_SIGNED)) {
-                    logger.trace("Received a signed packet, but signing is not required on this session.");
-                    // but this is OK, so we fall through.
-                }
+            } else if (config.isSigningRequired()) {
+                logger.warn("Illegal request, client requires message signing, but the received message is not signed.");
+                throw new TransportException("Client requires signing, but packet " + packet.getHeader().getMessage() + " with message id << " + packet.getHeader().getMessageId() + " >> was not signed");
             }
         }
 
         // [MS-SMB2].pdf 3.2.5.1.8 Processing the Response
         connectionInfo.getOutstandingRequests().receivedResponseFor(messageId).getPromise().deliver(packet);
+
     }
 
     @Override

@@ -24,18 +24,12 @@ public class SMB2MultiCreditPacket extends SMB2Packet {
         this.maxPayloadSize = maxPayloadSize;
     }
 
+    @Override
     public int getMaxPayloadSize() {
         return this.maxPayloadSize;
     }
 
-    public int getPayloadSize() {
+    protected int getPayloadSize() {
         return Math.min(maxPayloadSize, SINGLE_CREDIT_PAYLOAD_SIZE * getCreditsAssigned());
-    }
-
-    public int getCreditsAssigned() {
-        return getHeader().getCreditCharge();
-    }
-    public void setCreditsAssigned(int creditsAssigned) {
-        getHeader().setCreditCharge(creditsAssigned);
     }
 }

@@ -15,18 +15,12 @@
  */
 package com.hierynomus.smbj.session;
 
-import java.io.IOException;
-import java.util.concurrent.Future;
-import javax.crypto.spec.SecretKeySpec;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.messages.SMB2Logoff;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.smbj.common.MessageSigning;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
@@ -36,8 +30,12 @@ import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.event.TreeDisconnected;
 import com.hierynomus.smbj.share.*;
 import com.hierynomus.smbj.transport.TransportException;
-
 import net.engio.mbassy.listener.Handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.concurrent.Future;
 
 /**
  * A Session
@@ -46,8 +44,8 @@ public class Session implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(Session.class);
     private long sessionId;
 
-    private SecretKeySpec signingKeySpec;
-    private boolean signingRequired;
+    private PacketSignatory packetSignatory;
+    private boolean serverSigningRequired;
 
     private Connection connection;
     private SMBEventBus bus;
@@ -57,8 +55,8 @@ public class Session implements AutoCloseable {
         this.sessionId = sessionId;
         this.connection = connection;
         this.bus = bus;
-        this.signingKeySpec = null;
-        this.signingRequired = signingRequired;
+        this.packetSignatory = new PacketSignatory(connection.getNegotiatedProtocol().getDialect());
+        this.serverSigningRequired = signingRequired;
         if (bus != null) {
             bus.subscribe(this);
         }
@@ -149,19 +147,11 @@ public class Session implements AutoCloseable {
     }
 
     public boolean isSigningRequired() {
-        return signingRequired;
+        return serverSigningRequired;
     }
 
     public void setSigningKey(byte[] signingKeyBytes) {
-        if (connection.getNegotiatedProtocol().getDialect().isSmb3x()) {
-            throw new IllegalStateException("Cannot set a signing key (yet) for SMB3.x");
-        } else {
-            this.signingKeySpec = new SecretKeySpec(signingKeyBytes, MessageSigning.HMAC_SHA256_ALGORITHM);
-        }
-    }
-
-    public SecretKeySpec getSigningKeySpec() {
-        return signingKeySpec;
+        packetSignatory.init(signingKeyBytes);
     }
 
     @Override
@@ -181,10 +171,10 @@ public class Session implements AutoCloseable {
      * @throws TransportException
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
-        if (signingRequired && signingKeySpec == null) {
+        if (serverSigningRequired && !packetSignatory.isInitialized()) {
             throw new TransportException("Message signing is required, but no signing key is negotiated");
         }
-        return connection.send(packet, signingKeySpec);
+        return connection.send(packetSignatory.sign(packet));
     }
 
     public void setBus(SMBEventBus bus) {
@@ -198,5 +188,9 @@ public class Session implements AutoCloseable {
 
     public void setSessionId(long sessionId) {
         this.sessionId = sessionId;
+    }
+
+    public PacketSignatory getPacketSignatory() {
+        return packetSignatory;
     }
 }
