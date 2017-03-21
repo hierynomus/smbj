@@ -34,7 +34,6 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import static com.hierynomus.spnego.ObjectIdentifiers.SPNEGO;
 
 abstract class SpnegoToken {
-    private static final Logger logger = LoggerFactory.getLogger(SpnegoToken.class);
 
     private int tokenTagNo;
     private String tokenName;

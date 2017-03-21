@@ -17,11 +17,12 @@ package com.hierynomus.smbj.connection;
 
 import com.hierynomus.mssmb2.SMB2Dialect;
 
+import static com.hierynomus.mssmb2.SMB2Packet.SINGLE_CREDIT_PAYLOAD_SIZE;
+
 /**
  * Encapsulates the details of the Protocol Negotiation
  */
 public class NegotiatedProtocol {
-    public static int SINGLE_CREDIT_PAYLOAD_SIZE = 65536;
     private SMB2Dialect dialect;
     private int maxTransactSize;
     private int maxReadSize;

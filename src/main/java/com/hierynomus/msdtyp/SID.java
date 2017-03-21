@@ -20,6 +20,8 @@ import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
+import java.util.Arrays;
+
 /**
  * [MS-DTYP].pdf 2.4.2 SecurityIdentifier SID
  */
@@ -133,5 +135,30 @@ public class SID {
 
     public long[] getSubAuthorities() {
         return subAuthorities;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+
+        SID sid = (SID) o;
+
+        if (revision != sid.revision)
+            return false;
+        if (!Arrays.equals(sidIdentifierAuthority, sid.sidIdentifierAuthority))
+            return false;
+        return Arrays.equals(subAuthorities, sid.subAuthorities);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (int) revision;
+        result = 31 * result + Arrays.hashCode(sidIdentifierAuthority);
+        result = 31 * result + Arrays.hashCode(subAuthorities);
+        return result;
     }
 }

@@ -73,6 +73,7 @@ public class SpnegoAuthenticator implements Authenticator {
                 // so create the GSS context and attach it to our AuthenticationContext
                 if (gssToken == null) {
                     logger.error("GSS token is null, but should have been provided by the SMB negotiation response");
+                    throw new TransportException("No GSS Token Received from SMB Negotiation response to initialize authentication with");
                 }
 
                 GSSManager gssManager = GSSManager.getInstance();
@@ -84,12 +85,11 @@ public class SpnegoAuthenticator implements Authenticator {
                 gssContext = gssManager.createContext(serverName, spnegoOid, context.getCreds(), GSSContext.DEFAULT_LIFETIME);
                 gssContext.requestMutualAuth(false);
                 // TODO fill in all the other options too
-
             }
 
             byte[] newToken = gssContext.initSecContext(gssToken, 0, gssToken.length);
             if (newToken != null) {
-                logger.debug("Received token: {}", ByteArrayUtils.printHex(newToken));
+                logger.trace("Received token: {}", ByteArrayUtils.printHex(newToken));
             }
             if (gssContext.isEstablished()) {
                 ExtendedGSSContext e = (ExtendedGSSContext) gssContext;

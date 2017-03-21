@@ -29,8 +29,8 @@ import com.hierynomus.smbj.transport.TransportException;
 
 public class DirectTcpPacketReader extends PacketReader {
 
-    public DirectTcpPacketReader(InputStream in, PacketReceiver handler) {
-        super(in, handler);
+    public DirectTcpPacketReader(String host, InputStream in, PacketReceiver handler) {
+        super(host, in, handler);
     }
 
     private SMB2Packet _readSMB2Packet(int packetLength) throws IOException, Buffer.BufferException {

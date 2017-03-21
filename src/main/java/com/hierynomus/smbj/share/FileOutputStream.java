@@ -77,7 +77,7 @@ public class FileOutputStream extends OutputStream {
     public void write(byte b[], int off, int len) throws IOException {
         verifyConnectionNotClosed();
 
-        if (provider.isBufferFull(len)) {
+        while (provider.isBufferFull(len)) {
             flush();
         }
 
@@ -90,13 +90,15 @@ public class FileOutputStream extends OutputStream {
     @Override
     public void flush() throws IOException {
         verifyConnectionNotClosed();
-        if (provider.isAvailable())
+        if (provider.isAvailable()) {
             sendWriteRequest();
+        }
     }
 
     private void sendWriteRequest() throws TransportException {
         SMB2WriteRequest wreq = new SMB2WriteRequest(connection.getNegotiatedProtocol().getDialect(), fileId,
             session.getSessionId(), treeConnect.getTreeId(), provider, connection.getNegotiatedProtocol().getMaxWriteSize());
+        logger.trace("Sending {} for file {}, byte offset {}, bytes available {}", wreq, treeConnect.getHandle().smbPath, provider.getOffset(), provider.bytesLeft());
         Future<SMB2WriteResponse> writeFuture = session.send(wreq);
         SMB2WriteResponse wresp = Futures.get(writeFuture, TransportException.Wrapper);
         if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
@@ -137,7 +139,7 @@ public class FileOutputStream extends OutputStream {
 
         @Override
         public boolean isAvailable() {
-            return buf.hasData();
+            return !buf.isEmpty();
         }
 
         @Override
@@ -147,7 +149,7 @@ public class FileOutputStream extends OutputStream {
 
         @Override
         public int bytesLeft() {
-            return buf.getUsedSize();
+            return buf.size();
         }
 
         public void writeBytes(byte[] b, int off, int len) {

@@ -18,7 +18,7 @@ package com.hierynomus.mssmb2.messages;
 import java.util.EnumSet;
 import com.hierynomus.msdtyp.SecurityInformation;
 import com.hierynomus.msfscc.FileInformationClass;
-import com.hierynomus.msfscc.FileSysemInformationClass;
+import com.hierynomus.msfscc.FileSystemInformationClass;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smbj.common.SMBBuffer;
@@ -33,7 +33,7 @@ public class SMB2QueryInfoRequest extends SMB2Packet {
     private final SMB2FileId fileId;
     private final SMB2QueryInfoType infoType;
     private final FileInformationClass fileInformationClass;
-    private final FileSysemInformationClass fileSystemInformationClass;
+    private final FileSystemInformationClass fileSystemInformationClass;
     private final byte[] inputBuffer;
     private final EnumSet<SecurityInformation> securityInformation;
 
@@ -41,14 +41,14 @@ public class SMB2QueryInfoRequest extends SMB2Packet {
                                 long sessionId, long treeId,
                                 SMB2FileId fileId, SMB2QueryInfoType infoType,
                                 FileInformationClass fileInformationClass,
-                                FileSysemInformationClass fileSysemInformationClass,
+                                FileSystemInformationClass fileSystemInformationClass,
                                 byte[] inputBuffer,
                                 EnumSet<SecurityInformation> securityInformation) {
 
         super(41, smbDialect, SMB2MessageCommandCode.SMB2_QUERY_INFO, sessionId, treeId);
         this.infoType = infoType;
         this.fileInformationClass = fileInformationClass;
-        this.fileSystemInformationClass = fileSysemInformationClass;
+        this.fileSystemInformationClass = fileSystemInformationClass;
         this.inputBuffer = inputBuffer;
         this.securityInformation = securityInformation;
 

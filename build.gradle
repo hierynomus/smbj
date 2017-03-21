@@ -3,6 +3,9 @@ import java.text.SimpleDateFormat
 plugins {
   id "java"
   id "groovy"
+  id "jacoco"
+  id "jdepend"
+  id "findbugs"
   id "maven-publish"
   id "org.ajoberstar.release-opinion" version "1.4.2"
   id "com.github.hierynomus.license" version "0.12.1"
@@ -17,6 +20,8 @@ defaultTasks "build"
 repositories {
   mavenLocal()
   mavenCentral()
+  maven { url "https://jitpack.io" }
+  maven { url "http://dl.bintray.com/typesafe/maven-releases" }
 }
 
 sourceCompatibility = 1.7
@@ -175,4 +180,43 @@ if (project.hasProperty("bintrayUsername") && project.hasProperty("bintrayApiKey
   }
 }
 
+jdepend {
+   toolVersion = "2.9.1"
+   sourceSets = [sourceSets.main]
+   ignoreFailures = true
+}
+
+jdependMain {
+   reports {
+      xml.enabled true
+      text.enabled false
+   }
+}
+
+task jdependReport(dependsOn: jdependMain, group: 'verification', description: 'Generates a HTML report after executing jdepend checks.') << {
+   ant.xslt(
+      in: "$reporting.baseDir/jdepend/main.xml",
+      style: "$rootDir/conf/jdepend/jdepend-report.xslt",
+      out:"$reporting.baseDir/jdepend/main.html")
+}
+
+tasks.withType(FindBugs) {
+    reports {
+        xml.enabled false
+        html.enabled true
+        // html.stylesheet resources.text.fromFile('config/xsl/color.xsl')
+    }
+}
+
+findbugs {
+  sourceSets = [sourceSets.main]
+  ignoreFailures = true
+}
+
+check {
+   dependsOn += ['jdependReport']
+}
+
+
 project.tasks.release.dependsOn(project.tasks.bintrayUpload)
+project.tasks.jacocoTestReport.dependsOn(project.tasks.test)

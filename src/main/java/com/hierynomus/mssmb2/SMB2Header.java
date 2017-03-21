@@ -26,6 +26,7 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
  * [MS-SMB2].pdf 2.2.1 SMB2 Packet Header
  */
 public class SMB2Header {
+    public static final byte[] EMPTY_SIGNATURE = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
     public static final int STRUCTURE_SIZE = 64;
     public static final int SIGNATURE_OFFSET = 48;
     public static final int SIGNATURE_SIZE = 16;
@@ -43,6 +44,7 @@ public class SMB2Header {
     private long statusCode;
     private long flags;
     private long nextCommandOffset; // TODO Message Compounding
+    private byte[] signature;
 
     public SMB2Header() {
     }
@@ -64,7 +66,7 @@ public class SMB2Header {
             buffer.putUInt32(treeId); // TreeId (4 bytes)
         }
         buffer.putLong(sessionId); // SessionId (8 bytes)
-        buffer.putRawBytes(new byte[]{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}); // Signature (16 bytes)
+        buffer.putRawBytes(EMPTY_SIGNATURE); // Signature (16 bytes)
     }
 
     private void writeChannelSequenceReserved(SMBBuffer buffer) {
@@ -180,7 +182,7 @@ public class SMB2Header {
             treeId = buffer.readUInt32(); // TreeId (4 bytes)
         }
         sessionId = buffer.readLong(); // SessionId (8 bytes)
-        buffer.readRawBytes(16); // Signature (16 bytes)
+        signature = buffer.readRawBytes(16); // Signature (16 bytes)
     }
 
     public NtStatus getStatus() {
@@ -228,5 +230,9 @@ public class SMB2Header {
             flags,
             nextCommandOffset);
 
+    }
+
+    public int getCreditCharge() {
+        return creditCharge;
     }
 }

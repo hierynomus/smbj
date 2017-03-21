@@ -19,6 +19,7 @@ class RingBuffer {
 
     private byte[] buf;
     private int writeIndex;
+    private int readIndex;
     private int size;
 
     public RingBuffer(int maxSize) {
@@ -27,7 +28,6 @@ class RingBuffer {
 
 
     public void write(byte[] b, int off, int len) {
-
         if (b.length - off < len) {
             throw new IllegalArgumentException("Bytes to write do not exist in source");
         }
@@ -37,6 +37,7 @@ class RingBuffer {
         }
 
         writeBytes(b, off, len);
+        writeIndex = (writeIndex + len) % buf.length;
         size += len;
     }
 
@@ -44,53 +45,52 @@ class RingBuffer {
         write(new byte[]{(byte) b}, 0, 1);
     }
 
-
     public int read(byte[] chunk) {
-
         int len = size < chunk.length ? size : chunk.length;
         readBytes(chunk, len);
+        readIndex = (readIndex + len) % buf.length;
         size -= len;
         return len;
     }
 
-    public int getUsedSize() {
-        return size;
-    }
-
-    private void readBytes(byte[] b, int i) {
-        int readIndex = writeIndex - size;
-        if (readIndex > 0) {
-            System.arraycopy(buf, readIndex, b, 0, i);
+    private void readBytes(byte[] chunk, int len) {
+        if (readIndex + len <= buf.length) {
+            System.arraycopy(buf, readIndex, chunk, 0 , len);
         } else {
-            readIndex += buf.length;
             int bytesToEnd = buf.length - readIndex;
-            System.arraycopy(buf, readIndex, b, 0, bytesToEnd);
-            System.arraycopy(buf, 0, b, bytesToEnd, i - bytesToEnd);
+            System.arraycopy(buf, readIndex, chunk, 0, bytesToEnd);
+            System.arraycopy(buf, 0, chunk, bytesToEnd, len - bytesToEnd);
         }
     }
+
 
     private void writeBytes(byte[] b, int off, int len) {
         if (writeIndex + len <= buf.length) {
             System.arraycopy(b, off, buf, writeIndex, len);
-            writeIndex += len;
         } else {
             int bytesToEnd = buf.length - writeIndex;
             System.arraycopy(b, off, buf, writeIndex, bytesToEnd);
             System.arraycopy(b, bytesToEnd, buf, bytesToEnd, len - bytesToEnd);
-            writeIndex = len - bytesToEnd;
         }
     }
 
+    public int size() {
+        return size;
+    }
+
     public boolean isFull() {
-        return size == buf.length;
+        return size() == buf.length;
     }
 
     public boolean isFull(int len) {
+        if (len > buf.length) {
+            throw new IllegalArgumentException("RingBuffer of length " + buf.length + " cannot accomodate " + len + " bytes.");
+        }
         return size + len > buf.length;
     }
 
-    public boolean hasData() {
-        return size > 0;
+    public boolean isEmpty() {
+        return size <= 0;
     }
-}
 
+}

@@ -15,13 +15,14 @@
  */
 package com.hierynomus.mssmb2.messages;
 
-import java.util.EnumSet;
-import java.util.UUID;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.smbj.common.SMBBuffer;
+
+import java.util.EnumSet;
+import java.util.UUID;
 
 /**
  * [MS-SMB2].pdf 2.2.3 SMB2 Negotiate
@@ -30,6 +31,7 @@ public class SMB2NegotiateRequest extends SMB2Packet {
 
     private EnumSet<SMB2Dialect> dialects;
     private UUID clientGuid;
+    private boolean clientSigningRequired;
 
     /**
      * Request constructor.
@@ -37,10 +39,11 @@ public class SMB2NegotiateRequest extends SMB2Packet {
      * @param dialects
      * @param clientGuid
      */
-    public SMB2NegotiateRequest(EnumSet<SMB2Dialect> dialects, UUID clientGuid) {
+    public SMB2NegotiateRequest(EnumSet<SMB2Dialect> dialects, UUID clientGuid, boolean clientSigningRequired) {
         super(36, SMB2Dialect.UNKNOWN, SMB2MessageCommandCode.SMB2_NEGOTIATE, 0, 0);
         this.dialects = dialects;
         this.clientGuid = clientGuid;
+        this.clientSigningRequired = clientSigningRequired;
     }
 
     /**
@@ -52,7 +55,7 @@ public class SMB2NegotiateRequest extends SMB2Packet {
     protected void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putUInt16(dialects.size()); // DialectCount (2 bytes)
-        buffer.putUInt16(1); // SecurityMode (2 bytes) Hardcoded to enabled.
+        buffer.putUInt16(securityMode()); // SecurityMode (2 bytes)
         buffer.putReserved(2); // Reserved (2 bytes)
         putCapabilities(buffer); // Capabilities (2 bytes)
         MsDataTypes.putGuid(clientGuid, buffer); // ClientGuid (16 bytes)
@@ -63,6 +66,14 @@ public class SMB2NegotiateRequest extends SMB2Packet {
             buffer.putReserved(8 - eightByteAlignment); // Padding (variable) Ensure that the next field is 8-byte aligned
         }
         putNegotiateContextList(); // NegotiateContextList (variable)
+    }
+
+    private int securityMode() {
+        if (clientSigningRequired) {
+            return 0x03;
+        } else {
+            return 0x01;
+        }
     }
 
     private void putNegotiateContextList() {

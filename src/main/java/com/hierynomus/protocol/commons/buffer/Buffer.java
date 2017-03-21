@@ -71,7 +71,7 @@ public class Buffer<T extends Buffer<T>> {
         return j;
     }
 
-    protected byte[] data;
+    private byte[] data;
     private Endian endianness;
     protected int rpos;
     protected int wpos;

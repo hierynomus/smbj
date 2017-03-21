@@ -13,34 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.msfscc;
+package com.hierynomus.mssmb2;
 
 import com.hierynomus.protocol.commons.EnumWithValue;
 
 /**
- * MS-FSCC 2.5 File System Information Classes
+ * [MS-SMB2].pdf 2.2.3 SMB2 NEGOTIATE Request - Capabilities
  */
-public enum FileSysemInformationClass implements EnumWithValue<FileSysemInformationClass> {
+public enum SMB2GlobalCapability implements EnumWithValue<SMB2GlobalCapability> {
+    SMB2_GLOBAL_CAP_DFS(0x01L),
+    SMB2_GLOBAL_CAP_LEASING(0x02L),
+    SMB2_GLOBAL_CAP_LARGE_MTU(0x04L), // Multi-Credit support
+    SMB2_GLOBAL_CAP_MULTI_CHANNEL(0x08L),
+    SMB2_GLOBAL_CAP_PERSISTENT_HANDLES(0x10L),
+    SMB2_GLOBAL_CAP_DIRECTORY_LEASING(0x20L),
+    SMB2_GLOBAL_CAP_ENCRYPTION(0x40L);
 
-    FileFsVolumeInformation(0x01L),
-    FileFsLabelInformation(0x02L),
-    FileFsSizeInformation(0x03L),
-    FileFsDeviceInformation(0x04L),
-    FileFsAttributeInformation(0x05L),
-    FileFsControlInformation(0x06L),
-    FileFsFullSizeInformation(0x07L),
-    FileFsObjectIdInformation(0x08L),
-    FileFsDriverPathInformation(0x09L),
-    FileFsVolumeFlagsInformation(0x0AL),
-    FileFsSectorSizeInformation(0x0BL);
+    private long i;
 
-    private long value;
-
-    FileSysemInformationClass(long value) {
-        this.value = value;
+    SMB2GlobalCapability(long i) {
+        this.i = i;
     }
 
     public long getValue() {
-        return value;
+        return i;
     }
 }
