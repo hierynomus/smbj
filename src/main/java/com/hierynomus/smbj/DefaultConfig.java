@@ -37,7 +37,7 @@ public class DefaultConfig extends ConfigImpl {
     }
 
     private void registerDefaultAuthenticators() {
-        authenticators = new ArrayList<Factory.Named<Authenticator>>();
+        authenticators = new ArrayList<>();
         // order is important.  The authenticators listed first will be selected
         authenticators.add(new SpnegoAuthenticator.Factory());
         authenticators.add(new NtlmAuthenticator.Factory());

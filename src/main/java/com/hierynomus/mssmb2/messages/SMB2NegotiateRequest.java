@@ -70,7 +70,7 @@ public class SMB2NegotiateRequest extends SMB2Packet {
 
     private int securityMode() {
         if (clientSigningRequired) {
-            return 0x02;
+            return 0x03;
         } else {
             return 0x01;
         }

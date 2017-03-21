@@ -291,25 +291,19 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
                 if (!session.getPacketSignatory().verify(packet)) {
                     logger.warn("Invalid packet signature for packet {} with message id << {} >>", packet.getHeader().getMessage(), packet.getHeader().getMessageId());
                     if (config.isSigningRequired()) {
-                        throw new SMBRuntimeException("Packet signature for packet " + packet.getHeader().getMessage() + " with message id << " + packet.getHeader().getMessageId() + " >> was not correct");
+                        throw new TransportException("Packet signature for packet " + packet.getHeader().getMessage() + " with message id << " + packet.getHeader().getMessageId() + " >> was not correct");
                     }
                 }
             } else if (config.isSigningRequired()) {
                 logger.warn("Illegal request, client requires message signing, but the received message is not signed.");
-                throw new SMBRuntimeException("Client requires signing, but packet " + packet.getHeader().getMessage() + " with message id << " + packet.getHeader().getMessageId() + " >> was not signed");
+                throw new TransportException("Client requires signing, but packet " + packet.getHeader().getMessage() + " with message id << " + packet.getHeader().getMessageId() + " >> was not signed");
             }
+        }
+
+        // [MS-SMB2].pdf 3.2.5.1.8 Processing the Response
+        connectionInfo.getOutstandingRequests().receivedResponseFor(messageId).getPromise().deliver(packet);
+
     }
-
-    // [MS-SMB2].pdf 3.2.5.1.8 Processing the Response
-        connectionInfo.getOutstandingRequests().
-
-    receivedResponseFor(messageId).
-
-    getPromise().
-
-    deliver(packet);
-
-}
 
     @Override
     public void handleError(Throwable t) {

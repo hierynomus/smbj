@@ -17,6 +17,7 @@ package com.hierynomus.smbj.session;
 
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2Header;
+import com.hierynomus.mssmb2.SMB2MessageFlag;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
@@ -74,15 +75,10 @@ public class PacketSignatory {
             SMBBuffer buffer = packet.getBuffer();
             mac.update(buffer.array(), 0, SMB2Header.SIGNATURE_OFFSET); // TODO this won't work in compounding
             mac.update(EMPTY_SIGNATURE);
-            mac.update(buffer.array(), SMB2Header.STRUCTURE_SIZE, buffer.available() - SMB2Header.STRUCTURE_SIZE);
+            mac.update(buffer.array(), SMB2Header.STRUCTURE_SIZE, buffer.available());
             byte[] signature = mac.doFinal();
             byte[] receivedSignature = Arrays.copyOfRange(buffer.array(), SMB2Header.SIGNATURE_OFFSET, SMB2Header.STRUCTURE_SIZE);
-            for (int i = 0; i < SMB2Header.SIGNATURE_SIZE; i++) {
-                if (signature[i] != receivedSignature[i]) {
-                    return false;
-                }
-            }
-            return true;
+            return Arrays.equals(signature, receivedSignature);
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new IllegalStateException(e);
         }
@@ -111,6 +107,7 @@ public class PacketSignatory {
         @Override
         public void write(SMBBuffer buffer) {
             try {
+                wrappedPacket.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_SIGNED);
                 int packetStartPos = buffer.wpos();
                 SigningBuffer signingBuffer = new SigningBuffer(buffer, secretKey);
                 // Write the real packet to the buffer
@@ -123,8 +120,6 @@ public class PacketSignatory {
                 // TODO other exception
                 throw new IllegalStateException(e);
             }
-
-
         }
 
         private class SigningBuffer extends SMBBuffer {
