@@ -32,7 +32,7 @@ public class DefaultConfig extends ConfigImpl {
         random = new SecureRandom();
         dialects = EnumSet.of(SMB2Dialect.SMB_2_1, SMB2Dialect.SMB_2_0_2);
         clientGuid = UUID.randomUUID();
-        signingRequired = false; //TODO change to true when we are more confident
+        signingRequired = false;
         registerDefaultAuthenticators();
     }
 
@@ -41,5 +41,9 @@ public class DefaultConfig extends ConfigImpl {
         // order is important.  The authenticators listed first will be selected
         authenticators.add(new SpnegoAuthenticator.Factory());
         authenticators.add(new NtlmAuthenticator.Factory());
+    }
+
+    public void setRequireSigning(boolean signingRequired) {
+        this.signingRequired = signingRequired;
     }
 }

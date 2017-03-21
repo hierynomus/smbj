@@ -30,15 +30,13 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
+import static com.hierynomus.mssmb2.SMB2Header.EMPTY_SIGNATURE;
+import static com.hierynomus.mssmb2.SMB2Header.SIGNATURE_SIZE;
+
 public class PacketSignatory {
     private static final Logger logger = LoggerFactory.getLogger(PacketSignatory.class);
 
     public static final String HMAC_SHA256_ALGORITHM = "HmacSHA256";
-
-    private static final byte[] EMPTY_SIGNATURE = new byte[SMB2Header.SIGNATURE_SIZE];
-    static {
-        Arrays.fill(EMPTY_SIGNATURE, (byte) 0);
-    }
 
     private SMB2Dialect dialect;
     private SecretKeySpec secretKey;
@@ -71,14 +69,20 @@ public class PacketSignatory {
     // TODO make session a packet handler which wraps the incoming packets
     public boolean verify(SMB2Packet packet) {
         try {
-            Mac mac = getMac(secretKey);
             SMBBuffer buffer = packet.getBuffer();
-            mac.update(buffer.array(), 0, SMB2Header.SIGNATURE_OFFSET); // TODO this won't work in compounding
+            Mac mac = getMac(secretKey);
+            mac.update(buffer.array(), packet.getMessageStartPos(), SMB2Header.SIGNATURE_OFFSET);
             mac.update(EMPTY_SIGNATURE);
-            mac.update(buffer.array(), SMB2Header.STRUCTURE_SIZE, buffer.available());
+            mac.update(buffer.array(), SMB2Header.STRUCTURE_SIZE, packet.getMessageEndPos() - SMB2Header.STRUCTURE_SIZE);
             byte[] signature = mac.doFinal();
             byte[] receivedSignature = Arrays.copyOfRange(buffer.array(), SMB2Header.SIGNATURE_OFFSET, SMB2Header.STRUCTURE_SIZE);
-            return Arrays.equals(signature, receivedSignature);
+            for (int i = 0; i < SIGNATURE_SIZE; i++) {
+                if (signature[i] != receivedSignature[i]) {
+                    return false;
+                }
+            }
+
+            return true;
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new IllegalStateException(e);
         }
