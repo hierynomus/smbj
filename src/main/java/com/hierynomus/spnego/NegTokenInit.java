@@ -129,8 +129,14 @@ public class NegTokenInit extends SpnegoToken {
             case 0:
                 readMechTypeList(asn1TaggedObject.getObject());
                 break;
+            case 1:
+                // Ignore reqFlags for now...
+                break;
             case 2:
                 readMechToken(asn1TaggedObject.getObject());
+                break;
+            case 3:
+                // Ignore mechListMIC for now...
                 break;
             default:
                 throw new SpnegoException("Unknown Object Tag " + asn1TaggedObject.getTagNo() + " encountered.");
