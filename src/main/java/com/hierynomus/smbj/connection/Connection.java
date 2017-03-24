@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.connection;
 
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.mssmb2.SMB2GlobalCapability;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2MessageFlag;
 import com.hierynomus.mssmb2.SMB2Packet;
@@ -201,15 +202,20 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
     private int calculateGrantedCredits(final SMB2Packet packet, final int availableCredits) {
         final int grantCredits;
-        int maxPayloadSize = packet.getMaxPayloadSize();
-        int creditsNeeded = creditsNeeded(maxPayloadSize);
-        // Scale the credits granted to the message dynamically.
-        if (creditsNeeded < availableCredits) {
-            grantCredits = creditsNeeded;
-        } else if (creditsNeeded > 1 && availableCredits > 1) { // creditsNeeded >= availableCredits
-            grantCredits = availableCredits - 1; // Keep 1 credit left for a simple request
-        } else {
+        if (!connectionInfo.supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU)) {
+            logger.trace("Connection to {} does not support multi-credit requests.", getRemoteHostname());
             grantCredits = 1;
+        } else {
+            int maxPayloadSize = packet.getMaxPayloadSize();
+            int creditsNeeded = creditsNeeded(maxPayloadSize);
+            // Scale the credits granted to the message dynamically.
+            if (creditsNeeded < availableCredits) {
+                grantCredits = creditsNeeded;
+            } else if (creditsNeeded > 1 && availableCredits > 1) { // creditsNeeded >= availableCredits
+                grantCredits = availableCredits - 1; // Keep 1 credit left for a simple request
+            } else {
+                grantCredits = 1;
+            }
         }
         packet.setCreditsAssigned(grantCredits);
         return grantCredits;
