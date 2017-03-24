@@ -33,4 +33,9 @@ public class GSSAuthenticationContext extends AuthenticationContext {
     public GSSCredential getCreds() {
         return creds;
     }
+
+    @Override
+    public String toString() {
+        return "GSSAuthenticationContext[" + subject + ']';
+    }
 }

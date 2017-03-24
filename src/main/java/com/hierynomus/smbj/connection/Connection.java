@@ -47,6 +47,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
@@ -115,8 +116,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
      */
     public Session authenticate(AuthenticationContext authContext) {
         try {
-            NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
-            Authenticator authenticator = getAuthenticator(negTokenInit.getSupportedMechTypes(), authContext);
+            Authenticator authenticator = getAuthenticator(authContext);
             Session session = new Session(0, this, bus, connectionInfo.isServerRequiresSigning());
             SMB2SessionSetup receive = authenticationRound(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
             long sessionId = receive.getHeader().getSessionId();
@@ -155,16 +155,24 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         return sendAndReceive(req);
     }
 
-    private Authenticator getAuthenticator(List<ASN1ObjectIdentifier> mechTypes, AuthenticationContext context) {
-        for (Factory.Named<Authenticator> factory : config.getSupportedAuthenticators()) {
-            if (mechTypes.contains(new ASN1ObjectIdentifier(factory.getName()))) {
+    private Authenticator getAuthenticator(AuthenticationContext context) throws IOException {
+        List<Factory.Named<Authenticator>> supportedAuthenticators = new ArrayList<>(config.getSupportedAuthenticators());
+        List<ASN1ObjectIdentifier> mechTypes = new ArrayList<>();
+        if (connectionInfo.getGssNegotiateToken() != null && connectionInfo.getGssNegotiateToken().length > 0) {
+            NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
+            mechTypes = negTokenInit.getSupportedMechTypes();
+        }
+
+        for (Factory.Named<Authenticator> factory : new ArrayList<>(supportedAuthenticators)) {
+            if (mechTypes.isEmpty() || mechTypes.contains(new ASN1ObjectIdentifier(factory.getName()))) {
                 Authenticator authenticator = factory.create();
                 if (authenticator.supports(context)) {
                     return authenticator;
                 }
             }
         }
-        throw new SMBRuntimeException("No authenticator is configured for the supported mechtypes: " + mechTypes);
+
+        throw new SMBRuntimeException("Could not find a configured authenticator for mechtypes: " + mechTypes + " and authentication context: " + context);
     }
 
     /**
@@ -202,20 +210,17 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
     private int calculateGrantedCredits(final SMB2Packet packet, final int availableCredits) {
         final int grantCredits;
-        if (!connectionInfo.supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU)) {
+        int maxPayloadSize = packet.getMaxPayloadSize();
+        int creditsNeeded = creditsNeeded(maxPayloadSize);
+        if (creditsNeeded > 1 && !connectionInfo.supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU)) {
             logger.trace("Connection to {} does not support multi-credit requests.", getRemoteHostname());
             grantCredits = 1;
+        } else if (creditsNeeded < availableCredits) { // Scale the credits dynamically
+            grantCredits = creditsNeeded;
+        } else if (creditsNeeded > 1 && availableCredits > 1) { // creditsNeeded >= availableCredits
+            grantCredits = availableCredits - 1; // Keep 1 credit left for a simple request
         } else {
-            int maxPayloadSize = packet.getMaxPayloadSize();
-            int creditsNeeded = creditsNeeded(maxPayloadSize);
-            // Scale the credits granted to the message dynamically.
-            if (creditsNeeded < availableCredits) {
-                grantCredits = creditsNeeded;
-            } else if (creditsNeeded > 1 && availableCredits > 1) { // creditsNeeded >= availableCredits
-                grantCredits = availableCredits - 1; // Keep 1 credit left for a simple request
-            } else {
-                grantCredits = 1;
-            }
+            grantCredits = 1;
         }
         packet.setCreditsAssigned(grantCredits);
         return grantCredits;

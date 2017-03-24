@@ -69,13 +69,6 @@ public class SpnegoAuthenticator implements Authenticator {
         try {
             logger.info("Authenticating {} on {} using SPNEGO", context.getUsername(), session.getConnection().getRemoteHostname());
             if (gssContext == null) {
-                // GSS context is not established yet because this is the first pass at authentication,
-                // so create the GSS context and attach it to our AuthenticationContext
-                if (gssToken == null) {
-                    logger.error("GSS token is null, but should have been provided by the SMB negotiation response");
-                    throw new TransportException("No GSS Token Received from SMB Negotiation response to initialize authentication with");
-                }
-
                 GSSManager gssManager = GSSManager.getInstance();
                 Oid spnegoOid = new Oid("1.3.6.1.5.5.2"); //SPNEGO
 
@@ -86,11 +79,20 @@ public class SpnegoAuthenticator implements Authenticator {
                 gssContext.requestMutualAuth(false);
                 // TODO fill in all the other options too
             }
+            // GSS context is not established yet because this is the first pass at authentication,
+            // so create the GSS context and attach it to our AuthenticationContext
+            byte[] newToken;
+            if (gssToken == null) {
+                logger.info("GSS token is null, client-initiated authentication");
+                newToken = gssContext.initSecContext(null, 0, 0);
+            } else {
+                newToken = gssContext.initSecContext(gssToken, 0, gssToken.length);
+            }
 
-            byte[] newToken = gssContext.initSecContext(gssToken, 0, gssToken.length);
             if (newToken != null) {
                 logger.trace("Received token: {}", ByteArrayUtils.printHex(newToken));
             }
+
             if (gssContext.isEstablished()) {
                 ExtendedGSSContext e = (ExtendedGSSContext) gssContext;
                 Key key = (Key) e.inquireSecContext(InquireType.KRB5_GET_SESSION_KEY);
