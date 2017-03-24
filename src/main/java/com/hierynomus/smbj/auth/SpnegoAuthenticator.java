@@ -79,15 +79,8 @@ public class SpnegoAuthenticator implements Authenticator {
                 gssContext.requestMutualAuth(false);
                 // TODO fill in all the other options too
             }
-            // GSS context is not established yet because this is the first pass at authentication,
-            // so create the GSS context and attach it to our AuthenticationContext
-            byte[] newToken;
-            if (gssToken == null) {
-                logger.info("GSS token is null, client-initiated authentication");
-                newToken = gssContext.initSecContext(null, 0, 0);
-            } else {
-                newToken = gssContext.initSecContext(gssToken, 0, gssToken.length);
-            }
+
+            byte[] newToken = gssContext.initSecContext(gssToken, 0, gssToken.length);
 
             if (newToken != null) {
                 logger.trace("Received token: {}", ByteArrayUtils.printHex(newToken));

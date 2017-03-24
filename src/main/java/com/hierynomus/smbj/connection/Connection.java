@@ -158,7 +158,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     private Authenticator getAuthenticator(AuthenticationContext context) throws IOException {
         List<Factory.Named<Authenticator>> supportedAuthenticators = new ArrayList<>(config.getSupportedAuthenticators());
         List<ASN1ObjectIdentifier> mechTypes = new ArrayList<>();
-        if (connectionInfo.getGssNegotiateToken() != null && connectionInfo.getGssNegotiateToken().length > 0) {
+        if (connectionInfo.getGssNegotiateToken().length > 0) {
             NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
             mechTypes = negTokenInit.getSupportedMechTypes();
         }
