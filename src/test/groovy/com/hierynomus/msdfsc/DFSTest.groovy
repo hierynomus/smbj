@@ -19,6 +19,7 @@ import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2ShareCapabilities
 import com.hierynomus.mssmb2.messages.*
+import com.hierynomus.security.jce.JceSecurityProvider
 import com.hierynomus.smbj.DefaultConfig
 import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.auth.AuthenticationContext
@@ -87,7 +88,7 @@ class DFSTest extends Specification {
 
     def auth = new AuthenticationContext("username", "password".toCharArray(), "domain.com")
     def resolver = new DFSPathResolver()
-    def session = new Session(123, connection, auth, bus, false, resolver)
+    def session = new Session(123, connection, auth, bus, false, new JceSecurityProvider(), resolver)
     def path = new SmbPath("10.0.0.10", "Sales")
 
     when:
@@ -210,7 +211,7 @@ class DFSTest extends Specification {
 
     def auth = new AuthenticationContext("username", "password".toCharArray(), "domain.com")
     def resolver = new DFSPathResolver()
-    session = new Session(123, connection, auth, bus, false, resolver)
+    session = new Session(123, connection, auth, bus, false, new JceSecurityProvider(), resolver)
     def path = new SmbPath("domain.com", "Sales")
 
     when:
@@ -279,7 +280,7 @@ class DFSTest extends Specification {
     }
     def resolver = new DFSPathResolver();
     AuthenticationContext auth = new AuthenticationContext("username", "password".toCharArray(), "domain.com");
-    session = new Session(0, connection, auth, bus, false, resolver);//TODO fill me in
+    session = new Session(0, connection, auth, bus, false, new JceSecurityProvider(), resolver);//TODO fill me in
     def path = SmbPath.parse("\\10.0.0.10\\Sales")
 
     when:
@@ -379,7 +380,7 @@ class DFSTest extends Specification {
 
     def auth = new AuthenticationContext("username", "password".toCharArray(), "domain.com")
     def resolver = new DFSPathResolver()
-    session = new Session(123, connection, auth, bus, false, resolver)
+    session = new Session(123, connection, auth, bus, false, new JceSecurityProvider(), resolver)
     def path = new SmbPath("SERVERHOST", "Sales", "NorthAmerica")
 
     when:
@@ -482,7 +483,7 @@ class DFSTest extends Specification {
 
     def auth = new AuthenticationContext("username", "password".toCharArray(), "domain.com")
     def resolver = new DFSPathResolver()
-    session = new Session(123, connection, auth, bus, false, resolver)
+    session = new Session(123, connection, auth, bus, false, new JceSecurityProvider(), resolver)
     def path = new SmbPath("SERVERHOST", "Sales", "NorthAmerica")
 
     when:

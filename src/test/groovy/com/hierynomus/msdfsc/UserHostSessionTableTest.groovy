@@ -20,7 +20,8 @@ import com.hierynomus.msdfsc.DFSException;
 import com.hierynomus.msdfsc.UserHostSessionTable
 import com.hierynomus.msdfsc.DFS.ReferralResult
 import com.hierynomus.mssmb2.SMB2Dialect;
-import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
+import com.hierynomus.protocol.commons.buffer.Buffer.BufferException
+import com.hierynomus.security.jce.JceSecurityProvider;
 import com.hierynomus.smbj.DefaultConfig
 import com.hierynomus.smbj.common.SmbPath
 import com.hierynomus.smbj.connection.NegotiatedProtocol;
@@ -51,7 +52,7 @@ class UserHostSessionTableTest extends Specification {
       getNegotiatedProtocol() >> new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 8*1024*1024, 8*1024*1024, 8*1024*1024, true)
     }
     def auth = new AuthenticationContext("username", "password".toCharArray(), "domain")
-    def session = new Session(123, connection, auth, bus, false, new LocalPathResolver())
+    def session = new Session(123, connection, auth, bus, false, new JceSecurityProvider(), new LocalPathResolver())
     def uhs = new UserHostSessionTable()
 
 

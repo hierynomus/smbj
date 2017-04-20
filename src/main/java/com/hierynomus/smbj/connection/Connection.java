@@ -135,7 +135,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         try {
             Authenticator authenticator = getAuthenticator(authContext);
             authenticator.init(config.getSecurityProvider(), config.getRandomProvider());
-            Session session = new Session(0, this, bus, connectionInfo.isServerRequiresSigning(), config.getSecurityProvider(), new LocalPathResolver());
+            Session session = new Session(0, this, authContext, bus, connectionInfo.isServerRequiresSigning(), config.getSecurityProvider(), new LocalPathResolver());
             SMB2SessionSetup receive = authenticationRound(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
             long sessionId = receive.getHeader().getSessionId();
             session.setSessionId(sessionId);
