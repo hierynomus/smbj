@@ -13,19 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.auth;
+package com.hierynomus.security;
 
-import java.io.IOException;
-import java.util.Random;
+/**
+ * Abstraction layer over different Security Providers.
+ *
+ * Using this you can easily choose to either use:
+ *
+ * - Standard JCE
+ * - BouncyCastle over JCE
+ * - BouncyCastle direct
+ *
+ * The advantage of using BouncyCastle directly is that you do not need to have the JCE
+ * Unlimited Strength Cryptography policy files loaded in your JRE.
+ */
+public interface SecurityProvider {
+    MessageDigest getDigest(String name) throws SecurityException;
 
-import com.hierynomus.security.SecurityProvider;
-import com.hierynomus.smbj.session.Session;
+    Mac getMac(String name) throws SecurityException;
 
-public interface Authenticator {
-
-    void init(SecurityProvider securityProvider, Random random);
-
-    boolean supports(AuthenticationContext context);
-    
-    byte[] authenticate(AuthenticationContext context, byte[] gssToken, Session session) throws IOException;
+    Cipher getCipher(String name) throws SecurityException;
 }

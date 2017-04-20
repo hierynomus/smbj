@@ -20,14 +20,12 @@ import com.hierynomus.mssmb2.SMB2Header;
 import com.hierynomus.mssmb2.SMB2MessageFlag;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.security.SecurityException;
+import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smbj.common.SMBBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
 import static com.hierynomus.mssmb2.SMB2Header.EMPTY_SIGNATURE;
@@ -36,20 +34,24 @@ import static com.hierynomus.mssmb2.SMB2Header.SIGNATURE_SIZE;
 public class PacketSignatory {
     private static final Logger logger = LoggerFactory.getLogger(PacketSignatory.class);
 
-    public static final String HMAC_SHA256_ALGORITHM = "HmacSHA256";
+    private static final String HMAC_SHA256_ALGORITHM = "HmacSHA256";
 
     private SMB2Dialect dialect;
-    private SecretKeySpec secretKey;
+    private SecurityProvider securityProvider;
+    private String algorithm;
+    private byte[] secretKey;
 
-    public PacketSignatory(SMB2Dialect dialect) {
+    public PacketSignatory(SMB2Dialect dialect, SecurityProvider securityProvider) {
         this.dialect = dialect;
+        this.securityProvider = securityProvider;
     }
 
     void init(byte[] secretKey) {
         if (dialect.isSmb3x()) {
             throw new IllegalStateException("Cannot set a signing key (yet) for SMB3.x");
         } else {
-            this.secretKey = new SecretKeySpec(secretKey, HMAC_SHA256_ALGORITHM);
+            algorithm = HMAC_SHA256_ALGORITHM;
+            this.secretKey = secretKey;
         }
     }
 
@@ -59,7 +61,7 @@ public class PacketSignatory {
 
     SMB2Packet sign(SMB2Packet packet) {
         if (secretKey != null) {
-            return new SignedPacketWrapper(packet, secretKey);
+            return new SignedPacketWrapper(packet);
         } else {
             logger.debug("Not wrapping {} as signed, as no key is set.", packet.getHeader().getMessage());
             return packet;
@@ -70,7 +72,7 @@ public class PacketSignatory {
     public boolean verify(SMB2Packet packet) {
         try {
             SMBBuffer buffer = packet.getBuffer();
-            Mac mac = getMac(secretKey);
+            com.hierynomus.security.Mac mac = getMac(secretKey, algorithm, securityProvider);
             mac.update(buffer.array(), packet.getMessageStartPos(), SMB2Header.SIGNATURE_OFFSET);
             mac.update(EMPTY_SIGNATURE);
             mac.update(buffer.array(), SMB2Header.STRUCTURE_SIZE, packet.getMessageEndPos() - SMB2Header.STRUCTURE_SIZE);
@@ -83,24 +85,22 @@ public class PacketSignatory {
             }
 
             return true;
-        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+        } catch (SecurityException e) {
             throw new IllegalStateException(e);
         }
     }
 
-    private static Mac getMac(SecretKeySpec signingKeySpec) throws NoSuchAlgorithmException, InvalidKeyException {
-        Mac mac = Mac.getInstance(signingKeySpec.getAlgorithm());
-        mac.init(signingKeySpec);
+    private static com.hierynomus.security.Mac getMac(byte[] secretKey, String algorithm, SecurityProvider securityProvider) throws SecurityException {
+        com.hierynomus.security.Mac mac = securityProvider.getMac(algorithm);
+        mac.init(secretKey);
         return mac;
     }
 
-    public static class SignedPacketWrapper extends SMB2Packet {
+    public class SignedPacketWrapper extends SMB2Packet {
         private final SMB2Packet wrappedPacket;
-        private final SecretKeySpec secretKey;
 
-        SignedPacketWrapper(SMB2Packet packet, SecretKeySpec secretKey) {
+        SignedPacketWrapper(SMB2Packet packet) {
             this.wrappedPacket = packet;
-            this.secretKey = secretKey;
         }
 
         @Override
@@ -113,14 +113,14 @@ public class PacketSignatory {
             try {
                 wrappedPacket.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_SIGNED);
                 int packetStartPos = buffer.wpos();
-                SigningBuffer signingBuffer = new SigningBuffer(buffer, secretKey);
+                SigningBuffer signingBuffer = new SigningBuffer(buffer);
                 // Write the real packet to the buffer
                 wrappedPacket.write(signingBuffer);
                 // The MAC in the signingbuffer now contains the right signature.
                 byte[] signature = signingBuffer.mac.doFinal();
                 // Copy the signature into the buffer's data at the right point.
                 System.arraycopy(signature, 0, buffer.array(), packetStartPos + SMB2Header.SIGNATURE_OFFSET, SMB2Header.SIGNATURE_SIZE);
-            } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            } catch (SecurityException e) {
                 // TODO other exception
                 throw new IllegalStateException(e);
             }
@@ -128,11 +128,11 @@ public class PacketSignatory {
 
         private class SigningBuffer extends SMBBuffer {
             private SMBBuffer wrappedBuffer;
-            private final Mac mac;
+            private final com.hierynomus.security.Mac mac;
 
-            public SigningBuffer(SMBBuffer wrappedBuffer, SecretKeySpec signingKeySpec) throws NoSuchAlgorithmException, InvalidKeyException {
+            SigningBuffer(SMBBuffer wrappedBuffer) throws SecurityException {
                 this.wrappedBuffer = wrappedBuffer;
-                mac = getMac(signingKeySpec);
+                mac = getMac(PacketSignatory.this.secretKey, PacketSignatory.this.algorithm, PacketSignatory.this.securityProvider);
             }
 
             @Override

@@ -13,19 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.auth;
+package com.hierynomus.security;
 
-import java.io.IOException;
-import java.util.Random;
+public interface Mac {
+    void init(byte[] key) throws SecurityException;
 
-import com.hierynomus.security.SecurityProvider;
-import com.hierynomus.smbj.session.Session;
+    void update(byte b);
 
-public interface Authenticator {
+    void update(byte[] array);
 
-    void init(SecurityProvider securityProvider, Random random);
+    void update(byte[] array, int offset, int length);
 
-    boolean supports(AuthenticationContext context);
-    
-    byte[] authenticate(AuthenticationContext context, byte[] gssToken, Session session) throws IOException;
+    byte[] doFinal();
+
+    void reset();
 }

@@ -21,11 +21,14 @@ import java.util.Random;
 import java.util.UUID;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.protocol.commons.Factory;
+import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smbj.auth.Authenticator;
 
 public interface Config {
 
     Random getRandomProvider();
+
+    SecurityProvider getSecurityProvider();
 
     EnumSet<SMB2Dialect> getSupportedDialects();
 

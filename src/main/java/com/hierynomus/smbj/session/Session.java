@@ -21,6 +21,7 @@ import com.hierynomus.mssmb2.messages.SMB2Logoff;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
+import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
@@ -49,13 +50,15 @@ public class Session implements AutoCloseable {
 
     private Connection connection;
     private SMBEventBus bus;
+    private SecurityProvider securityProvider;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
 
-    public Session(long sessionId, Connection connection, SMBEventBus bus, boolean signingRequired) {
+    public Session(long sessionId, Connection connection, SMBEventBus bus, boolean signingRequired, SecurityProvider securityProvider) {
         this.sessionId = sessionId;
         this.connection = connection;
         this.bus = bus;
-        this.packetSignatory = new PacketSignatory(connection.getNegotiatedProtocol().getDialect());
+        this.securityProvider = securityProvider;
+        this.packetSignatory = new PacketSignatory(connection.getNegotiatedProtocol().getDialect(), securityProvider);
         this.serverSigningRequired = signingRequired;
         if (bus != null) {
             bus.subscribe(this);

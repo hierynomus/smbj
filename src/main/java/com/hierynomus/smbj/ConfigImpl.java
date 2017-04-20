@@ -21,6 +21,7 @@ import java.util.Random;
 import java.util.UUID;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.protocol.commons.Factory;
+import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smbj.auth.Authenticator;
 
 public class ConfigImpl implements Config {
@@ -30,10 +31,16 @@ public class ConfigImpl implements Config {
     protected Random random;
     protected UUID clientGuid;
     protected boolean signingRequired;
+    protected SecurityProvider securityProvider;
+
 
     @Override
     public Random getRandomProvider() {
         return random;
+    }
+
+    public SecurityProvider getSecurityProvider() {
+        return securityProvider;
     }
 
     @Override

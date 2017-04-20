@@ -20,7 +20,10 @@ import java.security.Key;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
+import java.util.Random;
 import javax.security.auth.Subject;
+
+import com.hierynomus.security.SecurityProvider;
 import org.ietf.jgss.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,6 +124,11 @@ public class SpnegoAuthenticator implements Authenticator {
             newKey = key;
         }
         return newKey;
+    }
+
+    @Override
+    public void init(SecurityProvider securityProvider, Random random) {
+        // No-op, SPNEGO does not need these.
     }
 
     @Override
