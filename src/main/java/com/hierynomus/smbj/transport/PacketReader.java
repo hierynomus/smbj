@@ -35,6 +35,7 @@ public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
         this.in = in;
         this.handler = handler;
         this.thread = new Thread(this, "Packet Reader for " + host);
+        this.thread.setDaemon(true);
     }
 
     @Override

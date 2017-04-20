@@ -15,17 +15,21 @@
  */
 package com.hierynomus.ntlm.functions;
 
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.security.*;
-import java.util.Arrays;
-import javax.crypto.*;
-import javax.crypto.spec.SecretKeySpec;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.ntlm.NtlmException;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
+import com.hierynomus.security.Cipher;
+import com.hierynomus.security.SecurityException;
+import com.hierynomus.security.SecurityProvider;
+
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Random;
+
+import static com.hierynomus.security.Cipher.CryptMode.ENCRYPT;
 
 /**
  * NTLM Helper functions
@@ -36,8 +40,13 @@ public class NtlmFunctions {
 
     public static final Charset UNICODE = StandardCharsets.UTF_16LE;
 
-    private static SecureRandom secureRandom = new SecureRandom();
+    private final Random random;
+    private final SecurityProvider securityProvider;
 
+    public NtlmFunctions(Random random, SecurityProvider securityProvider) {
+        this.random = random;
+        this.securityProvider = securityProvider;
+    }
 
     /**
      * [MS-NLMP].pdf 3.3.2 NTLM v2 authentication (NTOWF v2).
@@ -47,7 +56,7 @@ public class NtlmFunctions {
      * EndDefine
      * </code>
      */
-    public static byte[] NTOWFv2(String password, String username, String userDomain) {
+    public byte[] NTOWFv2(String password, String username, String userDomain) {
         byte[] keyBytes = NTOWFv1(password, username, userDomain);
         byte[] usernameBytes = unicode(username.toUpperCase());
         byte[] userDomainBytes = unicode(userDomain);
@@ -62,7 +71,7 @@ public class NtlmFunctions {
      * EndDefine
      * </code>
      */
-    public static byte[] LMOWFv2(String password, String username, String userDomain) {
+    public byte[] LMOWFv2(String password, String username, String userDomain) {
         return NTOWFv2(password, username, userDomain);
     }
 
@@ -74,13 +83,13 @@ public class NtlmFunctions {
      * EndDefine
      * </code>
      */
-    public static byte[] NTOWFv1(String password, String username, String userDomain) {
+    public byte[] NTOWFv1(String password, String username, String userDomain) {
         byte[] bytes = unicode(password);
         try {
-            MessageDigest digest = MessageDigest.getInstance("MD4", "BC");
-            digest.update(bytes);
-            return digest.digest();
-        } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
+            com.hierynomus.security.MessageDigest md4 = securityProvider.getDigest("MD4");
+            md4.update(bytes);
+            return md4.digest();
+        } catch (SecurityException e) {
             throw new NtlmException(e);
         }
     }
@@ -102,15 +111,15 @@ public class NtlmFunctions {
      * @param message The bytes of message M
      * @return The 16-byte HMAC-keyed MD5 message digest of the byte string M using the key K
      */
-    public static byte[] hmac_md5(byte[] key, byte[]... message) {
+    public byte[] hmac_md5(byte[] key, byte[]... message) {
         try {
-            Mac hmacMD5 = Mac.getInstance("HmacMD5", "BC");
-            hmacMD5.init(new SecretKeySpec(key, "HmacMD5"));
-            for (int i = 0; i < message.length; i++) {
-                hmacMD5.update(message[i]);
+            com.hierynomus.security.Mac hmacMD5 = securityProvider.getMac("HmacMD5");
+            hmacMD5.init(key);
+            for (byte[] aMessage : message) {
+                hmacMD5.update(aMessage);
             }
             return hmacMD5.doFinal();
-        } catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchProviderException e) {
+        } catch (SecurityException e) {
             throw new NtlmException(e);
         }
     }
@@ -131,7 +140,7 @@ public class NtlmFunctions {
      * @param userDomain
      * @return
      */
-    public static byte[] LMOWFv1(String password, String username, String userDomain) {
+    public byte[] LMOWFv1(String password, String username, String userDomain) {
         try {
             byte[] bytes = password.toUpperCase().getBytes("US-ASCII");
             if (bytes.length != 14) {
@@ -140,14 +149,16 @@ public class NtlmFunctions {
             Cipher leftCipher = getDESCipher(Arrays.copyOfRange(bytes, 0, 7));
             Cipher rightCipher = getDESCipher(Arrays.copyOfRange(bytes, 7, 14));
 
-            byte[] firstBytes = leftCipher.doFinal(LMOWFv1_SECRET);
-            byte[] lastBytes = rightCipher.doFinal(LMOWFv1_SECRET);
-
             byte[] lmHash = new byte[16];
-            System.arraycopy(firstBytes, 0, lmHash, 0, firstBytes.length);
-            System.arraycopy(lastBytes, 0, lmHash, firstBytes.length, lastBytes.length);
+            int outOff = leftCipher.update(LMOWFv1_SECRET, 0, LMOWFv1_SECRET.length, lmHash, 0);
+            outOff += leftCipher.doFinal(lmHash, outOff);
+            outOff += rightCipher.update(LMOWFv1_SECRET, 0, LMOWFv1_SECRET.length, lmHash, outOff);
+            outOff += rightCipher.doFinal(lmHash, outOff);
+            if (outOff != 16) {
+                throw new NtlmException("Incorrect lmHash calculated");
+            }
             return lmHash;
-        } catch (UnsupportedEncodingException | BadPaddingException | IllegalBlockSizeException e) {
+        } catch (UnsupportedEncodingException | SecurityException e) {
             throw new NtlmException(e);
         }
     }
@@ -161,10 +172,10 @@ public class NtlmFunctions {
      * @param targetInformation
      * @return
      */
-    public static byte[] getNTLMv2ClientChallenge(byte[] targetInformation) {
+    public byte[] getNTLMv2ClientChallenge(byte[] targetInformation) {
 
         byte[] challengeFromClient = new byte[8];
-        getRandom().nextBytes(challengeFromClient);
+        random.nextBytes(challengeFromClient);
 
         long nowAsFileTime = MsDataTypes.nowAsFileTime();
         byte[] l_targetInfo = (targetInformation == null) ? new byte[0] : targetInformation;
@@ -175,7 +186,7 @@ public class NtlmFunctions {
         ccBuf.putUInt32(0); // Reserved2 (4)
         ccBuf.putLong(nowAsFileTime); // Timestamp (8)
         ccBuf.putRawBytes(challengeFromClient); // ChallengeFromClient (8)
-        ccBuf.putUInt32(0); // Reserver3 (4)
+        ccBuf.putUInt32(0); // Reserved3 (4)
         ccBuf.putRawBytes(l_targetInfo);
         ccBuf.putUInt32(0); // Last AV Pair indicator
 
@@ -193,7 +204,7 @@ public class NtlmFunctions {
      * @param ntlmv2ClientChallenge (temp from above)
      * @return
      */
-    public static byte[] getNTLMv2Response(byte[] responseKeyNT, byte[] serverChallenge, byte[] ntlmv2ClientChallenge) {
+    public byte[] getNTLMv2Response(byte[] responseKeyNT, byte[] serverChallenge, byte[] ntlmv2ClientChallenge) {
 
         byte[] ntProofStr = hmac_md5(responseKeyNT, serverChallenge, ntlmv2ClientChallenge);
 
@@ -205,27 +216,17 @@ public class NtlmFunctions {
     }
 
 
-    public static byte[] encryptRc4(byte[] key, byte[] val) throws NtlmException {
+    public byte[] encryptRc4(byte[] key, byte[] val) throws NtlmException {
+        Cipher c = getRC4Cipher(key);
+        byte[] out = new byte[val.length];
         try {
-            Cipher c = getRC4Cipher(key);
-            byte[] enc = c.doFinal(val);
-            return enc;
-        } catch (BadPaddingException | IllegalBlockSizeException e) {
+            int bytes = c.update(val, 0, val.length, out, 0);
+            c.doFinal(out, bytes);
+        } catch (SecurityException e) {
             throw new NtlmException(e);
         }
+        return out;
     }
-
-
-    public static SecureRandom getRandom() {
-        return secureRandom;
-    }
-
-    public static void setRandom(SecureRandom sRandom) {
-        if (sRandom != null) {
-            secureRandom = sRandom;
-        }
-    }
-
 
     private static byte[] setupKey(byte[] key56) {
         byte[] key = new byte[8];
@@ -250,25 +251,23 @@ public class NtlmFunctions {
         return key;
     }
 
-    private static Cipher getDESCipher(byte[] key) {
+    private Cipher getDESCipher(byte[] key) {
         try {
-            Cipher bc = Cipher.getInstance("DES/ECB/NoPadding", "BC");
-            SecretKeySpec des = new SecretKeySpec(setupKey(key), "DES");
-            bc.init(Cipher.ENCRYPT_MODE, des);
-            return bc;
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | NoSuchProviderException | InvalidKeyException e) {
+            Cipher cipher = securityProvider.getCipher("DES/ECB/NoPadding");
+            cipher.init(ENCRYPT, setupKey(key));
+            return cipher;
+        } catch (SecurityException e) {
             throw new NtlmException(e);
         }
 
     }
 
-    private static Cipher getRC4Cipher(byte[] key) {
+    private Cipher getRC4Cipher(byte[] key) {
         try {
-            Cipher bc = Cipher.getInstance("RC4", "BC");
-            SecretKeySpec rc4 = new SecretKeySpec(key, "RC4");
-            bc.init(Cipher.ENCRYPT_MODE, rc4);
-            return bc;
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | NoSuchProviderException | InvalidKeyException e) {
+            Cipher cipher = securityProvider.getCipher("RC4");
+            cipher.init(ENCRYPT, key);
+            return cipher;
+        } catch (SecurityException e) {
             throw new NtlmException(e);
         }
 

@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.connection;
 
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.mssmb2.SMB2GlobalCapability;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2MessageFlag;
 import com.hierynomus.mssmb2.SMB2Packet;
@@ -48,6 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
@@ -131,9 +133,9 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
      */
     public Session authenticate(AuthenticationContext authContext) {
         try {
-            NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
-            Authenticator authenticator = getAuthenticator(negTokenInit.getSupportedMechTypes(), authContext);
-            Session session = new Session(0, this, authContext, bus, connectionInfo.isServerRequiresSigning(), new LocalPathResolver());
+            Authenticator authenticator = getAuthenticator(authContext);
+            authenticator.init(config.getSecurityProvider(), config.getRandomProvider());
+            Session session = new Session(0, this, bus, connectionInfo.isServerRequiresSigning(), config.getSecurityProvider(), new LocalPathResolver());
             SMB2SessionSetup receive = authenticationRound(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
             long sessionId = receive.getHeader().getSessionId();
             session.setSessionId(sessionId);
@@ -173,16 +175,24 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         return sendAndReceive(req);
     }
 
-    private Authenticator getAuthenticator(List<ASN1ObjectIdentifier> mechTypes, AuthenticationContext context) {
-        for (Factory.Named<Authenticator> factory : config.getSupportedAuthenticators()) {
-            if (mechTypes.contains(new ASN1ObjectIdentifier(factory.getName()))) {
+    private Authenticator getAuthenticator(AuthenticationContext context) throws IOException {
+        List<Factory.Named<Authenticator>> supportedAuthenticators = new ArrayList<>(config.getSupportedAuthenticators());
+        List<ASN1ObjectIdentifier> mechTypes = new ArrayList<>();
+        if (connectionInfo.getGssNegotiateToken().length > 0) {
+            NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
+            mechTypes = negTokenInit.getSupportedMechTypes();
+        }
+
+        for (Factory.Named<Authenticator> factory : new ArrayList<>(supportedAuthenticators)) {
+            if (mechTypes.isEmpty() || mechTypes.contains(new ASN1ObjectIdentifier(factory.getName()))) {
                 Authenticator authenticator = factory.create();
                 if (authenticator.supports(context)) {
                     return authenticator;
                 }
             }
         }
-        throw new SMBRuntimeException("No authenticator is configured for the supported mechtypes: " + mechTypes);
+
+        throw new SMBRuntimeException("Could not find a configured authenticator for mechtypes: " + mechTypes + " and authentication context: " + context);
     }
 
     /**
@@ -222,8 +232,10 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         final int grantCredits;
         int maxPayloadSize = packet.getMaxPayloadSize();
         int creditsNeeded = creditsNeeded(maxPayloadSize);
-        // Scale the credits granted to the message dynamically.
-        if (creditsNeeded < availableCredits) {
+        if (creditsNeeded > 1 && !connectionInfo.supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU)) {
+            logger.trace("Connection to {} does not support multi-credit requests.", getRemoteHostname());
+            grantCredits = 1;
+        } else if (creditsNeeded < availableCredits) { // Scale the credits dynamically
             grantCredits = creditsNeeded;
         } else if (creditsNeeded > 1 && availableCredits > 1) { // creditsNeeded >= availableCredits
             grantCredits = availableCredits - 1; // Keep 1 credit left for a simple request
@@ -309,25 +321,19 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
                 if (!session.getPacketSignatory().verify(packet)) {
                     logger.warn("Invalid packet signature for packet {} with message id << {} >>", packet.getHeader().getMessage(), packet.getHeader().getMessageId());
                     if (config.isSigningRequired()) {
-                        throw new SMBRuntimeException("Packet signature for packet " + packet.getHeader().getMessage() + " with message id << " + packet.getHeader().getMessageId() + " >> was not correct");
+                        throw new TransportException("Packet signature for packet " + packet.getHeader().getMessage() + " with message id << " + packet.getHeader().getMessageId() + " >> was not correct");
                     }
                 }
             } else if (config.isSigningRequired()) {
                 logger.warn("Illegal request, client requires message signing, but the received message is not signed.");
-                throw new SMBRuntimeException("Client requires signing, but packet " + packet.getHeader().getMessage() + " with message id << " + packet.getHeader().getMessageId() + " >> was not signed");
+                throw new TransportException("Client requires signing, but packet " + packet.getHeader().getMessage() + " with message id << " + packet.getHeader().getMessageId() + " >> was not signed");
             }
+        }
+
+        // [MS-SMB2].pdf 3.2.5.1.8 Processing the Response
+        connectionInfo.getOutstandingRequests().receivedResponseFor(messageId).getPromise().deliver(packet);
+
     }
-
-    // [MS-SMB2].pdf 3.2.5.1.8 Processing the Response
-        connectionInfo.getOutstandingRequests().
-
-    receivedResponseFor(messageId).
-
-    getPromise().
-
-    deliver(packet);
-
-}
 
     @Override
     public void handleError(Throwable t) {

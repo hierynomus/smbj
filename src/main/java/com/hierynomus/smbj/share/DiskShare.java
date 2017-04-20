@@ -360,7 +360,7 @@ public class DiskShare extends Share {
                 SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE, fileId,
                 FileInformationClass.FileDispositionInformation, null, dispoInfo);
 
-            Future<SMB2SetInfoResponse> setInfoFuture = connection.send(si_req);
+            Future<SMB2SetInfoResponse> setInfoFuture = session.send(si_req);
             SMB2SetInfoResponse setInfoResponse = Futures.get(setInfoFuture, TransportException.Wrapper);
 
             if (setInfoResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
@@ -369,7 +369,7 @@ public class DiskShare extends Share {
         } finally {
             SMB2Close closeReq = new SMB2Close(connection.getNegotiatedProtocol().getDialect(),
                 session.getSessionId(), treeConnect.getTreeId(), fileId);
-            Future<SMB2Close> closeFuture = connection.send(closeReq);
+            Future<SMB2Close> closeFuture = session.send(closeReq);
             SMB2Close closeResponse = Futures.get(closeFuture, TransportException.Wrapper);
 
             if (closeResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {

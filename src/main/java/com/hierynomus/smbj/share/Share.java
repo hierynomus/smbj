@@ -72,7 +72,7 @@ public class Share implements AutoCloseable {
         EnumSet<FileAttributes> fileAttributes, EnumSet<SMB2ShareAccess> shareAccess,
         SMB2CreateDisposition createDisposition, EnumSet<SMB2CreateOptions> createOptions)
         throws SMBApiException {
-        logger.info("open {},{}", path);
+        logger.info("open {},{}", path, fileAttributes);
 
         Session session = treeConnect.getSession();
         SMB2CreateRequest cr = openFileRequest(

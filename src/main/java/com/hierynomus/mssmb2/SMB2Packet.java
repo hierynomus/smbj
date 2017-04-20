@@ -23,7 +23,9 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
     public static final int SINGLE_CREDIT_PAYLOAD_SIZE = 64 * 1024;
     protected final SMB2Header header = new SMB2Header();
     protected int structureSize;
-    SMBBuffer buffer;
+    private SMBBuffer buffer;
+    private int messageStartPos;
+    private int messageEndPos;
 
     public SMB2Packet() {
     }
@@ -56,8 +58,30 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
         return structureSize;
     }
 
+    /**
+     * The buffer from which this packet is read if it was a received packet
+     * @return The buffer
+     */
     public SMBBuffer getBuffer() {
         return buffer;
+    }
+
+    /**
+     * The start position of this packet in the {@link #getBuffer()}. Normally this is 0, except
+     * when this packet was compounded.
+     * @return The start position of this received packet in the buffer
+     */
+    public int getMessageStartPos() {
+        return messageStartPos;
+    }
+
+    /**
+     * THe end position of this packet in the {@link #getBuffer()}. Normally this is the last written position,
+     * except when this packet was compounded.
+     * @return The end position of this received packet in the buffer
+     */
+    public int getMessageEndPos() {
+        return messageEndPos;
     }
 
     public void write(SMBBuffer buffer) {
@@ -76,8 +100,10 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
 
     public final SMB2Packet read(SMBBuffer buffer) throws Buffer.BufferException {
         this.buffer = buffer; // remember the buffer we read it from
+        this.messageStartPos = buffer.rpos();
         header.readFrom(buffer);
         readMessage(buffer);
+        this.messageEndPos = buffer.rpos();
         return this;
     }
 

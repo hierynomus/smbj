@@ -41,11 +41,11 @@ class SequenceWindow {
     private Semaphore available = new Semaphore(1);
     private static final long MAX_WAIT = 5000;
 
-    public long get() {
+    long get() {
         return get(1)[0];
     }
 
-    public long[] get(int credits) {
+    long[] get(int credits) {
         try {
             if (available.tryAcquire(credits, MAX_WAIT, TimeUnit.MILLISECONDS)) {
                 long lowest = lowestAvailable.getAndAdd(credits);

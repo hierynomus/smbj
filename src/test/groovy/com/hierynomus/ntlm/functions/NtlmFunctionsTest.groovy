@@ -15,21 +15,44 @@
  */
 package com.hierynomus.ntlm.functions
 
+import com.hierynomus.security.bc.BCSecurityProvider
+import com.hierynomus.security.jce.JceSecurityProvider
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import spock.lang.Shared
 import spock.lang.Specification
+import spock.lang.Unroll
 
+import java.security.SecureRandom
 import java.security.Security
 
 class NtlmFunctionsTest extends Specification {
 
-    def setup() {
-        if (!Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)) {
-            Security.addProvider(new BouncyCastleProvider())
-        }
-    }
+  static SecureRandom random
+  static def providers
 
-    def"should correctly determine LMOWFv1 LM hash"() {
-        expect:
-        NtlmFunctions.LMOWFv1("admin", null, null) == [0xf0, 0xd4, 0x12, 0xbd, 0x76, 0x4f, 0xfe, 0x81, 0xaa, 0xd3, 0xb4, 0x35, 0xb5, 0x14, 0x04, 0xee] as byte[]
-    }
+  def setupSpec() {
+    random = new SecureRandom()
+    providers = [new JceSecurityProvider(), new JceSecurityProvider(new BouncyCastleProvider()), new BCSecurityProvider()]
+  }
+
+  @Unroll
+  def "should correctly determine LMOWFv1 LM hash"() {
+    expect:
+    new NtlmFunctions(random, provider).LMOWFv1("admin", null, null) == [0xf0, 0xd4, 0x12, 0xbd, 0x76, 0x4f, 0xfe, 0x81, 0xaa, 0xd3, 0xb4, 0x35, 0xb5, 0x14, 0x04, 0xee] as byte[]
+
+    where:
+    provider << providers
+  }
+
+  @Unroll
+  def "should correctly determine RC4 Encryption"() {
+    given:
+    def f = new NtlmFunctions(random, provider)
+
+    expect:
+    f.encryptRc4([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0f, 0x10] as byte[], "Hello".getBytes("UTF-8")) == [0x65, 0x55, 0x5a, 0x25, -0x4a] as byte[]
+
+    where:
+    provider << providers
+  }
 }

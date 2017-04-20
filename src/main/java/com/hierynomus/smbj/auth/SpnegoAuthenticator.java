@@ -20,7 +20,10 @@ import java.security.Key;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
+import java.util.Random;
 import javax.security.auth.Subject;
+
+import com.hierynomus.security.SecurityProvider;
 import org.ietf.jgss.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,13 +72,6 @@ public class SpnegoAuthenticator implements Authenticator {
         try {
             logger.info("Authenticating {} on {} using SPNEGO", context.getUsername(), session.getConnection().getRemoteHostname());
             if (gssContext == null) {
-                // GSS context is not established yet because this is the first pass at authentication,
-                // so create the GSS context and attach it to our AuthenticationContext
-                if (gssToken == null) {
-                    logger.error("GSS token is null, but should have been provided by the SMB negotiation response");
-                    throw new TransportException("No GSS Token Received from SMB Negotiation response to initialize authentication with");
-                }
-
                 GSSManager gssManager = GSSManager.getInstance();
                 Oid spnegoOid = new Oid("1.3.6.1.5.5.2"); //SPNEGO
 
@@ -88,9 +84,11 @@ public class SpnegoAuthenticator implements Authenticator {
             }
 
             byte[] newToken = gssContext.initSecContext(gssToken, 0, gssToken.length);
+
             if (newToken != null) {
                 logger.trace("Received token: {}", ByteArrayUtils.printHex(newToken));
             }
+
             if (gssContext.isEstablished()) {
                 ExtendedGSSContext e = (ExtendedGSSContext) gssContext;
                 Key key = (Key) e.inquireSecContext(InquireType.KRB5_GET_SESSION_KEY);
@@ -126,6 +124,11 @@ public class SpnegoAuthenticator implements Authenticator {
             newKey = key;
         }
         return newKey;
+    }
+
+    @Override
+    public void init(SecurityProvider securityProvider, Random random) {
+        // No-op, SPNEGO does not need these.
     }
 
     @Override

@@ -41,4 +41,8 @@ public class AuthenticationContext {
     }
 
 
+    @Override
+    public String toString() {
+        return "AuthenticationContext[" + username + '@' + domain + ']';
+    }
 }
