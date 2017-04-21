@@ -11,7 +11,6 @@ import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.io.InputStreamByteChunkProvider;
 import com.hierynomus.smbj.session.Session;

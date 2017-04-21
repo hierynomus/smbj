@@ -39,7 +39,7 @@ import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.smbj.common.SMBApiException;
+import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
@@ -238,7 +238,7 @@ public class DiskShare extends Share {
         } else {
 
             SMB2CreateRequest smb2CreateRequest =
-                openFileRequest(treeConnect, path,
+                openFileRequest(path,
                     AccessMask.DELETE.getValue(),
                     EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE,
                         FILE_SHARE_READ),
@@ -256,7 +256,7 @@ public class DiskShare extends Share {
     public void rm(String path) throws TransportException, SMBApiException {
         logger.info("rm {}", path);
         SMB2CreateRequest smb2CreateRequest =
-            openFileRequest(treeConnect, path, AccessMask.DELETE.getValue(), null, null,
+            openFileRequest(path, AccessMask.DELETE.getValue(), null, null,
                 SMB2CreateDisposition.FILE_OPEN, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
 
         deleteCommon(path, smb2CreateRequest);
@@ -332,9 +332,8 @@ public class DiskShare extends Share {
 
     private String makePath(String first, String... more) {
         StringBuilder sb = new StringBuilder(first);
-        for (int i = 0; i < more.length; i++) {
-            sb.append('\\');
-            sb.append(more[i]);
+        for (String aMore : more) {
+            sb.append('\\').append(aMore);
         }
         return sb.toString();
     }

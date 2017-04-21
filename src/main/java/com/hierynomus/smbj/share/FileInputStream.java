@@ -26,7 +26,7 @@ import com.hierynomus.mssmb2.messages.SMB2ReadRequest;
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.ProgressListener;
-import com.hierynomus.smbj.common.SMBApiException;
+import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.connection.NegotiatedProtocol;
 import com.hierynomus.smbj.session.Session;

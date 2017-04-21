@@ -16,10 +16,7 @@
 package com.hierynomus.smbj.connection;
 
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.mssmb2.SMB2GlobalCapability;
-import com.hierynomus.mssmb2.SMB2MessageCommandCode;
-import com.hierynomus.mssmb2.SMB2MessageFlag;
-import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
@@ -30,7 +27,6 @@ import com.hierynomus.smbj.Config;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
-import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;

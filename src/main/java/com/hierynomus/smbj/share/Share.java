@@ -32,7 +32,7 @@ import com.hierynomus.mssmb2.messages.SMB2Close;
 import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
 import com.hierynomus.mssmb2.messages.SMB2CreateResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.smbj.common.SMBApiException;
+import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
@@ -76,7 +76,7 @@ public class Share implements AutoCloseable {
 
         Session session = treeConnect.getSession();
         SMB2CreateRequest cr = openFileRequest(
-            treeConnect, path, accessMask, shareAccess, fileAttributes, createDisposition, createOptions);
+            path, accessMask, shareAccess, fileAttributes, createDisposition, createOptions);
         try {
             SMB2CreateResponse cresponse = session.processSendResponse(cr);
             if (cresponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
@@ -89,8 +89,8 @@ public class Share implements AutoCloseable {
         }
     }
 
-    protected static SMB2CreateRequest openFileRequest(
-        TreeConnect treeConnect, String path,
+    protected SMB2CreateRequest openFileRequest(
+        String path,
         long accessMask,
         EnumSet<SMB2ShareAccess> shareAccess,
         EnumSet<FileAttributes> fileAttributes,

@@ -18,7 +18,7 @@ package com.hierynomus.smbj.share;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.smbj.common.SMBApiException;
+import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.smbj.transport.TransportException;
 
 abstract class DiskEntry {

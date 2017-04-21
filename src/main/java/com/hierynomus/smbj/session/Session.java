@@ -19,6 +19,7 @@ import com.hierynomus.msdfsc.DFSException;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
+import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
 import com.hierynomus.mssmb2.messages.SMB2Logoff;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
@@ -26,7 +27,6 @@ import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
@@ -200,7 +200,7 @@ public class Session implements AutoCloseable {
                     connection.getClient().resolvePathNotCoveredError(this,packet);
                 }
                 catch(DFSException e) { //TODO we wouldn't have to do this if we just threw SMBApiException from inside DFS
-                    throw new SMBApiException(e.getStatus(), e.getStatus().getValue(), packet.getHeader().getMessage(), e);
+                    throw new SMBApiException(e.getStatus(), packet.getHeader().getMessage(), e);
                 }
                 // and we try again
             } else {

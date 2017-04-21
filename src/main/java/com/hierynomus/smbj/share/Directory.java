@@ -20,7 +20,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.Future;
 
-import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.hierynomus.mserref.NtStatus;
@@ -32,7 +31,7 @@ import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryRequest;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryResponse;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.smbj.common.SMBApiException;
+import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
@@ -69,9 +68,7 @@ public class Directory extends DiskEntry {
                 newDataLength = 0;
             } else {
                 if (qdResp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                    throw new SMBApiException(qdResp.getHeader().getStatus(),
-                        qdResp.getHeader().getStatusCode(), SMB2MessageCommandCode.SMB2_QUERY_DIRECTORY,
-                        "Query directory failed for " + fileName + "/" + fileId);
+                    throw new SMBApiException(qdResp.getHeader(), "Query directory failed for " + fileName + "/" + fileId);
                 }
                 byte[] outputBuffer = qdResp.getOutputBuffer();
                 newDataLength = outputBuffer.length;
