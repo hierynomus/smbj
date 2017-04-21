@@ -43,10 +43,7 @@ public class BCMessageDigest implements MessageDigest {
 
     private final Digest digest;
 
-    private String name;
-
     BCMessageDigest(String name) {
-        this.name = name;
         this.digest = getDigest(name);
     }
 

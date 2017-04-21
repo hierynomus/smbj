@@ -56,6 +56,7 @@ public class NtlmFunctions {
      * EndDefine
      * </code>
      */
+    @SuppressWarnings("PMD.MethodNamingConventions")
     public byte[] NTOWFv2(String password, String username, String userDomain) {
         byte[] keyBytes = NTOWFv1(password, username, userDomain);
         byte[] usernameBytes = unicode(username.toUpperCase());
@@ -71,6 +72,7 @@ public class NtlmFunctions {
      * EndDefine
      * </code>
      */
+    @SuppressWarnings("PMD.MethodNamingConventions")
     public byte[] LMOWFv2(String password, String username, String userDomain) {
         return NTOWFv2(password, username, userDomain);
     }
@@ -83,6 +85,7 @@ public class NtlmFunctions {
      * EndDefine
      * </code>
      */
+    @SuppressWarnings("PMD.MethodNamingConventions")
     public byte[] NTOWFv1(String password, String username, String userDomain) {
         byte[] bytes = unicode(password);
         try {
@@ -111,6 +114,7 @@ public class NtlmFunctions {
      * @param message The bytes of message M
      * @return The 16-byte HMAC-keyed MD5 message digest of the byte string M using the key K
      */
+    @SuppressWarnings("PMD.MethodNamingConventions")
     public byte[] hmac_md5(byte[] key, byte[]... message) {
         try {
             com.hierynomus.security.Mac hmacMD5 = securityProvider.getMac("HmacMD5");
@@ -140,6 +144,7 @@ public class NtlmFunctions {
      * @param userDomain
      * @return
      */
+    @SuppressWarnings("PMD.MethodNamingConventions")
     public byte[] LMOWFv1(String password, String username, String userDomain) {
         try {
             byte[] bytes = password.toUpperCase().getBytes("US-ASCII");

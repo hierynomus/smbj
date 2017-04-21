@@ -55,7 +55,6 @@ public class Session implements AutoCloseable {
     private Connection connection;
     private SMBEventBus bus;
     private PathResolver pathResolver;
-    private SecurityProvider securityProvider;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
     private AuthenticationContext auth;
 
@@ -64,7 +63,6 @@ public class Session implements AutoCloseable {
         this.connection = connection;
         this.auth = auth;
         this.bus = bus;
-        this.securityProvider = securityProvider;
         this.packetSignatory = new PacketSignatory(connection.getNegotiatedProtocol().getDialect(), securityProvider);
         this.pathResolver = pathResolver;
         this.serverSigningRequired = signingRequired;
