@@ -37,4 +37,16 @@ class SmbPathSpec extends Specification {
     "\\\\localhost\\C\$\\My Documents\\Jeroen" | "localhost" | "C\$" | "My Documents\\Jeroen"
     "\\\\localhost\\C\$" | "localhost" | "C\$" | null
   }
+
+  @Unroll
+  def "should output corrent UNC path for #host/#share/#path"() {
+    expect:
+    new SmbPath(host, share, path).toUncPath() == uncPath
+
+    where:
+    host | share | path | uncPath
+    "localhost" | "C\$" | "My Documents\\Jeroen" | "\\\\localhost\\C\$\\My Documents\\Jeroen"
+    "localhost" | "C\$" | null | "\\\\localhost\\C\$"
+    "localhost" | "\\C\$" | null | "\\\\localhost\\C\$"
+  }
 }

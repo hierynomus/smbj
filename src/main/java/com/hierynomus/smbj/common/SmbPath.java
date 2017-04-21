@@ -29,9 +29,8 @@ public class SmbPath {
         this.hostname = hostname;
         this.path = path;
     }
-    
-    @Override
-    public String toString() {
+
+    public String toUncPath() {
         StringBuilder b = new StringBuilder("\\\\");
         b.append(hostname);
         if (shareName != null) {
@@ -45,6 +44,11 @@ public class SmbPath {
             }
         }
         return b.toString();
+    }
+
+    @Override
+    public String toString() {
+        return toUncPath();
     }
 
     public static SmbPath parse(String path) {
