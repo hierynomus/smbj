@@ -25,12 +25,14 @@ public class IOUtils {
     private static final Logger LOG = LoggerFactory.getLogger(IOUtils.class);
 
     public static void closeQuietly(Closeable... closeables) {
-        for (Closeable c : closeables)
+        for (Closeable c : closeables) {
             try {
-                if (c != null)
+                if (c != null) {
                     c.close();
+                }
             } catch (IOException logged) {
                 LOG.warn("Error closing {} - {}", c, logged);
             }
+        }
     }
 }

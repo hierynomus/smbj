@@ -43,6 +43,7 @@ import com.hierynomus.smbj.transport.TransportLayer;
 import com.hierynomus.smbj.transport.tcp.DirectTcpPacketReader;
 import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
 import com.hierynomus.spnego.NegTokenInit;
+import com.hierynomus.spnego.SpnegoException;
 import net.engio.mbassy.listener.Handler;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.slf4j.Logger;
@@ -160,7 +161,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             } finally {
                 connectionInfo.getPreauthSessionTable().sessionClosed(sessionId);
             }
-        } catch (IOException e) {
+        } catch (SpnegoException | IOException e) {
             throw new SMBRuntimeException(e);
         }
     }
@@ -175,7 +176,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         return sendAndReceive(req);
     }
 
-    private Authenticator getAuthenticator(AuthenticationContext context) throws IOException {
+    private Authenticator getAuthenticator(AuthenticationContext context) throws IOException, SpnegoException {
         List<Factory.Named<Authenticator>> supportedAuthenticators = new ArrayList<>(config.getSupportedAuthenticators());
         List<ASN1ObjectIdentifier> mechTypes = new ArrayList<>();
         if (connectionInfo.getGssNegotiateToken().length > 0) {
