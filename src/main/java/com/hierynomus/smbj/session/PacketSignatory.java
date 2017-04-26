@@ -17,7 +17,6 @@ package com.hierynomus.smbj.session;
 
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2Header;
-import com.hierynomus.mssmb2.SMB2MessageFlag;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.security.SecurityException;
@@ -28,8 +27,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 
-import static com.hierynomus.mssmb2.SMB2Header.EMPTY_SIGNATURE;
-import static com.hierynomus.mssmb2.SMB2Header.SIGNATURE_SIZE;
+import static com.hierynomus.mssmb2.SMB2Header.*;
+import static com.hierynomus.mssmb2.SMB2MessageFlag.SMB2_FLAGS_SIGNED;
 
 public class PacketSignatory {
     private static final Logger logger = LoggerFactory.getLogger(PacketSignatory.class);
@@ -41,7 +40,7 @@ public class PacketSignatory {
     private String algorithm;
     private byte[] secretKey;
 
-    public PacketSignatory(SMB2Dialect dialect, SecurityProvider securityProvider) {
+    PacketSignatory(SMB2Dialect dialect, SecurityProvider securityProvider) {
         this.dialect = dialect;
         this.securityProvider = securityProvider;
     }
@@ -73,11 +72,11 @@ public class PacketSignatory {
         try {
             SMBBuffer buffer = packet.getBuffer();
             com.hierynomus.security.Mac mac = getMac(secretKey, algorithm, securityProvider);
-            mac.update(buffer.array(), packet.getMessageStartPos(), SMB2Header.SIGNATURE_OFFSET);
+            mac.update(buffer.array(), packet.getMessageStartPos(), SIGNATURE_OFFSET);
             mac.update(EMPTY_SIGNATURE);
-            mac.update(buffer.array(), SMB2Header.STRUCTURE_SIZE, packet.getMessageEndPos() - SMB2Header.STRUCTURE_SIZE);
+            mac.update(buffer.array(), STRUCTURE_SIZE, packet.getMessageEndPos() - STRUCTURE_SIZE);
             byte[] signature = mac.doFinal();
-            byte[] receivedSignature = Arrays.copyOfRange(buffer.array(), SMB2Header.SIGNATURE_OFFSET, SMB2Header.STRUCTURE_SIZE);
+            byte[] receivedSignature = Arrays.copyOfRange(buffer.array(), SIGNATURE_OFFSET, STRUCTURE_SIZE);
             for (int i = 0; i < SIGNATURE_SIZE; i++) {
                 if (signature[i] != receivedSignature[i]) {
                     return false;
@@ -111,7 +110,7 @@ public class PacketSignatory {
         @Override
         public void write(SMBBuffer buffer) {
             try {
-                wrappedPacket.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_SIGNED);
+                wrappedPacket.getHeader().setFlag(SMB2_FLAGS_SIGNED);
                 int packetStartPos = buffer.wpos();
                 SigningBuffer signingBuffer = new SigningBuffer(buffer);
                 // Write the real packet to the buffer
@@ -119,7 +118,7 @@ public class PacketSignatory {
                 // The MAC in the signingbuffer now contains the right signature.
                 byte[] signature = signingBuffer.mac.doFinal();
                 // Copy the signature into the buffer's data at the right point.
-                System.arraycopy(signature, 0, buffer.array(), packetStartPos + SMB2Header.SIGNATURE_OFFSET, SMB2Header.SIGNATURE_SIZE);
+                System.arraycopy(signature, 0, buffer.array(), packetStartPos + SIGNATURE_OFFSET, SIGNATURE_SIZE);
             } catch (SecurityException e) {
                 // TODO other exception
                 throw new IllegalStateException(e);

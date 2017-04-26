@@ -17,7 +17,6 @@ package com.hierynomus.mssmb2.messages;
 
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.Check;
 import com.hierynomus.smbj.common.SMBBuffer;
