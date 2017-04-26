@@ -198,7 +198,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             }
             long[] messageIds = connectionInfo.getSequenceWindow().get(grantCredits);
             packet.getHeader().setMessageId(messageIds[0]);
-            logger.debug("Granted {} (out of {}) credits to ", grantCredits, availableCredits, packet);
+            logger.debug("Granted {} (out of {}) credits to {}", grantCredits, availableCredits, packet);
             packet.getHeader().setCreditRequest(Math.max(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits, grantCredits));
 
             Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID(), packet);
