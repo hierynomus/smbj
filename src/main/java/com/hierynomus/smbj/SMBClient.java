@@ -72,7 +72,7 @@ public class SMBClient {
     private Connection getEstablishedOrConnect(String hostname, int port) throws IOException {
         synchronized (this) {
             if (!connectionTable.containsKey(hostname)) {
-                Connection connection = new Connection(config, new DirectTcpTransport(), bus);
+                Connection connection = new Connection(config, bus);
                 connection.connect(hostname, port);
                 connectionTable.put(hostname, connection);
                 return connection;

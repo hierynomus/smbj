@@ -15,25 +15,27 @@
  */
 package com.hierynomus.smbj.transport.tcp;
 
-import java.io.IOException;
-import java.io.InputStream;
-import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.mssmb2.messages.SMB2ResponseMessageFactory;
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smbj.transport.PacketFactory;
 import com.hierynomus.smbj.transport.PacketReader;
 import com.hierynomus.smbj.transport.PacketReceiver;
 import com.hierynomus.smbj.transport.TransportException;
 
-public class DirectTcpPacketReader extends PacketReader {
+import java.io.IOException;
+import java.io.InputStream;
 
-    public DirectTcpPacketReader(String host, InputStream in, PacketReceiver handler) {
+public class DirectTcpPacketReader<P extends Packet<P, ?>> extends PacketReader<P> {
+
+    private final PacketFactory<P> packetFactory;
+
+    public DirectTcpPacketReader(String host, InputStream in, PacketFactory<P> packetFactory, PacketReceiver<P> handler) {
         super(host, in, handler);
+        this.packetFactory = packetFactory;
     }
 
-    private SMB2Packet _readSMB2Packet(int packetLength) throws IOException, Buffer.BufferException {
+    private P _readSMB2Packet(int packetLength) throws IOException, Buffer.BufferException {
         byte[] buf = new byte[packetLength];
         int count = 0;
         int read = 0;
@@ -44,12 +46,11 @@ public class DirectTcpPacketReader extends PacketReader {
             throw new TransportException("EOF while reading packet");
         }
 
-        SMBBuffer buffer = new SMBBuffer(buf);
-        return SMB2ResponseMessageFactory.read(buffer);
+        return packetFactory.read(buf);
     }
 
     @Override
-    protected Packet doRead() throws TransportException {
+    protected P doRead() throws TransportException {
         try {
             int smb2PacketLength = _readTcpHeader();
             return _readSMB2Packet(smb2PacketLength);

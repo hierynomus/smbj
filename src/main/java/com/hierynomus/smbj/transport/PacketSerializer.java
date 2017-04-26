@@ -15,23 +15,10 @@
  */
 package com.hierynomus.smbj.transport;
 
-import com.hierynomus.protocol.commons.concurrent.ExceptionWrapper;
+import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.commons.buffer.Buffer;
 
-import java.io.IOException;
+public interface PacketSerializer<P extends Packet<P, ?>> {
 
-public class TransportException extends IOException {
-    public static final ExceptionWrapper<TransportException> Wrapper = new ExceptionWrapper<TransportException>() {
-        @Override
-        public TransportException wrap(Throwable throwable) {
-            return new TransportException(throwable);
-        }
-    };
-
-    public TransportException(Throwable ioe) {
-        super(ioe);
-    }
-
-    public TransportException(String s) {
-        super(s);
-    }
+    Buffer<?> write(P packet);
 }

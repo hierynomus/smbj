@@ -17,14 +17,17 @@ package com.hierynomus.mssmb2.messages;
 
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.Check;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.transport.PacketFactory;
+import com.hierynomus.smbj.transport.PacketSerializer;
 
-public class SMB2ResponseMessageFactory {
+public class SMB2MessageConverter implements PacketFactory<SMB2Packet>, PacketSerializer<SMB2Packet> {
 
-    public static SMB2Packet read(SMBBuffer buffer) throws Buffer.BufferException {
+    public SMB2Packet read(SMBBuffer buffer) throws Buffer.BufferException {
         // Check we see a valid header start
         Check.ensureEquals(buffer.readRawBytes(4), new byte[]{(byte) 0xFE, 'S', 'M', 'B'}, "Could not find SMB2 Packet header");
         // Skip until Command
@@ -72,5 +75,17 @@ public class SMB2ResponseMessageFactory {
                 throw new SMBRuntimeException("Unknown SMB2 Message Command type: " + command);
 
         }
+    }
+
+    @Override
+    public SMB2Packet read(byte[] data) throws Buffer.BufferException {
+        return read(new SMBBuffer(data));
+    }
+
+    @Override
+    public Buffer<?> write(SMB2Packet packet) {
+        SMBBuffer b = new SMBBuffer();
+        packet.write(b);
+        return b;
     }
 }
