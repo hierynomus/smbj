@@ -28,7 +28,6 @@ import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.PathResolveException;
-import com.hierynomus.smbj.share.PathResolver;
 import com.hierynomus.smbj.share.Share;
 import com.hierynomus.smbj.share.TreeConnect;
 import com.hierynomus.smbj.transport.TransportException;
@@ -36,7 +35,7 @@ import com.hierynomus.smbj.transport.TransportException;
 import java.io.IOException;
 import java.util.concurrent.Future;
 
-public class DFSPathResolver implements PathResolver {
+public class DFSPathResolver {
     private enum DfsRequestType {
         DOMAIN,
         DC,
@@ -48,7 +47,6 @@ public class DFSPathResolver implements PathResolver {
     private ReferralCache referralCache = new ReferralCache();
     private DomainCache domainCache = new DomainCache();
 
-    @Override
     public String resolve(Session session, String uncPath) throws PathResolveException {
         DFSPath dfsPath = new DFSPath(uncPath);
         ResolveState state = new ResolveState(dfsPath);
