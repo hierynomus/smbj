@@ -15,19 +15,19 @@
  */
 package com.hierynomus.smbj.transport;
 
-import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.protocol.Packet;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public interface TransportLayer {
+public interface TransportLayer<P extends Packet<P, ?>> {
 
     /**
      * Initialize the Transport layer.
      * <p>
      * This is called directly after a connection has been established.
      */
-    void init(InputStream in, OutputStream out);
+    void init(InputStream in, OutputStream out, PacketSerializer<P> packetSerializer);
 
     /**
      * The default port for the specified SMB transport layer.
@@ -42,5 +42,5 @@ public interface TransportLayer {
      * @param packet The packet to write.
      * @return The sequence number of the packet.
      */
-    void write(SMB2Packet packet) throws TransportException;
+    void write(P packet) throws TransportException;
 }

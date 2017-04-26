@@ -15,48 +15,48 @@
  */
 package com.hierynomus.smbj.transport;
 
+import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.smbj.common.SMBBuffer;
-
-public abstract class BaseTransport implements TransportLayer {
+public abstract class BaseTransport<P extends Packet<P, ?>> implements TransportLayer<P> {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     protected InputStream in;
     protected OutputStream out;
+    private PacketSerializer<P> serializer;
     private final ReentrantLock writeLock = new ReentrantLock();
 
     @Override
-    public void init(InputStream in, OutputStream out) {
+    public void init(InputStream in, OutputStream out, PacketSerializer<P> serializer) {
         this.in = in;
         this.out = out;
+        this.serializer = serializer;
     }
 
     @Override
-    public void write(SMB2Packet packet) throws TransportException {
-        logger.trace("Acquiring write lock to send packet << {} >>", packet.getHeader().getMessage());
+    public void write(P packet) throws TransportException {
+        logger.trace("Acquiring write lock to send packet << {} >>", packet);
         writeLock.lock();
         try {
             try {
-                SMBBuffer buffer = new SMBBuffer();
-                packet.write(buffer);
-                logger.debug("Writing packet << {} >>, sequence number << {} >>", packet.getHeader().getMessage(), packet.getSequenceNumber());
-                doWrite(buffer);
+                logger.debug("Writing packet {}", packet);
+                doWrite(serializer.write(packet));
                 out.flush();
             } catch (IOException ioe) {
                 throw new TransportException(ioe);
             }
         } finally {
             writeLock.unlock();
-            logger.trace("Packet << {} >> sent, lock released.", packet.getHeader().getMessage());
+            logger.trace("Packet {} sent, lock released.", packet);
         }
     }
 
-    protected abstract void doWrite(SMBBuffer packetData) throws IOException;
+    protected abstract void doWrite(Buffer packetData) throws IOException;
 }

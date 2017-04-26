@@ -17,7 +17,6 @@ package com.hierynomus.smbj;
 
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.event.SMBEventBus;
-import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
 
 import java.io.IOException;
 import java.util.Map;
@@ -75,7 +74,7 @@ public class SMBClient {
         String socketAddress = hostname + ":" + port;
         synchronized (this) {
             if (!connectionTable.containsKey(socketAddress)) {
-                Connection connection = new Connection(config, this, new DirectTcpTransport(), bus);
+                Connection connection = new Connection(config, this, bus);
                 connection.connect(hostname, port);
                 connectionTable.put(socketAddress, connection);
                 return connection;

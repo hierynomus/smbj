@@ -20,6 +20,7 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
+import com.hierynomus.mssmb2.messages.SMB2MessageConverter;
 import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.concurrent.Futures;
@@ -72,12 +73,16 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     }
 
     private Config config;
-    private TransportLayer transport;
+    private TransportLayer<SMB2Packet> transport;
     private final SMBEventBus bus;
-    private PacketReader packetReader;
+    private PacketReader<SMB2Packet> packetReader;
     private final ReentrantLock lock = new ReentrantLock();
 
-    public Connection(Config config, SMBClient client, TransportLayer transport, SMBEventBus bus) {
+    public Connection(Config config, SMBClient client, SMBEventBus bus) {
+        this(config, client, new DirectTcpTransport<SMB2Packet>(), bus);
+    }
+
+    private Connection(Config config, SMBClient client, TransportLayer<SMB2Packet> transport, SMBEventBus bus) {
         super(transport.getDefaultPort());
         this.config = config;
         this.client = client;
@@ -102,9 +107,10 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     protected void onConnect() throws IOException {
         super.onConnect();
         this.connectionInfo = new ConnectionInfo(config.getClientGuid(), getRemoteHostname());
-        packetReader = new DirectTcpPacketReader(getRemoteHostname(), getInputStream(), this);
+        SMB2MessageConverter smb2MessageConverter = new SMB2MessageConverter();
+        packetReader = new DirectTcpPacketReader<>(getRemoteHostname(), getInputStream(), smb2MessageConverter, this);
         packetReader.start();
-        transport.init(getInputStream(), getOutputStream());
+        transport.init(getInputStream(), getOutputStream(), smb2MessageConverter);
         negotiateDialect();
         logger.info("Successfully connected to: {}", getRemoteHostname());
     }
@@ -216,7 +222,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             }
             long[] messageIds = connectionInfo.getSequenceWindow().get(grantCredits);
             packet.getHeader().setMessageId(messageIds[0]);
-            logger.debug("Granted {} (out of {}) credits to {} with message id << {} >>", grantCredits, availableCredits, packet.getHeader().getMessage(), packet.getHeader().getMessageId());
+            logger.debug("Granted {} (out of {}) credits to {}", grantCredits, availableCredits, packet);
             packet.getHeader().setCreditRequest(Math.max(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits, grantCredits));
 
             Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID(), packet);
@@ -256,7 +262,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         Future<SMB2Packet> send = send(negotiatePacket);
         SMB2Packet negotiateResponse = Futures.get(send, TransportException.Wrapper);
         if (!(negotiateResponse instanceof SMB2NegotiateResponse)) {
-            throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + negotiateResponse.getHeader().getMessageId());
+            throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + negotiateResponse);
         }
         SMB2NegotiateResponse resp = (SMB2NegotiateResponse) negotiateResponse;
         connectionInfo.negotiated(resp);
@@ -288,7 +294,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
         // [MS-SMB2].pdf 3.2.5.1.4 Granting Message Credits
         connectionInfo.getSequenceWindow().creditsGranted(packet.getHeader().getCreditResponse());
-        logger.debug("Server granted us {} credits for message with sequence number << {} >>, now available: {} credits", packet.getHeader().getCreditResponse(), messageId, connectionInfo.getSequenceWindow().available());
+        logger.debug("Server granted us {} credits for {}, now available: {} credits", packet.getHeader().getCreditResponse(), packet, connectionInfo.getSequenceWindow().available());
 
         Request request = connectionInfo.getOutstandingRequests().getRequestByMessageId(messageId);
         logger.trace("Send/Recv of packet with message id << {} >> took << {} ms >>", messageId, System.currentTimeMillis() - request.getTimestamp().getTime());
@@ -323,14 +329,14 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             // check packet signature.  Drop the packet if it is not correct.
             if (packet.getHeader().isFlagSet(SMB2MessageFlag.SMB2_FLAGS_SIGNED)) {
                 if (!session.getPacketSignatory().verify(packet)) {
-                    logger.warn("Invalid packet signature for packet {} with message id << {} >>", packet.getHeader().getMessage(), packet.getHeader().getMessageId());
+                    logger.warn("Invalid packet signature for packet {}", packet);
                     if (config.isSigningRequired()) {
-                        throw new TransportException("Packet signature for packet " + packet.getHeader().getMessage() + " with message id << " + packet.getHeader().getMessageId() + " >> was not correct");
+                        throw new TransportException("Packet signature for packet " + packet + " was not correct");
                     }
                 }
             } else if (config.isSigningRequired()) {
                 logger.warn("Illegal request, client requires message signing, but the received message is not signed.");
-                throw new TransportException("Client requires signing, but packet " + packet.getHeader().getMessage() + " with message id << " + packet.getHeader().getMessageId() + " >> was not signed");
+                throw new TransportException("Client requires signing, but packet " + packet + " was not signed");
             }
         }
 
@@ -349,9 +355,5 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     private void sessionLogoff(SessionLoggedOff loggedOff) {
         connectionInfo.getSessionTable().sessionClosed(loggedOff.getSessionId());
         logger.debug("Session << {} >> logged off", loggedOff.getSessionId());
-    }
-
-    public Config getConfig() {
-        return config;
     }
 }

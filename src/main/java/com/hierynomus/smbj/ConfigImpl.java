@@ -73,4 +73,16 @@ public class ConfigImpl implements Config {
     public boolean isSigningRequired() {
         return signingRequired;
     }
+
+    public void setDFSEnabled(boolean DFSEnabled) {
+        isDFSEnabled = DFSEnabled;
+    }
+
+    public void setSigningRequired(boolean signingRequired) {
+        this.signingRequired = signingRequired;
+    }
+
+    public void setSecurityProvider(SecurityProvider securityProvider) {
+        this.securityProvider = securityProvider;
+    }
 }

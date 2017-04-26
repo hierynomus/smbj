@@ -27,7 +27,6 @@ import java.util.UUID;
 
 public class DefaultConfig extends ConfigImpl {
 
-
     public DefaultConfig() {
         random = new SecureRandom();
         securityProvider = new JceSecurityProvider();
@@ -35,7 +34,7 @@ public class DefaultConfig extends ConfigImpl {
         clientGuid = UUID.randomUUID();
         signingRequired = false;
         registerDefaultAuthenticators();
-        isDFSEnabled = true;
+        isDFSEnabled = false; // DFS Support is currently experimental and disabled by default.
     }
 
     private void registerDefaultAuthenticators() {
@@ -43,9 +42,5 @@ public class DefaultConfig extends ConfigImpl {
         // order is important.  The authenticators listed first will be selected
         authenticators.add(new SpnegoAuthenticator.Factory());
         authenticators.add(new NtlmAuthenticator.Factory());
-    }
-
-    public void setRequireSigning(boolean signingRequired) {
-        this.signingRequired = signingRequired;
     }
 }

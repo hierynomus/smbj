@@ -46,11 +46,10 @@ class DFSTest extends Specification {
       connect(_) >> connection
       connect(_, _) >> connection
     }
-    def transport = Mock(TransportLayer)
     def bus = new SMBEventBus()
     def protocol = new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 1000, 1000, 1000, false)
 
-    connection = Stub(Connection, constructorArgs: [new DefaultConfig(), client, transport, bus]) {
+    connection = Stub(Connection, constructorArgs: [new DefaultConfig(), client, bus]) {
       getRemoteHostname() >> "10.0.0.10"
       getRemotePort() >> 445
       getNegotiatedProtocol() >> protocol
@@ -115,11 +114,10 @@ class DFSTest extends Specification {
         connection
       }
     }
-    def transport = Mock(TransportLayer)
     def bus = new SMBEventBus()
     def protocol = new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 1000, 1000, 1000, false)
 
-    connection = Stub(Connection, constructorArgs: [new DefaultConfig(), client, transport, bus]) {
+    connection = Stub(Connection, constructorArgs: [new DefaultConfig(), client, bus]) {
       getRemoteHostname() >> "10.0.0.10"
       getRemotePort() >> 445
       getNegotiatedProtocol() >> protocol
@@ -201,10 +199,9 @@ class DFSTest extends Specification {
         connection
       }
     }
-    def transport = Mock(TransportLayer)
     def bus = new SMBEventBus()
     def protocol = new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 1000, 1000, 1000, false)
-    connection = Stub(Connection, constructorArgs: [new DefaultConfig(), client, transport, bus]) {
+    connection = Stub(Connection, constructorArgs: [new DefaultConfig(), client, bus]) {
       getRemoteHostname() >> "10.0.0.10"
       getRemotePort() >> 445
       getClient() >> client
@@ -269,11 +266,10 @@ class DFSTest extends Specification {
         connection
       }
     }
-    def transport = Mock(TransportLayer)
     def bus = new SMBEventBus()
     def protocol = new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 1000, 1000, 1000, false)
 
-    connection = Stub(Connection, constructorArgs: [new DefaultConfig(), client, transport, bus]) {
+    connection = Stub(Connection, constructorArgs: [new DefaultConfig(), client, bus]) {
       getRemoteHostname() >> "10.0.0.10"
       getRemotePort() >> 445
       getNegotiatedProtocol() >> protocol
@@ -353,11 +349,10 @@ class DFSTest extends Specification {
         connection
       }
     }
-    def transport = Mock(TransportLayer)
     def bus = new SMBEventBus()
     def protocol = new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 1000, 1000, 1000, false)
 
-    connection = Stub(Connection, constructorArgs: [new DefaultConfig(), client, transport, bus]) {
+    connection = Stub(Connection, constructorArgs: [new DefaultConfig(), client, bus]) {
       getRemoteHostname() >> "10.0.0.10"
       getRemotePort() >> 445
       getNegotiatedProtocol() >> protocol

@@ -15,12 +15,12 @@
  */
 package com.hierynomus.smbj.transport;
 
-import java.io.InputStream;
-import java.util.concurrent.atomic.AtomicBoolean;
+import com.hierynomus.protocol.Packet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.hierynomus.protocol.Packet;
-import com.hierynomus.smbj.common.SMBRuntimeException;
+
+import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(PacketReader.class);
@@ -49,7 +49,8 @@ public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
                     return;
                 }
                 handler.handleError(e);
-                throw new SMBRuntimeException(e);
+                // TODO Check whether it is enough to just break out of the loop. The exception has been propagated through the handler.
+                throw new RuntimeException(e);
             }
         }
         if (stopped.get()) {

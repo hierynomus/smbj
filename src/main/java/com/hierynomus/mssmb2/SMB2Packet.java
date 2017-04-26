@@ -128,4 +128,8 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
         getHeader().setCreditCharge(creditsAssigned);
     }
 
+    @Override
+    public String toString() {
+        return header.getMessage() + " with message id << " + header.getMessageId() + " >>";
+    }
 }

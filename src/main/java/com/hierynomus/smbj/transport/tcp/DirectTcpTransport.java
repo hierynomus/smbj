@@ -15,19 +15,19 @@
  */
 package com.hierynomus.smbj.transport.tcp;
 
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.transport.BaseTransport;
-import com.hierynomus.smbj.transport.TransportLayer;
 
 import java.io.IOException;
 
 /**
  * A transport layer to do SMB2 over Direct TCP/IP.
  */
-public class DirectTcpTransport extends BaseTransport implements TransportLayer {
+public class DirectTcpTransport<P extends Packet<P, ?>> extends BaseTransport<P> {
 
     @Override
-    protected void doWrite(SMBBuffer packetData) throws IOException {
+    protected void doWrite(Buffer packetData) throws IOException {
         // Wrap in the Direct TCP packet header
         out.write(0);
         int available = packetData.available();
