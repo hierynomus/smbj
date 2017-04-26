@@ -117,6 +117,9 @@ public class NegTokenTarg extends SpnegoToken {
             case 2:
                 readResponseToken(asn1TaggedObject.getObject());
                 break;
+            case 3:
+                readMechListMIC(asn1TaggedObject.getObject());
+                break;
             default:
                 throw new SpnegoException("Unknown Object Tag " + asn1TaggedObject.getTagNo() + " encountered.");
         }

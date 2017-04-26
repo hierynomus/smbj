@@ -42,20 +42,20 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.skip(2); // StructureSize (2 bytes)
         int outputBufferOffset = buffer.readUInt16(); // OutputBufferOffset (2 bytes)
-        int outBufferLength = buffer.readUInt32AsInt(); // OutputBufferLength (4 bytes)
+        buffer.readUInt32AsInt(); // OutputBufferLength (4 bytes)
         if (getHeader().getStatus() == NtStatus.STATUS_SUCCESS) {
-            fileNotifyInfoList = readFileNotifyInfo(buffer, outputBufferOffset, outBufferLength);
+            fileNotifyInfoList = readFileNotifyInfo(buffer, outputBufferOffset);
         }
     }
 
-    private List<FileNotifyInfo> readFileNotifyInfo(SMBBuffer buffer, int outputBufferOffset, int outBufferLength)
+    private List<FileNotifyInfo> readFileNotifyInfo(SMBBuffer buffer, int outputBufferOffset)
         throws Buffer.BufferException {
         List<FileNotifyInfo> notifyInfoList = new ArrayList<>();
         buffer.rpos(outputBufferOffset);
         int currentPos = buffer.rpos();
-        int nextEntryOffset = 0;
-        long fileNameLen = 0;
-        String fileName = null;
+        int nextEntryOffset;
+        long fileNameLen;
+        String fileName;
 
         do {
             nextEntryOffset = (int) buffer.readUInt32();

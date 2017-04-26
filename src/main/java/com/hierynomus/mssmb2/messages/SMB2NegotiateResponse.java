@@ -66,7 +66,7 @@ public class SMB2NegotiateResponse extends SMB2Packet {
         readNegotiateContextList(buffer, negotiateContextOffset, negotiateContextCount);
     }
 
-    private void readNegotiateContextList(SMBBuffer buffer, int negotiateContextOffset, int negotiateContextCount) {
+    private void readNegotiateContextList(SMBBuffer buffer, int negotiateContextOffset, @SuppressWarnings("unused") int negotiateContextCount) {
         if (dialect == SMB2Dialect.SMB_3_1_1) {
             buffer.rpos(negotiateContextOffset);
             throw new UnsupportedOperationException("Cannot read NegotiateContextList yet");
