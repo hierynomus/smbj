@@ -14,123 +14,113 @@
  * limitations under the License.
  */
 
-package com.hierynomus.msdfsc;
+package com.hierynomus.msdfsc
 
-import static org.junit.Assert.*;
-
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.UUID;
-import java.util.concurrent.Future;
-import java.util.List;
-
-import org.junit.Test;
-
-import com.hierynomus.msdfsc.DFS;
-import com.hierynomus.msdfsc.DFSException;
-import com.hierynomus.msdfsc.DFSReferral;
-import com.hierynomus.msdfsc.DFS.ReferralResult;
-import com.hierynomus.msdfsc.SMB2GetDFSReferralResponse;
-import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
-import com.hierynomus.mssmb2.messages.SMB2IoctlRequest;
-import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
-import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
-import com.hierynomus.mssmb2.SMB2Dialect
-import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
-import com.hierynomus.smbj.DefaultConfig
-import com.hierynomus.smbj.SMBClient
-import com.hierynomus.smbj.common.SmbPath;
-import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.share.TreeConnect;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.connection.Request;
-import com.hierynomus.smbj.event.SMBEventBus;
-import com.hierynomus.smbj.transport.TransportException;
-import com.hierynomus.smbj.transport.TransportLayer;
-import com.hierynomus.smbj.auth.AuthenticationContext
-import com.hierynomus.smbj.connection.NegotiatedProtocol
-import com.hierynomus.smbj.connection.Request
-import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.smbj.common.SMBBuffer
-import com.hierynomus.mssmb2.SMB2ShareCapabilities;
-
+import com.hierynomus.smbj.common.SmbPath
 import spock.lang.Specification
+import spock.lang.Unroll
 
 class DFSPathTest extends Specification {
 
+  @Unroll
+  def "should parse #smbPath"() {
+    given:
+    def path = new DFSPath(smbPath)
 
-    def "test parsePath typical path"() {
-        def out;
-        when:
-        out = DFS.parsePath("\\a\\b\\c\\d");
-        
-        then:
-        out.length == 4;
-        out[0]=="a";
-        out[1]=="b";
-        out[2]=="c";
-        out[3]=="d";
-    }
-    
-    def "test parsePath starts with double slash"() {
-        def out;
-        when:
-        out = DFS.parsePath("\\\\a\\b\\c\\d");
-        
-        then:
-        out.length == 4;
-        out[0]=="a";
-        out[1]=="b";
-        out[2]=="c";
-        out[3]=="d";
-    }
-    def "test parsePath starts with no slash"() {
-        def out;
-        when:
-        out = DFS.parsePath("a\\b\\c\\d");
-        
-        then:
-        out.length == 4;
-        out[0]=="a";
-        out[1]=="b";
-        out[2]=="c";
-        out[3]=="d";
-    }
-    def "test parsePath single element"() {
-        def out;
-        when:
-        out = DFS.parsePath("a");
-        
-        then:
-        out.length == 1;
-        out[0]=="a";
-    }
-    
-    def "test normalizePath typical path"() {
-        def out;
-        when:
-        out = DFS.normalizePath("\\a\\b\\c\\d");
-        
-        then:
-        out=="\\a\\b\\c\\d";
-    }
-    
-    def "test normalizePath starts with double slash"() {
-        def out;
-        when:
-        out = DFS.normalizePath("\\\\a\\b\\c\\d");
-        
-        then:
-        out=="\\a\\b\\c\\d";
-    }
-    def "test normalizePath single element"() {
-        def out;
-        when:
-        out = DFS.normalizePath("\\a");
-        
-        then:
-        out=="\\a";
-    }
+    expect:
+    path.pathComponents == components
+
+    where:
+    smbPath        | components
+    "\\a\\b\\c\\d" | ["a", "b", "c", "d"]
+    "\\a"          | ["a"]
+    "\\a\\b"       | ["a", "b"]
+  }
+
+  def "should replace path prefix"() {
+    given:
+    def path = new DFSPath("\\a\\b\\d")
+
+    when:
+    def replacedPath = path.replacePrefix("\\a\\b", "\\z\\x\\y")
+
+    then:
+    replacedPath.pathComponents == ["z", "x", "y", "d"]
+  }
+
+//  def "test parsePath typical path"() {
+//    def out;
+//    when:
+//    out = DFS.parsePath("\\a\\b\\c\\d");
+//
+//    then:
+//    out.length == 4;
+//    out[0] == "a";
+//    out[1] == "b";
+//    out[2] == "c";
+//    out[3] == "d";
+//  }
+//
+//  def "test parsePath starts with double slash"() {
+//    def out;
+//    when:
+//    out = DFS.parsePath("\\\\a\\b\\c\\d");
+//
+//    then:
+//    out.length == 4;
+//    out[0] == "a";
+//    out[1] == "b";
+//    out[2] == "c";
+//    out[3] == "d";
+//  }
+//
+//  def "test parsePath starts with no slash"() {
+//    def out;
+//    when:
+//    out = DFS.parsePath("a\\b\\c\\d");
+//
+//    then:
+//    out.length == 4;
+//    out[0] == "a";
+//    out[1] == "b";
+//    out[2] == "c";
+//    out[3] == "d";
+//  }
+//
+//  def "test parsePath single element"() {
+//    def out;
+//    when:
+//    out = DFS.parsePath("a");
+//
+//    then:
+//    out.length == 1;
+//    out[0] == "a";
+//  }
+//
+//  def "test normalizePath typical path"() {
+//    def out;
+//    when:
+//    out = DFS.normalizePath("\\a\\b\\c\\d");
+//
+//    then:
+//    out == "\\a\\b\\c\\d";
+//  }
+//
+//  def "test normalizePath starts with double slash"() {
+//    def out;
+//    when:
+//    out = DFS.normalizePath("\\\\a\\b\\c\\d");
+//
+//    then:
+//    out == "\\a\\b\\c\\d";
+//  }
+//
+//  def "test normalizePath single element"() {
+//    def out;
+//    when:
+//    out = DFS.normalizePath("\\a");
+//
+//    then:
+//    out == "\\a";
+//  }
 }

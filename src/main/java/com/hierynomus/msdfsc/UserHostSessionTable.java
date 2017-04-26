@@ -15,11 +15,11 @@
  */
 package com.hierynomus.msdfsc;
 
-import java.security.InvalidParameterException;
-import java.util.Hashtable;
-
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.session.Session;
+
+import java.security.InvalidParameterException;
+import java.util.Hashtable;
 
 /**
  * table to store Sessions indexed by domain/user and remote host name.

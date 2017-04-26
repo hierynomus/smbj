@@ -93,11 +93,35 @@ public enum NtStatus implements EnumWithValue<NtStatus> {
         return value;
     }
 
+    /**
+     * Check whether the 'Sev' bits are set to 0x0.
+     * @return
+     */
     public boolean isSuccess() {
         return (value >>> 30) == 0;
     }
 
+    /**
+     * Check whether the 'Sev' bits are set to 0x01.
+     * @return
+     */
+    public boolean isInformational() {
+        return (value >>> 30) == 0x01;
+    }
+
+    /**
+     * Check whether the 'Sev' bits are set to 0x02.
+     * @return
+     */
+    public boolean isWarning() {
+        return (value >>> 30) == 0x02;
+    }
+
+    /**
+     * Check whether the 'Sev' bits are set to 0x03.
+     * @return
+     */
     public boolean isError() {
-        return (value >>> 30) == 0x3;
+        return (value >>> 30) == 0x03;
     }
 }

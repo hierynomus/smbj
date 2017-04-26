@@ -15,18 +15,13 @@
  */
 package com.hierynomus.smbj;
 
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.event.SMBEventBus;
+import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import com.hierynomus.msdfsc.DFS;
-import com.hierynomus.msdfsc.DFSException;
-import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
-import com.hierynomus.smbj.common.SmbPath;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.event.SMBEventBus;
-import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
 
 /**
  * Server Message Block Client API.
@@ -41,7 +36,6 @@ public class SMBClient {
 
     private Config config;
     
-    private DFS dfs;
 
     private SMBEventBus bus;
 
@@ -52,7 +46,6 @@ public class SMBClient {
     public SMBClient(Config config) {
         this.config = config;
         bus = new SMBEventBus();
-        dfs = new DFS();
     }
 
     /**
@@ -90,14 +83,4 @@ public class SMBClient {
             return connectionTable.get(hostname);
         }
     }
-
-    public void resolvePathNotCoveredError(Session session, SMB2CreateRequest packet) throws DFSException {
-        dfs.resolvePathNotCoveredError(session, packet);
-    }
-
-    public void resolveDFS(Session session, SmbPath smbPath) throws DFSException {
-        dfs.resolveDFS(session, smbPath);
-    }
-    
-    
 }

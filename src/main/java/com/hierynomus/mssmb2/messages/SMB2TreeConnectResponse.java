@@ -91,12 +91,12 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
     public EnumSet<SMB2ShareCapabilities> getCapabilities() {
         return capabilities;
     }
-    
-    public void setCapabilities(EnumSet<SMB2ShareCapabilities> capabilities) {
-        this.capabilities = capabilities;
-    }
 
     public long getMaximalAccess() {
         return maximalAccess;
+    }
+
+    public void setCapabilities(EnumSet<SMB2ShareCapabilities> p) {
+        this.capabilities = p;
     }
 }

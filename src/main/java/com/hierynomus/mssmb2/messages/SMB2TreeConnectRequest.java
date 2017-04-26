@@ -54,4 +54,20 @@ public class SMB2TreeConnectRequest extends SMB2Packet {
             buffer.putReserved2();
         }
     }
+
+    /**
+     * Needed for DFS resolution
+     * @return
+     */
+    public SmbPath getSmbPath() {
+        return smbPath;
+    }
+
+    /**
+     * Needed for DFS resolution
+     * @param smbPath The resolved SMB Path
+     */
+    public void setSmbPath(SmbPath smbPath) {
+        this.smbPath = smbPath;
+    }
 }

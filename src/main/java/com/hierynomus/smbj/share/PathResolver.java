@@ -15,12 +15,11 @@
  */
 package com.hierynomus.smbj.share;
 
-import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.session.Session;
 
 /**
  * Resolve an SmbPath
  */
 public interface PathResolver {
-    SmbPath resolve(Session session, SmbPath smbPath) throws PathResolveException;
+    String resolve(Session session, String path) throws PathResolveException;
 }

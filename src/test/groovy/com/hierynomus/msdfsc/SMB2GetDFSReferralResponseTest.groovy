@@ -13,104 +13,64 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.msdfsc;
-import static org.junit.Assert.*;
+package com.hierynomus.msdfsc
 
-import org.junit.Test;
-import spock.lang.Specification;
+import com.hierynomus.msdfsc.messages.DFSReferral
+import com.hierynomus.msdfsc.messages.DFSReferralV34
+import com.hierynomus.msdfsc.messages.SMB2GetDFSReferralResponse
+import spock.lang.Specification
+import com.hierynomus.smbj.common.SMBBuffer
+import spock.lang.Unroll;
 
-import java.util.ArrayList;
-import java.util.List;
+class SMB2GetDFSReferralResponseTest extends Specification {
 
-import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
-import com.hierynomus.smbj.common.SMBBuffer;
+  @Unroll
+  def "encode dfs referral response #serverType"() {
+    given:
+    def buf = new SMBBuffer(data.decodeHex())
+    def dfsRefResp = new SMB2GetDFSReferralResponse("\\SERVERHOST\\Sales")
 
-class SMB2GetDFSReferralResponseTest extends Specification  {
+    when:
+    dfsRefResp.read(buf)
 
-    def "encode dfs referral response root" () {
-        when:
-        def referralEntry = new DFSReferral();
-        referralEntry.versionNumber = 4;
-        referralEntry.serverType = DFSReferral.SERVERTYPE_ROOT;
-        referralEntry.referralEntryFlags = 4;
-        referralEntry.dfsPath = "\\10.0.0.10\\sales";
-        referralEntry.dfsAlternatePath = "\\10.0.0.10\\sales";
-        referralEntry.path = "\\SERVERHOST\\Sales";
-        referralEntry.ttl = 300;
-        
-        def referrals = [referralEntry ] as ArrayList
-        
-        def dfsRefResp = new SMB2GetDFSReferralResponse("\\SERVERHOST\\Sales",
-            38,
-            1,
-            3,
-            referrals,
-            "");
-    
-        def buf = new SMBBuffer();
-        dfsRefResp.writeTo(buf);
-        def data = buf.getCompactData();
-        
-        then:
-        data=="260001000300000004002200010004002c010000220044006600000000000000000000000000000000005C00310030002E0030002E0030002E00310030005C00730061006C006500730000005C00310030002E0030002E0030002E00310030005C00730061006C006500730000005C0053004500520056004500520048004F00530054005C00530061006C00650073000000".decodeHex()
-    }
-    
-    def "encode dfs referral response link" () {
-        when:
-        def referralEntry = new DFSReferral();
-        referralEntry.versionNumber = 4;
-        referralEntry.serverType = DFSReferral.SERVERTYPE_LINK;
-        referralEntry.referralEntryFlags = 4;
-        referralEntry.dfsPath = "\\10.0.0.10\\sales";
-        referralEntry.dfsAlternatePath = "\\10.0.0.10\\sales";
-        referralEntry.path = "\\SERVERHOST\\Sales";
-        referralEntry.ttl = 300;
-        
-        def referrals = [referralEntry ] as ArrayList
-        
-        def dfsRefResp = new SMB2GetDFSReferralResponse("\\SERVERHOST\\Sales",
-            38,
-            1,
-            3,
-            referrals,
-            "");
-    
-        def buf = new SMBBuffer();
-        dfsRefResp.writeTo(buf);
-        def data = buf.getCompactData();
-        
-        then:
-        data=="260001000300000004002200000004002c010000220044006600000000000000000000000000000000005C00310030002E0030002E0030002E00310030005C00730061006C006500730000005C00310030002E0030002E0030002E00310030005C00730061006C006500730000005C0053004500520056004500520048004F00530054005C00530061006C00650073000000".decodeHex()
-    }
+    then:
+    dfsRefResp.referralEntries.size() == 1
+    dfsRefResp.referralHeaderFlags.asList() == [SMB2GetDFSReferralResponse.ReferralHeaderFlags.ReferralServers, SMB2GetDFSReferralResponse.ReferralHeaderFlags.StorageServers]
+    def refEntry = dfsRefResp.referralEntries[0]
+    refEntry.versionNumber == 4
+    refEntry.serverType == serverType
+    refEntry.referralEntryFlags == 4
+    refEntry.dfsPath == "\\10.0.0.10\\sales"
+    refEntry.dfsAlternatePath == "\\10.0.0.10\\sales"
+    refEntry.path == "\\SERVERHOST\\Sales"
+    refEntry.ttl == 300
 
-    def "encode dfs referral response domain" () {
-        when:
-        def referralEntry = new DFSReferral();
-        referralEntry.versionNumber = 3;
-        referralEntry.serverType = DFSReferral.SERVERTYPE_ROOT;
-        referralEntry.referralEntryFlags = 0x2;
-        referralEntry.dfsPath = "\\SEVERHOST\\sales";
-        referralEntry.dfsAlternatePath = "\\SERVERHOST\\sales";
-        referralEntry.path = "\\DOMAIN";
-        referralEntry.ttl = 300;
-        referralEntry.specialName = "DOMAIN"
-        referralEntry.expandedNames = ["SERVERHOST"] as ArrayList;
-        
-        def referrals = [referralEntry ] as ArrayList
-        
-        def dfsRefResp = new SMB2GetDFSReferralResponse("\\SERVERHOST\\Sales",
-            38,
-            1,
-            3,
-            referrals,
-            "");
-    
-        def buf = new SMBBuffer();
-        dfsRefResp.writeTo(buf);
-        def data = buf.getCompactData();
-        
-        then:
-        data=="260001000300000003002200010002002c0100002200010030000000000000000000000000000000000044004f004d00410049004e00000053004500520056004500520048004f00530054000000".decodeHex()
-    }
-    
+    where:
+    data << ["260001000300000004002200010004002c010000220044006600000000000000000000000000000000005C00310030002E0030002E0030002E00310030005C00730061006C006500730000005C00310030002E0030002E0030002E00310030005C00730061006C006500730000005C0053004500520056004500520048004F00530054005C00530061006C00650073000000",
+             "260001000300000004002200000004002c010000220044006600000000000000000000000000000000005C00310030002E0030002E0030002E00310030005C00730061006C006500730000005C00310030002E0030002E0030002E00310030005C00730061006C006500730000005C0053004500520056004500520048004F00530054005C00530061006C00650073000000"]
+    serverType << [DFSReferral.ServerType.ROOT, DFSReferral.ServerType.LINK]
+  }
+
+  def "encode dfs referral response domain"() {
+    given:
+    def data = "260001000300000003002200010002002c0100002200010030000000000000000000000000000000000044004f004d00410049004e00000053004500520056004500520048004f00530054000000"
+    def buf = new SMBBuffer(data.decodeHex())
+    def dfsRefResp = new SMB2GetDFSReferralResponse("\\SERVERHOST\\Sales")
+
+    when:
+    dfsRefResp.read(buf)
+
+    then:
+    def referralEntry = dfsRefResp.referralEntries[0]
+    referralEntry.versionNumber == 3
+    referralEntry.serverType == DFSReferral.ServerType.ROOT
+    referralEntry.referralEntryFlags == 0x2
+    referralEntry.dfsPath == "\\SERVERHOST\\Sales"
+    referralEntry.dfsAlternatePath == null
+    referralEntry.path == null
+    referralEntry.ttl == 300
+    referralEntry.specialName == "DOMAIN"
+    referralEntry.expandedNames == ["SERVERHOST"] as ArrayList
+  }
+
 }

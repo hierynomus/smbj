@@ -20,6 +20,10 @@ public class SmbPath {
     private final String shareName;
     private final String path;
 
+    public SmbPath(String hostname) {
+        this(hostname, null, null);
+    }
+
     public SmbPath(String hostname, String shareName) {
         this(hostname, shareName, null);
     }
@@ -62,11 +66,13 @@ public class SmbPath {
         }
 
         String[] split = splitPath.split("\\\\", 3);
+        if (split.length == 1) {
+            return new SmbPath(split[0]);
+        }
         if (split.length == 2) {
             return new SmbPath(split[0], split[1]);
-        } else {
-            return new SmbPath(split[0], split[1], split[2]);
         }
+        return new SmbPath(split[0], split[1], split[2]);
     }
 
     public String getHostname() {

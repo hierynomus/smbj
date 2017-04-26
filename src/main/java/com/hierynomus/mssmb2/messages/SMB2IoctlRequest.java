@@ -24,18 +24,16 @@ import com.hierynomus.smbj.common.SMBBuffer;
  */
 public class SMB2IoctlRequest extends SMB2Packet {
 
-    long MAX_OUTPUT_BUFFER_LENGTH = 64 * 1024;
+    private static final long MAX_OUTPUT_BUFFER_LENGTH = 64 * 1024;
 
     private final ControlCode controlCode;
     private final SMB2FileId fileId;
     private final byte[] inputData;
     private final boolean fsctl;
 
-    public SMB2IoctlRequest(
-        SMB2Dialect negotiatedDialect, long sessionId, long treeId,
-        ControlCode controlCode, SMB2FileId fileId,
-        byte[] inputData, boolean fsctl
-    ) {
+    public SMB2IoctlRequest(SMB2Dialect negotiatedDialect, long sessionId, long treeId,
+                            ControlCode controlCode, SMB2FileId fileId,
+                            byte[] inputData, boolean fsctl) {
         super(57, negotiatedDialect, SMB2MessageCommandCode.SMB2_IOCTL, sessionId, treeId);
         this.controlCode = controlCode;
         this.fileId = fileId;

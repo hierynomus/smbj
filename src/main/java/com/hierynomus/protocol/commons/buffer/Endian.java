@@ -15,15 +15,40 @@
  */
 package com.hierynomus.protocol.commons.buffer;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 /**
  * Buffer helper class to read/write bytes in correct endian order.
  */
 public abstract class Endian {
-
+    private static final byte[] NULL_TERMINATOR = new byte[]{0, 0};
     public static final Endian LE = new Little();
     public static final Endian BE = new Big();
+
+    protected <T extends Buffer<T>> String readNullTerminatedUtf16String(Buffer<T> buffer, Charset charset) throws Buffer.BufferException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        byte[] bytes = new byte[2];
+        buffer.readRawBytes(bytes);
+        while (bytes[0] != 0 || bytes[1] != 0) {
+            baos.write(bytes, 0, 2);
+            buffer.readRawBytes(bytes);
+        }
+        return new String(baos.toByteArray(), charset);
+    }
+
+    protected <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length, Charset charset) throws Buffer.BufferException {
+        byte[] stringBytes = new byte[length * 2];
+        buffer.readRawBytes(stringBytes);
+        return new String(stringBytes, charset);
+    }
+
+    public <T extends Buffer<T>> void writeNullTerminatedUtf16String(Buffer<T> buffer, String string) {
+        writeUtf16String(buffer, string);
+        buffer.putRawBytes(NULL_TERMINATOR);
+    }
+
 
     private static class Big extends Endian {
 
@@ -122,9 +147,12 @@ public abstract class Endian {
 
         @Override
         public <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException {
-            byte[] stringBytes = new byte[length * 2];
-            buffer.readRawBytes(stringBytes);
-            return new String(stringBytes, StandardCharsets.UTF_16BE);
+            return readUtf16String(buffer, length, StandardCharsets.UTF_16BE);
+        }
+
+        @Override
+        public <T extends Buffer<T>> String readNullTerminatedUtf16String(Buffer<T> buffer) throws Buffer.BufferException {
+            return readNullTerminatedUtf16String(buffer, StandardCharsets.UTF_16BE);
         }
 
         @Override
@@ -244,9 +272,12 @@ public abstract class Endian {
 
         @Override
         public <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException {
-            byte[] stringBytes = new byte[length * 2];
-            buffer.readRawBytes(stringBytes);
-            return new String(stringBytes, StandardCharsets.UTF_16LE);
+            return readUtf16String(buffer, length, StandardCharsets.UTF_16LE);
+        }
+
+        @Override
+        public <T extends Buffer<T>> String readNullTerminatedUtf16String(Buffer<T> buffer) throws Buffer.BufferException {
+            return readNullTerminatedUtf16String(buffer, StandardCharsets.UTF_16LE);
         }
 
         @Override
@@ -284,5 +315,7 @@ public abstract class Endian {
     public abstract <T extends Buffer<T>> void writeUtf16String(Buffer<T> buffer, String string);
 
     public abstract <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException;
+
+    public abstract <T extends Buffer<T>> String readNullTerminatedUtf16String(Buffer<T> buffer) throws Buffer.BufferException;
 
 }

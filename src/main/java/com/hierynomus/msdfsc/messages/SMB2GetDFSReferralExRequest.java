@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.msdfsc;
+package com.hierynomus.msdfsc.messages;
 
 import com.hierynomus.smbj.common.SMBBuffer;
 
-public class SMB2GetDFSReferralEx {
-    int maxReferralLevel;
-    int requestFlags;
-    String requestFileName;
-    String siteName;
+public class SMB2GetDFSReferralExRequest {
+    private int maxReferralLevel;
+    private int requestFlags;
+    private String requestFileName;
+    private String siteName;
     
     enum RequestFlags {
         FLAGS_SITENAMEPRESENT(0x1);
@@ -37,14 +37,14 @@ public class SMB2GetDFSReferralEx {
         }
     }
     
-    public SMB2GetDFSReferralEx(String path) {
+    public SMB2GetDFSReferralExRequest(String path) {
         maxReferralLevel = 0;
         requestFlags = 0;
         requestFileName = path;
         siteName = null;
     }
 
-    public SMB2GetDFSReferralEx(String path, String site) {
+    public SMB2GetDFSReferralExRequest(String path, String site) {
         maxReferralLevel = 0;
         requestFlags = RequestFlags.FLAGS_SITENAMEPRESENT.getValue();
         requestFileName = path;

@@ -16,19 +16,18 @@
 package com.hierynomus.msdfsc;
 
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.smbj.share.PathResolveException;
 
-public class DFSException extends Exception {
-    NtStatus status;
-    
+public class DFSException extends PathResolveException {
+    public DFSException(NtStatus status, String message) {
+        super(status, message);
+    }
+
     public DFSException(NtStatus status) {
-        super();
-        this.status = status;
+        super(status);
     }
-    public DFSException(Throwable t) {
-        super(t);
-        this.status = NtStatus.UNKNOWN;
-    }
-    public NtStatus getStatus() {
-        return status;
+
+    public DFSException(Throwable cause) {
+        super(cause);
     }
 }

@@ -15,8 +15,13 @@
  */
 package com.hierynomus.msdfsc;
 
-import java.util.Hashtable;
+import com.hierynomus.msdfsc.messages.DFSReferral;
+import com.hierynomus.msdfsc.messages.SMB2GetDFSReferralResponse;
+import com.hierynomus.protocol.commons.EnumWithValue;
+
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * [MS-DFSC].pdf 3.1.1 Abstract Data Model DomainCache: Applicable only for a
@@ -30,41 +35,44 @@ import java.util.List;
  * successfully used by the DFS client.
  */
 public class DomainCache {
-    private Hashtable<String, DomainCacheEntry> cache = new Hashtable<String, DomainCacheEntry>();
+    private Map<String, DomainCacheEntry> cache = new ConcurrentHashMap<>();
 
-    public class DomainCacheEntry {
+    static class DomainCacheEntry {
         String domainName;
         String DCHint;
         List<String> DCList;
 
-        //      3.1.5.4.2 Receiving a DC Referral Response
-        //      This is applicable only to a domain-joined computer. The DFS client receives this referral response for the DC
-        //      referral request that it sent in step 5.2 of section 3.1.4.1. The DC referral response MUST be version 3 or later;
-
-        //      otherwise, the client MUST ignore the referral response.
-        //      The client MUST verify that the NumberOfReferrals field of the referral header is 1 and that the NameListReferral
-        //      bit is set in the referral entry. The other bits of ReferralEntryFlags in the referral entry MUST be ignored.
-        //      The NumberOfExpandedNames in the referral entry contains the number of DC names returned. The client MUST
-        //      use the value in the NumberOfExpandedNames field to determine how many names are present in the list at
-        //      ExpandedNameOffset. The client can access the first null-terminated Unicode DC name string that is returned by
-        //      adding the value in the ExpandedNameOffset field to the address of the referral entry. Immediately following the
-        //      null termination of a DC name is the next DC name returned. The client can access the null-terminated Unicode
-        //      domain name that corresponds to the referral response by adding the value in the SpecialNameOffset to the
-        //      address of the referral entry.
-        //      The client MUST add the list of DCs determined for a domain name to DCList of the DomainCache entry that
-        //      corresponds to the domain name. If the DomainCache entry's DCList is not empty, the client MUST replace
-        //      it with the DC list from the referral response and set DCHint to the first DC in the new DCList.
-        public DomainCacheEntry(SMB2GetDFSReferralResponse response) {
-            if (response.referralEntries.size() != 1) {
-                throw new IllegalStateException("Expecting exactly 1 referral for a domain referral, found: "+response.referralEntries.size());
+        /**
+         * 3.1.5.4.2 Receiving a DC Referral Response
+         * This is applicable only to a domain-joined computer. The DFS client receives this referral response for the DC referral request that it
+         * sent in step 5.2 of section 3.1.4.1. The DC referral response MUST be version 3 or later; otherwise, the client MUST ignore the referral response.
+         * The client MUST verify that the NumberOfReferrals field of the referral header is 1 and that the NameListReferral bit is set in the referral entry.
+         * The other bits of ReferralEntryFlags in the referral entry MUST be ignored. The NumberOfExpandedNames in the referral entry contains the number
+         * of DC names returned. The client MUST use the value in the NumberOfExpandedNames field to determine how many names are present in the list at
+         * ExpandedNameOffset. The client can access the first null-terminated Unicode DC name string that is returned by adding the value in the
+         * ExpandedNameOffset field to the address of the referral entry. Immediately following the null termination of a DC name is the next DC name returned.
+         * The client can access the null-terminated Unicode domain name that corresponds to the referral response by adding the value in the SpecialNameOffset
+         * to the address of the referral entry.
+         * The client MUST add the list of DCs determined for a domain name to DCList of the DomainCache entry that corresponds to the domain name.
+         * If the DomainCache entry's DCList is not empty, the client MUST replace it with the DC list from the referral response and set DCHint to the
+         * first DC in the new DCList.
+         */
+        DomainCacheEntry(SMB2GetDFSReferralResponse response) {
+            if (response.getReferralEntries().size() != 1) {
+                throw new IllegalStateException("Expecting exactly 1 referral for a domain referral, found: " + response.getReferralEntries().size());
             }
-            domainName = response.referralEntries.get(0).specialName;
-            DCHint = response.referralEntries.get(0).expandedNames.get(0);
-            DCList = response.referralEntries.get(0).expandedNames;
+            DFSReferral dfsReferral = response.getReferralEntries().get(0);
+            if (!EnumWithValue.EnumUtils.isSet(dfsReferral.getReferralEntryFlags(), DFSReferral.ReferralEntryFlags.NameListReferral)) {
+                throw new IllegalStateException("Referral Entry for '" + dfsReferral.getSpecialName() + "' does not have NameListReferral bit set.");
+            }
+
+            domainName = dfsReferral.getSpecialName();
+            DCHint = dfsReferral.getExpandedNames().get(0);
+            DCList = dfsReferral.getExpandedNames();
         }
-        
+
         public String toString() {
-            return domainName+"->"+DCHint+", "+DCList;
+            return domainName + "->" + DCHint + ", " + DCList;
         }
     }
 
@@ -74,9 +82,5 @@ public class DomainCache {
 
     public void put(DomainCacheEntry domainCacheEntry) {
         cache.put(domainCacheEntry.domainName, domainCacheEntry);
-    }
-
-    public void clear() {
-        cache.clear();
     }
 }

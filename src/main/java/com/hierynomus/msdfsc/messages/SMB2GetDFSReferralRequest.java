@@ -13,14 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.share;
+package com.hierynomus.msdfsc.messages;
 
-import com.hierynomus.smbj.common.SmbPath;
-import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.common.SMBBuffer;
 
-public class LocalPathResolver implements PathResolver {
-    @Override
-    public SmbPath resolve(Session session, SmbPath smbPath) {
-        return smbPath;
+import java.nio.charset.StandardCharsets;
+
+/**
+ * [MS-DFSC].pdf 2.2.2 REQ_GET_DFS_REFERRAL
+ */
+public class SMB2GetDFSReferralRequest {
+
+    private String requestFileName;
+    
+    public SMB2GetDFSReferralRequest(String path) {
+        requestFileName = path;
+    }
+    
+    public void writeTo(SMBBuffer buffer) {
+        buffer.putUInt16(4); // MaxReferralLevel (2 bytes)
+        buffer.putNullTerminatedString(requestFileName, StandardCharsets.UTF_16); // RequestFileName (variable)
     }
 }

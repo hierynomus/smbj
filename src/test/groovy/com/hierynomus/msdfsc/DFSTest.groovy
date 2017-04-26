@@ -15,6 +15,9 @@
  */
 package com.hierynomus.msdfsc
 
+import com.hierynomus.msdfsc.messages.DFSReferral
+import com.hierynomus.msdfsc.messages.DFSReferralV34
+import com.hierynomus.msdfsc.messages.SMB2GetDFSReferralResponse
 import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2ShareCapabilities
@@ -32,6 +35,7 @@ import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.transport.TransportLayer
 import spock.lang.Specification
 
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.Future
 
 class DFSTest extends Specification {
@@ -87,15 +91,14 @@ class DFSTest extends Specification {
     }
 
     def auth = new AuthenticationContext("username", "password".toCharArray(), "domain.com")
-    def resolver = new DFSPathResolver()
-    def session = new Session(123, connection, auth, bus, false, new JceSecurityProvider(), resolver)
+    def session = new DFSSession(123, connection, auth, bus, false, new JceSecurityProvider())
     def path = new SmbPath("10.0.0.10", "Sales")
 
     when:
-    def resolvedPath = resolver.resolve(session, path)
+    def resolvedPath = session.resolver.resolve(session, path.toUncPath())
 
     then:
-    with(resolvedPath) {
+    with(SmbPath.parse(resolvedPath)) {
       hostname == "SERVERHOST"
       shareName == "Sales"
     }
@@ -152,54 +155,20 @@ class DFSTest extends Specification {
             get() >> {
               def d = request.inputData[2..-1] as byte[]
               def dbuf = new SMBBuffer(d);
-              def path = dbuf.readZString();
+              def path = dbuf.readNullTerminatedString(StandardCharsets.UTF_16);
               def response = new SMB2IoctlResponse()
               def referralResponse
               if (path == "domain.com") {
                 // the dc request
-                def referralEntry = new DFSReferral(
-                  4,
-                  1000,
-                  DFSReferral.SERVERTYPE_ROOT,
-                  2, // NameListReferral
-                  "\\domain.com",
-                  0,
-                  destination,
-                  destination,
-                  "domain.com",
-                  [destination] as ArrayList
-                );
-                referralResponse = new SMB2GetDFSReferralResponse(
-                  "\\domain.com",
-                  0,
-                  1,
-                  0,
-                  [referralEntry] as ArrayList,
-                  "")
+                def referralEntry = new DFSReferralV34(4, DFSReferral.ServerType.ROOT, 2, 1000, "domain.com", [destination])
+                referralResponse = new SMB2GetDFSReferralResponse("\\domain.com", 0, EnumSet.noneOf(SMB2GetDFSReferralResponse.ReferralHeaderFlags.class), [referralEntry])
               } else if (path == "\\domain.com\\Sales") {
                 //the root request
-                def referralEntry = new DFSReferral(
-                  4,    // referral version
-                  1000, // ttl
-                  DFSReferral.SERVERTYPE_ROOT,
-                  0,    // referralEntryFlags: non-NameListReferral
-                  "\\SERVERHOST\\Sales", // networkAddress
-                  0,    // proximity
-                  "\\domain.com\\Sales", // dfsPath
-                  "\\domain.com\\Sales", // dfsAltPath
-                  null, // no specialName
-                  null  // no expandedNames
-                );
-                referralResponse = new SMB2GetDFSReferralResponse(
-                  path,
-                  0,
-                  1,
-                  0,
-                  [referralEntry] as ArrayList,
-                  "")
+                def referralEntry = new DFSReferralV34(4, DFSReferral.ServerType.ROOT, 0, 1000, "\\domain.com\\Sales", "\\domain.com\\Sales", "\\SERVERHOST\\Sales")
+                referralResponse = new SMB2GetDFSReferralResponse(path, 0, EnumSet.noneOf(SMB2GetDFSReferralResponse.ReferralHeaderFlags.class), [referralEntry])
               }
-              def buf = new SMBBuffer();
-              referralResponse.writeTo(buf);
+              def buf = new SMBBuffer()
+              referralResponse.writeTo(buf)
 
               response.setOutputBuffer(buf.getCompactData())
               response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
@@ -210,15 +179,14 @@ class DFSTest extends Specification {
     }
 
     def auth = new AuthenticationContext("username", "password".toCharArray(), "domain.com")
-    def resolver = new DFSPathResolver()
-    session = new Session(123, connection, auth, bus, false, new JceSecurityProvider(), resolver)
+    session = new DFSSession(123, connection, auth, bus, false, new JceSecurityProvider())
     def path = new SmbPath("domain.com", "Sales")
 
     when:
-    def newPath = resolver.resolve(session, path)
+    def newPath = session.resolver.resolve(session, path.toUncPath())
 
     then:
-    with(newPath) {
+    with(SmbPath.parse(newPath)) {
       hostname == destination
       shareName == "Sales"
     }
@@ -275,19 +243,18 @@ class DFSTest extends Specification {
           }
       }
       authenticate(_) >> { AuthenticationContext auth ->
-        new Session(0, connection, auth, bus, false);
+        new DFSSession(0, connection, auth, bus, false, new JceSecurityProvider())
       }
     }
-    def resolver = new DFSPathResolver();
     AuthenticationContext auth = new AuthenticationContext("username", "password".toCharArray(), "domain.com");
-    session = new Session(0, connection, auth, bus, false, new JceSecurityProvider(), resolver);//TODO fill me in
+    session = new DFSSession(0, connection, auth, bus, false, new JceSecurityProvider());//TODO fill me in
     def path = SmbPath.parse("\\10.0.0.10\\Sales")
 
     when:
-    def newPath = resolver.resolve(session, path);
+    def newPath = session.resolver.resolve(session, path.toUncPath());
 
     then:
-    newPath.toString() == "\\\\SERVERHOST\\Sales"
+    newPath.toString() == "\\SERVERHOST\\Sales"
 
   }
   // test resolve with link resolve
@@ -342,30 +309,13 @@ class DFSTest extends Specification {
             get() >> {
               def d = request.inputData[2..-1] as byte[]
               def dbuf = new SMBBuffer(d);
-              def path = dbuf.readZString();
+              def path = dbuf.readNullTerminatedString(StandardCharsets.UTF_16);
               def response = new SMB2IoctlResponse()
               def referralResponse
               if (path == "\\SERVERHOST\\Sales\\NorthAmerica") {
                 //the root request
-                def referralEntry = new DFSReferral(
-                  4,    // referral version
-                  1000, // ttl
-                  DFSReferral.SERVERTYPE_ROOT,
-                  0,    // referralEntryFlags: non-NameListReferral
-                  "\\SERVERHOST\\Regions\\Region1", // networkAddress
-                  0,    // proximity
-                  "\\SERVERHOST\\Sales\\NorthAmerica", // dfsPath
-                  "\\SERVERHOST\\Sales\\NorthAmerica", // dfsAltPath
-                  null, // no specialName
-                  null  // no expandedNames
-                );
-                referralResponse = new SMB2GetDFSReferralResponse(
-                  path,
-                  0,
-                  1,
-                  0,
-                  [referralEntry] as ArrayList,
-                  "")
+                def referralEntry = new DFSReferralV34(4, DFSReferral.ServerType.ROOT, 0, 1000, "\\SERVERHOST\\Sales\\NorthAmerica", "\\SERVERHOST\\Sales\\NorthAmerica", "\\SERVERHOST\\Regions\\Region1")
+                referralResponse = new SMB2GetDFSReferralResponse(path, 0, EnumSet.noneOf(SMB2GetDFSReferralResponse.ReferralHeaderFlags.class), [referralEntry])
               }
               def buf = new SMBBuffer();
               referralResponse.writeTo(buf);
@@ -379,12 +329,11 @@ class DFSTest extends Specification {
     }
 
     def auth = new AuthenticationContext("username", "password".toCharArray(), "domain.com")
-    def resolver = new DFSPathResolver()
-    session = new Session(123, connection, auth, bus, false, new JceSecurityProvider(), resolver)
+    session = new DFSSession(123, connection, auth, bus, false, new JceSecurityProvider())
     def path = new SmbPath("SERVERHOST", "Sales", "NorthAmerica")
 
     when:
-    def newPath = resolver.resolve(session, path)
+    def newPath = SmbPath.parse(session.resolver.resolve(session, path.toUncPath()))
 
     then:
     newPath.hostname == "SERVERHOST"
@@ -444,31 +393,14 @@ class DFSTest extends Specification {
             get() >> {
               def d = request.inputData[2..-1] as byte[]
               def dbuf = new SMBBuffer(d);
-              def path = dbuf.readZString();
+              def path = dbuf.readNullTerminatedString(StandardCharsets.UTF_16);
               def response = new SMB2IoctlResponse()
               def referralResponse
 
               if (path == "\\SERVERHOST\\Sales\\NorthAmerica") {
                 //the root request
-                def referralEntry = new DFSReferral(
-                  4,    // referral version
-                  1000, // ttl
-                  DFSReferral.SERVERTYPE_LINK,
-                  1, //ReferralServers
-                  "\\ALTER\\Regions\\Region1", // target networkAddress
-                  0,    // proximity
-                  "\\SERVERHOST\\Sales\\NorthAmerica", // dfsPath
-                  "\\SERVERHOST\\Sales\\NorthAmerica", // dfsAltPath
-                  null, // no specialName
-                  null  // no expandedNames
-                );
-                referralResponse = new SMB2GetDFSReferralResponse(
-                  path,
-                  0,
-                  1,
-                  0,
-                  [referralEntry] as ArrayList,
-                  "")
+                def referralEntry = new DFSReferralV34(4, DFSReferral.ServerType.LINK, 0x4, 1000, "\\SERVERHOST\\Sales\\NorthAmerica", "\\SERVERHOST\\Sales\\NorthAmerica", "\\ALTER\\Regions\\Region1")
+                referralResponse = new SMB2GetDFSReferralResponse(path, 0, EnumSet.noneOf(SMB2GetDFSReferralResponse.ReferralHeaderFlags.class), [referralEntry])
               }
               def buf = new SMBBuffer();
               referralResponse.writeTo(buf);
@@ -482,13 +414,11 @@ class DFSTest extends Specification {
     }
 
     def auth = new AuthenticationContext("username", "password".toCharArray(), "domain.com")
-    def resolver = new DFSPathResolver()
-    session = new Session(123, connection, auth, bus, false, new JceSecurityProvider(), resolver)
+    session = new DFSSession(123, connection, auth, bus, false, new JceSecurityProvider())
     def path = new SmbPath("SERVERHOST", "Sales", "NorthAmerica")
 
     when:
-    resolver.dfs.clearCaches();
-    def resolvedPath = resolver.resolve(session, path)
+    def resolvedPath = SmbPath.parse(session.resolver.resolve(session, path.toUncPath()))
 
     then:
     resolvedPath.hostname == "ALTER"

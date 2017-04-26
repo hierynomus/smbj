@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.connection;
 
+import com.hierynomus.msdfsc.DFSSession;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
@@ -31,7 +32,6 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.share.LocalPathResolver;
 import com.hierynomus.smbj.transport.PacketReader;
 import com.hierynomus.smbj.transport.PacketReceiver;
 import com.hierynomus.smbj.transport.TransportException;
@@ -132,7 +132,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         try {
             Authenticator authenticator = getAuthenticator(authContext);
             authenticator.init(config.getSecurityProvider(), config.getRandomProvider());
-            Session session = new Session(0, this, authContext, bus, connectionInfo.isServerRequiresSigning(), config.getSecurityProvider(), new LocalPathResolver());
+            Session session = getSession(authContext);
             SMB2SessionSetup receive = authenticationRound(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
             long sessionId = receive.getHeader().getSessionId();
             session.setSessionId(sessionId);
@@ -160,6 +160,13 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         } catch (SpnegoException | IOException e) {
             throw new SMBRuntimeException(e);
         }
+    }
+
+    private Session getSession(AuthenticationContext authContext) {
+        if (config.isDFSEnabled()) {
+            return new DFSSession(0, this, authContext, bus, connectionInfo.isServerRequiresSigning(), config.getSecurityProvider());
+        }
+        return new Session(0, this, authContext, bus, connectionInfo.isServerRequiresSigning(), config.getSecurityProvider());
     }
 
     private SMB2SessionSetup authenticationRound(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {
@@ -197,7 +204,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
      *
      * @param packet SMBPacket to send
      * @return a Future to be used to retrieve the response packet
-     * @throws TransportException
+     * @throws TransportException When a transport level error occurred
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
         lock.lock();
@@ -338,6 +345,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     }
 
     @Handler
+    @SuppressWarnings("unused")
     private void sessionLogoff(SessionLoggedOff loggedOff) {
         connectionInfo.getSessionTable().sessionClosed(loggedOff.getSessionId());
         logger.debug("Session << {} >> logged off", loggedOff.getSessionId());
