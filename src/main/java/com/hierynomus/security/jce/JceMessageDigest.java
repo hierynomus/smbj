@@ -18,6 +18,7 @@ package com.hierynomus.security.jce;
 import com.hierynomus.security.MessageDigest;
 import com.hierynomus.security.SecurityException;
 
+import java.lang.reflect.InvocationTargetException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Provider;
@@ -34,8 +35,27 @@ public class JceMessageDigest implements MessageDigest {
             } else {
                 this.md = java.security.MessageDigest.getInstance(algorithm);
             }
-        } catch (NoSuchProviderException | NoSuchAlgorithmException e) {
+        } catch (NoSuchAlgorithmException e) {
+            if ("MD4".equals(algorithm)) {
+                tryMd4();
+            } else {
+                throw new SecurityException(e);
+            }
+        } catch (NoSuchProviderException e) {
             throw new SecurityException(e);
+        }
+    }
+
+    /**
+     * Special case, MD4 is available on Oracle JDK, but not enabled by default.
+     * @throws SecurityException If the MD4 digest could not be loaded
+     */
+    private void tryMd4() throws SecurityException {
+        try {
+            Class<?> md4Class = Class.forName("sun.security.provider.MD4");
+            this.md = (java.security.MessageDigest) md4Class.getMethod("getInstance").invoke(null);
+        } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e1) {
+            throw new SecurityException(e1);
         }
     }
 
