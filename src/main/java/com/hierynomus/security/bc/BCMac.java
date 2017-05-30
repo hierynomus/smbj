@@ -28,7 +28,7 @@ import java.util.Map;
 public class BCMac implements Mac {
     private static Map<String, Factory<org.bouncycastle.crypto.Mac>> lookup = new HashMap<>();
     static {
-        lookup.put("HMACSHA265", new Factory<org.bouncycastle.crypto.Mac>() {
+        lookup.put("HMACSHA256", new Factory<org.bouncycastle.crypto.Mac>() {
             @Override
             public org.bouncycastle.crypto.Mac create() {
                 return new HMac(new SHA256Digest());
