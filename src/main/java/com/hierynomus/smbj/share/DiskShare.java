@@ -380,7 +380,7 @@ public class DiskShare extends Share {
         }
     }
 
-    private boolean exists(String path, EnumSet<SMB2CreateOptions> createOptions) throws SMBApiException {
+    public boolean exists(String path, EnumSet<SMB2CreateOptions> createOptions) throws SMBApiException {
         logger.info("exists {}", path);
 
         SMB2FileId fileId = null;
