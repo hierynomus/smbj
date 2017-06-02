@@ -112,12 +112,7 @@ public class File extends DiskEntry {
      * @throws IOException
      */
     public int read(byte[] dst, int fileOffset, int length) throws IOException {
-        Session session = treeConnect.getSession();
         NegotiatedProtocol negotiatedProtocol = treeConnect.getSession().getConnection().getNegotiatedProtocol();
-
-        if(length > negotiatedProtocol.getMaxReadSize()){
-            length=negotiatedProtocol.getMaxReadSize();
-        }
 
         SMB2ReadRequest rreq = new SMB2ReadRequest(
             negotiatedProtocol.getDialect(),
@@ -125,14 +120,14 @@ public class File extends DiskEntry {
             treeConnect.getSession().getSessionId(),
             treeConnect.getTreeId(),
             fileOffset,
-            length
+            length < negotiatedProtocol.getMaxReadSize()? length : negotiatedProtocol.getMaxReadSize()
         );
 
         Future<SMB2ReadResponse> send = treeConnect.getSession().send(rreq);
         try {
             SMB2ReadResponse smb2Packet = send.get();
             int read = smb2Packet.getDataLength();
-            System.arraycopy(smb2Packet.getData(), 0, dst, 0, length);
+            System.arraycopy(smb2Packet.getData(), 0, dst, 0, read);
             return read;
         } catch (InterruptedException e) {
             throw new IOException(e);
@@ -158,8 +153,9 @@ public class File extends DiskEntry {
         {
             int remaining = lenght;
 
-            {
-                offset = fileOffset;
+            public ByteChunkProvider withOffset(int offset){
+                this.offset = offset;
+                return this;
             }
 
             @Override
@@ -186,7 +182,7 @@ public class File extends DiskEntry {
             {
                 return remaining;
             }
-        };
+        }.withOffset(fileOffset);
 
         SMB2WriteRequest wreq = new SMB2WriteRequest(
             negotiatedProtocol.getDialect(),
