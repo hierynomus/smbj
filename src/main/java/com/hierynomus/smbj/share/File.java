@@ -114,19 +114,23 @@ public class File extends DiskEntry {
     public int read(byte[] dst, int fileOffset, int length) throws IOException {
         NegotiatedProtocol negotiatedProtocol = treeConnect.getSession().getConnection().getNegotiatedProtocol();
 
+        int payloadSize = length < negotiatedProtocol.getMaxReadSize() ? length : negotiatedProtocol.getMaxReadSize();
         SMB2ReadRequest rreq = new SMB2ReadRequest(
             negotiatedProtocol.getDialect(),
             fileId,
             treeConnect.getSession().getSessionId(),
             treeConnect.getTreeId(),
             fileOffset,
-            length < negotiatedProtocol.getMaxReadSize()? length : negotiatedProtocol.getMaxReadSize()
+            payloadSize
         );
 
         Future<SMB2ReadResponse> send = treeConnect.getSession().send(rreq);
         try {
             SMB2ReadResponse smb2Packet = send.get();
             int read = smb2Packet.getDataLength();
+            if(read>payloadSize){
+                read=payloadSize;
+            }
             System.arraycopy(smb2Packet.getData(), 0, dst, 0, read);
             return read;
         } catch (InterruptedException e) {
