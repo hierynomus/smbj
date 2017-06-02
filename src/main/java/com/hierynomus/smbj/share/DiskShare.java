@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.share;
 
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.Future;
@@ -190,6 +191,43 @@ public class DiskShare extends Share {
                 new Buffer.PlainBuffer(outputBuffer, Endian.LE));
         } catch (Buffer.BufferException e) {
             throw new TransportException(e);
+        }
+    }
+
+    public void setBasicFileInformation(
+        SMB2FileId fileId,
+        Date creationTime,
+        Date lastAccessTime,
+        Date lastWriteTime,
+        Date changeTime,
+        long fileAttributes)
+        throws SMBApiException, TransportException {
+
+        Session session = treeConnect.getSession();
+        Connection connection = session.getConnection();
+
+        try {
+            byte[] basicInfo = FileInformationFactory.getFileBasicInfo(
+                creationTime,
+                lastAccessTime,
+                lastWriteTime,
+                changeTime,
+                fileAttributes
+            );
+            SMB2SetInfoRequest si_req = new SMB2SetInfoRequest(
+                connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
+                SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE, fileId,
+                FileInformationClass.FileBasicInformation, null, basicInfo);
+
+            Future<SMB2SetInfoResponse> setInfoFuture = session.send(si_req);
+            SMB2SetInfoResponse setInfoResponse = Futures.get(setInfoFuture, TransportException.Wrapper);
+
+            if (setInfoResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+                throw new SMBApiException(setInfoResponse.getHeader(), "SetInfo failed for " + fileId);
+            }
+
+        } catch (Buffer.BufferException e) {
+            throw new SMBRuntimeException(e);
         }
     }
 

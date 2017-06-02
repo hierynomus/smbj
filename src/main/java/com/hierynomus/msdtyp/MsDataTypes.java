@@ -82,6 +82,16 @@ public class MsDataTypes {
     }
 
     /**
+     * [MS-DTYP].pdf 2.3.3 FILETIME
+     *
+     * store Date into FileTime in the buffer
+     */
+    public static void putFileTime(Date date, Buffer<?> buffer) {
+        long windowsTimeStamp = (date.getTime() * NANO100_TO_MILLI) + WINDOWS_TO_UNIX_EPOCH;
+        buffer.putUInt64(windowsTimeStamp, Endian.LE);
+    }
+
+    /**
      * A 64-bit unsigned integer that contains the current system time, represented
      * as the number of 100 nanosecond ticks elapsed since midnight of January 1, 1601 (UTC)
      */
