@@ -15,23 +15,28 @@
  */
 package com.hierynomus.smbj.share;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.concurrent.Future;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2FileId;
+import com.hierynomus.mssmb2.messages.SMB2ReadRequest;
+import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
 import com.hierynomus.mssmb2.messages.SMB2WriteRequest;
 import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.connection.NegotiatedProtocol;
 import com.hierynomus.smbj.io.ByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 public class File extends DiskEntry {
 
@@ -94,6 +99,119 @@ public class File extends DiskEntry {
 
     public OutputStream getOutputStream(final ProgressListener listener) {
         return new FileOutputStream(this, listener);
+    }
+
+
+    /**
+     * Direct buffer read from the file
+     *
+     * @param dst        source buffer to be  written
+     * @param fileOffset offset where to start read
+     * @param length     length of src buffer
+     * @return bytes readed
+     * @throws IOException
+     */
+    public int read(byte[] dst, int fileOffset, int length) throws IOException {
+        Session session = treeConnect.getSession();
+        NegotiatedProtocol negotiatedProtocol = treeConnect.getSession().getConnection().getNegotiatedProtocol();
+
+        if(length > negotiatedProtocol.getMaxReadSize()){
+            length=negotiatedProtocol.getMaxReadSize();
+        }
+
+        SMB2ReadRequest rreq = new SMB2ReadRequest(
+            negotiatedProtocol.getDialect(),
+            fileId,
+            treeConnect.getSession().getSessionId(),
+            treeConnect.getTreeId(),
+            fileOffset,
+            length
+        );
+
+        Future<SMB2ReadResponse> send = treeConnect.getSession().send(rreq);
+        try {
+            SMB2ReadResponse smb2Packet = send.get();
+            int read = smb2Packet.getDataLength();
+            System.arraycopy(smb2Packet.getData(), 0, dst, 0, length);
+            return read;
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        } catch (ExecutionException e) {
+            throw new IOException(e);
+        }
+    }
+
+    /**
+     * Direct buffer write to the file
+     *
+     * @param src        source buffer to be  written
+     * @param fileOffset offset where to start write
+     * @param lenght     length of src buffer
+     * @return bytes written
+     * @throws IOException
+     */
+    public int write(final byte[] src, final int fileOffset, final int lenght) throws IOException {
+        Session session = treeConnect.getSession();
+        NegotiatedProtocol negotiatedProtocol = treeConnect.getSession().getConnection().getNegotiatedProtocol();
+
+        ByteChunkProvider provider = new ByteChunkProvider()
+        {
+            int remaining = lenght;
+
+            {
+                offset = fileOffset;
+            }
+
+            @Override
+            public boolean isAvailable()
+            {
+                return remaining > 0;
+            }
+
+            @Override
+            protected int getChunk(byte[] chunk) throws IOException
+            {
+                int write = chunk.length;
+                if (write > remaining) {
+                    write = remaining;
+                }
+                System.arraycopy(src, lenght - remaining, chunk, 0, write);
+                remaining -= write;
+
+                return write;
+            }
+
+            @Override
+            public int bytesLeft()
+            {
+                return remaining;
+            }
+        };
+
+        SMB2WriteRequest wreq = new SMB2WriteRequest(
+            negotiatedProtocol.getDialect(),
+            fileId,
+            session.getSessionId(),
+            treeConnect.getTreeId(),
+            provider,
+            negotiatedProtocol.getMaxWriteSize()
+        );
+        logger.trace("Sending {} for file {}, byte offset {}, bytes available {}", wreq, treeConnect.getHandle().smbPath, provider.getOffset(),
+                     provider.bytesLeft());
+        Future<SMB2WriteResponse> writeFuture = session.send(wreq);
+        try {
+            SMB2WriteResponse smb2WriteResponse = writeFuture.get();
+            Long write = smb2WriteResponse.getBytesWritten();
+            if (smb2WriteResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+                throw new SMBApiException(smb2WriteResponse.getHeader(), "Write failed for " + this);
+            }
+            return write.intValue();
+
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        } catch (ExecutionException e) {
+            throw new IOException(e);
+        }
     }
 
     @Override
