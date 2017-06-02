@@ -293,6 +293,27 @@ public class FileInformationFactory {
     }
 
     /**
+     * MS-FSCC 2.4.7 FileBasicInformation for SMB2
+     */
+    public static byte[] getFileBasicInfo(
+        Date creationTime,
+        Date lastAccessTime,
+        Date lastWriteTime,
+        Date changeTime,
+        long fileAttributes)
+        throws Buffer.BufferException {
+
+        Buffer.PlainBuffer buffer = new Buffer.PlainBuffer(Endian.LE);
+        MsDataTypes.putFileTime(creationTime, buffer); // CreationTime
+        MsDataTypes.putFileTime(lastAccessTime, buffer); // LastAccessTime
+        MsDataTypes.putFileTime(lastWriteTime, buffer); // LastWriteTime
+        MsDataTypes.putFileTime(changeTime, buffer); // ChangeTime
+        buffer.putUInt32(fileAttributes); // FileAttributes
+        buffer.putUInt32(0); // Reserved (4 bytes)
+        return buffer.getCompactData();
+    }
+
+    /**
      * [MS-SMB2] 2.2.34 SMB2 QUERY_DIRECTORY Response for FileInformationClass->FileIdBothDirectoryInformation
      *
      * @param data
