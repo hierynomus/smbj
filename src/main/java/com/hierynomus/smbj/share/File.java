@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.share;
 
+import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.messages.SMB2ReadRequest;
@@ -112,19 +113,30 @@ public class File extends DiskEntry {
      * @throws IOException
      */
     public int read(byte[] dst, int fileOffset, int length) throws IOException {
-        NegotiatedProtocol negotiatedProtocol = treeConnect.getSession().getConnection().getNegotiatedProtocol();
+
+        if ((this.accessMask & (AccessMask.GENERIC_READ.getValue() | AccessMask.FILE_READ_EA.getValue())) == 0) {
+            throw new SMBApiException(
+                NtStatus.STATUS_ACCESS_DENIED,
+                NtStatus.STATUS_ACCESS_DENIED.getValue(),
+                null,
+                "The file is not open for reading"
+            );
+        }
+
+        Session session = treeConnect.getSession();
+        NegotiatedProtocol negotiatedProtocol = session.getConnection().getNegotiatedProtocol();
 
         int payloadSize = length < negotiatedProtocol.getMaxReadSize() ? length : negotiatedProtocol.getMaxReadSize();
         SMB2ReadRequest rreq = new SMB2ReadRequest(
             negotiatedProtocol.getDialect(),
             fileId,
-            treeConnect.getSession().getSessionId(),
+            session.getSessionId(),
             treeConnect.getTreeId(),
             fileOffset,
             payloadSize
         );
 
-        Future<SMB2ReadResponse> send = treeConnect.getSession().send(rreq);
+        Future<SMB2ReadResponse> send = session.send(rreq);
         try {
             SMB2ReadResponse smb2Packet = send.get();
             int read = smb2Packet.getDataLength();
@@ -150,8 +162,18 @@ public class File extends DiskEntry {
      * @throws IOException
      */
     public int write(final byte[] src, final int fileOffset, final int lenght) throws IOException {
+
+        if ((this.accessMask & (AccessMask.GENERIC_WRITE.getValue() | AccessMask.FILE_WRITE_EA.getValue())) == 0) {
+            throw new SMBApiException(
+                NtStatus.STATUS_ACCESS_DENIED,
+                NtStatus.STATUS_ACCESS_DENIED.getValue(),
+                null,
+                "The file is not open for writing"
+            );
+        }
+
         Session session = treeConnect.getSession();
-        NegotiatedProtocol negotiatedProtocol = treeConnect.getSession().getConnection().getNegotiatedProtocol();
+        NegotiatedProtocol negotiatedProtocol = session.getConnection().getNegotiatedProtocol();
 
         ByteChunkProvider provider = new ByteChunkProvider()
         {
