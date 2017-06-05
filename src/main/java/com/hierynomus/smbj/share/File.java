@@ -102,7 +102,6 @@ public class File extends DiskEntry {
         return new FileOutputStream(this, listener);
     }
 
-
     /**
      * Direct buffer read from the file
      *
@@ -143,14 +142,12 @@ public class File extends DiskEntry {
                 throw new SMBApiException(smb2Packet.getHeader(), "Read failed for " + this);
             }
             int read = smb2Packet.getDataLength();
-            if(read>payloadSize){
-                read=payloadSize;
+            if (read > payloadSize) {
+                read = payloadSize;
             }
             System.arraycopy(smb2Packet.getData(), 0, dst, 0, read);
             return read;
-        } catch (InterruptedException e) {
-            throw new IOException(e);
-        } catch (ExecutionException e) {
+        } catch (InterruptedException | ExecutionException e) {
             throw new IOException(e);
         }
     }
@@ -160,11 +157,11 @@ public class File extends DiskEntry {
      *
      * @param src        source buffer to be  written
      * @param fileOffset offset where to start write
-     * @param lenght     length of src buffer
+     * @param length     length of src buffer
      * @return bytes written
      * @throws IOException
      */
-    public int write(final byte[] src, final int fileOffset, final int lenght) throws IOException {
+    public int write(final byte[] src, final int fileOffset, final int length) throws IOException {
 
         if ((this.accessMask & (AccessMask.GENERIC_WRITE.getValue() | AccessMask.FILE_WRITE_EA.getValue())) == 0) {
             throw new SMBApiException(
@@ -178,37 +175,33 @@ public class File extends DiskEntry {
         Session session = treeConnect.getSession();
         NegotiatedProtocol negotiatedProtocol = session.getConnection().getNegotiatedProtocol();
 
-        ByteChunkProvider provider = new ByteChunkProvider()
-        {
-            int remaining = lenght;
+        ByteChunkProvider provider = new ByteChunkProvider() {
+            int remaining = length;
 
-            public ByteChunkProvider withOffset(int offset){
+            ByteChunkProvider withOffset(int offset) {
                 this.offset = offset;
                 return this;
             }
 
             @Override
-            public boolean isAvailable()
-            {
+            public boolean isAvailable() {
                 return remaining > 0;
             }
 
             @Override
-            protected int getChunk(byte[] chunk) throws IOException
-            {
+            protected int getChunk(byte[] chunk) throws IOException {
                 int write = chunk.length;
                 if (write > remaining) {
                     write = remaining;
                 }
-                System.arraycopy(src, lenght - remaining, chunk, 0, write);
+                System.arraycopy(src, length - remaining, chunk, 0, write);
                 remaining -= write;
 
                 return write;
             }
 
             @Override
-            public int bytesLeft()
-            {
+            public int bytesLeft() {
                 return remaining;
             }
         }.withOffset(fileOffset);
@@ -232,9 +225,7 @@ public class File extends DiskEntry {
             Long write = smb2WriteResponse.getBytesWritten();
             return write.intValue();
 
-        } catch (InterruptedException e) {
-            throw new IOException(e);
-        } catch (ExecutionException e) {
+        } catch (InterruptedException | ExecutionException e) {
             throw new IOException(e);
         }
     }
