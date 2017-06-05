@@ -139,6 +139,9 @@ public class File extends DiskEntry {
         Future<SMB2ReadResponse> send = session.send(rreq);
         try {
             SMB2ReadResponse smb2Packet = send.get();
+            if (smb2Packet.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+                throw new SMBApiException(smb2Packet.getHeader(), "Read failed for " + this);
+            }
             int read = smb2Packet.getDataLength();
             if(read>payloadSize){
                 read=payloadSize;
@@ -223,10 +226,10 @@ public class File extends DiskEntry {
         Future<SMB2WriteResponse> writeFuture = session.send(wreq);
         try {
             SMB2WriteResponse smb2WriteResponse = writeFuture.get();
-            Long write = smb2WriteResponse.getBytesWritten();
             if (smb2WriteResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
                 throw new SMBApiException(smb2WriteResponse.getHeader(), "Write failed for " + this);
             }
+            Long write = smb2WriteResponse.getBytesWritten();
             return write.intValue();
 
         } catch (InterruptedException e) {
