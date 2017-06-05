@@ -21,6 +21,7 @@ import java.util.Date;
 import java.util.List;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.msfscc.FileInformationClass;
+import com.hierynomus.mssmb2.SMB2Functions;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 
@@ -35,7 +36,7 @@ public class FileInformationFactory {
         renBuf.putRawBytes(new byte[]{0, 0, 0, 0, 0, 0, 0});
         renBuf.putUInt64(0);
         renBuf.putUInt32(newName.length() * 2); // unicode
-        renBuf.putRawBytes(newName.getBytes(StandardCharsets.UTF_16));
+        renBuf.putRawBytes(SMB2Functions.unicode(newName));
         return renBuf.getCompactData();
     }
 

@@ -47,8 +47,7 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
 
-import static com.hierynomus.msdtyp.AccessMask.FILE_READ_ATTRIBUTES;
-import static com.hierynomus.msdtyp.AccessMask.GENERIC_READ;
+import static com.hierynomus.msdtyp.AccessMask.*;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_DIRECTORY;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_NORMAL;
 import static com.hierynomus.mssmb2.SMB2ShareAccess.EnumUtils;
@@ -465,6 +464,89 @@ public class DiskShare extends Share {
         }
     }
 
+    public void renameDirectory(String path, String newFileName) throws TransportException, SMBApiException {
+        renameDirectory(path, newFileName, false);
+    }
+
+    public void renameDirectory(String path, String newFileName, boolean replaceIfExist) throws TransportException, SMBApiException {
+        // recursive is auto true in SMB2
+        setRenameFileInfomation(path, newFileName, replaceIfExist, EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE));
+    }
+
+    public void renameFile(String path, String newFileName) throws TransportException, SMBApiException {
+        // default not to replace the existing file when rename
+        renameFile(path, newFileName, false);
+    }
+
+    public void renameFile(String path, String newFileName, boolean replaceIfExist) throws TransportException, SMBApiException {
+        setRenameFileInfomation(path, newFileName, replaceIfExist, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
+    }
+
+    public void setRenameFileInfomation(String path, String newFileName, boolean replaceIfExist, EnumSet<SMB2CreateOptions> createOptions) throws TransportException, SMBApiException {
+        byte[] renameFileInfo = FileInformationFactory.getRenameInfo(replaceIfExist, newFileName);
+
+        SMB2CreateRequest smb2CreateRequest =
+            openFileRequest(treeConnect, path, toLong(EnumSet.of(GENERIC_WRITE, DELETE)), null, null,
+                SMB2CreateDisposition.FILE_OPEN, createOptions);
+
+        setInfoCommon(path,
+            smb2CreateRequest,
+            SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE,
+            null,
+            FileInformationClass.FileRenameInformation,
+            renameFileInfo);
+    }
+
+    private void setInfoCommon(
+        String path,
+        SMB2CreateRequest smb2CreateRequest,
+        SMB2SetInfoRequest.SMB2InfoType infoType,
+        EnumSet<SecurityInformation> securityInfo,
+        FileInformationClass fileInformationClass,
+        byte[] buffer)
+        throws TransportException, SMBApiException {
+
+        Session session = treeConnect.getSession();
+        Connection connection = session.getConnection();
+
+        Future<SMB2CreateResponse> sendFuture = session.send(smb2CreateRequest);
+        SMB2CreateResponse response = Futures.get(sendFuture, TransportException.Wrapper);
+
+        if (response.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+            throw new SMBApiException(response.getHeader(), "Create failed for " + path);
+        }
+
+        SMB2FileId fileId = response.getFileId();
+
+        try {
+
+            SMB2SetInfoRequest setInfoRequest = new SMB2SetInfoRequest(connection.getNegotiatedProtocol().getDialect(),
+                session.getSessionId(),
+                treeConnect.getTreeId(),
+                infoType,
+                fileId,
+                fileInformationClass,
+                securityInfo,
+                buffer);
+
+            Future<SMB2SetInfoResponse> sendInfoFuture = session.send(setInfoRequest);
+            SMB2SetInfoResponse setInfoResponse = Futures.get(sendInfoFuture, TransportException.Wrapper);
+
+            if (setInfoResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+                throw new SMBApiException(setInfoResponse.getHeader(), "SetInfo failed for " + path);
+            }
+        } finally {
+            SMB2Close closeReq = new SMB2Close(connection.getNegotiatedProtocol().getDialect(),
+                session.getSessionId(), treeConnect.getTreeId(), fileId);
+            Future<SMB2Close> closeFuture = session.send(closeReq);
+            SMB2Close closeResponse = Futures.get(closeFuture, TransportException.Wrapper);
+
+            if (closeResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+                throw new SMBApiException(closeResponse.getHeader(), "Close failed for " + path);
+            }
+        }
+
+    }
 
     public boolean checkAccessMask(AccessMask mask, String smbPathOnShare) {
         File file = null;
