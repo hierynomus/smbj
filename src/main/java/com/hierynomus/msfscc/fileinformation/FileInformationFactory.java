@@ -19,6 +19,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
+import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.protocol.commons.buffer.Buffer;
@@ -94,10 +96,10 @@ public class FileInformationFactory {
      */
     public static FileInfo parseFileAllInformation(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
         // Basic Information
-        Date creationTime = MsDataTypes.readFileTime(buffer);
-        Date lastAccessTime = MsDataTypes.readFileTime(buffer);
-        Date lastWriteTime = MsDataTypes.readFileTime(buffer);
-        Date changeTime = MsDataTypes.readFileTime(buffer);
+        FileTime creationTime = MsDataTypes.readFileTime(buffer);
+        FileTime lastAccessTime = MsDataTypes.readFileTime(buffer);
+        FileTime lastWriteTime = MsDataTypes.readFileTime(buffer);
+        FileTime changeTime = MsDataTypes.readFileTime(buffer);
         long fileAttributes = buffer.readUInt32(); // File Attributes
         buffer.skip(4); // Reserved (4 bytes)
 
@@ -138,10 +140,10 @@ public class FileInformationFactory {
      * 2.4.17 FileIdBothDirectoryInformation
      */
     public static FileInfo parseFileIdBothDirectoryInformation(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
-        Date creationTime = MsDataTypes.readFileTime(buffer);
-        Date lastAccessTime = MsDataTypes.readFileTime(buffer);
-        Date lastWriteTime = MsDataTypes.readFileTime(buffer);
-        Date changeTime = MsDataTypes.readFileTime(buffer);
+        FileTime creationTime = MsDataTypes.readFileTime(buffer);
+        FileTime lastAccessTime = MsDataTypes.readFileTime(buffer);
+        FileTime lastWriteTime = MsDataTypes.readFileTime(buffer);
+        FileTime changeTime = MsDataTypes.readFileTime(buffer);
         long fileSize = buffer.readUInt64(); // EndOfFile - Ignored
         buffer.readRawBytes(8); // AllocationSize - Ignored
         long fileAttributes = buffer.readUInt32(); // File Attributes
