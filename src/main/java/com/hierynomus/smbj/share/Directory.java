@@ -172,9 +172,8 @@ public class Directory extends DiskEntry implements Iterable<FileInfo> {
                     FileInfo next = ctx.next;
                     ctx.iteratorIndex++;
                     return next;
-
                 } catch (TransportException e) {
-                    return null;
+                    throw new SMBRuntimeException(e);
                 }
             }
         };
