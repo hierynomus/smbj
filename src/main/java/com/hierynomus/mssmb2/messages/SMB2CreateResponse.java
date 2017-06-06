@@ -17,6 +17,8 @@ package com.hierynomus.mssmb2.messages;
 
 import java.util.Date;
 import java.util.EnumSet;
+
+import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
@@ -32,10 +34,10 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
  */
 public class SMB2CreateResponse extends SMB2Packet {
 
-    private Date creationTime;
-    private Date lastAccessTime;
-    private Date lastWriteTime;
-    private Date changeTime;
+    private FileTime creationTime;
+    private FileTime lastAccessTime;
+    private FileTime lastWriteTime;
+    private FileTime changeTime;
     private EnumSet<FileAttributes> fileAttributes;
     private SMB2FileId fileId;
 
@@ -66,20 +68,20 @@ public class SMB2CreateResponse extends SMB2Packet {
         }
     }
 
-    public Date getCreationTime() {
-        return copyOf(creationTime);
+    public FileTime getCreationTime() {
+        return creationTime;
     }
 
-    public Date getLastAccessTime() {
-        return copyOf(lastAccessTime);
+    public FileTime getLastAccessTime() {
+        return lastAccessTime;
     }
 
-    public Date getLastWriteTime() {
-        return copyOf(lastWriteTime);
+    public FileTime getLastWriteTime() {
+        return lastWriteTime;
     }
 
-    public Date getChangeTime() {
-        return copyOf(changeTime);
+    public FileTime getChangeTime() {
+        return changeTime;
     }
 
     public EnumSet<FileAttributes> getFileAttributes() {
@@ -89,9 +91,4 @@ public class SMB2CreateResponse extends SMB2Packet {
     public SMB2FileId getFileId() {
         return fileId;
     }
-
-    private Date copyOf(Date d) {
-        return d != null ? new Date(d.getTime()) : null;
-    }
-
 }
