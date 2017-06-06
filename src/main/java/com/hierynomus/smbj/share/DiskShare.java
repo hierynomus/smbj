@@ -121,9 +121,10 @@ public class DiskShare extends Share {
     public File openFile(String path, EnumSet<AccessMask> accessMask, SMB2CreateDisposition createDisposition) throws TransportException, SMBApiException {
         logger.info("OpenFile {},{},{}", path, accessMask, createDisposition);
 
-        SMB2FileId fileId = open(path, toLong(accessMask), null, EnumSet.of(FILE_SHARE_READ), createDisposition, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
+        long accessMaskValue = toLong(accessMask);
+        SMB2FileId fileId = open(path, accessMaskValue, null, EnumSet.of(FILE_SHARE_READ), createDisposition, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
         // TODO
-        return new File(fileId, treeConnect, path, 0L);
+        return new File(fileId, treeConnect, path, accessMaskValue);
     }
 
     /**
