@@ -15,6 +15,7 @@
  */
 package com.hierynomus.mssmb2.messages
 
+import com.hierynomus.msdtyp.FileTime
 import com.hierynomus.mssmb2.messages.SMB2CreateResponse
 import com.hierynomus.smbj.common.SMBBuffer
 import spock.lang.Specification
@@ -33,7 +34,7 @@ class SMB2CreateResponseTest extends Specification {
         resp.read(new SMBBuffer(bytes1))
 
         then:
-        resp.getCreationTime() == new Date(1461446418426L)
+        resp.getCreationTime() == new FileTime(131059200184264554L)
         Arrays.equals(([0x03,0x00,0x00,0x00,0x10,0x00,0x00,0x00] as byte[]), resp.fileId.persistentHandle)
     }
 
