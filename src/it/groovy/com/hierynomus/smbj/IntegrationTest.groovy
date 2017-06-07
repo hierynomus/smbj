@@ -90,4 +90,20 @@ class IntegrationTest extends Specification {
     cleanup:
     connection.close()
   }
+
+  def "should be able to list directories"() {
+    given:
+    def client = new SMBClient()
+
+    when:
+    def connection = client.connect(IP)
+    def session = connection.authenticate(AUTH)
+    def share = session.connectShare("Go") as DiskShare
+
+    then:
+    share.list("api").size() > 0
+
+    cleanup:
+    connection.close()
+  }
 }
