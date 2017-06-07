@@ -18,10 +18,11 @@ package com.hierynomus.msdtyp;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
-import static com.hierynomus.msdtyp.MsDataTypes.NANO100_TO_MILLI;
-import static com.hierynomus.msdtyp.MsDataTypes.WINDOWS_TO_UNIX_EPOCH;
-
 public class FileTime {
+    public static final int NANO100_TO_MILLI = 10000;
+    public static final int NANO100_TO_NANO = 100;
+    public static final long WINDOWS_TO_UNIX_EPOCH = 0x19DB1DED53E8000L;
+
     private final long windowsTimeStamp;
 
     public static FileTime fromDate(Date date) {
@@ -38,7 +39,7 @@ public class FileTime {
 
     public static FileTime ofEpoch(long epoch, TimeUnit unit) {
         long nanoEpoch = TimeUnit.NANOSECONDS.convert(epoch, unit);
-        return new FileTime(nanoEpoch / 100 + WINDOWS_TO_UNIX_EPOCH);
+        return new FileTime(nanoEpoch / NANO100_TO_NANO + WINDOWS_TO_UNIX_EPOCH);
     }
 
     public FileTime(long windowsTimeStamp) {
@@ -54,7 +55,7 @@ public class FileTime {
     }
 
     public long toEpoch(TimeUnit unit) {
-        return unit.convert((windowsTimeStamp - WINDOWS_TO_UNIX_EPOCH) * 100, TimeUnit.NANOSECONDS);
+        return unit.convert((windowsTimeStamp - WINDOWS_TO_UNIX_EPOCH) * NANO100_TO_NANO, TimeUnit.NANOSECONDS);
     }
 
     public Date toDate() {
