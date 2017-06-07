@@ -20,6 +20,13 @@ import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
+import com.hierynomus.smbj.common.SMBRuntimeException;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -140,34 +147,91 @@ public class FileInformationFactory {
         byte[] data, FileInformationClass fileInformationClass)
         throws Buffer.BufferException {
 
-        Buffer.PlainBuffer buffer = new Buffer.PlainBuffer(data, Endian.LE);
         List<FileInfo> _fileInfoList = new ArrayList<>();
-        int offsetStart = 0;
-        int nextEntryOffset = offsetStart;
-        long fileIndex = 0;
-        do {
-            nextEntryOffset = (int) buffer.readUInt32();
-            fileIndex = buffer.readUInt32();
-            FileInfo fileInfo = null;
-            switch (fileInformationClass) {
-                case FileIdBothDirectoryInformation:
-                    fileInfo = parseFileIdBothDirectoryInformation(buffer);
-                    break;
-                case FileAllInformation:
-                    fileInfo = parseFileAllInformation(buffer);
-                    break;
-                default:
-                    throw new IllegalArgumentException("FileInformationClass not supported - " + fileInformationClass);
-            }
-            if (!(".".equals(fileInfo.getFileName()) || "..".equals(fileInfo.getFileName()))) {
-                _fileInfoList.add(fileInfo);
-            }
-            offsetStart += nextEntryOffset;
-            buffer.rpos(offsetStart);
-        } while (nextEntryOffset != 0);
+        Iterator<FileInfo> iterator = createFileInformationIterator(data, fileInformationClass);
+        while (iterator.hasNext()) {
+            _fileInfoList.add(iterator.next());
+        }
         return _fileInfoList;
     }
 
+    public static Iterator<FileInfo> createFileInformationIterator(byte[] data, FileInformationClass fileInformationClass) {
+        return new FileInfoIterator(data, fileInformationClass, 0);
+    }
+
+    private static class FileInfoIterator implements Iterator<FileInfo> {
+        private final Buffer.PlainBuffer buffer;
+        private final FileInformationClass informationClass;
+        private int offsetStart;
+        private FileInfo next;
+
+        FileInfoIterator(byte[] data, FileInformationClass informationClass, int offsetStart) {
+            this.buffer = new Buffer.PlainBuffer(data, Endian.LE);
+            this.informationClass = informationClass;
+            this.offsetStart = offsetStart;
+            this.next = prepareNext();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return next != null;
+        }
+
+        @Override
+        public FileInfo next() {
+            if (next == null) {
+                throw new NoSuchElementException();
+            }
+
+            FileInfo fileInfo = this.next;
+            this.next = prepareNext();
+            return fileInfo;
+        }
+
+        private FileInfo prepareNext() {
+            try {
+                FileInfo next = null;
+
+                while (next == null && offsetStart != -1) {
+                    buffer.rpos(offsetStart);
+                    int nextOffset = (int) buffer.readUInt32();
+                    // fileIndex
+                    buffer.readUInt32();
+
+                    FileInfo fileInfo;
+                    switch (informationClass) {
+                        case FileIdBothDirectoryInformation:
+                            fileInfo = parseFileIdBothDirectoryInformation(buffer);
+                            break;
+                        case FileAllInformation:
+                            fileInfo = parseFileAllInformation(buffer);
+                            break;
+                        default:
+                            throw new IllegalArgumentException("FileInformationClass not supported - " + informationClass);
+                    }
+
+                    if (nextOffset == 0) {
+                        offsetStart = -1;
+                    } else {
+                        offsetStart += nextOffset;
+                    }
+
+                    if (!(".".equals(fileInfo.getFileName()) || "..".equals(fileInfo.getFileName()))) {
+                        next = fileInfo;
+                    }
+                }
+
+                return next;
+            } catch (Buffer.BufferException e) {
+                throw new SMBRuntimeException(e);
+            }
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+    }
 
     /**
      * [MS-SMB2] 2.2.38 SMB2 QUERY_INFO Response, SMB2_0_INFO_FILE/FileAllInformation
