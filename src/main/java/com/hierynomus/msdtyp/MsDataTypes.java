@@ -86,8 +86,8 @@ public class MsDataTypes {
      *
      * store Date into FileTime in the buffer
      */
-    public static void putFileTime(Date date, Buffer<?> buffer) {
-        long windowsTimeStamp = (date.getTime() * NANO100_TO_MILLI) + WINDOWS_TO_UNIX_EPOCH;
+    public static void putFileTime(FileTime fileTime, Buffer<?> buffer) {
+        long windowsTimeStamp = fileTime.getWindowsTimeStamp();
         buffer.putUInt64(windowsTimeStamp, Endian.LE);
     }
 

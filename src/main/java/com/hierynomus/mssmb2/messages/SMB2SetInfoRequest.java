@@ -21,6 +21,8 @@ import com.hierynomus.mssmb2.*;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smbj.common.SMBBuffer;
 
+import java.util.EnumSet;
+
 /**
  * [MS-SMB2].pdf 2.2.39 SMB2 SET_INFO Request
  */
@@ -30,13 +32,13 @@ public class SMB2SetInfoRequest extends SMB2Packet {
     private final SMB2InfoType infoType;
     private final FileInformationClass fileInfoClass;
     private final byte[] buffer;
-    private final SecurityInformation securityInformation;
+    private final EnumSet<SecurityInformation> securityInformation;
 
     public SMB2SetInfoRequest(
         SMB2Dialect negotiatedDialect, long sessionId, long treeId,
         SMB2InfoType infoType, SMB2FileId fileId,
         FileInformationClass fileInfoClass,
-        SecurityInformation securityInformation, byte[] buffer
+        EnumSet<SecurityInformation> securityInformation, byte[] buffer
     ) {
         super(33, negotiatedDialect, SMB2MessageCommandCode.SMB2_SET_INFO, sessionId, treeId);
         this.fileId = fileId;
@@ -58,7 +60,7 @@ public class SMB2SetInfoRequest extends SMB2Packet {
         smbBuffer.putUInt32(buffer.length); // BufferLength (4 bytes)
         smbBuffer.putUInt16(offset); // BufferOffset (2 bytes)
         smbBuffer.putReserved2(); // Reserved (2 bytes)
-        smbBuffer.putUInt32(securityInformation == null ? 0 : securityInformation.getValue()); // AdditionalInformation (4 bytes)
+        smbBuffer.putUInt32(securityInformation == null ? 0 : EnumWithValue.EnumUtils.toLong(securityInformation)); // AdditionalInformation (4 bytes)
         fileId.write(smbBuffer);  // FileId (16 bytes)
         smbBuffer.putRawBytes(buffer); // Buffer (variable)
     }
