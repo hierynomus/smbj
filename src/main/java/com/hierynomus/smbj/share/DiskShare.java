@@ -88,10 +88,11 @@ public class DiskShare extends Share {
         try {
             FileInfo fileInformation = getFileInformation(path);
             EnumSet<FileAttributes> fileAttributes = EnumUtils.toEnumSet(fileInformation.getFileAttributes(), FileAttributes.class);
+            SMB2FileId fileId = SMB2FileId.read(fileInformation.getFileId());
             if (fileAttributes.contains(FILE_ATTRIBUTE_DIRECTORY)) {
-                return new Directory(null, treeConnect, path);
+                return new Directory(fileId, treeConnect, path);
             } else {
-                return new File(null, treeConnect, path, fileInformation.getAccessMask());
+                return new File(fileId, treeConnect, path, fileInformation.getAccessMask());
             }
         } catch (SMBApiException ex) {
 //            if (ex.getStatus() == NtStatus.STATUS_OBJECT_NAME_NOT_FOUND) {

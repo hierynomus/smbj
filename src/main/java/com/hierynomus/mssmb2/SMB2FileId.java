@@ -19,6 +19,8 @@ import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
+import java.util.Arrays;
+
 /**
  * [MS-SMB2].pdf 2.2.14.1 SMB2_FILEID
  */
@@ -40,6 +42,13 @@ public class SMB2FileId {
 
     public static SMB2FileId read(SMBBuffer buffer) throws Buffer.BufferException {
         return new SMB2FileId(buffer.readRawBytes(8), buffer.readRawBytes(8));
+    }
+
+    public static SMB2FileId read(byte[] bytes) {
+        if (bytes.length != 16) {
+            throw new IllegalArgumentException("A FileID should be 16 bytes, got: " + Arrays.toString(bytes));
+        }
+        return new SMB2FileId(Arrays.copyOfRange(bytes, 0, 8), Arrays.copyOfRange(bytes, 8, 16));
     }
 
     @Override
