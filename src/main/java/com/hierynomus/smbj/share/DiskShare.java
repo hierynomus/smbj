@@ -49,6 +49,7 @@ import com.hierynomus.smbj.transport.TransportException;
 
 import static com.hierynomus.msdtyp.AccessMask.FILE_READ_ATTRIBUTES;
 import static com.hierynomus.msdtyp.AccessMask.GENERIC_READ;
+import static com.hierynomus.msdtyp.AccessMask.GENERIC_WRITE;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_DIRECTORY;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_NORMAL;
 import static com.hierynomus.mssmb2.SMB2ShareAccess.EnumUtils;
@@ -186,7 +187,6 @@ public class DiskShare extends Share {
             throw new SMBRuntimeException(e);
         }
     }
-
 
     /**
      * Get information for a given fileId
