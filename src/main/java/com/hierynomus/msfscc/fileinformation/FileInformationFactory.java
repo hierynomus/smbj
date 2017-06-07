@@ -15,16 +15,15 @@
  */
 package com.hierynomus.msfscc.fileinformation;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
 import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 public class FileInformationFactory {
 
@@ -70,7 +69,7 @@ public class FileInformationFactory {
     }
 
     /**
-     *      * MS-FSCC 2.4.7 FileBasicInformation for SMB2
+     * * MS-FSCC 2.4.7 FileBasicInformation for SMB2
      */
     public static byte[] getFileBasicInfo(
         FileTime timeToSet,
@@ -79,7 +78,7 @@ public class FileInformationFactory {
 
         Buffer.PlainBuffer buffer = new Buffer.PlainBuffer(Endian.LE);
 
-        switch (timeClass){
+        switch (timeClass) {
             case CreationTime:
                 MsDataTypes.putFileTime(timeToSet, buffer); // CreationTime
                 buffer.putUInt64(0, Endian.LE); // LastAccessTime, 0 means must not change the LastAccessTime
@@ -113,7 +112,7 @@ public class FileInformationFactory {
     }
 
     /**
-     *      * MS-FSCC 2.4.7 FileBasicInformation for SMB2
+     * * MS-FSCC 2.4.7 FileBasicInformation for SMB2
      */
     public static byte[] getFileBasicInfo(
         long fileAttributes)
