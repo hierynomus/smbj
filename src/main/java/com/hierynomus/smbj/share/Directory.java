@@ -20,7 +20,6 @@ import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.msfscc.fileinformation.FileInfo;
 import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
 import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryRequest;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
@@ -141,8 +140,7 @@ public class Directory extends DiskEntry implements Iterable<FileInfo> {
                 return null;
             } else {
                 if (status != NtStatus.STATUS_SUCCESS) {
-                    throw new SMBApiException(status, qdResp.getHeader().getStatusCode(), SMB2MessageCommandCode.SMB2_QUERY_DIRECTORY,
-                        "Query directory failed for " + fileName + "/" + fileId);
+                    throw new SMBApiException(qdResp.getHeader(), String.format("Query directory failed for %s", this));
                 }
                 return FileInformationFactory.createFileInformationIterator(
                     qdResp.getOutputBuffer(),
