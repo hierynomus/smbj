@@ -16,52 +16,30 @@
 package com.hierynomus.msfscc.fileinformation;
 
 import com.hierynomus.msdtyp.FileTime;
-import com.hierynomus.msfscc.FileAttributes;
-import com.hierynomus.protocol.commons.EnumWithValue;
 
-public class FileInfo {
+public class FileBasicInformation implements FileQueryableInformation, FileSettableInformation {
+    /**
+     * When setting file attributes, set a time field to this value to indicate to the server that it MUST NOT change the field.
+     */
+    public static final FileTime DONT_SET = new FileTime(0);
 
-    private byte[] fileId; // This is not the SMB2FileId, but not sure what one can do with this id.
-    private String fileName;
+    /**
+     * When setting file attributes, set a time field to this value to indicate to the server that it MUST NOT change the field for all subsequent operations on the same file handle.
+     */
+    public static final FileTime DONT_UPDATE = new FileTime(-1);
+
     private final FileTime creationTime;
     private final FileTime lastAccessTime;
     private final FileTime lastWriteTime;
     private final FileTime changeTime;
     private long fileAttributes;
-    private long fileSize;
-    private long accessMask;
 
-
-    FileInfo(String fileName, byte[] fileId, FileTime creationTime, FileTime lastAccessTime, FileTime lastWriteTime, FileTime changeTime, long fileAttributes, long fileSize, long accessMask) {
-        this.fileName = fileName;
-        this.fileId = fileId;
+    FileBasicInformation(FileTime creationTime, FileTime lastAccessTime, FileTime lastWriteTime, FileTime changeTime, long fileAttributes) {
         this.creationTime = creationTime;
         this.lastAccessTime = lastAccessTime;
         this.lastWriteTime = lastWriteTime;
         this.changeTime = changeTime;
         this.fileAttributes = fileAttributes;
-        this.fileSize = fileSize;
-        this.accessMask = accessMask;
-    }
-
-    public byte[] getFileId() {
-        return fileId;
-    }
-
-    public String getFileName() {
-        return fileName;
-    }
-
-    public long getFileAttributes() {
-        return fileAttributes;
-    }
-
-    public long getFileSize() {
-        return fileSize;
-    }
-
-    public long getAccessMask() {
-        return accessMask;
     }
 
     public FileTime getCreationTime() {
@@ -80,12 +58,7 @@ public class FileInfo {
         return changeTime;
     }
 
-    @Override
-    public String toString() {
-        return "FileInfo{" +
-            "fileName='" + fileName + '\'' +
-            "fileSize='" + fileSize + '\'' +
-            ", fileAttributes=" + EnumWithValue.EnumUtils.toEnumSet(fileAttributes, FileAttributes.class) +
-            '}';
+    public long getFileAttributes() {
+        return fileAttributes;
     }
 }
