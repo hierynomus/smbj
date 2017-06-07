@@ -103,6 +103,8 @@ public class FileInformationFactory {
                 buffer.putUInt64(0, Endian.LE); // LastWriteTime, 0 means must not change the LastWriteTime
                 MsDataTypes.putFileTime(timeToSet, buffer); // ChangeTime
                 break;
+            default:
+                new UnsupportedOperationException(timeClass.toString());
         }
 
         buffer.putUInt32(0); // FileAttributes, 0 means must not change the file attribute
