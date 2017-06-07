@@ -16,11 +16,13 @@
 package com.hierynomus.msdtyp;
 
 import java.util.Date;
-
-import static com.hierynomus.msdtyp.MsDataTypes.NANO100_TO_MILLI;
-import static com.hierynomus.msdtyp.MsDataTypes.WINDOWS_TO_UNIX_EPOCH;
+import java.util.concurrent.TimeUnit;
 
 public class FileTime {
+    public static final int NANO100_TO_MILLI = 10000;
+    public static final int NANO100_TO_NANO = 100;
+    public static final long WINDOWS_TO_UNIX_EPOCH = 0x19DB1DED53E8000L;
+
     private final long windowsTimeStamp;
 
     public static FileTime fromDate(Date date) {
@@ -32,7 +34,12 @@ public class FileTime {
     }
 
     public static FileTime ofEpochMillis(long epochMillis) {
-        return new FileTime(epochMillis * NANO100_TO_MILLI + WINDOWS_TO_UNIX_EPOCH);
+        return ofEpoch(epochMillis, TimeUnit.MILLISECONDS);
+    }
+
+    public static FileTime ofEpoch(long epoch, TimeUnit unit) {
+        long nanoEpoch = TimeUnit.NANOSECONDS.convert(epoch, unit);
+        return new FileTime(nanoEpoch / NANO100_TO_NANO + WINDOWS_TO_UNIX_EPOCH);
     }
 
     public FileTime(long windowsTimeStamp) {
@@ -44,7 +51,11 @@ public class FileTime {
     }
 
     public long toEpochMillis() {
-        return (windowsTimeStamp - WINDOWS_TO_UNIX_EPOCH) / NANO100_TO_MILLI;
+        return toEpoch(TimeUnit.MILLISECONDS);
+    }
+
+    public long toEpoch(TimeUnit unit) {
+        return unit.convert((windowsTimeStamp - WINDOWS_TO_UNIX_EPOCH) * NANO100_TO_NANO, TimeUnit.NANOSECONDS);
     }
 
     public Date toDate() {
