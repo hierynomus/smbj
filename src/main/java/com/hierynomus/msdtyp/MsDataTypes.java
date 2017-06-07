@@ -15,17 +15,15 @@
  */
 package com.hierynomus.msdtyp;
 
-import java.util.Date;
-import java.util.UUID;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
+
+import java.util.UUID;
 
 /**
  * Utility class that can read and write data types from the [MS-DTYP].pdf specification document from buffers.
  */
 public class MsDataTypes {
-    public static final int NANO100_TO_MILLI = 10000;
-    public static final long WINDOWS_TO_UNIX_EPOCH = 0x19DB1DED53E8000L;
 
     private MsDataTypes() {
     }
@@ -34,7 +32,6 @@ public class MsDataTypes {
      * [MS-DTYP].pdf 2.3.4.2 GUID Packet representation
      *
      * @param guid The GUID to write.
-     * @return this
      */
     public static void putGuid(UUID guid, Buffer<?> buffer) {
         long leastSignificantBits = guid.getLeastSignificantBits();
@@ -86,8 +83,6 @@ public class MsDataTypes {
      * as the number of 100 nanosecond ticks elapsed since midnight of January 1, 1601 (UTC)
      */
     public static long nowAsFileTime() {
-        return System.currentTimeMillis() * NANO100_TO_MILLI + WINDOWS_TO_UNIX_EPOCH;
+        return FileTime.now().getWindowsTimeStamp();
     }
-
-
 }
