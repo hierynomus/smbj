@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.EnumSet;
 import java.util.Random;
 
 public class NtlmAuthenticator implements Authenticator {
@@ -86,9 +87,10 @@ public class NtlmAuthenticator implements Authenticator {
             byte[] sessionkey;
 
             byte[] userSessionKey = ntlmFunctions.hmac_md5(responseKeyNT, Arrays.copyOfRange(ntlmv2Response, 0, 16)); // first 16 bytes of ntlmv2Response is ntProofStr
-            if (challenge.getNegotiateFlags().contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH)
-                && (challenge.getNegotiateFlags().contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SIGN)
-                || challenge.getNegotiateFlags().contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SEAL))
+            EnumSet<NtlmNegotiateFlag> negotiateFlags = challenge.getNegotiateFlags();
+            if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH)
+                && (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SIGN)
+                || negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SEAL))
                 ) {
                 byte[] masterKey = new byte[16];
                 random.nextBytes(masterKey);
@@ -117,8 +119,8 @@ public class NtlmAuthenticator implements Authenticator {
                 concatenatedBuffer.putRawBytes(challenge.getServerChallenge()); //challengeMessage
                 resp.writeAutentificateMessage(concatenatedBuffer); //authentificateMessage
 
-                byte[] MIC = ntlmFunctions.hmac_md5(userSessionKey, concatenatedBuffer.getCompactData());
-                resp.setMIC(MIC);
+                byte[] mic = ntlmFunctions.hmac_md5(userSessionKey, concatenatedBuffer.getCompactData());
+                resp.setMic(mic);
                 return negTokenTarg(resp, negTokenTarg.getResponseToken());
             } else {
                 // If NTLM v2 is used, KeyExchangeKey MUST be set to the given 128-bit SessionBaseKey value.

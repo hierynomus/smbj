@@ -35,14 +35,14 @@ public class NtlmAuthenticate extends NtlmPacket {
     private byte[] workstation;
     private byte[] encryptedRandomSessionKey;
     private long negotiateFlags;
-    private boolean useMIC;
-    private byte[] MIC;
+    private boolean useMic;
+    private byte[] mic;
 
     public NtlmAuthenticate(
         byte[] lmResponse, byte[] ntResponse,
         String userName, String domainName, String workstation,
         byte[] encryptedRandomSessionKey, long negotiateFlags,
-        boolean useMIC) {
+        boolean useMic) {
         super();
         this.lmResponse = ensureNotNull(lmResponse);
         this.ntResponse = ensureNotNull(ntResponse);
@@ -51,7 +51,7 @@ public class NtlmAuthenticate extends NtlmPacket {
         this.workstation = ensureNotNull(workstation);
         this.encryptedRandomSessionKey = ensureNotNull(encryptedRandomSessionKey);
         this.negotiateFlags = negotiateFlags;
-        this.useMIC = useMIC;
+        this.useMic = useMic;
     }
 
     @Override
@@ -59,9 +59,9 @@ public class NtlmAuthenticate extends NtlmPacket {
 
         writeAutentificateMessage(buffer);
 
-        if (useMIC) {
+        if (useMic) {
             // MIC (16 bytes) provided if in AvPairType is key MsvAvFlags with value & 0x00000002 is true
-            buffer.putRawBytes(MIC);
+            buffer.putRawBytes(mic);
         }
 
         // Payload
@@ -73,8 +73,8 @@ public class NtlmAuthenticate extends NtlmPacket {
         buffer.putRawBytes(encryptedRandomSessionKey);
     }
 
-    public void setMIC(byte[] MIC) {
-        this.MIC = MIC;
+    public void setMic(byte[] mic) {
+        this.mic = mic;
     }
 
     public void writeAutentificateMessage(Buffer.PlainBuffer buffer) {
@@ -83,7 +83,7 @@ public class NtlmAuthenticate extends NtlmPacket {
 
         int offset = 64; // for the offset
 
-        if (useMIC) {
+        if (useMic) {
             offset += 16;
         }
 
