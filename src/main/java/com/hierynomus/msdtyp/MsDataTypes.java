@@ -81,6 +81,12 @@ public class MsDataTypes {
         return new FileTime(windowsTimeStamp);
     }
 
+    public static void putFileTime(FileTime time, Buffer<?> buffer) {
+        long timestamp = time.getWindowsTimeStamp();
+        buffer.putUInt32(timestamp & 0xFFFFFFL);
+        buffer.putUInt32((timestamp >> 32) & 0xFFFFFFL);
+    }
+
     /**
      * A 64-bit unsigned integer that contains the current system time, represented
      * as the number of 100 nanosecond ticks elapsed since midnight of January 1, 1601 (UTC)

@@ -15,9 +15,8 @@
  */
 package com.hierynomus.mssmb2.messages
 
-import com.hierynomus.msfscc.FileInformationClass
+import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation
 import com.hierynomus.msfscc.fileinformation.FileInformationFactory
-import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryResponse
 import com.hierynomus.smbj.common.SMBBuffer
 import spock.lang.Specification
 
@@ -33,7 +32,7 @@ class SMB2QueryDirectoryResponseTest extends Specification {
 
         when:
         response.read(new SMBBuffer(bytes1))
-        def fileInfoList = FileInformationFactory.parseFileInformationList(response.outputBuffer, FileInformationClass.FileIdBothDirectoryInformation)
+        def fileInfoList = FileInformationFactory.parseFileInformationList(response.outputBuffer, FileInformationFactory.getDecoder(FileIdBothDirectoryInformation.class))
 
         then:
         fileInfoList.size() == 16

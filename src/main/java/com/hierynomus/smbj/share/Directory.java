@@ -16,8 +16,9 @@
 package com.hierynomus.smbj.share;
 
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.msfscc.FileInformationClass;
-import com.hierynomus.msfscc.fileinformation.FileInfo;
+import com.hierynomus.msfscc.fileinformation.FileDirectoryQueryableInformation;
+import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
+import com.hierynomus.msfscc.fileinformation.FileInformation;
 import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryRequest;
@@ -34,7 +35,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.Future;
 
-public class Directory extends DiskEntry implements Iterable<FileInfo> {
+public class Directory extends DiskEntry implements Iterable<FileIdBothDirectoryInformation> {
 
     private static final Logger logger = LoggerFactory.getLogger(Directory.class);
 
@@ -42,17 +43,26 @@ public class Directory extends DiskEntry implements Iterable<FileInfo> {
         super(treeConnect, fileId, fileName);
     }
 
-    public List<FileInfo> list() throws TransportException, SMBApiException {
-        List<FileInfo> fileList = new ArrayList<>();
-        for (FileInfo fileInfo : this) {
-            fileList.add(fileInfo);
+    public List<FileIdBothDirectoryInformation> list() throws TransportException, SMBApiException {
+        return list(FileIdBothDirectoryInformation.class);
+    }
+
+    public <F extends FileDirectoryQueryableInformation> List<F> list(Class<F> informationClass) throws TransportException, SMBApiException {
+        List<F> fileList = new ArrayList<>();
+        Iterator<F> iterator = iterator(informationClass);
+        while (iterator.hasNext()) {
+            fileList.add(iterator.next());
         }
         return fileList;
     }
 
     @Override
-    public Iterator<FileInfo> iterator() {
-        return new DirectoryIterator();
+    public Iterator<FileIdBothDirectoryInformation> iterator() {
+        return iterator(FileIdBothDirectoryInformation.class);
+    }
+
+    public <F extends FileDirectoryQueryableInformation> Iterator<F> iterator(Class<F> informationClass) {
+        return new DirectoryIterator<>(informationClass);
     }
 
     public SMB2FileId getFileId() {
@@ -72,11 +82,13 @@ public class Directory extends DiskEntry implements Iterable<FileInfo> {
         return String.format("File{fileId=%s, fileName='%s'}", fileId, fileName);
     }
 
-    private class DirectoryIterator implements Iterator<FileInfo> {
-        private Iterator<FileInfo> currentIterator;
-        private FileInfo next;
+    private class DirectoryIterator<F extends FileDirectoryQueryableInformation> implements Iterator<F> {
+        private final FileInformation.Decoder<F> decoder;
+        private Iterator<F> currentIterator;
+        private F next;
 
-        DirectoryIterator() {
+        DirectoryIterator(Class<F> informationClass) {
+            decoder = FileInformationFactory.getDecoder(informationClass);
             currentIterator = queryDirectory(true);
             this.next = prepareNext();
         }
@@ -87,17 +99,17 @@ public class Directory extends DiskEntry implements Iterable<FileInfo> {
         }
 
         @Override
-        public FileInfo next() {
+        public F next() {
             if (!hasNext()) {
                 throw new NoSuchElementException();
             }
 
-            FileInfo fileInfo = this.next;
+            F fileInfo = this.next;
             this.next = prepareNext();
             return fileInfo;
         }
 
-        private FileInfo prepareNext() {
+        private F prepareNext() {
             while (currentIterator != null) {
                 if (currentIterator.hasNext()) {
                     return currentIterator.next();
@@ -108,7 +120,7 @@ public class Directory extends DiskEntry implements Iterable<FileInfo> {
             return null;
         }
 
-        private Iterator<FileInfo> queryDirectory(boolean firstQuery) {
+        private Iterator<F> queryDirectory(boolean firstQuery) {
             Session session = treeConnect.getSession();
             Connection connection = session.getConnection();
 
@@ -122,7 +134,7 @@ public class Directory extends DiskEntry implements Iterable<FileInfo> {
 
             SMB2QueryDirectoryRequest qdr = new SMB2QueryDirectoryRequest(connection.getNegotiatedProtocol().getDialect(),
                 session.getSessionId(), treeConnect.getTreeId(),
-                getFileId(), FileInformationClass.FileIdBothDirectoryInformation,
+                getFileId(), decoder.getInformationClass(),
                 flags,
                 0, null);
 
@@ -144,7 +156,7 @@ public class Directory extends DiskEntry implements Iterable<FileInfo> {
                 }
                 return FileInformationFactory.createFileInformationIterator(
                     qdResp.getOutputBuffer(),
-                    FileInformationClass.FileIdBothDirectoryInformation
+                    decoder
                 );
             }
         }
