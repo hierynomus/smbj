@@ -49,6 +49,8 @@ import com.hierynomus.smbj.transport.TransportException;
 
 import static com.hierynomus.msdtyp.AccessMask.FILE_READ_ATTRIBUTES;
 import static com.hierynomus.msdtyp.AccessMask.GENERIC_READ;
+import static com.hierynomus.msdtyp.AccessMask.GENERIC_WRITE;
+import static com.hierynomus.msdtyp.AccessMask.DELETE;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_DIRECTORY;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_NORMAL;
 import static com.hierynomus.mssmb2.SMB2ShareAccess.EnumUtils;
@@ -466,6 +468,127 @@ public class DiskShare extends Share {
         }
     }
 
+    /***
+     * Rename(Move) Directory/File. Default will using the false for replaceIfExist option
+     * @param path the path to the original directory/file
+     * @param newFileName the new directory/file name/path after rename
+     * @throws TransportException
+     * @throws SMBApiException
+     */
+    public void rename(String path, String newFileName) throws TransportException, SMBApiException {
+        rename(path, newFileName, false);
+    }
+
+    /***
+     * Rename(Move) Directory/File.
+     * @param path the path to the original directory/file
+     * @param newFileName the new directory/file name/path after rename
+     * @param replaceIfExist Replace the existing directory or not if it's name same as the newFileName.
+     * @throws TransportException
+     * @throws SMBApiException
+     */
+    public void rename(String path, String newFileName, boolean replaceIfExist) throws TransportException, SMBApiException {
+        // recursive is auto true in SMB2
+        setRenameFileInfomation(path, newFileName, replaceIfExist);
+    }
+
+    /***
+     * Rename file/directory with the path. This function will open the file by itself and rename it. Will call setInfoCommon function to send the request.
+     * @param path the path to the original file/directory
+     * @param newFileName the new file/directory name/path after rename
+     * @param replaceIfExist Replace the existing file/directory or not if it's name same as the newFileName.
+     * @throws TransportException
+     * @throws SMBApiException
+     */
+    public void setRenameFileInfomation(String path, String newFileName, boolean replaceIfExist) throws TransportException, SMBApiException {
+
+        SMB2CreateRequest smb2CreateRequest =
+            openFileRequest(treeConnect, path, toLong(EnumSet.of(GENERIC_WRITE, DELETE)), null, null,
+                SMB2CreateDisposition.FILE_OPEN, null);
+
+        Session session = treeConnect.getSession();
+        Connection connection = session.getConnection();
+
+        Future<SMB2CreateResponse> sendFuture = session.send(smb2CreateRequest);
+        SMB2CreateResponse response = Futures.get(sendFuture, TransportException.Wrapper);
+
+        if (response.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+            throw new SMBApiException(response.getHeader(), "Create failed for " + path);
+        }
+
+        SMB2FileId fileId = response.getFileId();
+
+        try {
+            setRenameFileInfomation(fileId, newFileName, replaceIfExist);
+        } finally {
+            // close the file because we opened it in this function
+            SMB2Close closeReq = new SMB2Close(connection.getNegotiatedProtocol().getDialect(),
+                session.getSessionId(), treeConnect.getTreeId(), fileId);
+            Future<SMB2Close> closeFuture = session.send(closeReq);
+            SMB2Close closeResponse = Futures.get(closeFuture, TransportException.Wrapper);
+
+            if (closeResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+                throw new SMBApiException(closeResponse.getHeader(), "Close failed for " + fileId.toString());
+            }
+        }
+    }
+
+    /***
+     * Rename file/directory with the fileId. Will call setInfoCommon function to send the request.
+     * @param fileId the path to the original file/directory
+     * @param newFileName the new file/directory name/path after rename
+     * @param replaceIfExist Replace the existing file/directory or not if it's name same as the newFileName.
+     * @throws TransportException
+     * @throws SMBApiException
+     */
+    public void setRenameFileInfomation(SMB2FileId fileId, String newFileName, boolean replaceIfExist) throws TransportException, SMBApiException {
+        byte[] renameFileInfo = FileInformationFactory.getRenameInfo(replaceIfExist, newFileName);
+
+        setInfoCommon(fileId,
+            SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE,
+            null,
+            FileInformationClass.FileRenameInformation,
+            renameFileInfo);
+    }
+
+    /***
+     * Send the SMB2SetInfoRequest with the input message the information class.
+     * @param fileId fileId (file handle) of the target file.
+     * @param infoType The info type of SMB2SetInfoRequest, e.g. SMB2_0_INFO_FILE, SMB2_0_INFO_FILESYSTEM, SMB2_0_INFO_SECURITY, etc.
+     * @param securityInfo The security Info when sending SMB2_0_INFO_SECURITY. E.g. OWNER_SECURITY_INFORMATION, DACL_SECURITY_INFORMATION.
+     * @param fileInformationClass the class of the setting information, e.g. FileBasicInformation, FileRenameInformation, etc.
+     * @param buffer the pre-built message for the specific class of the setting information.
+     * @throws TransportException
+     * @throws SMBApiException
+     */
+    private void setInfoCommon(
+        SMB2FileId fileId,
+        SMB2SetInfoRequest.SMB2InfoType infoType,
+        EnumSet<SecurityInformation> securityInfo,
+        FileInformationClass fileInformationClass,
+        byte[] buffer)
+        throws TransportException, SMBApiException {
+
+        Session session = treeConnect.getSession();
+        Connection connection = session.getConnection();
+
+        SMB2SetInfoRequest setInfoRequest = new SMB2SetInfoRequest(connection.getNegotiatedProtocol().getDialect(),
+            session.getSessionId(),
+            treeConnect.getTreeId(),
+            infoType,
+            fileId,
+            fileInformationClass,
+            securityInfo,
+            buffer);
+
+        Future<SMB2SetInfoResponse> sendInfoFuture = session.send(setInfoRequest);
+        SMB2SetInfoResponse setInfoResponse = Futures.get(sendInfoFuture, TransportException.Wrapper);
+
+        if (setInfoResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+            throw new SMBApiException(setInfoResponse.getHeader(), "SetInfo failed for " + fileId.toString());
+        }
+
+    }
 
     public boolean checkAccessMask(AccessMask mask, String smbPathOnShare) {
         File file = null;

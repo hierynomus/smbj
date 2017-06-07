@@ -39,7 +39,7 @@ public class FileInformationFactory {
         renBuf.putRawBytes(new byte[]{0, 0, 0, 0, 0, 0, 0});
         renBuf.putUInt64(0);
         renBuf.putUInt32(newName.length() * 2); // unicode
-        renBuf.putRawBytes(newName.getBytes(StandardCharsets.UTF_16));
+        renBuf.putRawBytes(newName.getBytes(StandardCharsets.UTF_16LE));
         return renBuf.getCompactData();
     }
 
