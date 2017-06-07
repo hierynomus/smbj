@@ -19,8 +19,11 @@ import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.Future;
+
+import com.hierynomus.msfscc.fileinformation.FileBasicInformationEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SecurityDescriptor;
 import com.hierynomus.msdtyp.SecurityInformation;
@@ -50,6 +53,7 @@ import com.hierynomus.smbj.transport.TransportException;
 
 import static com.hierynomus.msdtyp.AccessMask.FILE_READ_ATTRIBUTES;
 import static com.hierynomus.msdtyp.AccessMask.GENERIC_READ;
+import static com.hierynomus.msdtyp.AccessMask.GENERIC_WRITE;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_DIRECTORY;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_NORMAL;
 import static com.hierynomus.mssmb2.SMB2ShareAccess.EnumUtils;
@@ -123,9 +127,10 @@ public class DiskShare extends Share {
     public File openFile(String path, EnumSet<AccessMask> accessMask, SMB2CreateDisposition createDisposition) throws TransportException, SMBApiException {
         logger.info("OpenFile {},{},{}", path, accessMask, createDisposition);
 
-        SMB2FileId fileId = open(path, toLong(accessMask), null, EnumSet.of(FILE_SHARE_READ), createDisposition, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
+        long accessMaskValue = toLong(accessMask);
+        SMB2FileId fileId = open(path, accessMaskValue, null, EnumSet.of(FILE_SHARE_READ), createDisposition, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
         // TODO
-        return new File(fileId, treeConnect, path, 0L);
+        return new File(fileId, treeConnect, path, accessMaskValue);
     }
 
     /**
@@ -191,43 +196,6 @@ public class DiskShare extends Share {
                 new Buffer.PlainBuffer(outputBuffer, Endian.LE));
         } catch (Buffer.BufferException e) {
             throw new TransportException(e);
-        }
-    }
-
-    public void setBasicFileInformation(
-        SMB2FileId fileId,
-        Date creationTime,
-        Date lastAccessTime,
-        Date lastWriteTime,
-        Date changeTime,
-        long fileAttributes)
-        throws SMBApiException, TransportException {
-
-        Session session = treeConnect.getSession();
-        Connection connection = session.getConnection();
-
-        try {
-            byte[] basicInfo = FileInformationFactory.getFileBasicInfo(
-                creationTime,
-                lastAccessTime,
-                lastWriteTime,
-                changeTime,
-                fileAttributes
-            );
-            SMB2SetInfoRequest si_req = new SMB2SetInfoRequest(
-                connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
-                SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE, fileId,
-                FileInformationClass.FileBasicInformation, null, basicInfo);
-
-            Future<SMB2SetInfoResponse> setInfoFuture = session.send(si_req);
-            SMB2SetInfoResponse setInfoResponse = Futures.get(setInfoFuture, TransportException.Wrapper);
-
-            if (setInfoResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(setInfoResponse.getHeader(), "SetInfo failed for " + fileId);
-            }
-
-        } catch (Buffer.BufferException e) {
-            throw new SMBRuntimeException(e);
         }
     }
 
@@ -503,6 +471,305 @@ public class DiskShare extends Share {
         }
     }
 
+    public void setCreationTime(String path, FileTime creationTime)throws SMBApiException, TransportException{
+        this.setBasicInformationTime(path, creationTime, FileBasicInformationEnum.CreationTime);
+    }
+
+    public void setCreationTime(SMB2FileId fileId, FileTime creationTime)throws SMBApiException, TransportException {
+        this.setBasicInformationTime(fileId, creationTime, FileBasicInformationEnum.CreationTime);
+    }
+
+    public void setLastAccessTime(String path, FileTime lastAccessTime)throws SMBApiException, TransportException{
+        this.setBasicInformationTime(path, lastAccessTime, FileBasicInformationEnum.LastAccessTime);
+    }
+
+    public void setLastAccessTime(SMB2FileId fileId, FileTime lastAccessTime)throws SMBApiException, TransportException {
+        this.setBasicInformationTime(fileId, lastAccessTime, FileBasicInformationEnum.LastAccessTime);
+    }
+
+    public void setLastWriteTime(String path, FileTime lastWriteTime)throws SMBApiException, TransportException{
+        this.setBasicInformationTime(path, lastWriteTime, FileBasicInformationEnum.LastWriteTime);
+    }
+
+    public void setLastWriteTime(SMB2FileId fileId, FileTime lastWriteTime)throws SMBApiException, TransportException {
+        this.setBasicInformationTime(fileId, lastWriteTime, FileBasicInformationEnum.LastWriteTime);
+    }
+
+    public void setChangeTime(String path, FileTime changeTime)throws SMBApiException, TransportException{
+        this.setBasicInformationTime(path, changeTime, FileBasicInformationEnum.ChangeTime);
+    }
+
+    public void setChangeTime(SMB2FileId fileId, FileTime changeTime)throws SMBApiException, TransportException {
+        this.setBasicInformationTime(fileId, changeTime, FileBasicInformationEnum.ChangeTime);
+    }
+
+    public void setBasicInformationTime(
+        String path,
+        FileTime timetoSet,
+        FileBasicInformationEnum basicInfoClass)
+        throws SMBApiException, TransportException {
+
+        SMB2CreateRequest smb2CreateRequest =
+            openFileRequest(treeConnect, path, toLong(EnumSet.of(GENERIC_WRITE)), null, null,
+                SMB2CreateDisposition.FILE_OPEN, null);
+
+        Session session = treeConnect.getSession();
+        Connection connection = session.getConnection();
+
+        Future<SMB2CreateResponse> sendFuture = session.send(smb2CreateRequest);
+        SMB2CreateResponse response = Futures.get(sendFuture, TransportException.Wrapper);
+
+        if (response.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+            throw new SMBApiException(response.getHeader(), "Create failed for " + path);
+        }
+
+        SMB2FileId fileId = response.getFileId();
+
+        try {
+            this.setBasicInformationTime(fileId,
+                timetoSet,
+                basicInfoClass);
+        } finally {
+            // close the file because we opened it in this function
+            SMB2Close closeReq = new SMB2Close(connection.getNegotiatedProtocol().getDialect(),
+                session.getSessionId(), treeConnect.getTreeId(), fileId);
+            Future<SMB2Close> closeFuture = session.send(closeReq);
+            SMB2Close closeResponse = Futures.get(closeFuture, TransportException.Wrapper);
+
+            if (closeResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+                throw new SMBApiException(closeResponse.getHeader(), "Close failed for " + fileId.toString());
+            }
+        }
+
+    }
+
+    public void setBasicInformationTime(
+        SMB2FileId fileId,
+        FileTime timeToSet,
+        FileBasicInformationEnum timeClass)
+        throws SMBApiException, TransportException {
+
+        if(timeClass == FileBasicInformationEnum.FileAttributes) {
+            logger.info("Input data mismatch the class to set!" + " SetInfo failed for " + fileId.toString());
+        }
+
+        try {
+            byte[] basicInfo = FileInformationFactory.getFileBasicInfo(
+                timeToSet,
+                timeClass
+            );
+
+            setInfoCommon(fileId,
+                SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE,
+                null,
+                FileInformationClass.FileBasicInformation,
+                basicInfo);
+
+        } catch (Buffer.BufferException e) {
+            throw new SMBRuntimeException(e);
+        }
+
+    }
+
+    public void setAttributes(
+        String path,
+        EnumSet<FileAttributes> fileAttributes)
+        throws SMBApiException, TransportException {
+
+        SMB2CreateRequest smb2CreateRequest =
+            openFileRequest(treeConnect, path, toLong(EnumSet.of(GENERIC_WRITE)), null, null,
+                SMB2CreateDisposition.FILE_OPEN, null);
+
+        Session session = treeConnect.getSession();
+        Connection connection = session.getConnection();
+
+        Future<SMB2CreateResponse> sendFuture = session.send(smb2CreateRequest);
+        SMB2CreateResponse response = Futures.get(sendFuture, TransportException.Wrapper);
+
+        if (response.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+            throw new SMBApiException(response.getHeader(), "Create failed for " + path);
+        }
+
+        SMB2FileId fileId = response.getFileId();
+
+        try {
+            this.setAttributes(fileId, fileAttributes);
+        } finally {
+            // close the file because we opened it in this function
+            SMB2Close closeReq = new SMB2Close(connection.getNegotiatedProtocol().getDialect(),
+                session.getSessionId(), treeConnect.getTreeId(), fileId);
+            Future<SMB2Close> closeFuture = session.send(closeReq);
+            SMB2Close closeResponse = Futures.get(closeFuture, TransportException.Wrapper);
+
+            if (closeResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+                throw new SMBApiException(closeResponse.getHeader(), "Close failed for " + fileId.toString());
+            }
+        }
+
+    }
+
+    public void setAttributes(
+        SMB2FileId fileId,
+        EnumSet<FileAttributes> fileAttributes)
+        throws SMBApiException, TransportException {
+
+        try {
+            byte[] basicInfo = FileInformationFactory.getFileBasicInfo(
+                toLong(fileAttributes)
+            );
+
+            setInfoCommon(fileId,
+                SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE,
+                null,
+                FileInformationClass.FileBasicInformation,
+                basicInfo);
+
+        } catch (Buffer.BufferException e) {
+            throw new SMBRuntimeException(e);
+        }
+
+    }
+
+    /***
+     * Set the BasicFileInformtion for the file/directory with the path. This function will open the file by itself. After finsih, it will close the file back.
+     * @param path path of the target file/directory.
+     * @param creationTime the creation time to set
+     * @param lastAccessTime the last access time to set
+     * @param lastWriteTime the last write time to set
+     * @param changeTime the change time to set
+     * @param fileAttributes the attributes to set
+     * @throws SMBApiException
+     * @throws TransportException
+     */
+    public void setBasicFileInformation(
+        String path,
+        FileTime creationTime,
+        FileTime lastAccessTime,
+        FileTime lastWriteTime,
+        FileTime changeTime,
+        long fileAttributes)
+        throws SMBApiException, TransportException {
+
+        SMB2CreateRequest smb2CreateRequest =
+            openFileRequest(treeConnect, path, toLong(EnumSet.of(GENERIC_WRITE)), null, null,
+                SMB2CreateDisposition.FILE_OPEN, null);
+
+        Session session = treeConnect.getSession();
+        Connection connection = session.getConnection();
+
+        Future<SMB2CreateResponse> sendFuture = session.send(smb2CreateRequest);
+        SMB2CreateResponse response = Futures.get(sendFuture, TransportException.Wrapper);
+
+        if (response.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+            throw new SMBApiException(response.getHeader(), "Create failed for " + path);
+        }
+
+        SMB2FileId fileId = response.getFileId();
+
+        try {
+
+            setBasicFileInformation(
+                fileId,
+                creationTime,
+                lastAccessTime,
+                lastWriteTime,
+                changeTime,
+                fileAttributes
+            );
+
+        } finally {
+            // close the file because we opened it in this function
+            SMB2Close closeReq = new SMB2Close(connection.getNegotiatedProtocol().getDialect(),
+                session.getSessionId(), treeConnect.getTreeId(), fileId);
+            Future<SMB2Close> closeFuture = session.send(closeReq);
+            SMB2Close closeResponse = Futures.get(closeFuture, TransportException.Wrapper);
+
+            if (closeResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+                throw new SMBApiException(closeResponse.getHeader(), "Close failed for " + fileId.toString());
+            }
+        }
+
+    }
+
+    /***
+     * Set the BasicFileInformtion for the file/directory with the fileId
+     * @param fileId fileId (file handle) of the target file/directory.
+     * @param creationTime the creation time to set
+     * @param lastAccessTime the last access time to set
+     * @param lastWriteTime the last write time to set
+     * @param changeTime the change time to set
+     * @param fileAttributes the attributes to set
+     * @throws SMBApiException
+     * @throws TransportException
+     */
+    public void setBasicFileInformation(
+        SMB2FileId fileId,
+        FileTime creationTime,
+        FileTime lastAccessTime,
+        FileTime lastWriteTime,
+        FileTime changeTime,
+        long fileAttributes)
+        throws SMBApiException, TransportException {
+
+        try {
+
+            byte[] basicInfo = FileInformationFactory.getFileBasicInfo(
+                creationTime,
+                lastAccessTime,
+                lastWriteTime,
+                changeTime,
+                fileAttributes
+            );
+
+            setInfoCommon(fileId,
+                SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE,
+                null,
+                FileInformationClass.FileBasicInformation,
+                basicInfo);
+
+        } catch (Buffer.BufferException e) {
+            throw new SMBRuntimeException(e);
+        }
+    }
+
+    /***
+     * Send the SMB2SetInfoRequest with the input message the information class.
+     * @param fileId fileId (file handle) of the target file/directory.
+     * @param infoType The info type of SMB2SetInfoRequest, e.g. SMB2_0_INFO_FILE, SMB2_0_INFO_FILESYSTEM, SMB2_0_INFO_SECURITY, etc.
+     * @param securityInfo The security Info when sending SMB2_0_INFO_SECURITY. E.g. OWNER_SECURITY_INFORMATION, DACL_SECURITY_INFORMATION.
+     * @param fileInformationClass the class of the setting information, e.g. FileBasicInformation, FileRenameInformation, etc.
+     * @param buffer the pre-built message for the specific class of the setting information.
+     * @throws TransportException
+     * @throws SMBApiException
+     */
+    private void setInfoCommon(
+        SMB2FileId fileId,
+        SMB2SetInfoRequest.SMB2InfoType infoType,
+        EnumSet<SecurityInformation> securityInfo,
+        FileInformationClass fileInformationClass,
+        byte[] buffer)
+        throws TransportException, SMBApiException {
+
+        Session session = treeConnect.getSession();
+        Connection connection = session.getConnection();
+
+        SMB2SetInfoRequest setInfoRequest = new SMB2SetInfoRequest(connection.getNegotiatedProtocol().getDialect(),
+            session.getSessionId(),
+            treeConnect.getTreeId(),
+            infoType,
+            fileId,
+            fileInformationClass,
+            securityInfo,
+            buffer);
+
+        Future<SMB2SetInfoResponse> sendInfoFuture = session.send(setInfoRequest);
+        SMB2SetInfoResponse setInfoResponse = Futures.get(sendInfoFuture, TransportException.Wrapper);
+
+        if (setInfoResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+            throw new SMBApiException(setInfoResponse.getHeader(), "SetInfo failed for " + fileId.toString());
+        }
+
+    }
 
     public boolean checkAccessMask(AccessMask mask, String smbPathOnShare) {
         File file = null;

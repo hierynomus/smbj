@@ -17,6 +17,8 @@ package com.hierynomus.mssmb2.messages;
 
 import java.util.Date;
 import java.util.UUID;
+
+import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2Packet;
@@ -35,8 +37,8 @@ public class SMB2NegotiateResponse extends SMB2Packet {
     private int maxTransactSize;
     private int maxReadSize;
     private int maxWriteSize;
-    private Date systemTime;
-    private Date serverStartTime;
+    private FileTime systemTime;
+    private FileTime serverStartTime;
     private byte[] gssToken;
 
     /**

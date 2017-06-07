@@ -74,11 +74,11 @@ public class MsDataTypes {
      * @return a Date converted from the Windows FILETIME stored in the buffer
      * @throws Buffer.BufferException If an underflow occurs by reading the FILETIME (less than 8 bytes available).
      */
-    public static Date readFileTime(Buffer<?> buffer) throws Buffer.BufferException {
+    public static FileTime readFileTime(Buffer<?> buffer) throws Buffer.BufferException {
         long lowOrder = buffer.readUInt32();
         long highOrder = buffer.readUInt32();
         long windowsTimeStamp = (highOrder << 32) | lowOrder;
-        return new Date((windowsTimeStamp - WINDOWS_TO_UNIX_EPOCH) / NANO100_TO_MILLI);
+        return new FileTime(windowsTimeStamp);
     }
 
     /**
@@ -86,8 +86,8 @@ public class MsDataTypes {
      *
      * store Date into FileTime in the buffer
      */
-    public static void putFileTime(Date date, Buffer<?> buffer) {
-        long windowsTimeStamp = (date.getTime() * NANO100_TO_MILLI) + WINDOWS_TO_UNIX_EPOCH;
+    public static void putFileTime(FileTime fileTime, Buffer<?> buffer) {
+        long windowsTimeStamp = fileTime.getWindowsTimeStamp();
         buffer.putUInt64(windowsTimeStamp, Endian.LE);
     }
 
