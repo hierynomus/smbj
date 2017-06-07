@@ -25,6 +25,10 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+
 public class FileInformationFactory {
     private static final Map<Class, FileInformation.Encoder> encoders;
     private static final Map<Class, FileInformation.Decoder> decoders;
@@ -314,7 +318,7 @@ public class FileInformationFactory {
     }
 
     /**
-     *      * MS-FSCC 2.4.7 FileBasicInformation for SMB2
+     * * MS-FSCC 2.4.7 FileBasicInformation for SMB2
      */
     public static byte[] getFileBasicInfo(
         FileTime timeToSet,
@@ -323,7 +327,7 @@ public class FileInformationFactory {
 
         Buffer.PlainBuffer buffer = new Buffer.PlainBuffer(Endian.LE);
 
-        switch (timeClass){
+        switch (timeClass) {
             case CreationTime:
                 MsDataTypes.putFileTime(timeToSet, buffer); // CreationTime
                 buffer.putUInt64(0, Endian.LE); // LastAccessTime, 0 means must not change the LastAccessTime
@@ -357,7 +361,7 @@ public class FileInformationFactory {
     }
 
     /**
-     *      * MS-FSCC 2.4.7 FileBasicInformation for SMB2
+     * * MS-FSCC 2.4.7 FileBasicInformation for SMB2
      */
     public static byte[] getFileBasicInfo(
         long fileAttributes)
