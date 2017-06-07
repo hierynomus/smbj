@@ -15,7 +15,6 @@
  */
 package com.hierynomus.smbj.share;
 
-import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.Future;
