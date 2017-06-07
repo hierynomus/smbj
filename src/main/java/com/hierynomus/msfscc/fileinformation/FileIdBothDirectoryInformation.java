@@ -30,6 +30,7 @@ public class FileIdBothDirectoryInformation extends FileDirectoryQueryableInform
     private final String shortName;
     private final byte[] fileId; // This is not the SMB2FileId, but not sure what one can do with this id.
 
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     FileIdBothDirectoryInformation(long nextOffset, long fileIndex, String fileName, FileTime creationTime, FileTime lastAccessTime, FileTime lastWriteTime, FileTime changeTime, long endOfFile, long allocationSize, long fileAttributes, long eaSize, String shortName, byte[] fileId) {
         super(nextOffset, fileIndex, fileName);
         this.creationTime = creationTime;

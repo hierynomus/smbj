@@ -28,6 +28,7 @@ public class FileBothDirectoryInformation extends FileDirectoryQueryableInformat
     private final long eaSize;
     private final String shortName;
 
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     FileBothDirectoryInformation(long nextOffset, long fileIndex, String fileName, FileTime creationTime, FileTime lastAccessTime, FileTime lastWriteTime, FileTime changeTime, long endOfFile, long allocationSize, long fileAttributes, long eaSize, String shortName) {
         super(nextOffset, fileIndex, fileName);
         this.creationTime = creationTime;
