@@ -47,7 +47,10 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
 
-import static com.hierynomus.msdtyp.AccessMask.*;
+import static com.hierynomus.msdtyp.AccessMask.FILE_READ_ATTRIBUTES;
+import static com.hierynomus.msdtyp.AccessMask.GENERIC_READ;
+import static com.hierynomus.msdtyp.AccessMask.GENERIC_WRITE;
+import static com.hierynomus.msdtyp.AccessMask.DELETE;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_DIRECTORY;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_NORMAL;
 import static com.hierynomus.mssmb2.SMB2ShareAccess.EnumUtils;
@@ -466,51 +469,27 @@ public class DiskShare extends Share {
     }
 
     /***
-     * Rename(Move) Directory. Default will using the false for replaceIfExist option
-     * @param path the path to the original directory
-     * @param newFileName the new directory name/path after rename
+     * Rename(Move) Directory/File. Default will using the false for replaceIfExist option
+     * @param path the path to the original directory/file
+     * @param newFileName the new directory/file name/path after rename
      * @throws TransportException
      * @throws SMBApiException
      */
-    public void renameDirectory(String path, String newFileName) throws TransportException, SMBApiException {
-        renameDirectory(path, newFileName, false);
+    public void rename(String path, String newFileName) throws TransportException, SMBApiException {
+        rename(path, newFileName, false);
     }
 
     /***
-     * Rename(Move) Directory.
-     * @param path the path to the original directory
-     * @param newFileName the new directory name/path after rename
+     * Rename(Move) Directory/File.
+     * @param path the path to the original directory/file
+     * @param newFileName the new directory/file name/path after rename
      * @param replaceIfExist Replace the existing directory or not if it's name same as the newFileName.
      * @throws TransportException
      * @throws SMBApiException
      */
-    public void renameDirectory(String path, String newFileName, boolean replaceIfExist) throws TransportException, SMBApiException {
+    public void rename(String path, String newFileName, boolean replaceIfExist) throws TransportException, SMBApiException {
         // recursive is auto true in SMB2
-        setRenameFileInfomation(path, newFileName, replaceIfExist, EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE));
-    }
-
-    /***
-     * Rename(Move) File. Default will using the false for replaceIfExist option
-     * @param path the path to the original file
-     * @param newFileName the new file name/path after rename
-     * @throws TransportException
-     * @throws SMBApiException
-     */
-    public void renameFile(String path, String newFileName) throws TransportException, SMBApiException {
-        // default not to replace the existing file when rename
-        renameFile(path, newFileName, false);
-    }
-
-    /***
-     * Rename(Move) File.
-     * @param path the path to the original file
-     * @param newFileName the new file name/path after rename
-     * @param replaceIfExist Replace the existing file or not if it's name same as the newFileName.
-     * @throws TransportException
-     * @throws SMBApiException
-     */
-    public void renameFile(String path, String newFileName, boolean replaceIfExist) throws TransportException, SMBApiException {
-        setRenameFileInfomation(path, newFileName, replaceIfExist, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
+        setRenameFileInfomation(path, newFileName, replaceIfExist);
     }
 
     /***
@@ -518,15 +497,14 @@ public class DiskShare extends Share {
      * @param path the path to the original file/directory
      * @param newFileName the new file/directory name/path after rename
      * @param replaceIfExist Replace the existing file/directory or not if it's name same as the newFileName.
-     * @param createOptions to determine it is a directory or a file (SMB2CreateOptions.FILE_NON_DIRECTORY_FILE, SMB2CreateOptions.FILE_DIRECTORY_FILE)
      * @throws TransportException
      * @throws SMBApiException
      */
-    public void setRenameFileInfomation(String path, String newFileName, boolean replaceIfExist, EnumSet<SMB2CreateOptions> createOptions) throws TransportException, SMBApiException {
+    public void setRenameFileInfomation(String path, String newFileName, boolean replaceIfExist) throws TransportException, SMBApiException {
 
         SMB2CreateRequest smb2CreateRequest =
             openFileRequest(treeConnect, path, toLong(EnumSet.of(GENERIC_WRITE, DELETE)), null, null,
-                SMB2CreateDisposition.FILE_OPEN, createOptions);
+                SMB2CreateDisposition.FILE_OPEN, null);
 
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
