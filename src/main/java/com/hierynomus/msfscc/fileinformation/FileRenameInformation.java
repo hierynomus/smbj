@@ -15,7 +15,7 @@
  */
 package com.hierynomus.msfscc.fileinformation;
 
-public class FileRenameInformation implements FileSettableInformation{
+public class FileRenameInformation implements FileSettableInformation {
 
     private final boolean replaceIfExists;
     private final long rootDirectory; // file handle of root directory
