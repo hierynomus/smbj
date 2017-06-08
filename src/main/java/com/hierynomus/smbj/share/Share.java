@@ -15,12 +15,6 @@
  */
 package com.hierynomus.smbj.share;
 
-import java.io.IOException;
-import java.util.EnumSet;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
@@ -37,6 +31,13 @@ import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.EnumSet;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Share implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(Share.class);
@@ -44,6 +45,7 @@ public class Share implements AutoCloseable {
     protected SmbPath smbPath;
     protected final TreeConnect treeConnect;
     private AtomicBoolean disconnected = new AtomicBoolean(false);
+    private EnumSet<SMB2CreateOptions> shareCreateOptions = EnumSet.noneOf(SMB2CreateOptions.class);
 
     Share(SmbPath smbPath, TreeConnect treeConnect) {
         this.smbPath = smbPath;
@@ -74,8 +76,9 @@ public class Share implements AutoCloseable {
         logger.info("open {},{}", path, fileAttributes);
 
         Session session = treeConnect.getSession();
+
         SMB2CreateRequest cr = openFileRequest(
-            treeConnect, path, accessMask, shareAccess, fileAttributes, createDisposition, createOptions);
+            treeConnect, path, accessMask, shareAccess, fileAttributes, createDisposition, getShareCreateOptions(createOptions));
         try {
             Future<SMB2CreateResponse> responseFuture = session.send(cr);
             SMB2CreateResponse cresponse = Futures.get(responseFuture, SMBRuntimeException.Wrapper);
@@ -90,6 +93,19 @@ public class Share implements AutoCloseable {
 
     }
 
+    /**
+     * Register CreateOption which will be  appended to every open operatoion
+     * reason is mainly  to support SMB2CreateOptions.FILE_OPEN_FOR_BACKUP_INTENT
+     */
+    public void registerShareCreateOptions(SMB2CreateOptions createOption) {
+        shareCreateOptions.add(createOption);
+    }
+
+    private EnumSet<SMB2CreateOptions> getShareCreateOptions(EnumSet<SMB2CreateOptions> createOptions) {
+        EnumSet<SMB2CreateOptions> clone = createOptions == null ? EnumSet.noneOf(SMB2CreateOptions.class) : createOptions.clone();
+        clone.addAll(this.shareCreateOptions);
+        return clone;
+    }
 
     protected static SMB2CreateRequest openFileRequest(
         TreeConnect treeConnect, String path,
