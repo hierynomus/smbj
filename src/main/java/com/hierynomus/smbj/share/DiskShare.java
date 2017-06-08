@@ -18,6 +18,8 @@ package com.hierynomus.smbj.share;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.Future;
+
+import com.hierynomus.msfscc.fileinformation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.hierynomus.msdtyp.AccessMask;
@@ -27,9 +29,6 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.msfscc.FileSystemInformationClass;
-import com.hierynomus.msfscc.fileinformation.FileInfo;
-import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
-import com.hierynomus.msfscc.fileinformation.ShareInfo;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMB2FileId;
@@ -69,14 +68,14 @@ public class DiskShare extends Share {
     /**
      * Get a listing the given directory path. The "." and ".." are pre-filtered.
      */
-    public List<FileInfo> list(String path) throws SMBApiException, TransportException {
+    public List<FileIdBothDirectoryInformation> list(String path) throws SMBApiException, TransportException {
         logger.info("List {}", path);
 
         Directory fileHandle = openDirectory(path, EnumSet.of(GENERIC_READ),
             EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ), SMB2CreateDisposition.FILE_OPEN);
 
         try {
-            return fileHandle.list();
+            return fileHandle.list(FileIdBothDirectoryInformation.class);
         } finally {
             if (fileHandle != null) {
                 fileHandle.closeSilently();
@@ -86,12 +85,12 @@ public class DiskShare extends Share {
 
     public DiskEntry getFile(String path) {
         try {
-            FileInfo fileInformation = getFileInformation(path);
-            EnumSet<FileAttributes> fileAttributes = EnumUtils.toEnumSet(fileInformation.getFileAttributes(), FileAttributes.class);
+            FileAllInformation fileInformation = getFileInformation(path, FileAllInformation.class);
+            EnumSet<FileAttributes> fileAttributes = EnumUtils.toEnumSet(fileInformation.getBasicInformation().getFileAttributes(), FileAttributes.class);
             if (fileAttributes.contains(FILE_ATTRIBUTE_DIRECTORY)) {
                 return new Directory(null, treeConnect, path);
             } else {
-                return new File(null, treeConnect, path, fileInformation.getAccessMask());
+                return new File(null, treeConnect, path, fileInformation.getAccessInformation().getAccessFlags());
             }
         } catch (SMBApiException ex) {
 //            if (ex.getStatus() == NtStatus.STATUS_OBJECT_NAME_NOT_FOUND) {
@@ -163,35 +162,75 @@ public class DiskShare extends Share {
     /**
      * Get information about the given path.
      **/
-    public FileInfo getFileInformation(String path) throws SMBApiException {
+    public FileAllInformation getFileInformation(String path) throws SMBApiException {
+        return getFileInformation(path, FileAllInformation.class);
+    }
 
-        byte[] outputBuffer = queryInfoCommon(path,
-            SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILE, null,
-            FileInformationClass.FileAllInformation);
+    /**
+     * Get information about the given path.
+     **/
+    public <F extends FileQueryableInformation> F getFileInformation(String path, Class<F> informationClass) throws SMBApiException {
+        FileInformation.Decoder<F> decoder = FileInformationFactory.getDecoder(informationClass);
+
+        byte[] outputBuffer = queryInfoCommon(
+            path,
+            SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILE,
+            null,
+            decoder.getInformationClass()
+        );
 
         try {
-            return FileInformationFactory.parseFileAllInformation(
-                new Buffer.PlainBuffer(outputBuffer, Endian.LE));
+            return decoder.read(new Buffer.PlainBuffer(outputBuffer, Endian.LE));
         } catch (Buffer.BufferException e) {
             throw new SMBRuntimeException(e);
+        }
+    }
+
+
+    /**
+     * Get information for a given fileId
+     **/
+    public FileAllInformation getFileInformation(SMB2FileId fileId) throws SMBApiException, TransportException {
+        return getFileInformation(fileId, FileAllInformation.class);
+    }
+
+    /**
+     * Get information for a given fileId
+     **/
+    public <F extends FileQueryableInformation> F getFileInformation(SMB2FileId fileId, Class<F> informationClass) throws SMBApiException, TransportException {
+        FileInformation.Decoder<F> decoder = FileInformationFactory.getDecoder(informationClass);
+
+        byte[] outputBuffer = queryInfoCommon(
+            fileId,
+            SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILE,
+            null,
+            decoder.getInformationClass()
+        );
+
+        try {
+            return decoder.read(new Buffer.PlainBuffer(outputBuffer, Endian.LE));
+        } catch (Buffer.BufferException e) {
+            throw new TransportException(e);
         }
     }
 
     /**
      * Get information for a given fileId
      **/
-    public FileInfo getFileInformation(SMB2FileId fileId) throws SMBApiException, TransportException {
+    public <F extends FileSettableInformation> void setFileInformation(SMB2FileId fileId, F information) throws SMBApiException, TransportException {
+        FileInformation.Encoder<F> encoder = FileInformationFactory.getEncoder(information);
 
-        byte[] outputBuffer = queryInfoCommon(fileId,
-            SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILE, null,
-            FileInformationClass.FileAllInformation);
+        Buffer.PlainBuffer buffer = new Buffer.PlainBuffer(Buffer.DEFAULT_SIZE, Endian.LE);
+        encoder.write(information, buffer);
+        byte[] info = buffer.getCompactData();
 
-        try {
-            return FileInformationFactory.parseFileAllInformation(
-                new Buffer.PlainBuffer(outputBuffer, Endian.LE));
-        } catch (Buffer.BufferException e) {
-            throw new TransportException(e);
-        }
+        setInfoCommon(
+            fileId,
+            SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE,
+            null,
+            encoder.getInformationClass(),
+            info
+        );
     }
 
     /**
@@ -227,8 +266,8 @@ public class DiskShare extends Share {
         //TODO Even with DELETE_CHILD permission, receiving error, so doing the recursive way for now.
         //if (recursive) accessMask.add(SMB2DirectoryAccessMask.FILE_DELETE_CHILD);
         if (recursive) {
-            List<FileInfo> list = list(path);
-            for (FileInfo fi : list) {
+            List<FileIdBothDirectoryInformation> list = list(path);
+            for (FileIdBothDirectoryInformation fi : list) {
                 if (!EnumWithValue.EnumUtils.isSet(fi.getFileAttributes(), FILE_ATTRIBUTE_DIRECTORY)) {
                     rm(makePath(path, fi.getFileName()));
                 } else {
@@ -279,11 +318,11 @@ public class DiskShare extends Share {
 
 		FileInformationClass rename = FileInformationClass.FileRenameInformation;
         byte[] renameData = FileInformationFactory.getRenameInfo(replaceIfExists, newPath);
-        setFileInfoCommon(oldPath, smb2CreateRequest, rename, renameData);
+        createAndSetInfoCommon(oldPath, smb2CreateRequest, rename, renameData);
     }
 
-    
-//    /**
+
+    //    /**
 //     * Write the given input stream to the given path
 //     */
 //    public void write(String path, boolean overWrite,
@@ -362,14 +401,13 @@ public class DiskShare extends Share {
 
     private void deleteCommon(String path, SMB2CreateRequest smb2CreateRequest)
         throws TransportException, SMBApiException {
-
-        FileInformationClass disposition = FileInformationClass.FileDispositionInformation;
-        byte[] dispositionData = FileInformationFactory.getFileDispositionInfo(true);
-        setFileInfoCommon(path, smb2CreateRequest, disposition, dispositionData);
+    	
+    	createAndSetInfoCommon(path, smb2CreateRequest, FileInformationClass.FileDispositionInformation, FileInformationFactory.getFileDispositionInfo(true));
     }
     
-    private void setFileInfoCommon(String path, SMB2CreateRequest smb2CreateRequest, FileInformationClass fileInfoClass, byte[] infoData)
+    private void createAndSetInfoCommon(String path, SMB2CreateRequest smb2CreateRequest, FileInformationClass fileInfoClass, byte[] fileInfoData)
             throws TransportException, SMBApiException {
+
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
 
@@ -383,17 +421,13 @@ public class DiskShare extends Share {
 
         SMB2FileId fileId = response.getFileId();
         try {
-			SMB2SetInfoRequest si_req = new SMB2SetInfoRequest(
-                connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
-                SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE, fileId,
-                fileInfoClass, null, infoData);
-
-            Future<SMB2SetInfoResponse> setInfoFuture = session.send(si_req);
-            SMB2SetInfoResponse setInfoResponse = Futures.get(setInfoFuture, TransportException.Wrapper);
-
-            if (setInfoResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(setInfoResponse.getHeader(), "SetInfo failed for " + path);
-            }
+            setInfoCommon(
+                fileId,
+                SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE,
+                null,
+                fileInfoClass,
+                fileInfoData
+            );
         } finally {
             SMB2Close closeReq = new SMB2Close(connection.getNegotiatedProtocol().getDialect(),
                 session.getSessionId(), treeConnect.getTreeId(), fileId);
@@ -492,6 +526,32 @@ public class DiskShare extends Share {
         }
     }
 
+    private void setInfoCommon(
+        SMB2FileId fileId,
+        SMB2SetInfoRequest.SMB2InfoType infoType,
+        EnumSet<SecurityInformation> securityInfo,
+        FileInformationClass fileInformationClass,
+        byte[] buffer)
+        throws SMBApiException {
+
+        Session session = treeConnect.getSession();
+        Connection connection = session.getConnection();
+
+        SMB2SetInfoRequest qreq = new SMB2SetInfoRequest(
+            connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
+            infoType, fileId,
+            fileInformationClass, securityInfo, buffer);
+        try {
+            Future<SMB2SetInfoResponse> qiResponseFuture = session.send(qreq);
+            SMB2SetInfoResponse qresp = Futures.get(qiResponseFuture, SMBRuntimeException.Wrapper);
+
+            if (qresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+                throw new SMBApiException(qresp.getHeader(), "SET_INFO failed for " + fileId);
+            }
+        } catch (TransportException e) {
+            throw SMBRuntimeException.Wrapper.wrap(e);
+        }
+    }
 
     public boolean checkAccessMask(AccessMask mask, String smbPathOnShare) {
         File file = null;

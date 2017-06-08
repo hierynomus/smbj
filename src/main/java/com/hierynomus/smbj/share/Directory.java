@@ -16,14 +16,13 @@
 package com.hierynomus.smbj.share;
 
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.msfscc.FileInformationClass;
-import com.hierynomus.msfscc.fileinformation.FileInfo;
+import com.hierynomus.msfscc.fileinformation.FileDirectoryQueryableInformation;
+import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
+import com.hierynomus.msfscc.fileinformation.FileInformation;
 import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
 import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryRequest;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryResponse;
-import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
@@ -33,13 +32,10 @@ import com.hierynomus.smbj.transport.TransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.Future;
 
-public class Directory extends DiskEntry implements Iterable<FileInfo> {
+public class Directory extends DiskEntry implements Iterable<FileIdBothDirectoryInformation> {
 
     private static final Logger logger = LoggerFactory.getLogger(Directory.class);
 
@@ -47,66 +43,26 @@ public class Directory extends DiskEntry implements Iterable<FileInfo> {
         super(treeConnect, fileId, fileName);
     }
 
-    private class IterableContextData {
-        int newDataLength = -1;
-        int iteratorIndex = 0;
-        FileInfo next = null;
-        List<FileInfo> entries = null;
-        NtStatus lastStatus = NtStatus.UNKNOWN;
+    public List<FileIdBothDirectoryInformation> list() throws TransportException, SMBApiException {
+        return list(FileIdBothDirectoryInformation.class);
     }
 
-    public List<FileInfo> list() throws TransportException, SMBApiException {
-        List<FileInfo> fileList = new ArrayList<>();
-        IterableContextData ctx = new IterableContextData();
-        // Keep querying until we don't get new data
-        do {
-            query(ctx);
-
-            if (ctx.entries != null) {
-                fileList.addAll(ctx.entries);
-            }
-        } while (ctx.newDataLength > 65000); // Optimization for not making the last call which returns NO_MORE_FILES.
-
+    public <F extends FileDirectoryQueryableInformation> List<F> list(Class<F> informationClass) throws TransportException, SMBApiException {
+        List<F> fileList = new ArrayList<>();
+        Iterator<F> iterator = iterator(informationClass);
+        while (iterator.hasNext()) {
+            fileList.add(iterator.next());
+        }
         return fileList;
     }
 
-    private void query(IterableContextData ctx) throws TransportException {
-        Session session = treeConnect.getSession();
-        Connection connection = session.getConnection();
-        // Query Directory Request
-        EnumSet<SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags> smb2Reopen = EnumSet.noneOf(SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags.class);
-        if (ctx.newDataLength < 0) {
-            smb2Reopen = EnumSet.of(SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags.SMB2_RESTART_SCANS);
-        }
-        SMB2QueryDirectoryRequest qdr = new SMB2QueryDirectoryRequest(connection.getNegotiatedProtocol().getDialect(),
-            session.getSessionId(), treeConnect.getTreeId(),
-            getFileId(), FileInformationClass.FileIdBothDirectoryInformation,
-            smb2Reopen,
-            0, null);
-        Future<SMB2QueryDirectoryResponse> qdFuture = session.send(qdr);
+    @Override
+    public Iterator<FileIdBothDirectoryInformation> iterator() {
+        return iterator(FileIdBothDirectoryInformation.class);
+    }
 
-        SMB2QueryDirectoryResponse qdResp = Futures.get(qdFuture, TransportException.Wrapper);
-
-        ctx.lastStatus = qdResp.getHeader().getStatus();
-        if (qdResp.getHeader().getStatus() == NtStatus.STATUS_NO_MORE_FILES) {
-            ctx.newDataLength = 0;
-            ctx.entries = null;
-        } else {
-            if (qdResp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(qdResp.getHeader().getStatus(),
-                    qdResp.getHeader().getStatusCode(), SMB2MessageCommandCode.SMB2_QUERY_DIRECTORY,
-                    "Query directory failed for " + fileName + "/" + fileId);
-            }
-            byte[] outputBuffer = qdResp.getOutputBuffer();
-            ctx.newDataLength = outputBuffer.length;
-
-            try {
-                ctx.entries = FileInformationFactory.parseFileInformationList(outputBuffer, FileInformationClass.FileIdBothDirectoryInformation);
-            } catch (Buffer.BufferException e) {
-                throw new TransportException(e);
-            }
-
-        }
+    public <F extends FileDirectoryQueryableInformation> Iterator<F> iterator(Class<F> informationClass) {
+        return new DirectoryIterator<>(informationClass);
     }
 
     public SMB2FileId getFileId() {
@@ -126,56 +82,88 @@ public class Directory extends DiskEntry implements Iterable<FileInfo> {
         return String.format("File{fileId=%s, fileName='%s'}", fileId, fileName);
     }
 
-    @Override
-    public Iterator<FileInfo> iterator() {
-        return new Iterator<FileInfo>() {
+    private class DirectoryIterator<F extends FileDirectoryQueryableInformation> implements Iterator<F> {
+        private final FileInformation.Decoder<F> decoder;
+        private Iterator<F> currentIterator;
+        private F next;
 
-            IterableContextData ctx = new IterableContextData();
+        DirectoryIterator(Class<F> informationClass) {
+            decoder = FileInformationFactory.getDecoder(informationClass);
+            currentIterator = queryDirectory(true);
+            this.next = prepareNext();
+        }
 
-            @Override
-            public boolean hasNext() {
-                try {
-                    queryIfNeeded();
-                } catch (TransportException e) {
-                    throw new SMBRuntimeException(e);
-                }
-                return ctx.next != null;
+        @Override
+        public boolean hasNext() {
+            return next != null;
+        }
+
+        @Override
+        public F next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
             }
 
-            void queryIfNeeded() throws TransportException {
+            F fileInfo = this.next;
+            this.next = prepareNext();
+            return fileInfo;
+        }
 
-                if (ctx.newDataLength < 0) {
-                    query(ctx);
-                }
-                if (ctx.entries == null || ctx.entries.size() == 0 || ctx.lastStatus == NtStatus.STATUS_NO_MORE_FILES) {
-                    if (ctx.iteratorIndex > 0) {
-                        ctx.next = null;
-                    }
-                } else if (ctx.iteratorIndex == ctx.entries.size() - 1) {
-                    ctx.next = ctx.entries.get(ctx.entries.size() - 1);
-                    ctx.iteratorIndex = 0;
-                    query(ctx);
+        private F prepareNext() {
+            while (currentIterator != null) {
+                if (currentIterator.hasNext()) {
+                    return currentIterator.next();
                 } else {
-                    ctx.next = ctx.entries.get(ctx.iteratorIndex);
+                    currentIterator = queryDirectory(false);
                 }
             }
+            return null;
+        }
 
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException("remove");
+        private Iterator<F> queryDirectory(boolean firstQuery) {
+            Session session = treeConnect.getSession();
+            Connection connection = session.getConnection();
+
+            // Query Directory Request
+            EnumSet<SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags> flags;
+            if (firstQuery) {
+                flags = EnumSet.of(SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags.SMB2_RESTART_SCANS);
+            } else {
+                flags = EnumSet.noneOf(SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags.class);
             }
 
-            @Override
-            public FileInfo next() {
-                try {
-                    queryIfNeeded();
-                    FileInfo next = ctx.next;
-                    ctx.iteratorIndex++;
-                    return next;
-                } catch (TransportException e) {
-                    throw new SMBRuntimeException(e);
+            SMB2QueryDirectoryRequest qdr = new SMB2QueryDirectoryRequest(connection.getNegotiatedProtocol().getDialect(),
+                session.getSessionId(), treeConnect.getTreeId(),
+                getFileId(), decoder.getInformationClass(),
+                flags,
+                0, null);
+
+            SMB2QueryDirectoryResponse qdResp;
+            try {
+                Future<SMB2QueryDirectoryResponse> qdFuture = session.send(qdr);
+                qdResp = Futures.get(qdFuture, TransportException.Wrapper);
+            } catch (TransportException e) {
+                throw new SMBRuntimeException(e);
+            }
+
+            NtStatus status = qdResp.getHeader().getStatus();
+
+            if (status == NtStatus.STATUS_NO_MORE_FILES) {
+                return null;
+            } else {
+                if (status != NtStatus.STATUS_SUCCESS) {
+                    throw new SMBApiException(qdResp.getHeader(), String.format("Query directory failed for %s", this));
                 }
+                return FileInformationFactory.createFileInformationIterator(
+                    qdResp.getOutputBuffer(),
+                    decoder
+                );
             }
-        };
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
     }
 }
