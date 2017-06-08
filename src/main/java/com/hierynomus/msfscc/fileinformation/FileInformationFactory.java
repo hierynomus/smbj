@@ -353,7 +353,7 @@ public class FileInformationFactory {
                 MsDataTypes.putFileTime(timeToSet, buffer); // ChangeTime
                 break;
             default:
-                new UnsupportedOperationException(timeClass.toString());
+                throw new UnsupportedOperationException(timeClass.toString());
         }
 
         buffer.putUInt32(0); // FileAttributes, 0 means must not change the file attribute
