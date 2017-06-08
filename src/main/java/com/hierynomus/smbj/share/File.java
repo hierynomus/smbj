@@ -16,15 +16,21 @@
 package com.hierynomus.smbj.share;
 
 import com.hierynomus.msdtyp.AccessMask;
+import com.hierynomus.msdtyp.SecurityInformation;
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.msfscc.FileInformationClass;
+import com.hierynomus.msfscc.fileinformation.FileInformation;
+import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
+import com.hierynomus.msfscc.fileinformation.FileRenameInformation;
+import com.hierynomus.msfscc.fileinformation.FileSettableInformation;
 import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.messages.SMB2ReadRequest;
-import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
-import com.hierynomus.mssmb2.messages.SMB2WriteRequest;
-import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
+import com.hierynomus.mssmb2.messages.*;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.common.SMBApiException;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.connection.NegotiatedProtocol;
 import com.hierynomus.smbj.io.ByteChunkProvider;
@@ -36,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.EnumSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -227,6 +234,65 @@ public class File extends DiskEntry {
 
         } catch (InterruptedException | ExecutionException e) {
             throw new IOException(e);
+        }
+    }
+
+    public void rename(String newName)throws TransportException, SMBApiException {
+        this.rename(newName, false);
+    }
+
+    public void rename(String newName, boolean replaceIfExist)throws TransportException, SMBApiException {
+        this.rename(newName, replaceIfExist, 0);
+    }
+
+    public void rename(String newName, boolean replaceIfExist, long rootDirectory)throws TransportException, SMBApiException {
+        FileRenameInformation renameInfo = new FileRenameInformation(replaceIfExist, rootDirectory, newName);
+        this.setFileInformation(renameInfo);
+    }
+
+    /**
+     * Get information for a given fileId
+     **/
+    private <F extends FileSettableInformation> void setFileInformation(F information) throws SMBApiException, TransportException {
+        FileInformation.Encoder<F> encoder = FileInformationFactory.getEncoder(information);
+
+        Buffer.PlainBuffer buffer = new Buffer.PlainBuffer(Buffer.DEFAULT_SIZE, Endian.LE);
+        encoder.write(information, buffer);
+        byte[] info = buffer.getCompactData();
+
+        setInfoCommon(
+            this.fileId,
+            SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE,
+            null,
+            encoder.getInformationClass(),
+            info
+        );
+    }
+
+    private void setInfoCommon(
+        SMB2FileId fileId,
+        SMB2SetInfoRequest.SMB2InfoType infoType,
+        EnumSet<SecurityInformation> securityInfo,
+        FileInformationClass fileInformationClass,
+        byte[] buffer)
+        throws SMBApiException {
+
+        Session session = treeConnect.getSession();
+        Connection connection = session.getConnection();
+
+        SMB2SetInfoRequest qreq = new SMB2SetInfoRequest(
+            connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
+            infoType, fileId,
+            fileInformationClass, securityInfo, buffer);
+        try {
+            Future<SMB2SetInfoResponse> qiResponseFuture = session.send(qreq);
+            SMB2SetInfoResponse qresp = Futures.get(qiResponseFuture, SMBRuntimeException.Wrapper);
+
+            if (qresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+                throw new SMBApiException(qresp.getHeader(), "SET_INFO failed for " + fileId);
+            }
+        } catch (TransportException e) {
+            throw SMBRuntimeException.Wrapper.wrap(e);
         }
     }
 
