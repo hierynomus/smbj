@@ -15,15 +15,17 @@
  */
 package com.hierynomus.ntlm.messages;
 
+import com.hierynomus.msdtyp.MsDataTypes;
+import com.hierynomus.protocol.commons.EnumWithValue;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.Endian;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import com.hierynomus.msdtyp.MsDataTypes;
-import com.hierynomus.protocol.commons.EnumWithValue;
-import com.hierynomus.protocol.commons.buffer.Buffer;
 
 /**
  * [MS-NLMP].pdf 2.2.1.2 CHALLENGE_MESSAGE
@@ -63,7 +65,7 @@ public class NtlmChallenge extends NtlmPacket {
             rawTargetInfo = buffer.readRawBytes(targetInfoLen);
             // Move to where buffer begins
             buffer.rpos(targetInfoBufferOffset);
-            AvId avId = null;
+            AvId avId;
             while (true) {
                 int l = buffer.readUInt16();
                 avId = EnumWithValue.EnumUtils.valueOf(l, AvId.class, null); // AvId (2 bytes)
@@ -82,6 +84,7 @@ public class NtlmChallenge extends NtlmPacket {
                         targetInfo.put(avId, buffer.readString(StandardCharsets.UTF_16LE, avLen / 2));
                         break;
                     case MsvAvFlags:
+                        targetInfo.put(avId, buffer.readUInt32(Endian.LE));
                         break;
                     case MsvAvTimestamp:
                         targetInfo.put(avId, MsDataTypes.readFileTime(buffer));
@@ -143,5 +146,9 @@ public class NtlmChallenge extends NtlmPacket {
 
     public byte[] getTargetInfo() {
         return rawTargetInfo;
+    }
+
+    public Object getAvPairObject(AvId key) {
+        return this.targetInfo.get(key);
     }
 }

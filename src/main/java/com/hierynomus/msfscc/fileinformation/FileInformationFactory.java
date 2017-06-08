@@ -209,7 +209,7 @@ public class FileInformationFactory {
                 return parseFileFullDirectoryInformation(inputBuffer);
             }
         });
-        
+
         decoders.put(FileIdBothDirectoryInformation.class, new FileInformation.Decoder<FileIdBothDirectoryInformation>() {
             @Override
             public FileInformationClass getInformationClass() {
