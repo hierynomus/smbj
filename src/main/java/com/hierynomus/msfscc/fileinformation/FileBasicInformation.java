@@ -34,7 +34,7 @@ public class FileBasicInformation implements FileQueryableInformation, FileSetta
     private final FileTime changeTime;
     private long fileAttributes;
 
-    FileBasicInformation(FileTime creationTime, FileTime lastAccessTime, FileTime lastWriteTime, FileTime changeTime, long fileAttributes) {
+    public FileBasicInformation(FileTime creationTime, FileTime lastAccessTime, FileTime lastWriteTime, FileTime changeTime, long fileAttributes) {
         this.creationTime = creationTime;
         this.lastAccessTime = lastAccessTime;
         this.lastWriteTime = lastWriteTime;
