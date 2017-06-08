@@ -15,10 +15,11 @@
  */
 package com.hierynomus.ntlm.messages;
 
-import java.nio.charset.StandardCharsets;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
+
+import java.nio.charset.StandardCharsets;
 
 import static com.hierynomus.ntlm.functions.NtlmFunctions.unicode;
 
@@ -27,7 +28,6 @@ import static com.hierynomus.ntlm.functions.NtlmFunctions.unicode;
  */
 public class NtlmAuthenticate extends NtlmPacket {
     private static byte[] EMPTY = new byte[0];
-
     private byte[] lmResponse;
     private byte[] ntResponse;
     private byte[] userName;
@@ -35,12 +35,14 @@ public class NtlmAuthenticate extends NtlmPacket {
     private byte[] workstation;
     private byte[] encryptedRandomSessionKey;
     private long negotiateFlags;
+    private boolean useMic;
+    private byte[] mic;
 
     public NtlmAuthenticate(
         byte[] lmResponse, byte[] ntResponse,
         String userName, String domainName, String workstation,
-        byte[] encryptedRandomSessionKey, long negotiateFlags
-    ) {
+        byte[] encryptedRandomSessionKey, long negotiateFlags,
+        boolean useMic) {
         super();
         this.lmResponse = ensureNotNull(lmResponse);
         this.ntResponse = ensureNotNull(ntResponse);
@@ -49,14 +51,45 @@ public class NtlmAuthenticate extends NtlmPacket {
         this.workstation = ensureNotNull(workstation);
         this.encryptedRandomSessionKey = ensureNotNull(encryptedRandomSessionKey);
         this.negotiateFlags = negotiateFlags;
+        this.useMic = useMic;
     }
 
     @Override
     public void write(Buffer.PlainBuffer buffer) {
+
+        writeAutentificateMessage(buffer);
+
+        if (useMic) {
+            // MIC (16 bytes) provided if in AvPairType is key MsvAvFlags with value & 0x00000002 is true
+            buffer.putRawBytes(mic);
+        }
+
+        // Payload
+        buffer.putRawBytes(lmResponse);
+        buffer.putRawBytes(ntResponse);
+        buffer.putRawBytes(domainName);
+        buffer.putRawBytes(userName);
+        buffer.putRawBytes(workstation);
+        buffer.putRawBytes(encryptedRandomSessionKey);
+    }
+
+    public void setMic(byte[] mic) {
+        this.mic = mic;
+    }
+
+    public void writeAutentificateMessage(Buffer.PlainBuffer buffer) {
         buffer.putString("NTLMSSP\0", StandardCharsets.UTF_8); // Signature (8 bytes)
         buffer.putUInt32(0x03); // MessageType (4 bytes)
 
-        int offset = 80; // for the offset
+        int offset = 64; // for the offset
+
+        if (useMic) {
+            offset += 16;
+        }
+
+        if (EnumWithValue.EnumUtils.isSet(negotiateFlags, NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
+            offset += 8;
+        }
 
         offset = writeOffsettedByteArrayFields(buffer, lmResponse, offset); // LmChallengeResponseFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, ntResponse, offset); // NtChallengeResponseFields (8 bytes)
@@ -74,19 +107,6 @@ public class NtlmAuthenticate extends NtlmPacket {
         if (EnumWithValue.EnumUtils.isSet(negotiateFlags, NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
             buffer.putRawBytes(getVersion()); // Version (8 bytes)
         }
-
-        // MIC
-        // TODO Set MIC to HMAC_MD5(ExportedSessionKey, ConcatenationOf( CHALLENGE_MESSAGE, AUTHENTICATE_MESSAGE))
-        byte[] MIC = new byte[16];
-        buffer.putRawBytes(MIC); // MIC (16 bytes)
-
-        // Payload
-        buffer.putRawBytes(lmResponse);
-        buffer.putRawBytes(ntResponse);
-        buffer.putRawBytes(domainName);
-        buffer.putRawBytes(userName);
-        buffer.putRawBytes(workstation);
-        buffer.putRawBytes(encryptedRandomSessionKey);
     }
 
     /**
@@ -112,7 +132,6 @@ public class NtlmAuthenticate extends NtlmPacket {
         buffer.putUInt32(offset); // ArrayOffset
         return offset + _array.length;
     }
-
 
     private byte[] ensureNotNull(byte[] possiblyNull) {
         return possiblyNull != null ? possiblyNull : EMPTY;
