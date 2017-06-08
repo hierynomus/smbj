@@ -15,8 +15,11 @@
  */
 package com.hierynomus.msdtyp;
 
-import java.util.Arrays;
-import com.hierynomus.msdtyp.ace.ACE;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import com.hierynomus.msdtyp.ace.Ace;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
@@ -24,70 +27,67 @@ import com.hierynomus.smbj.common.SMBBuffer;
  * [MS-DTYP].pdf 2.4.5 ACL
  */
 public class ACL {
+    public static final byte ACL_REVISION = 0x02;
+    public static final byte ACL_REVISION_DS = 0x04;
 
     private byte revision;
-    private int aceCount;
-    private byte[] sidIdentifierAuthority;
-    private long[] subAuthorities;
-    private ACE[] aces;
-    private int aclSize;
+    private List<Ace> aces;
+
+    public ACL(byte revision, List<Ace> aces) {
+        this.revision = revision;
+        this.aces = aces;
+    }
 
     public void write(SMBBuffer buffer) {
-        aces = aces == null ? new ACE[0] : aces;
+        List<Ace> aces = this.aces == null ? Collections.<Ace>emptyList() : this.aces;
+        int startPos = buffer.wpos();
         buffer.putByte(revision); // AclRevision (1 byte)
         buffer.putReserved1(); // Sbz1 (1 byte)
-        aclSize = 8;
-        for (ACE ace : aces) {
-            aclSize += ace.getAceHeader().getAceSize();
-        }
-        buffer.putUInt16(aclSize); // AclSize (2 bytes)
-        buffer.putUInt16(aces.length); // AceCount (2 bytes)
+
+        int sizePos = buffer.wpos();
+        buffer.wpos(sizePos + 2);
+        buffer.putUInt16(aces.size()); // AceCount (2 bytes)
         buffer.putReserved2(); // Sbz2 (2 bytes)
-        for (ACE ace : aces) {
+        for (Ace ace : aces) {
             ace.write(buffer);
         }
+        int endPos = buffer.wpos();
+        buffer.wpos(sizePos);
+        buffer.putUInt16(endPos - startPos);
+        buffer.wpos(endPos);
     }
 
-    public void read(SMBBuffer buffer) throws Buffer.BufferException {
-        revision = buffer.readByte(); // AclRevision (1 byte)
+    public static ACL read(SMBBuffer buffer) throws Buffer.BufferException {
+        byte revision = buffer.readByte(); // AclRevision (1 byte)
         buffer.skip(1); // Sbz1 (1 byte)
-        aclSize = buffer.readUInt16(); // AclSize (2 bytes)
+        buffer.readUInt16(); // AclSize (2 bytes)
         int aceCount = buffer.readUInt16(); // AceCount (2 bytes)
         buffer.skip(2); // Sbz2 (2 bytes)
-        aces = new ACE[aceCount];
+        List<Ace> aces = new ArrayList<>(aceCount);
         for (int i = 0; i < aceCount; i++) {
-            aces[i] = ACE.factory(buffer);
+            aces.add(Ace.read(buffer));
         }
+        return new ACL(revision, aces);
     }
 
-    public int getAceCount() {
-        return aceCount;
+    public byte getRevision() {
+        return revision;
     }
 
-    public byte[] getSidIdentifierAuthority() {
-        return sidIdentifierAuthority;
+    public void setRevision(byte revision) {
+        this.revision = revision;
     }
 
-    public long[] getSubAuthorities() {
-        return subAuthorities;
-    }
-
-    public ACE[] getAces() {
-        return Arrays.copyOf(aces, aces.length);
-    }
-
-    public int getAclSize() {
-        return aclSize;
+    public List<Ace> getAces() {
+        return aces;
     }
 
     @Override
     public String toString() {
         return "ACL{" +
             "revision=" + revision +
-            ", aceCount=" + aceCount +
-            ", sidIdentifierAuthority=" + Arrays.toString(sidIdentifierAuthority) +
-            ", subAuthorities=" + Arrays.toString(subAuthorities) +
-            ", aces=" + Arrays.toString(aces) +
+            ", aceCount=" + aces.size() +
+            ", aces=" + aces +
             '}';
     }
 }

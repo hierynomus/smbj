@@ -1,0 +1,140 @@
+//
+// Copyright (C)2016 - SMBJ Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// Mouse (http://mousepeg.sourceforge.net) grammar for SDDL
+// Generate the parser by running
+//   java -cp Mouse-1.9.jar mouse.Generate -G sddl.txt -P SddlParser -p com.hierynomus.msdtyp.sddl -S SddlParserSemantics -r com.hierynomus.msdtyp.sddl
+// in this directory
+//
+SDDL = ( OwnerString? GroupString? DaclString? SaclString? !_ ) {sddl} ~{error} / _* ;
+
+OwnerString = "O:" SidString {owner} ;
+
+GroupString = "G:" SidString {group} ;
+
+DaclString = "D:" AclString {dacl} ;
+
+SaclString = "S:" AclString {sacl} ;
+
+AclString = AclFlagString Aces {acl} ;
+
+SidString = ( SidToken / SidValue ) {sid};
+
+SidValue = "S-1-" IdentifierAuthority SubAuthority+;
+IdentifierAuthority = IdentifierAuthorityHex / IdentifierAuthorityDec;
+IdentifierAuthorityDec = Digit+ ;
+IdentifierAuthorityHex = "0x" HexDigit+;
+SubAuthority = "-" Digit+ ;
+
+SidToken = "DA" / "DG" / "DU" / "ED" / "DD" / "DC" / "BA" / "BG" / "BU" / "LA" / "LG" / "AO" / "BO" / "PO" / "SO" / "AU" / "PS" / "CO" / "CG" / "SY" / "PU" / "WD" / "RE" / "IU" / "NU" / "SU" / "RC" / "WR" / "AN" / "SA" / "CA" / "RS" / "EA" / "PA" / "RU" / "LS" / "NS" / "RD" / "NO" / "MU" / "LU" / "IS" / "CY" / "OW" / "ER" / "RO" / "CD" / "AC" / "RA" / "ES" / "MS" / "UD" / "HA" / "CN" / "AA" / "RM" / "LW" / "ME" / "MP" / "HI" / "SI";
+
+AclFlagString = AclFlag* {aclFlags};
+AclFlag = ( "P" / "AR" / "AI" ) {aclFlag};
+
+Aces = ( Ace / ConditionalAce / ResourceAttributeAce )* {aces};
+
+Ace = "(" AceType ";" AceFlagString ";" AceRights ";" Guid ";" Guid ";" SidString ")" {ace};
+AceType = ( "AU" / "A" / "D" / "OA" / "OD" / "OU" / "ML" / "SP" ) {aceType};
+
+ConditionalAce = "(" ConditionalAceType ";" AceFlagString ";" AceRights ";" Guid ";" Guid ";" SidString ";(" CondExpr "))" {conditionalAce};
+ConditionalAceType = ( "XA" / "XD" / "ZA" / "XU" ) {conditionalAceType};
+
+ResourceAttributeAce = "(" ResourceAttributeAceType ";" AceFlagString ";;;;" ResourceAttributeAceSid ";(" AttributeData "))" {resourceAttributeAce};
+ResourceAttributeAceType = "RA" {resourceAttributeAceType};
+ResourceAttributeAceSid = ( "WD" / "S-1-1-0" ) {sid};
+
+AttributeData = DQUOTE AttrChar2+ DQUOTE "," ( TIAttr / TUAttr / TSAttr / TDAttr / TXAttr / TBAttr ) ;
+TIAttr = "TI" "," AttrFlags ("," Int64)* ;
+TUAttr = "TU" "," AttrFlags ("," UInt64) ;
+TSAttr = "TS" "," AttrFlags ("," CharString)* ;
+TDAttr = "TD" "," AttrFlags ("," SidString)* ;
+TXAttr = "TX" "," AttrFlags ("," OctetString)* ;
+TBAttr = "TB" "," AttrFlags ("," ( "0" / "1" ) )* ;
+// attr-flags = "0x" ([*HexDigit4  "00"] sys-attr-flags / *"0" sys-attr-flags / "0" HexDigit)
+// Intentionally more flexible than spec describes to avoid parse errors
+AttrFlags = "0x"? HexDigit+ ;
+
+AceFlagString = AceFlag* {aceFlags};
+AceFlag = ( "CI" / "OI" / "NP" / "IO" / "ID" / "SA" / "FA" ) {aceFlag};
+
+AceRights = ( TextRightsString / UInt64 )? {aceRights};
+
+TextRightsString = TextRight+ {textRights};
+TextRight = ( GenericRight / StandardRight / ObjectSpecificRight ) {textRight};
+GenericRight = "GA" / "GW" / "GR" / "GX" ;
+StandardRight = "WO" / "WD" / "RC" / "SD" ;
+ObjectSpecificRight = FileAccessRight / RegistryKeyAccessRight / DirectoryAccessRight / MandatoryLabelAccessRight ;
+FileAccessRight = "FA" / "FW" / "FR" / "FX" ;
+RegistryKeyAccessRight = "KA" / "KW" / "KR" / "KX" ;
+DirectoryAccessRight = "CR" / "LO" / "DT" / "WP" / "RP" / "SW" / "LC" / "DC" / "CC" ;
+MandatoryLabelAccessRight = "NR" / "NW" / "NX" ;
+
+Guid = (HexDigit8 "-" HexDigit4 "-" HexDigit4 "-" HexDigit4 "-" HexDigit12)? {guid};
+
+CondExpr = CondAndExpr (wspace? "||" wspace? CondExpr)? ;
+CondAndExpr = UnaryExpr (wspace? "&&" wspace? CondAndExpr)? ;
+UnaryExpr = "!" wspace? UnaryExpr / "(" wspace? CondExpr wspace? ")" / Term ;
+Term = wspace? (MemberofOp / ExistsOp / RelOp / ContainsOp / AnyofOp / RelOp2 / AttrName) wspace? ;
+MemberofOp = ( "Member_of" / "Not_Member_of" / "Member_of_Any" / "Not_Member_of_Any" / "Device_Member_of" / "Device_Member_of_Any" / "Not_Device_Member_of" / "Not_Device_Member_of_Any" ) wspace SidArray ;
+ExistsOp = ( "Exists" / "Not_exists") wspace AttrName ;
+RelOp = AttrName wspace? ("<" / "<=" / ">" / ">=") wspace? (AttrName2 / Value) ;
+RelOp2 = AttrName wspace? ("==" / "!=") wspace? ( AttrName2 / ValueArray ) ;
+ContainsOp = AttrName wspace? ("Contains" / "Not_Contains") wspace? (AttrName2 / ValueArray) ;
+AnyofOp = AttrName wspace? ("Any_of" / "Not_Any_of") wspace? (AttrName2 / ValueArray) ;
+
+AttrName1 = AttrChar1 (AttrChar1 / "@")* ;
+AttrChar1 = (Alpha / Digit / ":" / "." / "/" / "_")+ ;
+
+AttrName2 = ("@"[uU][sS][eE][rR]"." / "@"[dD][eE][vV][iI][cC][eE]"." / "@"[rR][eE][sS][oO][uU][rR][cC][eE]".") AttrChar2+ ;
+AttrChar2 = AttrChar1 / LitChar ;
+
+AttrName = AttrName2 / AttrName1 ;
+
+SidArray = LiteralSID wspace? / "{" wspace? LiteralSID wspace? ("," wspace? LiteralSID wspace?)* "}" ;
+
+// literal-SID = "SID(" sid-string ")"
+LiteralSID = "SID(" SidString ")" ;
+
+ValueArray = "{" wspace? Value wspace? (wspace? Value wspace?)* "}" / Value wspace? ;
+Value = Int64 / CharString / OctetString ;
+
+// values must fit within 64 bits
+Int64 = [+-]? ( "0x" HexDigit+ / "0" OctalDigit+ / Digit+ ) {int64};
+
+// values must fit within 64 bits
+UInt64 = ( "0x" HexDigit+ / "0" OctalDigit+ / Digit+ ) {uint64};
+
+CharString = DQUOTE Char* DQUOTE ;
+Char = [\u0001-\u0021] / [\u0023-\u007f] ;
+
+OctetString = "#" HexDigit2* ;
+
+LitChar = ( "#" / "$" / "'" / "*" / "+" / "-" / "." / "/" / ":" / ";" / "?" / "@" / "[" / BACKSLASH / RBRACKET / "^" / "_" / "`" / "{" / "}" / "~" / [\u0080-\uffff] / "%" HexDigit4 ) ;
+
+Alpha = [a-z] / [A-Z] ;
+
+Digit = [0-9] ;
+OctalDigit = [01234567] ;
+HexDigit = [0123456789abcdefABCDEF] ;
+HexDigit2 = HexDigit HexDigit ;
+HexDigit4 = HexDigit HexDigit HexDigit HexDigit ;
+HexDigit8 = HexDigit4 HexDigit4 ;
+HexDigit12 = HexDigit8 HexDigit4 ;
+
+wspace = [ \r\n\t]+ ;
+
+DQUOTE = ["] ;
+BACKSLASH = "\\";
+RBRACKET = "]" ;
