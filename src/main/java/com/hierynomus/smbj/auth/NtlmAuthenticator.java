@@ -18,6 +18,7 @@ package com.hierynomus.smbj.auth;
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.ntlm.messages.*;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
+import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.security.SecurityProvider;
@@ -90,7 +91,8 @@ public class NtlmAuthenticator implements Authenticator {
             EnumSet<NtlmNegotiateFlag> negotiateFlags = challenge.getNegotiateFlags();
             if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH)
                 && (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SIGN)
-                || negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SEAL))
+                || negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SEAL)
+                || negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_ALWAYS_SIGN))
                 ) {
                 byte[] masterKey = new byte[16];
                 random.nextBytes(masterKey);
@@ -103,12 +105,14 @@ public class NtlmAuthenticator implements Authenticator {
 
             completed = true;
 
+            // If NTLM v2 is used, KeyExchangeKey MUST be set to the given 128-bit SessionBaseKey value.
+
             // MIC (16 bytes) provided if in AvPairType is key MsvAvFlags with value & 0x00000002 is true
             Object msvAvFlags = challenge.getAvPairObject(AvId.MsvAvFlags);
             if (msvAvFlags != null && ((int) msvAvFlags & 0x00000002) > 0) {
                 // MIC should be calculated
                 NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
-                    context.getUsername(), context.getDomain(), null, sessionkey, NtlmNegotiate.DEFAULT_FLAGS,
+                    context.getUsername(), context.getDomain(), null, sessionkey, EnumWithValue.EnumUtils.toLong(negotiateFlags),
                     true
                 );
 
@@ -123,10 +127,8 @@ public class NtlmAuthenticator implements Authenticator {
                 resp.setMic(mic);
                 return negTokenTarg(resp, negTokenTarg.getResponseToken());
             } else {
-                // If NTLM v2 is used, KeyExchangeKey MUST be set to the given 128-bit SessionBaseKey value.
-
                 NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
-                    context.getUsername(), context.getDomain(), null, sessionkey, NtlmNegotiate.DEFAULT_FLAGS,
+                    context.getUsername(), context.getDomain(), null, sessionkey, EnumWithValue.EnumUtils.toLong(negotiateFlags),
                     false
                 );
                 return negTokenTarg(resp, negTokenTarg.getResponseToken());
