@@ -25,6 +25,10 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+
 public class FileInformationFactory {
     private static final Map<Class, FileInformation.Encoder> encoders;
     private static final Map<Class, FileInformation.Decoder> decoders;
@@ -290,6 +294,89 @@ public class FileInformationFactory {
      */
     public static byte[] getFileDispositionInfo(boolean deleteOnClose) {
         return deleteOnClose ? new byte[]{1} : new byte[]{0};
+    }
+
+    /**
+     * MS-FSCC 2.4.7 FileBasicInformation for SMB2
+     */
+    public static byte[] getFileBasicInfo(
+        FileTime creationTime,
+        FileTime lastAccessTime,
+        FileTime lastWriteTime,
+        FileTime changeTime,
+        long fileAttributes)
+        throws Buffer.BufferException {
+
+        Buffer.PlainBuffer buffer = new Buffer.PlainBuffer(Endian.LE);
+        MsDataTypes.putFileTime(creationTime, buffer); // CreationTime
+        MsDataTypes.putFileTime(lastAccessTime, buffer); // LastAccessTime
+        MsDataTypes.putFileTime(lastWriteTime, buffer); // LastWriteTime
+        MsDataTypes.putFileTime(changeTime, buffer); // ChangeTime
+        buffer.putUInt32(fileAttributes); // FileAttributes
+        buffer.putUInt32(0); // Reserved (4 bytes)
+        return buffer.getCompactData();
+    }
+
+    /**
+     * * MS-FSCC 2.4.7 FileBasicInformation for SMB2
+     */
+    public static byte[] getFileBasicInfo(
+        FileTime timeToSet,
+        FileBasicInformationEnum timeClass)
+        throws Buffer.BufferException {
+
+        Buffer.PlainBuffer buffer = new Buffer.PlainBuffer(Endian.LE);
+
+        switch (timeClass) {
+            case CreationTime:
+                MsDataTypes.putFileTime(timeToSet, buffer); // CreationTime
+                buffer.putUInt64(0, Endian.LE); // LastAccessTime, 0 means must not change the LastAccessTime
+                buffer.putUInt64(0, Endian.LE); // LastWriteTime, 0 means must not change the LastWriteTime
+                buffer.putUInt64(0, Endian.LE); // ChangeTime, 0 means must not change the ChangeTime
+                break;
+            case LastAccessTime:
+                buffer.putUInt64(0, Endian.LE); // CreationTime, 0 means must not change the CreationTime
+                MsDataTypes.putFileTime(timeToSet, buffer); // LastAccessTime
+                buffer.putUInt64(0, Endian.LE); // LastWriteTime, 0 means must not change the LastWriteTime
+                buffer.putUInt64(0, Endian.LE); // ChangeTime, 0 means must not change the ChangeTime
+                break;
+            case LastWriteTime:
+                buffer.putUInt64(0, Endian.LE); // CreationTime, 0 means must not change the CreationTime
+                buffer.putUInt64(0, Endian.LE); // LastAccessTime, 0 means must not change the LastAccessTime
+                MsDataTypes.putFileTime(timeToSet, buffer); // LastWriteTime
+                buffer.putUInt64(0, Endian.LE); // ChangeTime, 0 means must not change the ChangeTime
+                break;
+            case ChangeTime:
+                buffer.putUInt64(0, Endian.LE); // CreationTime, 0 means must not change the CreationTime
+                buffer.putUInt64(0, Endian.LE); // LastAccessTime, 0 means must not change the LastAccessTime
+                buffer.putUInt64(0, Endian.LE); // LastWriteTime, 0 means must not change the LastWriteTime
+                MsDataTypes.putFileTime(timeToSet, buffer); // ChangeTime
+                break;
+            default:
+                throw new UnsupportedOperationException(timeClass.toString());
+        }
+
+        buffer.putUInt32(0); // FileAttributes, 0 means must not change the file attribute
+        buffer.putUInt32(0); // Reserved (4 bytes)
+
+        return buffer.getCompactData();
+    }
+
+    /**
+     * * MS-FSCC 2.4.7 FileBasicInformation for SMB2
+     */
+    public static byte[] getFileBasicInfo(
+        long fileAttributes)
+        throws Buffer.BufferException {
+
+        Buffer.PlainBuffer buffer = new Buffer.PlainBuffer(Endian.LE);
+        buffer.putUInt64(0, Endian.LE); // CreationTime, 0 means must not change the CreationTime
+        buffer.putUInt64(0, Endian.LE); // LastAccessTime, 0 means must not change the LastAccessTime
+        buffer.putUInt64(0, Endian.LE); // LastWriteTime, 0 means must not change the LastWriteTime
+        buffer.putUInt64(0, Endian.LE); // ChangeTime, 0 means must not change the ChangeTime
+        buffer.putUInt32(fileAttributes); // FileAttributes
+        buffer.putUInt32(0); // Reserved (4 bytes)
+        return buffer.getCompactData();
     }
 
     /**
