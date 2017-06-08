@@ -319,7 +319,27 @@ public class DiskShare extends Share {
         deleteCommon(path, smb2CreateRequest);
     }
 
-//    /**
+    /**
+     * Rename the file at the given path
+     */
+    public void rename(String oldPath, String newPath, boolean replaceIfExists) throws TransportException, SMBApiException {
+    	
+        logger.info("rename {} to {}", oldPath, newPath);
+
+        long accessMask = 0x110080L;
+        EnumSet<SMB2ShareAccess> fileShareAccess = EnumSet.of(FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_SHARE_DELETE);
+        EnumSet<SMB2CreateOptions> createOptions = EnumSet.of(SMB2CreateOptions.FILE_SYNCHRONOUS_IO_NONALERT, SMB2CreateOptions.FILE_OPEN_REPARSE_POINT);
+        SMB2CreateRequest smb2CreateRequest =
+                openFileRequest(treeConnect, oldPath, accessMask, fileShareAccess, null,
+                    SMB2CreateDisposition.FILE_OPEN, createOptions);
+
+        FileInformationClass rename = FileInformationClass.FileRenameInformation;
+        byte[] renameData = FileInformationFactory.getRenameInfo(replaceIfExists, newPath);
+        createAndSetInfoCommon(oldPath, smb2CreateRequest, rename, renameData);
+    }
+
+
+    //    /**
 //     * Write the given input stream to the given path
 //     */
 //    public void write(String path, boolean overWrite,
@@ -398,6 +418,12 @@ public class DiskShare extends Share {
 
     private void deleteCommon(String path, SMB2CreateRequest smb2CreateRequest)
         throws TransportException, SMBApiException {
+    	
+    	createAndSetInfoCommon(path, smb2CreateRequest, FileInformationClass.FileDispositionInformation, FileInformationFactory.getFileDispositionInfo(true));
+    }
+    
+    private void createAndSetInfoCommon(String path, SMB2CreateRequest smb2CreateRequest, FileInformationClass fileInfoClass, byte[] fileInfoData)
+            throws TransportException, SMBApiException {
 
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
@@ -416,8 +442,8 @@ public class DiskShare extends Share {
                 fileId,
                 SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE,
                 null,
-                FileInformationClass.FileDispositionInformation,
-                FileInformationFactory.getFileDispositionInfo(true)
+                fileInfoClass,
+                fileInfoData
             );
         } finally {
             SMB2Close closeReq = new SMB2Close(connection.getNegotiatedProtocol().getDialect(),
