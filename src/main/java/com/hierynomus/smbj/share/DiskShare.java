@@ -263,6 +263,26 @@ public class DiskShare extends Share {
         deleteCommon(path, smb2CreateRequest);
     }
 
+    /**
+     * Rename the file at the given path
+     */
+    public void rename(String oldPath, String newPath, boolean replaceIfExists) throws TransportException, SMBApiException {
+    	
+        logger.info("rename {} to {}", oldPath, newPath);
+
+        long accessMask = 0x110080L;
+        EnumSet<SMB2ShareAccess> fileShareAccess = EnumSet.of(FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_SHARE_DELETE);
+		EnumSet<SMB2CreateOptions> createOptions = EnumSet.of(SMB2CreateOptions.FILE_SYNCHRONOUS_IO_NONALERT, SMB2CreateOptions.FILE_OPEN_REPARSE_POINT);
+        SMB2CreateRequest smb2CreateRequest =
+                openFileRequest(treeConnect, oldPath, accessMask, fileShareAccess, null,
+                    SMB2CreateDisposition.FILE_OPEN, createOptions);
+
+		FileInformationClass rename = FileInformationClass.FileRenameInformation;
+        byte[] renameData = FileInformationFactory.getRenameInfo(replaceIfExists, newPath);
+        setFileInfoCommon(oldPath, smb2CreateRequest, rename, renameData);
+    }
+
+    
 //    /**
 //     * Write the given input stream to the given path
 //     */
@@ -343,6 +363,13 @@ public class DiskShare extends Share {
     private void deleteCommon(String path, SMB2CreateRequest smb2CreateRequest)
         throws TransportException, SMBApiException {
 
+        FileInformationClass disposition = FileInformationClass.FileDispositionInformation;
+        byte[] dispositionData = FileInformationFactory.getFileDispositionInfo(true);
+        setFileInfoCommon(path, smb2CreateRequest, disposition, dispositionData);
+    }
+    
+    private void setFileInfoCommon(String path, SMB2CreateRequest smb2CreateRequest, FileInformationClass fileInfoClass, byte[] infoData)
+            throws TransportException, SMBApiException {
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
 
@@ -356,11 +383,10 @@ public class DiskShare extends Share {
 
         SMB2FileId fileId = response.getFileId();
         try {
-            byte[] dispoInfo = FileInformationFactory.getFileDispositionInfo(true);
-            SMB2SetInfoRequest si_req = new SMB2SetInfoRequest(
+			SMB2SetInfoRequest si_req = new SMB2SetInfoRequest(
                 connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
                 SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE, fileId,
-                FileInformationClass.FileDispositionInformation, null, dispoInfo);
+                fileInfoClass, null, infoData);
 
             Future<SMB2SetInfoResponse> setInfoFuture = session.send(si_req);
             SMB2SetInfoResponse setInfoResponse = Futures.get(setInfoFuture, TransportException.Wrapper);
