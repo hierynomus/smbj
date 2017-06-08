@@ -281,8 +281,8 @@ public class FileInformationFactory {
         renBuf.putRawBytes(new byte[]{0, 0, 0, 0, 0, 0, 0});
         renBuf.putUInt64(0);
         byte[] filenameBytes = newName.getBytes(StandardCharsets.UTF_16LE);  // unicode
-		renBuf.putUInt32(filenameBytes.length);
-		renBuf.putRawBytes(filenameBytes);
+        renBuf.putUInt32(filenameBytes.length);
+        renBuf.putRawBytes(filenameBytes);
         return renBuf.getCompactData();
     }
 

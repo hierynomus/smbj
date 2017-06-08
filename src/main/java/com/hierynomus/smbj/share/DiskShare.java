@@ -311,12 +311,12 @@ public class DiskShare extends Share {
 
         long accessMask = 0x110080L;
         EnumSet<SMB2ShareAccess> fileShareAccess = EnumSet.of(FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_SHARE_DELETE);
-		EnumSet<SMB2CreateOptions> createOptions = EnumSet.of(SMB2CreateOptions.FILE_SYNCHRONOUS_IO_NONALERT, SMB2CreateOptions.FILE_OPEN_REPARSE_POINT);
+        EnumSet<SMB2CreateOptions> createOptions = EnumSet.of(SMB2CreateOptions.FILE_SYNCHRONOUS_IO_NONALERT, SMB2CreateOptions.FILE_OPEN_REPARSE_POINT);
         SMB2CreateRequest smb2CreateRequest =
                 openFileRequest(treeConnect, oldPath, accessMask, fileShareAccess, null,
                     SMB2CreateDisposition.FILE_OPEN, createOptions);
 
-		FileInformationClass rename = FileInformationClass.FileRenameInformation;
+        FileInformationClass rename = FileInformationClass.FileRenameInformation;
         byte[] renameData = FileInformationFactory.getRenameInfo(replaceIfExists, newPath);
         createAndSetInfoCommon(oldPath, smb2CreateRequest, rename, renameData);
     }
