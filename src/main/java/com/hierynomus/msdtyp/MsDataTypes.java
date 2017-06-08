@@ -78,20 +78,15 @@ public class MsDataTypes {
         return new FileTime(windowsTimeStamp);
     }
 
-    public static void putFileTime(FileTime time, Buffer<?> buffer) {
-        long timestamp = time.getWindowsTimeStamp();
-        buffer.putUInt32(timestamp & 0xFFFFFFL);
-        buffer.putUInt32((timestamp >> 32) & 0xFFFFFFL);
-    }
-
     /**
      * [MS-DTYP].pdf 2.3.3 FILETIME
      *
      * store Date into FileTime in the buffer
      */
     public static void putFileTime(FileTime fileTime, Buffer<?> buffer) {
-        long windowsTimeStamp = fileTime.getWindowsTimeStamp();
-        buffer.putUInt64(windowsTimeStamp, Endian.LE);
+        long timestamp = fileTime.getWindowsTimeStamp();
+        buffer.putUInt32(timestamp & 0xFFFFFFFFL);
+        buffer.putUInt32((timestamp >> 32) & 0xFFFFFFFFL);
     }
 
     /**

@@ -19,7 +19,7 @@ public class FileAllocationInformation implements FileSettableInformation {
 
     private long allocationSize;
 
-    FileAllocationInformation(long allocationSize) {
+    public FileAllocationInformation(long allocationSize) {
         this.allocationSize = allocationSize;
     }
 
