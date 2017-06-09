@@ -27,7 +27,7 @@ import com.hierynomus.smbj.event.TreeDisconnected;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
 
-import java.util.EnumSet;
+import java.util.Set;
 import java.util.concurrent.Future;
 
 /**
@@ -38,12 +38,11 @@ public class TreeConnect {
     private long treeId;
     private SmbPath smbPath;
     private Session session;
-    private final EnumSet<SMB2ShareCapabilities> capabilities;
+    private final Set<SMB2ShareCapabilities> capabilities;
     private Connection connection;
     private final SMBEventBus bus;
-    private Share handle;
 
-    public TreeConnect(long treeId, SmbPath smbPath, Session session, EnumSet<SMB2ShareCapabilities> capabilities, Connection connection, SMBEventBus bus) {
+    public TreeConnect(long treeId, SmbPath smbPath, Session session, Set<SMB2ShareCapabilities> capabilities, Connection connection, SMBEventBus bus) {
         this.treeId = treeId;
         this.smbPath = smbPath;
         this.session = session;
@@ -56,7 +55,7 @@ public class TreeConnect {
         return connection;
     }
 
-    void close(Share share) throws TransportException {
+    void close() throws TransportException {
         SMB2TreeDisconnect disconnect = new SMB2TreeDisconnect(connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeId);
         Future<SMB2Packet> send = session.send(disconnect);
         SMB2Packet smb2Packet = Futures.get(send, TransportException.Wrapper);
@@ -66,16 +65,8 @@ public class TreeConnect {
         bus.publish(new TreeDisconnected(session.getSessionId(), treeId));
     }
 
-    void setHandle(Share handle) {
-        this.handle = handle;
-    }
-
     public String getShareName() {
         return smbPath.getShareName();
-    }
-
-    public Share getHandle() {
-        return handle;
     }
 
     public long getTreeId() {
@@ -97,7 +88,7 @@ public class TreeConnect {
     public boolean isScaleoutShare() {
         return capabilities.contains(SMB2ShareCapabilities.SMB2_SHARE_CAP_SCALEOUT);
     }
-    
+
     @Override
     public String toString() {
         return String.format("TreeConnect[%s](%s)", treeId, smbPath);

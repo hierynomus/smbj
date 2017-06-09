@@ -34,7 +34,7 @@ import com.hierynomus.smbj.transport.TransportException;
 
 public class FileInputStream extends InputStream {
 
-    protected TreeConnect treeConnect;
+    protected DiskShare share;
     private Session session;
     private Connection connection;
     private SMB2FileId fileId;
@@ -48,9 +48,9 @@ public class FileInputStream extends InputStream {
     private static final Logger logger = LoggerFactory.getLogger(FileInputStream.class);
 
     public FileInputStream(File file, ProgressListener progressListener) {
-        this.treeConnect = file.treeConnect;
+        this.share = file.share;
         this.fileId = file.fileId;
-        this.session = treeConnect.getSession();
+        this.session = share.getTreeConnect().getSession();
         this.connection = session.getConnection();
         this.progressListener = progressListener;
     }
@@ -92,7 +92,7 @@ public class FileInputStream extends InputStream {
 
     @Override
     public int available() throws IOException {
-        throw new IOException("Available not supported");
+        return 0;
     }
 
     private void loadBuffer() throws IOException {
@@ -121,7 +121,7 @@ public class FileInputStream extends InputStream {
     private Future<SMB2ReadResponse> sendRequest() throws IOException {
         NegotiatedProtocol negotiatedProtocol = connection.getNegotiatedProtocol();
         SMB2ReadRequest rreq = new SMB2ReadRequest(negotiatedProtocol.getDialect(), fileId,
-            session.getSessionId(), treeConnect.getTreeId(), offset, negotiatedProtocol.getMaxReadSize());
+            session.getSessionId(), share.getTreeConnect().getTreeId(), offset, negotiatedProtocol.getMaxReadSize());
         return session.send(rreq);
     }
 }

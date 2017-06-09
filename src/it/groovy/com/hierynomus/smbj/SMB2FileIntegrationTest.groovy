@@ -54,8 +54,8 @@ class SMB2FileIntegrationTest extends Specification {
 
   def "should check existence of file and directory"() {
     given:
-    def dir = share.getFile("api")
-    def file = share.getFile("README.md")
+    def dir = share.open("api", AccessMask.GENERIC_READ.value)
+    def file = share.open("README.md", AccessMask.GENERIC_READ.value)
 
     expect:
     dir.exists()
@@ -73,8 +73,8 @@ class SMB2FileIntegrationTest extends Specification {
 
   def "should correctly list read permissions of file"() {
     given:
-    def file = share.getFile("README.md")
-    def dir = share.getFile("api")
+    def file = share.open("README.md", AccessMask.GENERIC_READ.value)
+    def dir = share.open("api", AccessMask.GENERIC_READ.value)
 
     expect:
     file instanceof File

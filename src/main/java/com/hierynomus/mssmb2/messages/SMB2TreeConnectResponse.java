@@ -15,12 +15,13 @@
  */
 package com.hierynomus.mssmb2.messages;
 
-import java.util.EnumSet;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
+
+import java.util.Set;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
@@ -33,7 +34,7 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
 
     private byte shareType;
     private long shareFlags;
-    private EnumSet<SMB2ShareCapabilities> capabilities;
+    private Set<SMB2ShareCapabilities> capabilities;
     private long maximalAccess;
 
     public SMB2TreeConnectResponse() {
@@ -84,7 +85,7 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
         return shareFlags;
     }
 
-    public EnumSet<SMB2ShareCapabilities> getCapabilities() {
+    public Set<SMB2ShareCapabilities> getCapabilities() {
         return capabilities;
     }
 
