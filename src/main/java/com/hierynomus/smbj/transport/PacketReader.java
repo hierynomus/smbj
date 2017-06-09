@@ -45,7 +45,7 @@ public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
                 readPacket();
             } catch (TransportException e) {
                 if (stopped.get()) {
-                    logger.info("PacketReader stopped.");
+                    logger.debug("PacketReader stopped.");
                     return;
                 }
                 handler.handleError(e);
@@ -54,7 +54,7 @@ public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
             }
         }
         if (stopped.get()) {
-            logger.info("PacketReader stopped.");
+            logger.debug("PacketReader stopped.");
         }
     }
 

@@ -67,7 +67,7 @@ public class DiskShare extends Share {
      * Get a listing the given directory path. The "." and ".." are pre-filtered.
      */
     public List<FileIdBothDirectoryInformation> list(String path) throws SMBApiException, TransportException {
-        logger.info("List {}", path);
+        logger.debug("List {}", path);
 
         Directory fileHandle = openDirectory(path, EnumSet.of(GENERIC_READ),
             EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ), SMB2CreateDisposition.FILE_OPEN);
@@ -106,7 +106,7 @@ public class DiskShare extends Share {
         EnumSet<AccessMask> accessMask,
         EnumSet<SMB2ShareAccess> shareAccess,
         SMB2CreateDisposition createDisposition) throws TransportException, SMBApiException {
-        logger.info("OpenDirectory {},{},{},{},{}", path, accessMask, shareAccess, createDisposition);
+        logger.debug("OpenDirectory {},{},{},{},{}", path, accessMask, shareAccess, createDisposition);
 
         SMB2FileId fileId = open(path, toLong(accessMask), EnumSet.of(FILE_ATTRIBUTE_DIRECTORY), shareAccess, createDisposition, EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE));
         return new Directory(fileId, treeConnect, path);
@@ -117,7 +117,7 @@ public class DiskShare extends Share {
      * Get a handle to a file
      */
     public File openFile(String path, EnumSet<AccessMask> accessMask, SMB2CreateDisposition createDisposition) throws TransportException, SMBApiException {
-        logger.info("OpenFile {},{},{}", path, accessMask, createDisposition);
+        logger.debug("OpenFile {},{},{}", path, accessMask, createDisposition);
 
         long accessMaskValue = toLong(accessMask);
         SMB2FileId fileId = open(path, accessMaskValue, null, EnumSet.of(FILE_SHARE_READ), createDisposition, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
@@ -129,7 +129,7 @@ public class DiskShare extends Share {
      * File in the given path exists or not
      */
     public boolean fileExists(String path) throws SMBApiException {
-        logger.info("file exists {}", path);
+        logger.debug("file exists {}", path);
         return exists(path, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
     }
 
@@ -137,7 +137,7 @@ public class DiskShare extends Share {
      * Folder in the given path exists or not.
      */
     public boolean folderExists(String path) throws SMBApiException {
-        logger.info("Checking existence of Directory '{}' on {}", path, smbPath);
+        logger.debug("Checking existence of Directory '{}' on {}", path, smbPath);
         return exists(path, EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE));
     }
 
@@ -145,7 +145,7 @@ public class DiskShare extends Share {
      * Create a directory in the given path.
      */
     public void mkdir(String path) throws TransportException, SMBApiException {
-        logger.info("mkdir {}", path);
+        logger.debug("mkdir {}", path);
 
         Directory fileHandle = openDirectory(path,
             EnumSet.of(AccessMask.FILE_LIST_DIRECTORY, AccessMask.FILE_ADD_SUBDIRECTORY),
@@ -278,7 +278,7 @@ public class DiskShare extends Share {
      * Remove the directory at the given path.
      */
     public void rmdir(String path, boolean recursive) throws TransportException, SMBApiException {
-        logger.info("rmdir {},{}", path, recursive);
+        logger.debug("rmdir {},{}", path, recursive);
 
         //TODO Even with DELETE_CHILD permission, receiving error, so doing the recursive way for now.
         //if (recursive) accessMask.add(SMB2DirectoryAccessMask.FILE_DELETE_CHILD);
@@ -311,7 +311,7 @@ public class DiskShare extends Share {
      * Remove the file at the given path
      */
     public void rm(String path) throws TransportException, SMBApiException {
-        logger.info("rm {}", path);
+        logger.debug("rm {}", path);
         SMB2CreateRequest smb2CreateRequest =
             openFileRequest(treeConnect, path, AccessMask.DELETE.getValue(), null, null,
                 SMB2CreateDisposition.FILE_OPEN, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
@@ -433,7 +433,7 @@ public class DiskShare extends Share {
     }
 
     public boolean exists(String path, EnumSet<SMB2CreateOptions> createOptions) throws SMBApiException {
-        logger.info("exists {}", path);
+        logger.debug("exists {}", path);
 
         SMB2FileId fileId = null;
         try {

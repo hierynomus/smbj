@@ -64,7 +64,7 @@ public class NtlmAuthenticator implements Authenticator {
         if (completed) {
             return null;
         } else if (!initialized) {
-            logger.info("Initialized Authentication of {} using NTLM", context.getUsername());
+            logger.debug("Initialized Authentication of {} using NTLM", context.getUsername());
             NtlmNegotiate ntlmNegotiate = new NtlmNegotiate();
             initialized = true;
             return negTokenInit(ntlmNegotiate);
