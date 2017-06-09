@@ -17,11 +17,9 @@ package com.hierynomus.smbj.share;
 
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.msfscc.fileinformation.FileRenameInformation;
 import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.messages.SMB2ReadRequest;
-import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
-import com.hierynomus.mssmb2.messages.SMB2WriteRequest;
-import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
+import com.hierynomus.mssmb2.messages.*;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.common.SMBApiException;
@@ -228,6 +226,19 @@ public class File extends DiskEntry {
         } catch (InterruptedException | ExecutionException e) {
             throw new IOException(e);
         }
+    }
+
+    public void rename(String newName)throws TransportException, SMBApiException {
+        this.rename(newName, false);
+    }
+
+    public void rename(String newName, boolean replaceIfExist)throws TransportException, SMBApiException {
+        this.rename(newName, replaceIfExist, 0);
+    }
+
+    public void rename(String newName, boolean replaceIfExist, long rootDirectory)throws TransportException, SMBApiException {
+        FileRenameInformation renameInfo = new FileRenameInformation(replaceIfExist, rootDirectory, newName);
+        this.setFileInformation(renameInfo);
     }
 
     @Override

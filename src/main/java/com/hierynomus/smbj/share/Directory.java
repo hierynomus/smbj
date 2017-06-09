@@ -16,10 +16,7 @@
 package com.hierynomus.smbj.share;
 
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.msfscc.fileinformation.FileDirectoryQueryableInformation;
-import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
-import com.hierynomus.msfscc.fileinformation.FileInformation;
-import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
+import com.hierynomus.msfscc.fileinformation.*;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryRequest;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryResponse;
@@ -160,10 +157,23 @@ public class Directory extends DiskEntry implements Iterable<FileIdBothDirectory
                 );
             }
         }
-
         @Override
         public void remove() {
             throw new UnsupportedOperationException();
         }
     }
+
+    public void rename(String newName)throws TransportException, SMBApiException {
+        this.rename(newName, false);
+    }
+
+    public void rename(String newName, boolean replaceIfExist)throws TransportException, SMBApiException {
+        this.rename(newName, replaceIfExist, 0);
+    }
+
+    public void rename(String newName, boolean replaceIfExist, long rootDirectory)throws TransportException, SMBApiException {
+        FileRenameInformation renameInfo = new FileRenameInformation(replaceIfExist, rootDirectory, newName);
+        this.setFileInformation(renameInfo);
+    }
+
 }
