@@ -18,7 +18,7 @@ package com.hierynomus.msfscc.fileinformation;
 public class FileInternalInformation implements FileQueryableInformation {
     private long indexNumber;
 
-    FileInternalInformation(long eaSize) {
+    public FileInternalInformation(long eaSize) {
         this.indexNumber = eaSize;
     }
 

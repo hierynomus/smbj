@@ -22,7 +22,7 @@ public class FileStandardInformation implements FileQueryableInformation {
     private boolean deletePending;
     private boolean directory;
 
-    FileStandardInformation(long allocationSize, long endOfFile, long numberOfLinks, boolean deletePending, boolean directory) {
+    public FileStandardInformation(long allocationSize, long endOfFile, long numberOfLinks, boolean deletePending, boolean directory) {
         this.allocationSize = allocationSize;
         this.endOfFile = endOfFile;
         this.numberOfLinks = numberOfLinks;

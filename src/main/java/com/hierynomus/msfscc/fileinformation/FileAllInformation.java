@@ -26,7 +26,7 @@ public class FileAllInformation implements FileQueryableInformation {
     private FileAlignmentInformation alignmentInformation;
     private String nameInformation;
 
-    FileAllInformation(FileBasicInformation basicInformation, FileStandardInformation standardInformation, FileInternalInformation internalInformation, FileEaInformation eaInformation, FileAccessInformation accessInformation, FilePositionInformation positionInformation, FileModeInformation modeInformation, FileAlignmentInformation alignmentInformation, String nameInformation) {
+    public FileAllInformation(FileBasicInformation basicInformation, FileStandardInformation standardInformation, FileInternalInformation internalInformation, FileEaInformation eaInformation, FileAccessInformation accessInformation, FilePositionInformation positionInformation, FileModeInformation modeInformation, FileAlignmentInformation alignmentInformation, String nameInformation) {
         this.basicInformation = basicInformation;
         this.standardInformation = standardInformation;
         this.internalInformation = internalInformation;

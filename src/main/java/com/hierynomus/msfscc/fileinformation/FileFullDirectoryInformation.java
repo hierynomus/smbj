@@ -28,7 +28,7 @@ public class FileFullDirectoryInformation extends FileDirectoryQueryableInformat
     private final long eaSize;
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
-    FileFullDirectoryInformation(long nextOffset, long fileIndex, String fileName, FileTime creationTime, FileTime lastAccessTime, FileTime lastWriteTime, FileTime changeTime, long endOfFile, long allocationSize, long fileAttributes, long eaSize) {
+    public FileFullDirectoryInformation(long nextOffset, long fileIndex, String fileName, FileTime creationTime, FileTime lastAccessTime, FileTime lastWriteTime, FileTime changeTime, long endOfFile, long allocationSize, long fileAttributes, long eaSize) {
         super(nextOffset, fileIndex, fileName);
         this.creationTime = creationTime;
         this.lastAccessTime = lastAccessTime;

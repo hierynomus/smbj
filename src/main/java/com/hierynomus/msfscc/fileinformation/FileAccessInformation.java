@@ -19,7 +19,7 @@ public class FileAccessInformation implements FileQueryableInformation {
 
     private int accessFlags;
 
-    FileAccessInformation(int accessFlags) {
+    public FileAccessInformation(int accessFlags) {
         this.accessFlags = accessFlags;
     }
 
