@@ -15,17 +15,11 @@
  */
 package com.hierynomus.smbj.share;
 
-import com.hierynomus.msdtyp.SecurityInformation;
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.msfscc.fileinformation.*;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryRequest;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryResponse;
-import com.hierynomus.mssmb2.messages.SMB2SetInfoRequest;
-import com.hierynomus.mssmb2.messages.SMB2SetInfoResponse;
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
