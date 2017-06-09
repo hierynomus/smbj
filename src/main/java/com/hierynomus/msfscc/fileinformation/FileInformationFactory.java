@@ -107,6 +107,25 @@ public class FileInformationFactory {
         decoders.put(FileBasicInformation.class, basicCodec);
         encoders.put(FileBasicInformation.class, basicCodec);
 
+        FileInformation.Codec<FileDispositionInformation> dispositionCodec = new FileInformation.Codec<FileDispositionInformation>() {
+            @Override
+            public FileInformationClass getInformationClass() {
+                return FileInformationClass.FileDispositionInformation;
+            }
+
+            @Override
+            public FileDispositionInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void write(FileDispositionInformation info, Buffer outputBuffer) {
+                outputBuffer.putRawBytes(FileInformationFactory.getFileDispositionInfo(true));
+            }
+        };
+        decoders.put(FileDispositionInformation.class, dispositionCodec);
+        encoders.put(FileDispositionInformation.class, dispositionCodec);
+
         decoders.put(FileEaInformation.class, new FileInformation.Decoder<FileEaInformation>() {
             @Override
             public FileInformationClass getInformationClass() {
