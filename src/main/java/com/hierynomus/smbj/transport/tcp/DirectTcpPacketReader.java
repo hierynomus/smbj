@@ -23,6 +23,7 @@ import com.hierynomus.smbj.transport.PacketReader;
 import com.hierynomus.smbj.transport.PacketReceiver;
 import com.hierynomus.smbj.transport.TransportException;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -43,7 +44,7 @@ public class DirectTcpPacketReader<P extends Packet<P, ?>> extends PacketReader<
             count += read;
         }
         if (read == -1) {
-            throw new TransportException("EOF while reading packet");
+            throw new TransportException(new EOFException("EOF while reading packet"));
         }
 
         return packetFactory.read(buf);
@@ -54,6 +55,8 @@ public class DirectTcpPacketReader<P extends Packet<P, ?>> extends PacketReader<
         try {
             int smb2PacketLength = _readTcpHeader();
             return _readSMB2Packet(smb2PacketLength);
+        } catch (TransportException e) {
+            throw e;
         } catch (IOException | Buffer.BufferException e) {
             throw new TransportException(e);
         }
@@ -61,10 +64,23 @@ public class DirectTcpPacketReader<P extends Packet<P, ?>> extends PacketReader<
 
     private int _readTcpHeader() throws IOException, Buffer.BufferException {
         byte[] tcpHeader = new byte[4];
-        in.read(tcpHeader);
+        readFully(tcpHeader);
         Buffer.PlainBuffer plainBuffer = new Buffer.PlainBuffer(tcpHeader, Endian.BE);
         plainBuffer.readByte();
         int packetLength = plainBuffer.readUInt24();
         return packetLength;
+    }
+
+    private void readFully(byte[] buffer) throws IOException {
+        int toRead = buffer.length;
+        int offset = 0;
+        while (toRead > 0) {
+            int bytesRead = in.read(buffer, offset, toRead);
+            if (bytesRead == -1) {
+                throw new TransportException(new EOFException("EOF while reading packet"));
+            }
+            toRead -= bytesRead;
+            offset += bytesRead;
+        }
     }
 }
