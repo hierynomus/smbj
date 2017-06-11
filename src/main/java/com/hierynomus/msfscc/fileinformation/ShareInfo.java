@@ -62,7 +62,7 @@ public class ShareInfo {
      */
     private final long actualFreeSpace;
 
-    ShareInfo(long totalAllocationUnits, long callerAvailableAllocationUnits,
+    public ShareInfo(long totalAllocationUnits, long callerAvailableAllocationUnits,
               long actualAvailableAllocationUnits, long sectorsPerAllocationUnit, long bytesPerSector) {
         this.totalAllocationUnits = totalAllocationUnits;
         this.callerAvailableAllocationUnits = callerAvailableAllocationUnits;

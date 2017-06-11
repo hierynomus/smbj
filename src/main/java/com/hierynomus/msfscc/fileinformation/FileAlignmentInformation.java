@@ -19,7 +19,7 @@ public class FileAlignmentInformation implements FileQueryableInformation {
 
     private long alignmentRequirement;
 
-    FileAlignmentInformation(long alignmentRequirement) {
+    public FileAlignmentInformation(long alignmentRequirement) {
         this.alignmentRequirement = alignmentRequirement;
     }
 

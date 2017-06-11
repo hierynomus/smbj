@@ -19,7 +19,7 @@ public class FilePositionInformation implements FileQueryableInformation {
 
     private long currentByteOffset;
 
-    FilePositionInformation(long currentByteOffset) {
+    public FilePositionInformation(long currentByteOffset) {
         this.currentByteOffset = currentByteOffset;
     }
 

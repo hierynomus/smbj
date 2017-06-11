@@ -20,7 +20,7 @@ public abstract class FileDirectoryQueryableInformation implements FileInformati
     private long nextOffset;
     private long fileIndex;
 
-    FileDirectoryQueryableInformation(long nextOffset, long fileIndex, String fileName) {
+    public FileDirectoryQueryableInformation(long nextOffset, long fileIndex, String fileName) {
         this.nextOffset = nextOffset;
         this.fileIndex = fileIndex;
         this.fileName = fileName;

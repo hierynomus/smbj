@@ -18,7 +18,7 @@ package com.hierynomus.msfscc.fileinformation;
 public class FileEaInformation implements FileQueryableInformation {
     private long eaSize;
 
-    FileEaInformation(long eaSize) {
+    public FileEaInformation(long eaSize) {
         this.eaSize = eaSize;
     }
 
