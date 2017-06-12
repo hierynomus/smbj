@@ -114,6 +114,10 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         super.disconnect();
     }
 
+    public Config getConfig() {
+        return config;
+    }
+
     /**
      * Authenticate the user on this connection in order to start a (new) session.
      *
@@ -319,7 +323,6 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
 
         // [MS-SMB2].pdf 3.2.5.1.8 Processing the Response
         connectionInfo.getOutstandingRequests().receivedResponseFor(messageId).getPromise().deliver(packet);
-
     }
 
     @Override

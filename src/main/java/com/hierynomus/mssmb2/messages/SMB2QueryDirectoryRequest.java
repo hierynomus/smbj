@@ -26,11 +26,9 @@ import java.util.Set;
  * [MS-SMB2].pdf 2.2.33 SMB2 QUERY DIRECTORY Request
  * <p>
  */
-public class SMB2QueryDirectoryRequest extends SMB2Packet {
-
-    long MAX_OUTPUT_BUFFER_LENGTH = 64 * 1024;
-
+public class SMB2QueryDirectoryRequest extends SMB2MultiCreditPacket {
     private FileInformationClass fileInformationClass;
+
     private final Set<SMB2QueryDirectoryFlags> flags;
     private final long fileIndex;
     private final SMB2FileId fileId;
@@ -42,9 +40,10 @@ public class SMB2QueryDirectoryRequest extends SMB2Packet {
                                      FileInformationClass fileInformationClass,
                                      Set<SMB2QueryDirectoryFlags> flags,
                                      long fileIndex,
-                                     String searchPattern) {
+                                     String searchPattern,
+                                     int maxBufferSize) {
 
-        super(33, smbDialect, SMB2MessageCommandCode.SMB2_QUERY_DIRECTORY, sessionId, treeId);
+        super(33, smbDialect, SMB2MessageCommandCode.SMB2_QUERY_DIRECTORY, sessionId, treeId, maxBufferSize);
         this.fileInformationClass = fileInformationClass;
         this.flags = flags;
         this.fileIndex = fileIndex;
@@ -64,7 +63,7 @@ public class SMB2QueryDirectoryRequest extends SMB2Packet {
         int offset = SMB2Header.STRUCTURE_SIZE + 32;
         buffer.putUInt16(offset); // FileNameOffset (2 bytes)
         buffer.putUInt16(searchPattern.length() * 2); // FileNameLength (2 bytes)
-        buffer.putUInt32(MAX_OUTPUT_BUFFER_LENGTH); // OutputBufferLength (4 bytes)
+        buffer.putUInt32(SINGLE_CREDIT_PAYLOAD_SIZE * getCreditsAssigned()); // OutputBufferLength (4 bytes)
         buffer.putString(searchPattern); // Buffer (variable)
     }
 

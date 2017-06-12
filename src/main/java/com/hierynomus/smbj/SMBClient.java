@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.event.SMBEventBus;
-import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
 
 /**
  * Server Message Block Client API.
@@ -38,7 +37,7 @@ public class SMBClient {
     private SMBEventBus bus;
 
     public SMBClient() {
-        this(new DefaultConfig());
+        this(Config.createDefaultConfig());
     }
 
     public SMBClient(Config config) {
