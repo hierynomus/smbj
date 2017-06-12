@@ -107,15 +107,10 @@ public class FileInformationFactory {
         decoders.put(FileBasicInformation.class, basicCodec);
         encoders.put(FileBasicInformation.class, basicCodec);
 
-        FileInformation.Codec<FileDispositionInformation> dispositionCodec = new FileInformation.Codec<FileDispositionInformation>() {
+        FileInformation.Encoder<FileDispositionInformation> dispositionCodec = new FileInformation.Encoder<FileDispositionInformation>() {
             @Override
             public FileInformationClass getInformationClass() {
                 return FileInformationClass.FileDispositionInformation;
-            }
-
-            @Override
-            public FileDispositionInformation read(Buffer inputBuffer) throws Buffer.BufferException {
-                return parseFileDispositionInformation(inputBuffer);
             }
 
             @Override
@@ -123,7 +118,6 @@ public class FileInformationFactory {
                 writeFileDispositionInformation(info, outputBuffer);
             }
         };
-        decoders.put(FileDispositionInformation.class, dispositionCodec);
         encoders.put(FileDispositionInformation.class, dispositionCodec);
 
         decoders.put(FileEaInformation.class, new FileInformation.Decoder<FileEaInformation>() {
@@ -444,10 +438,6 @@ public class FileInformationFactory {
         MsDataTypes.putFileTime(information.getChangeTime(), buffer);
         buffer.putUInt32(information.getFileAttributes());
         buffer.putUInt32(0); // Reserved (4 bytes)
-    }
-
-    private static FileDispositionInformation parseFileDispositionInformation(Buffer<?> buffer) throws Buffer.BufferException {
-        return new FileDispositionInformation(buffer.readBoolean());
     }
 
     private static void writeFileDispositionInformation(FileDispositionInformation information, Buffer<?> buffer) {
