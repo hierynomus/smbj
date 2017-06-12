@@ -15,101 +15,84 @@
  */
 package com.hierynomus.smbj.share;
 
+import com.hierynomus.msdtyp.SecurityDescriptor;
 import com.hierynomus.msdtyp.SecurityInformation;
-import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.msfscc.FileInformationClass;
-import com.hierynomus.msfscc.fileinformation.FileInformation;
-import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
+import com.hierynomus.msfscc.fileinformation.FileAllInformation;
+import com.hierynomus.msfscc.fileinformation.FileQueryableInformation;
+import com.hierynomus.msfscc.fileinformation.FileRenameInformation;
 import com.hierynomus.msfscc.fileinformation.FileSettableInformation;
-import com.hierynomus.mssmb2.messages.SMB2SetInfoRequest;
-import com.hierynomus.mssmb2.messages.SMB2SetInfoResponse;
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.buffer.Endian;
-import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.smbj.common.SMBRuntimeException;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.session.Session;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.transport.TransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.EnumSet;
-import java.util.concurrent.Future;
+import java.io.Closeable;
+import java.util.Set;
 
-abstract class DiskEntry {
+public abstract class DiskEntry implements Closeable {
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    protected TreeConnect treeConnect;
+    protected DiskShare share;
     protected SMB2FileId fileId;
     protected String fileName;
 
-    public DiskEntry(TreeConnect treeConnect, SMB2FileId fileId, String fileName) {
-        this.treeConnect = treeConnect;
+    DiskEntry(DiskShare share, SMB2FileId fileId, String fileName) {
+        this.share = share;
         this.fileId = fileId;
         this.fileName = fileName;
     }
 
-    public void close() throws TransportException, SMBApiException {
-        treeConnect.getHandle().close(fileId);
+    public void close() {
+        share.closeFileId(fileId);
     }
 
     public SMB2FileId getFileId() {
         return fileId;
     }
 
+    public FileAllInformation getFileInformation() throws SMBApiException, TransportException {
+        return getFileInformation(FileAllInformation.class);
+    }
+
+    public <F extends FileQueryableInformation> F getFileInformation(Class<F> informationClass) throws SMBApiException {
+        return share.getFileInformation(fileId, informationClass);
+    }
+
+    public <F extends FileSettableInformation> void setFileInformation(F information) {
+        share.setFileInformation(fileId, information);
+    }
+
+    public SecurityDescriptor getSecurityInformation(Set<SecurityInformation> securityInfo) throws SMBApiException {
+        return share.getSecurityInfo(fileId, securityInfo);
+    }
+
+    public void rename(String newName) throws SMBApiException {
+        this.rename(newName, false);
+    }
+
+    public void rename(String newName, boolean replaceIfExist) throws SMBApiException {
+        this.rename(newName, replaceIfExist, 0);
+    }
+
+    public void rename(String newName, boolean replaceIfExist, long rootDirectory) throws SMBApiException {
+        FileRenameInformation renameInfo = new FileRenameInformation(replaceIfExist, rootDirectory, newName);
+        this.setFileInformation(renameInfo);
+    }
+
+    public void flush() {
+        share.flush(fileId);
+    }
+
+    public void deleteOnClose() {
+        share.deleteOnClose(fileId);
+    }
+
     public void closeSilently() {
         try {
             close();
         } catch (Exception e) {
-            logger.warn("File close failed for {},{},{}", fileName, treeConnect, fileId, e);
-        }
-    }
-
-    /**
-     * Get information for a given fileId
-     **/
-    protected  <F extends FileSettableInformation> void setFileInformation(F information) throws SMBApiException, TransportException {
-        FileInformation.Encoder<F> encoder = FileInformationFactory.getEncoder(information);
-
-        Buffer.PlainBuffer buffer = new Buffer.PlainBuffer(Buffer.DEFAULT_SIZE, Endian.LE);
-        encoder.write(information, buffer);
-        byte[] info = buffer.getCompactData();
-
-        setInfoCommon(
-            this.fileId,
-            SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE,
-            null,
-            encoder.getInformationClass(),
-            info
-        );
-    }
-
-    protected void setInfoCommon(
-        SMB2FileId fileId,
-        SMB2SetInfoRequest.SMB2InfoType infoType,
-        EnumSet<SecurityInformation> securityInfo,
-        FileInformationClass fileInformationClass,
-        byte[] buffer)
-        throws SMBApiException {
-
-        Session session = treeConnect.getSession();
-        Connection connection = session.getConnection();
-
-        SMB2SetInfoRequest qreq = new SMB2SetInfoRequest(
-            connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
-            infoType, fileId,
-            fileInformationClass, securityInfo, buffer);
-        try {
-            Future<SMB2SetInfoResponse> qiResponseFuture = session.send(qreq);
-            SMB2SetInfoResponse qresp = Futures.get(qiResponseFuture, SMBRuntimeException.Wrapper);
-
-            if (qresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(qresp.getHeader(), "SET_INFO failed for " + fileId);
-            }
-        } catch (TransportException e) {
-            throw SMBRuntimeException.Wrapper.wrap(e);
+            logger.warn("File close failed for {},{},{}", fileName, share, fileId, e);
         }
     }
 }

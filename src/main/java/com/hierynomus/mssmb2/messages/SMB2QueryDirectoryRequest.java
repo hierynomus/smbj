@@ -15,11 +15,12 @@
  */
 package com.hierynomus.mssmb2.messages;
 
-import java.util.EnumSet;
 import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smbj.common.SMBBuffer;
+
+import java.util.Set;
 
 /**
  * [MS-SMB2].pdf 2.2.33 SMB2 QUERY DIRECTORY Request
@@ -30,7 +31,7 @@ public class SMB2QueryDirectoryRequest extends SMB2Packet {
     long MAX_OUTPUT_BUFFER_LENGTH = 64 * 1024;
 
     private FileInformationClass fileInformationClass;
-    private final EnumSet<SMB2QueryDirectoryFlags> flags;
+    private final Set<SMB2QueryDirectoryFlags> flags;
     private final long fileIndex;
     private final SMB2FileId fileId;
     private final String searchPattern;
@@ -39,7 +40,7 @@ public class SMB2QueryDirectoryRequest extends SMB2Packet {
                                      long sessionId, long treeId,
                                      SMB2FileId fileId,
                                      FileInformationClass fileInformationClass,
-                                     EnumSet<SMB2QueryDirectoryFlags> flags,
+                                     Set<SMB2QueryDirectoryFlags> flags,
                                      long fileIndex,
                                      String searchPattern) {
 
