@@ -46,11 +46,10 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.Future;
 
-import static com.hierynomus.msdtyp.AccessMask.FILE_READ_ATTRIBUTES;
-import static com.hierynomus.msdtyp.AccessMask.GENERIC_READ;
-import static com.hierynomus.msdtyp.AccessMask.GENERIC_WRITE;
+import static com.hierynomus.msdtyp.AccessMask.*;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_DIRECTORY;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_NORMAL;
+import static com.hierynomus.mssmb2.SMB2ShareAccess.EnumUtils;
 import static com.hierynomus.mssmb2.SMB2ShareAccess.*;
 import static com.hierynomus.mssmb2.messages.SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_SECURITY;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
@@ -412,12 +411,9 @@ public class DiskShare extends Share {
 
         SMB2FileId fileId = response.getFileId();
         try {
-            setInfoCommon(
+            setFileInformation(
                 fileId,
-                SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE,
-                null,
-                FileInformationClass.FileDispositionInformation,
-                FileInformationFactory.getFileDispositionInfo(true)
+                new FileDispositionInformation(true)
             );
         } finally {
             SMB2Close closeReq = new SMB2Close(connection.getNegotiatedProtocol().getDialect(),
@@ -428,7 +424,6 @@ public class DiskShare extends Share {
             if (closeResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
                 throw new SMBApiException(closeResponse.getHeader(), "Close failed for " + path);
             }
-
         }
     }
 

@@ -115,12 +115,12 @@ public class FileInformationFactory {
 
             @Override
             public FileDispositionInformation read(Buffer inputBuffer) throws Buffer.BufferException {
-                throw new UnsupportedOperationException();
+                return parseFileDispositionInformation(inputBuffer);
             }
 
             @Override
             public void write(FileDispositionInformation info, Buffer outputBuffer) {
-                outputBuffer.putRawBytes(FileInformationFactory.getFileDispositionInfo(info.isDeleteOnClose()));
+                writeFileDispositionInformation(info, outputBuffer);
             }
         };
         decoders.put(FileDispositionInformation.class, dispositionCodec);
@@ -305,13 +305,6 @@ public class FileInformationFactory {
     }
 
     /**
-     * MS-FSCC 2.4.11 FileDispositionInformation for SMB2
-     */
-    public static byte[] getFileDispositionInfo(boolean deleteOnClose) {
-        return deleteOnClose ? new byte[]{1} : new byte[]{0};
-    }
-
-    /**
      * [MS-SMB2] 2.2.34 SMB2 QUERY_DIRECTORY Response for FileInformationClass->FileIdBothDirectoryInformation
      *
      * @param data
@@ -450,6 +443,14 @@ public class FileInformationFactory {
         MsDataTypes.putFileTime(information.getChangeTime(), buffer);
         buffer.putUInt32(information.getFileAttributes());
         buffer.putUInt32(0); // Reserved (4 bytes)
+    }
+
+    private static FileDispositionInformation parseFileDispositionInformation(Buffer<?> buffer) throws Buffer.BufferException {
+        return new FileDispositionInformation(buffer.readBoolean());
+    }
+
+    private static void writeFileDispositionInformation(FileDispositionInformation information, Buffer<?> buffer) {
+        buffer.putBoolean(information.isDeleteOnClose());
     }
 
     private static FileStandardInformation parseFileStandardInformation(Buffer<?> buffer) throws Buffer.BufferException {
