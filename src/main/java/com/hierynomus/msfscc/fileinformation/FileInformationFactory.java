@@ -107,6 +107,25 @@ public class FileInformationFactory {
         decoders.put(FileBasicInformation.class, basicCodec);
         encoders.put(FileBasicInformation.class, basicCodec);
 
+        FileInformation.Codec<FileDispositionInformation> dispositionCodec = new FileInformation.Codec<FileDispositionInformation>() {
+            @Override
+            public FileInformationClass getInformationClass() {
+                return FileInformationClass.FileDispositionInformation;
+            }
+
+            @Override
+            public FileDispositionInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+                return parseFileDispositionInformation(inputBuffer);
+            }
+
+            @Override
+            public void write(FileDispositionInformation info, Buffer outputBuffer) {
+                writeFileDispositionInformation(info, outputBuffer);
+            }
+        };
+        decoders.put(FileDispositionInformation.class, dispositionCodec);
+        encoders.put(FileDispositionInformation.class, dispositionCodec);
+
         decoders.put(FileEaInformation.class, new FileInformation.Decoder<FileEaInformation>() {
             @Override
             public FileInformationClass getInformationClass() {
@@ -287,10 +306,17 @@ public class FileInformationFactory {
     }
 
     /**
-     * MS-FSCC 2.4.11 FileDispositionInformation for SMB2
+     * MS-FSCC 2.4.34.2 FileRenameInformation for SMB2
      */
-    public static byte[] getFileDispositionInfo(boolean deleteOnClose) {
-        return deleteOnClose ? new byte[]{1} : new byte[]{0};
+    public static byte[] getRenameInfo(boolean replaceIfExists, String newName) {
+        Buffer.PlainBuffer renBuf = new Buffer.PlainBuffer(Endian.LE);
+        renBuf.putByte((byte) (replaceIfExists ? 1 : 0));
+        renBuf.putRawBytes(new byte[]{0, 0, 0, 0, 0, 0, 0});
+        renBuf.putUInt64(0);
+        renBuf.putUInt32(newName.length() * 2); // unicode
+        renBuf.putRawBytes(newName.getBytes(StandardCharsets.UTF_16));
+        return renBuf.getCompactData();
+
     }
 
     /**
@@ -432,6 +458,14 @@ public class FileInformationFactory {
         MsDataTypes.putFileTime(information.getChangeTime(), buffer);
         buffer.putUInt32(information.getFileAttributes());
         buffer.putUInt32(0); // Reserved (4 bytes)
+    }
+
+    private static FileDispositionInformation parseFileDispositionInformation(Buffer<?> buffer) throws Buffer.BufferException {
+        return new FileDispositionInformation(buffer.readBoolean());
+    }
+
+    private static void writeFileDispositionInformation(FileDispositionInformation information, Buffer<?> buffer) {
+        buffer.putBoolean(information.isDeleteOnClose());
     }
 
     private static FileStandardInformation parseFileStandardInformation(Buffer<?> buffer) throws Buffer.BufferException {
