@@ -46,7 +46,6 @@ import java.util.Set;
 import static com.hierynomus.msdtyp.AccessMask.*;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_DIRECTORY;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_NORMAL;
-import static com.hierynomus.mssmb2.SMB2ShareAccess.EnumUtils;
 import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_CREATE;
 import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_OPEN;
 import static com.hierynomus.mssmb2.SMB2ShareAccess.*;
