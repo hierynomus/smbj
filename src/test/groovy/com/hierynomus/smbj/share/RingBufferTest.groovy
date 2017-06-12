@@ -97,6 +97,24 @@ public class RingBufferTest extends Specification {
     byteArray == [4, 5, 6, 12, 13] as byte[]
   }
 
+  def "should be able to warp around when writing"() {
+    given:
+    def i1 = [1, 2, 3, 4, 5] as byte[]
+    def i2 = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as byte[]
+    def o1 = new byte[i1.length]
+    def o2 = new byte[i2.length]
+
+    when:
+    cBuf.write(i1, 0, i1.length);
+    cBuf.read(o1)
+    cBuf.write(i2, 0, i2.length);
+
+    then:
+    cBuf.size() == 10
+    cBuf.read(o2);
+    o2 == i2
+  }
+
   def "should throw exception if buffer is full"() {
     given:
     def b = [4, 5, 6, 1, 2, 3, 4] as byte[];
