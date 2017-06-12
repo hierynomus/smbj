@@ -15,14 +15,13 @@
  */
 package com.hierynomus.smbj.session;
 
+import com.hierynomus.smbj.share.Share;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import com.hierynomus.smbj.share.Share;
-import com.hierynomus.smbj.share.TreeConnect;
 
 /**
  * [MS-SMB2].pdf 3.2.1.3 Per Session
