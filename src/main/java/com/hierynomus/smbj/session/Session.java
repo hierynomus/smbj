@@ -80,7 +80,7 @@ public class Session implements AutoCloseable {
     public Share connectShare(String shareName) {
         TreeConnect connectedConnect = treeConnectTable.getTreeConnect(shareName);
         if (connectedConnect != null) {
-            logger.info("Returning cached Share {} for {}", connectedConnect.getTreeId(), shareName);
+            logger.debug("Returning cached Share {} for {}", connectedConnect.getTreeId(), shareName);
             return connectedConnect.getHandle();
         } else {
             return connectTree(shareName);
@@ -90,7 +90,7 @@ public class Session implements AutoCloseable {
     private Share connectTree(final String shareName) {
         String remoteHostname = connection.getRemoteHostname();
         SmbPath smbPath = new SmbPath(remoteHostname, shareName);
-        logger.info("Connection to {} on session {}", smbPath, sessionId);
+        logger.debug("Connection to {} on session {}", smbPath, sessionId);
         try {
             SMB2TreeConnectRequest smb2TreeConnectRequest = new SMB2TreeConnectRequest(connection.getNegotiatedProtocol().getDialect(), smbPath, sessionId);
             smb2TreeConnectRequest.getHeader().setCreditRequest(256);
@@ -131,7 +131,7 @@ public class Session implements AutoCloseable {
     }
 
     public void logoff() throws TransportException {
-        logger.info("Logging off session {} from host {}", sessionId, connection.getRemoteHostname());
+        logger.debug("Logging off session {} from host {}", sessionId, connection.getRemoteHostname());
         for (TreeConnect treeConnect : treeConnectTable.getOpenTreeConnects()) {
             try {
                 treeConnect.getHandle().close();

@@ -77,7 +77,7 @@ public class ProxySocketFactory extends SocketFactory {
         if (bindAddress != null) {
             socket.bind(bindAddress);
         }
-        logger.info("Connecting to {}", address);
+        logger.debug("Connecting to {}", address);
         socket.connect(address, connectTimeout);
         return socket;
     }
