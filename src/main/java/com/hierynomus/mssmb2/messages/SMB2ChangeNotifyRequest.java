@@ -15,10 +15,11 @@
  */
 package com.hierynomus.mssmb2.messages;
 
-import java.util.EnumSet;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smbj.common.SMBBuffer;
+
+import java.util.Set;
 
 /**
  * [MS-SMB2].pdf 2.2.35 SMB2 CHANGE_NOTIFY Request
@@ -28,7 +29,7 @@ import com.hierynomus.smbj.common.SMBBuffer;
 public class SMB2ChangeNotifyRequest extends SMB2Packet {
 
     private static final int SMB2_WATCH_TREE = 0x0001;
-    private final EnumSet<SMB2CompletionFilter> completionFilter;
+    private final Set<SMB2CompletionFilter> completionFilter;
     private final SMB2FileId fileId;
     private final long outputBufferLength;
     private final boolean recursive;
@@ -37,7 +38,7 @@ public class SMB2ChangeNotifyRequest extends SMB2Packet {
                                    long sessionId,
                                    long treeId,
                                    SMB2FileId fileId,
-                                   EnumSet<SMB2CompletionFilter> completionFilter,
+                                   Set<SMB2CompletionFilter> completionFilter,
                                    long outputBufferLength,
                                    boolean recursive) {
 

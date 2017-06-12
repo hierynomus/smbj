@@ -15,7 +15,7 @@
  */
 package com.hierynomus.mssmb2;
 
-import java.util.EnumSet;
+import java.util.Set;
 
 public enum SMB2Dialect {
     UNKNOWN(0x0),
@@ -43,10 +43,10 @@ public enum SMB2Dialect {
     /**
      * Whether any of the dialects in the set is an SMB 3.x dialect.
      *
-     * @param dialects The supported dialects enumset.
+     * @param dialects The supported dialects Set.
      * @return true if there is (at least) one SMB 3.x dialect in the set.
      */
-    public static boolean supportsSmb3x(EnumSet<SMB2Dialect> dialects) {
+    public static boolean supportsSmb3x(Set<SMB2Dialect> dialects) {
         for (SMB2Dialect dialect : dialects) {
             if (dialect.isSmb3x()) {
                 return true;

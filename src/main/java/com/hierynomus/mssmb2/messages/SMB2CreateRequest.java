@@ -15,10 +15,11 @@
  */
 package com.hierynomus.mssmb2.messages;
 
-import java.util.EnumSet;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.smbj.common.SMBBuffer;
+
+import java.util.Set;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.ensureNotNull;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
@@ -29,19 +30,19 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
  */
 public class SMB2CreateRequest extends SMB2Packet {
 
-    private final EnumSet<FileAttributes> fileAttributes;
-    private final EnumSet<SMB2ShareAccess> shareAccess;
+    private final Set<FileAttributes> fileAttributes;
+    private final Set<SMB2ShareAccess> shareAccess;
     private final SMB2CreateDisposition createDisposition;
-    private final EnumSet<SMB2CreateOptions> createOptions;
+    private final Set<SMB2CreateOptions> createOptions;
     private final String fileName; // Null to indicate the root of share
     private final long accessMask;
 
     public SMB2CreateRequest(SMB2Dialect smbDialect,
                              long sessionId, long treeId,
                              long accessMask,
-                             EnumSet<FileAttributes> fileAttributes,
-                             EnumSet<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition,
-                             EnumSet<SMB2CreateOptions> createOptions, String fileName) {
+                             Set<FileAttributes> fileAttributes,
+                             Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition,
+                             Set<SMB2CreateOptions> createOptions, String fileName) {
 
         super(57, smbDialect, SMB2MessageCommandCode.SMB2_CREATE, sessionId, treeId);
         this.accessMask = accessMask;
