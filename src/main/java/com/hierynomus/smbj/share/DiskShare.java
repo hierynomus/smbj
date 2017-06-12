@@ -283,7 +283,7 @@ public class DiskShare extends Share {
     }
 
     public void deleteOnClose(SMB2FileId fileId) {
-        setInfo(fileId, SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE, null, FileInformationClass.FileDispositionInformation, FileInformationFactory.getFileDispositionInfo(true));
+        setFileInformation(fileId, new FileDispositionInformation(true));
     }
 
     /**
