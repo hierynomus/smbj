@@ -90,7 +90,7 @@ public class Share implements AutoCloseable {
         return sendReceive(session, cr, "Create", path, SUCCESS);
     }
 
-    public void flush(SMB2FileId fileId) throws SMBApiException {
+    void flush(SMB2FileId fileId) throws SMBApiException {
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
         SMB2Flush flushReq = new SMB2Flush(
@@ -100,7 +100,7 @@ public class Share implements AutoCloseable {
         sendReceive(session, flushReq, "Flush", fileId, SUCCESS);
     }
 
-    public void closeFileId(SMB2FileId fileId) throws SMBApiException {
+    void closeFileId(SMB2FileId fileId) throws SMBApiException {
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
         SMB2Close closeReq = new SMB2Close(
