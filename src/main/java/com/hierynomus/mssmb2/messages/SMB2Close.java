@@ -15,8 +15,6 @@
  */
 package com.hierynomus.mssmb2.messages;
 
-import java.util.Date;
-
 import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.mserref.NtStatus;

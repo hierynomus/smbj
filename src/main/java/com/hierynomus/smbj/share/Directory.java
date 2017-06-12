@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.share;
 
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.msfscc.fileinformation.FileDirectoryQueryableInformation;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.msfscc.fileinformation.FileInformation;
@@ -23,31 +24,20 @@ import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryRequest;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryResponse;
-import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.common.SMBApiException;
-import com.hierynomus.smbj.common.SMBRuntimeException;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.transport.TransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.Future;
 
 public class Directory extends DiskEntry implements Iterable<FileIdBothDirectoryInformation> {
-
-    private static final Logger logger = LoggerFactory.getLogger(Directory.class);
-
-    public Directory(SMB2FileId fileId, TreeConnect treeConnect, String fileName) {
-        super(treeConnect, fileId, fileName);
+    Directory(SMB2FileId fileId, DiskShare diskShare, String fileName) {
+        super(diskShare, fileId, fileName);
     }
 
-    public List<FileIdBothDirectoryInformation> list() throws TransportException, SMBApiException {
+    public List<FileIdBothDirectoryInformation> list() throws SMBApiException {
         return list(FileIdBothDirectoryInformation.class);
     }
 
-    public <F extends FileDirectoryQueryableInformation> List<F> list(Class<F> informationClass) throws TransportException, SMBApiException {
+    public <F extends FileDirectoryQueryableInformation> List<F> list(Class<F> informationClass) throws SMBApiException {
         List<F> fileList = new ArrayList<>();
         Iterator<F> iterator = iterator(informationClass);
         while (iterator.hasNext()) {
@@ -69,17 +59,9 @@ public class Directory extends DiskEntry implements Iterable<FileIdBothDirectory
         return fileId;
     }
 
-    public void closeSilently() {
-        try {
-            close();
-        } catch (Exception e) {
-            logger.warn("File close failed for {},{},{}", fileName, treeConnect, fileId, e);
-        }
-    }
-
     @Override
     public String toString() {
-        return String.format("File{fileId=%s, fileName='%s'}", fileId, fileName);
+        return String.format("Directory{fileId=%s, fileName='%s'}", fileId, fileName);
     }
 
     private class DirectoryIterator<F extends FileDirectoryQueryableInformation> implements Iterator<F> {
@@ -121,8 +103,7 @@ public class Directory extends DiskEntry implements Iterable<FileIdBothDirectory
         }
 
         private Iterator<F> queryDirectory(boolean firstQuery) {
-            Session session = treeConnect.getSession();
-            Connection connection = session.getConnection();
+            DiskShare share = Directory.this.share;
 
             // Query Directory Request
             EnumSet<SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags> flags;
@@ -132,35 +113,21 @@ public class Directory extends DiskEntry implements Iterable<FileIdBothDirectory
                 flags = EnumSet.noneOf(SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags.class);
             }
 
-            SMB2QueryDirectoryRequest qdr = new SMB2QueryDirectoryRequest(connection.getNegotiatedProtocol().getDialect(),
-                session.getSessionId(), treeConnect.getTreeId(),
-                getFileId(), decoder.getInformationClass(),
-                flags,
-                0, null);
+            FileInformationClass informationClass = decoder.getInformationClass();
 
-            SMB2QueryDirectoryResponse qdResp;
-            try {
-                Future<SMB2QueryDirectoryResponse> qdFuture = session.send(qdr);
-                qdResp = Futures.get(qdFuture, TransportException.Wrapper);
-            } catch (TransportException e) {
-                throw new SMBRuntimeException(e);
-            }
+            SMB2QueryDirectoryResponse qdResp = share.queryDirectory(fileId, flags, informationClass);
 
             NtStatus status = qdResp.getHeader().getStatus();
 
             if (status == NtStatus.STATUS_NO_MORE_FILES) {
                 return null;
             } else {
-                if (status != NtStatus.STATUS_SUCCESS) {
-                    throw new SMBApiException(qdResp.getHeader(), String.format("Query directory failed for %s", this));
-                }
                 return FileInformationFactory.createFileInformationIterator(
                     qdResp.getOutputBuffer(),
                     decoder
                 );
             }
         }
-
         @Override
         public void remove() {
             throw new UnsupportedOperationException();

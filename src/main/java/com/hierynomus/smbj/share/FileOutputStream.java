@@ -34,7 +34,7 @@ import com.hierynomus.smbj.transport.TransportException;
 
 public class FileOutputStream extends OutputStream {
 
-    private TreeConnect treeConnect;
+    private DiskShare share;
     private SMB2FileId fileId;
     private Session session;
     private Connection connection;
@@ -46,9 +46,9 @@ public class FileOutputStream extends OutputStream {
     private static final Logger logger = LoggerFactory.getLogger(FileOutputStream.class);
 
     public FileOutputStream(File file, ProgressListener progressListener) {
-        this.treeConnect = file.treeConnect;
+        this.share = file.share;
         this.fileId = file.fileId;
-        this.session = treeConnect.getSession();
+        this.session = share.treeConnect.getSession();
         this.connection = session.getConnection();
         this.progressListener = progressListener;
         this.maxWriteSize = connection.getNegotiatedProtocol().getMaxWriteSize();
@@ -97,8 +97,8 @@ public class FileOutputStream extends OutputStream {
 
     private void sendWriteRequest() throws TransportException {
         SMB2WriteRequest wreq = new SMB2WriteRequest(connection.getNegotiatedProtocol().getDialect(), fileId,
-            session.getSessionId(), treeConnect.getTreeId(), provider, connection.getNegotiatedProtocol().getMaxWriteSize());
-        logger.trace("Sending {} for file {}, byte offset {}, bytes available {}", wreq, treeConnect.getHandle().smbPath, provider.getOffset(), provider.bytesLeft());
+            session.getSessionId(), share.getTreeConnect().getTreeId(), provider, connection.getNegotiatedProtocol().getMaxWriteSize());
+        logger.trace("Sending {} for file {}, byte offset {}, bytes available {}", wreq, share.smbPath, provider.getOffset(), provider.bytesLeft());
         Future<SMB2WriteResponse> writeFuture = session.send(wreq);
         SMB2WriteResponse wresp = Futures.get(writeFuture, TransportException.Wrapper);
         if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
@@ -119,7 +119,7 @@ public class FileOutputStream extends OutputStream {
         provider.reset();
 
         isClosed = true;
-        treeConnect = null;
+        share = null;
         session = null;
         connection = null;
         logger.debug("EOF, {} bytes written", provider.getOffset());

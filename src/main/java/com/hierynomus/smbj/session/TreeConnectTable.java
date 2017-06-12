@@ -15,12 +15,13 @@
  */
 package com.hierynomus.smbj.session;
 
+import com.hierynomus.smbj.share.Share;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import com.hierynomus.smbj.share.TreeConnect;
 
 /**
  * [MS-SMB2].pdf 3.2.1.3 Per Session
@@ -29,20 +30,20 @@ import com.hierynomus.smbj.share.TreeConnect;
  */
 class TreeConnectTable {
     private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-    private Map<Long, TreeConnect> lookupById = new HashMap<>();
-    private Map<String, TreeConnect> lookupByShareName = new HashMap<>();
+    private Map<Long, Share> lookupById = new HashMap<>();
+    private Map<String, Share> lookupByShareName = new HashMap<>();
 
-    void register(TreeConnect treeConnect) {
+    void register(Share share) {
         lock.writeLock().lock();
         try {
-            lookupById.put(treeConnect.getTreeId(), treeConnect);
-            lookupByShareName.put(treeConnect.getShareName(), treeConnect);
+            lookupById.put(share.getTreeConnect().getTreeId(), share);
+            lookupByShareName.put(share.getTreeConnect().getShareName(), share);
         } finally {
             lock.writeLock().unlock();
         }
     }
 
-    Collection<TreeConnect> getOpenTreeConnects() {
+    Collection<Share> getOpenTreeConnects() {
         lock.readLock().lock();
         try {
             return new ArrayList<>(lookupById.values());
@@ -51,7 +52,7 @@ class TreeConnectTable {
         }
     }
 
-    TreeConnect getTreeConnect(long treeConnectId) {
+    Share getTreeConnect(long treeConnectId) {
         lock.readLock().lock();
         try {
             return lookupById.get(treeConnectId);
@@ -60,7 +61,7 @@ class TreeConnectTable {
         }
     }
 
-    TreeConnect getTreeConnect(String shareName) {
+    Share getTreeConnect(String shareName) {
         lock.readLock().lock();
         try {
             return lookupByShareName.get(shareName);
@@ -72,9 +73,9 @@ class TreeConnectTable {
     void closed(long treeConnectId) {
         lock.writeLock().lock();
         try {
-            TreeConnect treeConnect = lookupById.remove(treeConnectId);
-            if (treeConnect != null) {
-                lookupByShareName.remove(treeConnect.getShareName());
+            Share share = lookupById.remove(treeConnectId);
+            if (share != null) {
+                lookupByShareName.remove(share.getTreeConnect().getShareName());
             }
         } finally {
             lock.writeLock().unlock();

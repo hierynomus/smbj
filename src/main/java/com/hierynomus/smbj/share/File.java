@@ -15,7 +15,6 @@
  */
 package com.hierynomus.smbj.share;
 
-import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.messages.SMB2ReadRequest;
@@ -42,21 +41,19 @@ import java.util.concurrent.Future;
 public class File extends DiskEntry {
 
     private static final Logger logger = LoggerFactory.getLogger(File.class);
-    private final long accessMask;
 
-    public File(SMB2FileId fileId, TreeConnect treeConnect, String fileName, long accessMask) {
-        super(treeConnect, fileId, fileName);
-        this.accessMask = accessMask;
+    File(SMB2FileId fileId, DiskShare diskShare, String fileName) {
+        super(diskShare, fileId, fileName);
     }
 
     public void write(ByteChunkProvider provider, ProgressListener progressListener) throws TransportException {
-        Session session = treeConnect.getSession();
+        Session session = share.getTreeConnect().getSession();
         Connection connection = session.getConnection();
 
         while (provider.isAvailable()) {
             logger.debug("Writing to {} from offset {}", this.fileName, provider.getOffset());
             SMB2WriteRequest wreq = new SMB2WriteRequest(connection.getNegotiatedProtocol().getDialect(), getFileId(),
-                session.getSessionId(), treeConnect.getTreeId(), provider, connection.getNegotiatedProtocol().getMaxWriteSize());
+                session.getSessionId(), share.getTreeConnect().getTreeId(), provider, connection.getNegotiatedProtocol().getMaxWriteSize());
             Future<SMB2WriteResponse> writeFuture = session.send(wreq);
             SMB2WriteResponse wresp = Futures.get(writeFuture, TransportException.Wrapper);
             if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
@@ -75,7 +72,7 @@ public class File extends DiskEntry {
     }
 
     public void read(OutputStream destStream, ProgressListener progressListener) throws IOException {
-        Session session = treeConnect.getSession();
+        Session session = share.getTreeConnect().getSession();
         Connection connection = session.getConnection();
         InputStream is = getInputStream(progressListener);
         int numRead = -1;
@@ -112,17 +109,7 @@ public class File extends DiskEntry {
      * @throws IOException
      */
     public int read(byte[] dst, int fileOffset, int length) throws IOException {
-
-        if ((this.accessMask & (AccessMask.GENERIC_READ.getValue() | AccessMask.FILE_READ_EA.getValue())) == 0) {
-            throw new SMBApiException(
-                NtStatus.STATUS_ACCESS_DENIED,
-                NtStatus.STATUS_ACCESS_DENIED.getValue(),
-                null,
-                "The file is not open for reading"
-            );
-        }
-
-        Session session = treeConnect.getSession();
+        Session session = share.getTreeConnect().getSession();
         NegotiatedProtocol negotiatedProtocol = session.getConnection().getNegotiatedProtocol();
 
         int payloadSize = length < negotiatedProtocol.getMaxReadSize() ? length : negotiatedProtocol.getMaxReadSize();
@@ -130,7 +117,7 @@ public class File extends DiskEntry {
             negotiatedProtocol.getDialect(),
             fileId,
             session.getSessionId(),
-            treeConnect.getTreeId(),
+            share.getTreeConnect().getTreeId(),
             fileOffset,
             payloadSize
         );
@@ -162,17 +149,7 @@ public class File extends DiskEntry {
      * @throws IOException
      */
     public int write(final byte[] src, final int fileOffset, final int length) throws IOException {
-
-        if ((this.accessMask & (AccessMask.GENERIC_WRITE.getValue() | AccessMask.FILE_WRITE_EA.getValue())) == 0) {
-            throw new SMBApiException(
-                NtStatus.STATUS_ACCESS_DENIED,
-                NtStatus.STATUS_ACCESS_DENIED.getValue(),
-                null,
-                "The file is not open for writing"
-            );
-        }
-
-        Session session = treeConnect.getSession();
+        Session session = share.getTreeConnect().getSession();
         NegotiatedProtocol negotiatedProtocol = session.getConnection().getNegotiatedProtocol();
 
         ByteChunkProvider provider = new ByteChunkProvider() {
@@ -210,11 +187,11 @@ public class File extends DiskEntry {
             negotiatedProtocol.getDialect(),
             fileId,
             session.getSessionId(),
-            treeConnect.getTreeId(),
+            share.getTreeConnect().getTreeId(),
             provider,
             negotiatedProtocol.getMaxWriteSize()
         );
-        logger.trace("Sending {} for file {}, byte offset {}, bytes available {}", wreq, treeConnect.getHandle().smbPath, provider.getOffset(),
+        logger.trace("Sending {} for file {}, byte offset {}, bytes available {}", wreq, share.smbPath, provider.getOffset(),
                      provider.bytesLeft());
         Future<SMB2WriteResponse> writeFuture = session.send(wreq);
         try {

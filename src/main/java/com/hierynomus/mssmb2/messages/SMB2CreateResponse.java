@@ -15,9 +15,6 @@
  */
 package com.hierynomus.mssmb2.messages;
 
-import java.util.Date;
-import java.util.EnumSet;
-
 import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.mserref.NtStatus;
@@ -26,6 +23,8 @@ import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
+
+import java.util.Set;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
@@ -38,7 +37,7 @@ public class SMB2CreateResponse extends SMB2Packet {
     private FileTime lastAccessTime;
     private FileTime lastWriteTime;
     private FileTime changeTime;
-    private EnumSet<FileAttributes> fileAttributes;
+    private Set<FileAttributes> fileAttributes;
     private SMB2FileId fileId;
 
     public SMB2CreateResponse() {
@@ -84,7 +83,7 @@ public class SMB2CreateResponse extends SMB2Packet {
         return changeTime;
     }
 
-    public EnumSet<FileAttributes> getFileAttributes() {
+    public Set<FileAttributes> getFileAttributes() {
         return fileAttributes;
     }
 

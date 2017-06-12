@@ -264,6 +264,20 @@ public class FileInformationFactory {
                 return parseFileNamesInformation(inputBuffer);
             }
         });
+
+        FileInformation.Encoder<FileRenameInformation> renameCodec = new FileInformation.Encoder<FileRenameInformation>() {
+            @Override
+            public FileInformationClass getInformationClass() {
+                return FileInformationClass.FileRenameInformation;
+            }
+
+            @Override
+            public void write(FileRenameInformation info, Buffer outputBuffer) {
+                writeFileRenameInformation(info, outputBuffer);
+            }
+        };
+        encoders.put(FileRenameInformation.class, renameCodec);
+
     }
 
     @SuppressWarnings("unchecked")
@@ -302,6 +316,7 @@ public class FileInformationFactory {
         renBuf.putUInt32(newName.length() * 2); // unicode
         renBuf.putRawBytes(newName.getBytes(StandardCharsets.UTF_16));
         return renBuf.getCompactData();
+
     }
 
     /**
@@ -664,4 +679,16 @@ public class FileInformationFactory {
         );
         return fi;
     }
+
+    /**
+     * MS-FSCC 2.4.34.2 FileRenameInformation for SMB2
+     */
+    public static void writeFileRenameInformation(FileRenameInformation information, Buffer<?> buffer) {
+        buffer.putByte((byte) (information.isReplaceIfExists() ? 1 : 0));
+        buffer.putRawBytes(new byte[]{0, 0, 0, 0, 0, 0, 0});    // reserved
+        buffer.putUInt64(information.getRootDirectory());
+        buffer.putUInt32(information.getFileNameLength() * 2); // unicode
+        buffer.putRawBytes(information.getFileName().getBytes(StandardCharsets.UTF_16LE));
+    }
+
 }

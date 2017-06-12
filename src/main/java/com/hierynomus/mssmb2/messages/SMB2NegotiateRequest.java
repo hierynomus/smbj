@@ -21,7 +21,7 @@ import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.smbj.common.SMBBuffer;
 
-import java.util.EnumSet;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -29,7 +29,7 @@ import java.util.UUID;
  */
 public class SMB2NegotiateRequest extends SMB2Packet {
 
-    private EnumSet<SMB2Dialect> dialects;
+    private Set<SMB2Dialect> dialects;
     private UUID clientGuid;
     private boolean clientSigningRequired;
 
@@ -39,7 +39,7 @@ public class SMB2NegotiateRequest extends SMB2Packet {
      * @param dialects
      * @param clientGuid
      */
-    public SMB2NegotiateRequest(EnumSet<SMB2Dialect> dialects, UUID clientGuid, boolean clientSigningRequired) {
+    public SMB2NegotiateRequest(Set<SMB2Dialect> dialects, UUID clientGuid, boolean clientSigningRequired) {
         super(36, SMB2Dialect.UNKNOWN, SMB2MessageCommandCode.SMB2_NEGOTIATE, 0, 0);
         this.dialects = dialects;
         this.clientGuid = clientGuid;

@@ -21,7 +21,7 @@ import com.hierynomus.mssmb2.*;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smbj.common.SMBBuffer;
 
-import java.util.EnumSet;
+import java.util.Set;
 
 /**
  * [MS-SMB2].pdf 2.2.39 SMB2 SET_INFO Request
@@ -32,13 +32,13 @@ public class SMB2SetInfoRequest extends SMB2Packet {
     private final SMB2InfoType infoType;
     private final FileInformationClass fileInfoClass;
     private final byte[] buffer;
-    private final EnumSet<SecurityInformation> securityInformation;
+    private final Set<SecurityInformation> securityInformation;
 
     public SMB2SetInfoRequest(
         SMB2Dialect negotiatedDialect, long sessionId, long treeId,
         SMB2InfoType infoType, SMB2FileId fileId,
         FileInformationClass fileInfoClass,
-        EnumSet<SecurityInformation> securityInformation, byte[] buffer
+        Set<SecurityInformation> securityInformation, byte[] buffer
     ) {
         super(33, negotiatedDialect, SMB2MessageCommandCode.SMB2_SET_INFO, sessionId, treeId);
         this.fileId = fileId;

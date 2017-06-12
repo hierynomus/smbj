@@ -17,19 +17,19 @@ package com.hierynomus.smbj.share;
 
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import com.hierynomus.msdtyp.SecurityInformation;
+import com.hierynomus.msfscc.FileInformationClass;
+import com.hierynomus.msfscc.FileSystemInformationClass;
+import com.hierynomus.mssmb2.*;
+import com.hierynomus.mssmb2.messages.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
-import com.hierynomus.mssmb2.SMB2CreateDisposition;
-import com.hierynomus.mssmb2.SMB2CreateOptions;
-import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.SMB2ShareAccess;
-import com.hierynomus.mssmb2.messages.SMB2Close;
-import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
-import com.hierynomus.mssmb2.messages.SMB2CreateResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
@@ -40,6 +40,8 @@ import com.hierynomus.smbj.transport.TransportException;
 
 public class Share implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(Share.class);
+    private static final EnumSet<NtStatus> SUCCESS = EnumSet.of(NtStatus.STATUS_SUCCESS);
+    private static final EnumSet<NtStatus> SUCCESS_OR_NO_MORE_FILES = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_NO_MORE_FILES);
 
     protected SmbPath smbPath;
     protected final TreeConnect treeConnect;
@@ -48,13 +50,12 @@ public class Share implements AutoCloseable {
     Share(SmbPath smbPath, TreeConnect treeConnect) {
         this.smbPath = smbPath;
         this.treeConnect = treeConnect;
-        treeConnect.setHandle(this);
     }
 
     @Override
     public void close() throws IOException {
         if (!disconnected.getAndSet(true)) {
-            treeConnect.close(this);
+            treeConnect.close();
         }
     }
 
@@ -66,40 +67,15 @@ public class Share implements AutoCloseable {
         return treeConnect;
     }
 
-    public SMB2FileId open(
-        String path, long accessMask,
-        EnumSet<FileAttributes> fileAttributes, EnumSet<SMB2ShareAccess> shareAccess,
-        SMB2CreateDisposition createDisposition, EnumSet<SMB2CreateOptions> createOptions)
-        throws SMBApiException {
+    SMB2FileId openFileId(String path, long accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        return createFile(path, accessMask, fileAttributes, shareAccess, createDisposition, createOptions).getFileId();
+    }
+
+    SMB2CreateResponse createFile(String path, long accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         logger.info("open {},{}", path, fileAttributes);
 
         Session session = treeConnect.getSession();
-        SMB2CreateRequest cr = openFileRequest(
-            treeConnect, path, accessMask, shareAccess, fileAttributes, createDisposition, createOptions);
-        try {
-            Future<SMB2CreateResponse> responseFuture = session.send(cr);
-            SMB2CreateResponse cresponse = Futures.get(responseFuture, SMBRuntimeException.Wrapper);
-            if (cresponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(cresponse.getHeader(), "Create failed for " + path);
-            }
 
-            return cresponse.getFileId();
-        } catch (TransportException e) {
-            throw SMBRuntimeException.Wrapper.wrap(e);
-        }
-
-    }
-
-
-    protected static SMB2CreateRequest openFileRequest(
-        TreeConnect treeConnect, String path,
-        long accessMask,
-        EnumSet<SMB2ShareAccess> shareAccess,
-        EnumSet<FileAttributes> fileAttributes,
-        SMB2CreateDisposition createDisposition,
-        EnumSet<SMB2CreateOptions> createOptions) {
-
-        Session session = treeConnect.getSession();
         SMB2CreateRequest cr = new SMB2CreateRequest(
             session.getConnection().getNegotiatedProtocol().getDialect(),
             session.getSessionId(), treeConnect.getTreeId(),
@@ -107,21 +83,84 @@ public class Share implements AutoCloseable {
             fileAttributes,
             shareAccess,
             createDisposition,
-            createOptions, path);
-        return cr;
+            createOptions,
+            path
+        );
+
+        return sendReceive(session, cr, "Create", path, SUCCESS);
     }
 
-    public void close(SMB2FileId fileId) throws TransportException, SMBApiException {
+    void flush(SMB2FileId fileId) throws SMBApiException {
+        Session session = treeConnect.getSession();
+        Connection connection = session.getConnection();
+        SMB2Flush flushReq = new SMB2Flush(
+            connection.getNegotiatedProtocol().getDialect(),
+            fileId
+        );
+        sendReceive(session, flushReq, "Flush", fileId, SUCCESS);
+    }
+
+    void closeFileId(SMB2FileId fileId) throws SMBApiException {
         Session session = treeConnect.getSession();
         Connection connection = session.getConnection();
         SMB2Close closeReq = new SMB2Close(
             connection.getNegotiatedProtocol().getDialect(),
             treeConnect.getSession().getSessionId(), treeConnect.getTreeId(), fileId);
-        Future<SMB2Close> closeFuture = session.send(closeReq);
-        SMB2Close closeResp = Futures.get(closeFuture, TransportException.Wrapper);
+        sendReceive(session, closeReq, "Close", fileId, SUCCESS);
+    }
 
-        if (closeResp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(closeResp.getHeader(), "Close failed for " + fileId);
+    SMB2QueryInfoResponse queryInfo(SMB2FileId fileId, SMB2QueryInfoRequest.SMB2QueryInfoType infoType, Set<SecurityInformation> securityInfo, FileInformationClass fileInformationClass, FileSystemInformationClass fileSystemInformationClass) {
+        Session session = treeConnect.getSession();
+        Connection connection = session.getConnection();
+
+        SMB2QueryInfoRequest qreq = new SMB2QueryInfoRequest(
+            connection.getNegotiatedProtocol().getDialect(),
+            session.getSessionId(), treeConnect.getTreeId(),
+            fileId, infoType,
+            fileInformationClass, fileSystemInformationClass, null, securityInfo
+        );
+        return sendReceive(session, qreq, "QueryInfo", fileId, SUCCESS);
+    }
+
+    SMB2SetInfoResponse setInfo(SMB2FileId fileId, SMB2SetInfoRequest.SMB2InfoType infoType, Set<SecurityInformation> securityInfo, FileInformationClass fileInformationClass, byte[] buffer) {
+        Session session = treeConnect.getSession();
+        Connection connection = session.getConnection();
+
+        SMB2SetInfoRequest qreq = new SMB2SetInfoRequest(
+            connection.getNegotiatedProtocol().getDialect(),
+            session.getSessionId(), treeConnect.getTreeId(),
+            infoType, fileId,
+            fileInformationClass, securityInfo, buffer
+        );
+        return sendReceive(session, qreq, "SetInfo", fileId, SUCCESS);
+    }
+
+    SMB2QueryDirectoryResponse queryDirectory(SMB2FileId fileId, Set<SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags> flags, FileInformationClass informationClass) {
+        Session session = treeConnect.getSession();
+        Connection connection = session.getConnection();
+
+        SMB2QueryDirectoryRequest qdr = new SMB2QueryDirectoryRequest(
+            connection.getNegotiatedProtocol().getDialect(),
+            session.getSessionId(), treeConnect.getTreeId(),
+            fileId, informationClass,
+            flags,
+            0, null);
+
+        return sendReceive(session, qdr, "Query directory", fileId, SUCCESS_OR_NO_MORE_FILES);
+    }
+
+    private <T extends SMB2Packet> T sendReceive(Session session, SMB2Packet request, String name, Object target, Set<NtStatus> successResponses) {
+        try {
+            Future<T> fut = session.send(request);
+            T resp = Futures.get(fut, TransportException.Wrapper);
+
+            NtStatus status = resp.getHeader().getStatus();
+            if (!successResponses.contains(status)) {
+                throw new SMBApiException(resp.getHeader(), name + " failed for " + target);
+            }
+            return resp;
+        } catch (TransportException e) {
+            throw new SMBRuntimeException(e);
         }
     }
 }
