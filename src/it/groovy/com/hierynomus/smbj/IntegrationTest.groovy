@@ -15,6 +15,8 @@
  */
 package com.hierynomus.smbj
 
+import com.hierynomus.msdtyp.SecurityInformation
+import com.hierynomus.msdtyp.sddl.Sddl
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.share.DiskShare
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -102,6 +104,39 @@ class IntegrationTest extends Specification {
 
     then:
     share.list("api").size() > 0
+
+    cleanup:
+    connection.close()
+  }
+
+  def "should be able to get security descriptors"() {
+    given:
+    def client = new SMBClient()
+
+    when:
+    def connection = client.connect(IP)
+    def session = connection.authenticate(AUTH)
+    def share = session.connectShare("Go") as DiskShare
+
+    then:
+    share.getSecurityInfo("api", EnumSet.allOf(SecurityInformation.class)) != null
+
+    cleanup:
+    connection.close()
+  }
+
+  def "should be able to set security descriptors"() {
+    given:
+    def client = new SMBClient()
+    def sd = Sddl.parse("D:(A;;GA;;;WD)")
+
+    when:
+    def connection = client.connect(IP)
+    def session = connection.authenticate(AUTH)
+    def share = session.connectShare("Go") as DiskShare
+
+    then:
+    share.setSecurityInfo("api", EnumSet.allOf(SecurityInformation.class), sd)
 
     cleanup:
     connection.close()

@@ -21,6 +21,8 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
 import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * [MS-DTYP].pdf 2.4.2 SecurityIdentifier SID
@@ -63,6 +65,41 @@ public class SID {
     private byte[] sidIdentifierAuthority;
     private long[] subAuthorities;
 
+    private static final Pattern SID_REGEX = Pattern.compile("S-([0-9]+)-((?:0x[0-9a-fA-F]+)|(?:[0-9]+))(-[0-9]+)+");
+
+    public static SID parse(String sidString) {
+        Matcher matcher = SID_REGEX.matcher(sidString);
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("Invalid SID literal: " + sidString);
+        }
+
+        int revision = Integer.parseInt(matcher.group(1));
+
+        String identifierAuthorityString = matcher.group(2);
+        long identifierAuthorityValue;
+        if (identifierAuthorityString.startsWith("0x")) {
+            identifierAuthorityValue = Long.parseLong(identifierAuthorityString.substring(2), 16);
+        } else {
+            identifierAuthorityValue = Long.parseLong(identifierAuthorityString);
+        }
+
+        byte[] identifierAuthority = new byte[6];
+        identifierAuthority[0] = (byte)((identifierAuthorityValue >> 40) & 0xFF);
+        identifierAuthority[1] = (byte)((identifierAuthorityValue >> 32) & 0xFF);
+        identifierAuthority[2] = (byte)((identifierAuthorityValue >> 24) & 0xFF);
+        identifierAuthority[3] = (byte)((identifierAuthorityValue >> 16) & 0xFF);
+        identifierAuthority[4] = (byte)((identifierAuthorityValue >> 8) & 0xFF);
+        identifierAuthority[5] = (byte)(identifierAuthorityValue & 0xFF);
+
+        String[] subAuthorityStrings = sidString.substring(matcher.end(2)).split("-");
+        long[] subAuthorities = new long[subAuthorityStrings.length - 1];
+        for (int i = 0; i < subAuthorities.length; i++) {
+            subAuthorities[i] = Long.parseLong(subAuthorityStrings[i + 1]);
+        }
+
+        return new SID((byte)revision, identifierAuthority, subAuthorities);
+    }
+
     public SID() {
     }
 
@@ -84,14 +121,15 @@ public class SID {
         }
     }
 
-    public void read(SMBBuffer buffer) throws Buffer.BufferException {
-        revision = buffer.readByte(); // Revision (1 byte)
+    public static SID read(SMBBuffer buffer) throws Buffer.BufferException {
+        byte revision = buffer.readByte(); // Revision (1 byte)
         int subAuthorityCount = buffer.readByte(); // SubAuthorityCount (1 byte)
-        sidIdentifierAuthority = buffer.readRawBytes(6); // IdentifierAuthority (6 bytes)
-        subAuthorities = new long[subAuthorityCount];
+        byte[] sidIdentifierAuthority = buffer.readRawBytes(6); // IdentifierAuthority (6 bytes)
+        long[] subAuthorities = new long[subAuthorityCount];
         for (int i = 0; i < subAuthorityCount; i++) {
             subAuthorities[i] = buffer.readUInt32(); // SubAuthority (variable * 4 bytes)
         }
+        return new SID(revision, sidIdentifierAuthority, subAuthorities);
     }
 
     public int byteCount() {

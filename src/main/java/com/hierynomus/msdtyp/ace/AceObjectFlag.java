@@ -17,7 +17,7 @@ package com.hierynomus.msdtyp.ace;
 
 import com.hierynomus.protocol.commons.EnumWithValue;
 
-public enum AceObjectFlags implements EnumWithValue<AceObjectFlags> {
+public enum AceObjectFlag implements EnumWithValue<AceObjectFlag> {
 
     NONE(0x00000000L),
     ACE_OBJECT_TYPE_PRESENT(0x00000001L),
@@ -25,7 +25,7 @@ public enum AceObjectFlags implements EnumWithValue<AceObjectFlags> {
 
     private long value;
 
-    AceObjectFlags(long value) {
+    AceObjectFlag(long value) {
         this.value = value;
     }
 

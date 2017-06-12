@@ -359,16 +359,13 @@ public class DiskShare extends Share {
      * The SecurityDescriptor(MS-DTYP 2.4.6 SECURITY_DESCRIPTOR) for the Given Path
      */
     public SecurityDescriptor getSecurityInfo(String path, EnumSet<SecurityInformation> securityInfo) throws SMBApiException, TransportException {
-
         byte[] outputBuffer = queryInfoCommon(path,
             SMB2_0_INFO_SECURITY, securityInfo, null);
-        SecurityDescriptor sd = new SecurityDescriptor();
         try {
-            sd.read(new SMBBuffer(outputBuffer));
+            return SecurityDescriptor.read(new SMBBuffer(outputBuffer));
         } catch (Buffer.BufferException e) {
             throw new TransportException(e);
         }
-        return sd;
     }
 
     /**
@@ -377,15 +374,32 @@ public class DiskShare extends Share {
     public SecurityDescriptor getSecurityInfo(SMB2FileId fileId, EnumSet<SecurityInformation> securityInfo) throws SMBApiException, TransportException {
 
         byte[] outputBuffer = queryInfoCommon(fileId, SMB2_0_INFO_SECURITY, securityInfo, null);
-        SecurityDescriptor sd = new SecurityDescriptor();
         try {
-            sd.read(new SMBBuffer(outputBuffer));
+            return SecurityDescriptor.read(new SMBBuffer(outputBuffer));
         } catch (Buffer.BufferException e) {
             throw new TransportException(e);
         }
-        return sd;
     }
 
+    /**
+     * The SecurityDescriptor(MS-DTYP 2.4.6 SECURITY_DESCRIPTOR) for the Given FileId
+     */
+    public void setSecurityInfo(String path, EnumSet<SecurityInformation> securityInfo, SecurityDescriptor securityDescriptor) throws SMBApiException, TransportException {
+        SMBBuffer data = new SMBBuffer();
+        securityDescriptor.write(data);
+
+        setInfoCommon(path, SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_SECURITY, securityInfo, null, data.getCompactData());
+    }
+
+    /**
+     * The SecurityDescriptor(MS-DTYP 2.4.6 SECURITY_DESCRIPTOR) for the Given FileId
+     */
+    public void setSecurityInfo(SMB2FileId fileId, EnumSet<SecurityInformation> securityInfo, SecurityDescriptor securityDescriptor) throws SMBApiException, TransportException {
+        SMBBuffer data = new SMBBuffer();
+        securityDescriptor.write(data);
+
+        setInfoCommon(fileId, SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_SECURITY, securityInfo, null, data.getCompactData());
+    }
 
     private String makePath(String first, String... more) {
         StringBuilder sb = new StringBuilder(first);
