@@ -15,44 +15,28 @@
  */
 package com.hierynomus.smbj.share;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.concurrent.Future;
+import com.hierynomus.smbj.ProgressListener;
+import com.hierynomus.smbj.io.ByteChunkProvider;
+import com.hierynomus.smbj.transport.TransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.messages.SMB2WriteRequest;
-import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
-import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.smbj.ProgressListener;
-import com.hierynomus.smbj.common.SMBApiException;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.io.ByteChunkProvider;
-import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.transport.TransportException;
 
-public class FileOutputStream extends OutputStream {
+import java.io.IOException;
+import java.io.OutputStream;
 
-    private DiskShare share;
-    private SMB2FileId fileId;
-    private Session session;
-    private Connection connection;
-    private int maxWriteSize;
+class FileOutputStream extends OutputStream {
+
+    private File file;
     private ProgressListener progressListener;
     private boolean isClosed = false;
     private ByteArrayProvider provider;
 
     private static final Logger logger = LoggerFactory.getLogger(FileOutputStream.class);
 
-    public FileOutputStream(File file, ProgressListener progressListener) {
-        this.share = file.share;
-        this.fileId = file.fileId;
-        this.session = share.treeConnect.getSession();
-        this.connection = session.getConnection();
+    FileOutputStream(File file, int bufferSize, ProgressListener progressListener) {
+        this.file = file;
         this.progressListener = progressListener;
-        this.maxWriteSize = connection.getNegotiatedProtocol().getMaxWriteSize();
-        this.provider = new ByteArrayProvider(this.maxWriteSize);
+        this.provider = new ByteArrayProvider(bufferSize);
     }
 
     @Override
@@ -96,17 +80,7 @@ public class FileOutputStream extends OutputStream {
     }
 
     private void sendWriteRequest() throws TransportException {
-        SMB2WriteRequest wreq = new SMB2WriteRequest(connection.getNegotiatedProtocol().getDialect(), fileId,
-            session.getSessionId(), share.getTreeConnect().getTreeId(), provider, connection.getNegotiatedProtocol().getMaxWriteSize());
-        logger.trace("Sending {} for file {}, byte offset {}, bytes available {}", wreq, share.smbPath, provider.getOffset(), provider.bytesLeft());
-        Future<SMB2WriteResponse> writeFuture = session.send(wreq);
-        SMB2WriteResponse wresp = Futures.get(writeFuture, TransportException.Wrapper);
-        if (wresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(wresp.getHeader(), "Write failed for " + this);
-        }
-        if (progressListener != null) {
-            progressListener.onProgressChanged(wresp.getBytesWritten(), provider.getOffset());
-        }
+        file.write(provider, progressListener);
     }
 
     @Override
@@ -119,9 +93,7 @@ public class FileOutputStream extends OutputStream {
         provider.reset();
 
         isClosed = true;
-        share = null;
-        session = null;
-        connection = null;
+        file = null;
         logger.debug("EOF, {} bytes written", provider.getOffset());
     }
 
