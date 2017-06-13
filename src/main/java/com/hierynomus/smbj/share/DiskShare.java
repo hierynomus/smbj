@@ -20,7 +20,6 @@ import com.hierynomus.msdtyp.SecurityDescriptor;
 import com.hierynomus.msdtyp.SecurityInformation;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
-import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.msfscc.FileSystemInformationClass;
 import com.hierynomus.msfscc.fileinformation.*;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
@@ -140,7 +139,7 @@ public class DiskShare extends Share {
     public void mkdir(String path) throws SMBApiException {
         Directory fileHandle = openDirectory(
             path,
-            EnumSet.of(AccessMask.FILE_LIST_DIRECTORY, AccessMask.FILE_ADD_SUBDIRECTORY),
+            EnumSet.of(FILE_LIST_DIRECTORY, FILE_ADD_SUBDIRECTORY),
             EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ),
             FILE_CREATE);
         fileHandle.close();
@@ -255,7 +254,7 @@ public class DiskShare extends Share {
         } else {
             try (DiskEntry e = open(
                 path,
-                AccessMask.DELETE.getValue(),
+                DELETE.getValue(),
                 EnumSet.of(FILE_ATTRIBUTE_DIRECTORY),
                 EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ),
                 FILE_OPEN,
@@ -272,7 +271,7 @@ public class DiskShare extends Share {
     public void rm(String path) throws SMBApiException {
         try (DiskEntry e = open(
             path,
-            AccessMask.DELETE.getValue(),
+            DELETE.getValue(),
             EnumSet.of(FILE_ATTRIBUTE_NORMAL),
             EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ),
             FILE_OPEN,
@@ -292,7 +291,7 @@ public class DiskShare extends Share {
     public SecurityDescriptor getSecurityInfo(String path, Set<SecurityInformation> securityInfo) throws SMBApiException {
         long accessMask = GENERIC_READ.getValue();
         if (securityInfo.contains(SecurityInformation.SACL_SECURITY_INFORMATION)) {
-            accessMask |= AccessMask.ACCESS_SYSTEM_SECURITY.getValue();
+            accessMask |= ACCESS_SYSTEM_SECURITY.getValue();
         }
 
         try (DiskEntry e = open(path, accessMask)) {

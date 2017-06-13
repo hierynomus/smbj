@@ -127,6 +127,7 @@ public class Session implements AutoCloseable {
     }
 
     @Handler
+    @SuppressWarnings("unused")
     private void disconnectTree(TreeDisconnected disconnectEvent) {
         if (disconnectEvent.getSessionId() == sessionId) {
             logger.debug("Notified of TreeDisconnected <<{}>>", disconnectEvent.getTreeId());
