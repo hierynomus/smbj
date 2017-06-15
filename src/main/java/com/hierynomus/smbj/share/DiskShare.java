@@ -130,11 +130,40 @@ public class DiskShare extends Share {
     }
 
     /**
-     * Get a listing the given directory path. The "." and ".." are pre-filtered.
+     * Equivalent to calling {@link #list(String, Class, String) list(path, FileIdBothDirectoryInformation.class, null)}.
+     *
+     * @see #list(String, Class, String)
      */
     public List<FileIdBothDirectoryInformation> list(String path) throws SMBApiException {
+        return list(path, FileIdBothDirectoryInformation.class, null);
+    }
+
+    /**
+     * Equivalent to calling {@link #list(String, Class, String) list(path, FileIdBothDirectoryInformation.class, searchPattern)}.
+     *
+     * @see #list(String, Class, String)
+     */
+    public List<FileIdBothDirectoryInformation> list(String path, String searchPattern) throws SMBApiException {
+        return list(path, FileIdBothDirectoryInformation.class, searchPattern);
+    }
+
+    /**
+     * Equivalent to calling {@link #list(String, Class, String) list(path, informationClass, null)}.
+     *
+     * @see #list(String, Class, String)
+     */
+    public <I extends FileDirectoryQueryableInformation> List<I> list(String path, Class<I> informationClass) {
+        return list(path, informationClass, null);
+    }
+
+    /**
+     * Opens the given path for read-only access and performs a directory listing.
+     *
+     * @see Directory#iterator(Class, String)
+     */
+    public <I extends FileDirectoryQueryableInformation> List<I> list(String path, Class<I> informationClass, String searchPattern) {
         try (Directory d = openDirectory(path, EnumSet.of(GENERIC_READ), null, ALL, FILE_OPEN, null)) {
-            return d.list(FileIdBothDirectoryInformation.class);
+            return d.list(informationClass, searchPattern);
         }
     }
 
