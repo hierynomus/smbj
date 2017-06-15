@@ -16,6 +16,7 @@
 package com.hierynomus.smbj
 
 import com.hierynomus.msdtyp.AccessMask
+import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.share.Directory
 import com.hierynomus.smbj.share.DiskShare
@@ -24,6 +25,8 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import spock.lang.Specification
 
 import java.security.Security
+
+import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_OPEN
 
 class IntegrationTest extends Specification {
   def IP = "172.16.37.153"
@@ -126,7 +129,7 @@ class IntegrationTest extends Specification {
     def connection = client.connect(IP)
     def session = connection.authenticate(AUTH)
     def share = session.connectShare(SHARE) as DiskShare
-    def dir = share.open(FOLDER_THAT_EXISTS, AccessMask.GENERIC_READ.value)
+    def dir = share.open(FOLDER_THAT_EXISTS, EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
 
     then:
     dir instanceof Directory
@@ -143,7 +146,7 @@ class IntegrationTest extends Specification {
     def connection = client.connect(IP)
     def session = connection.authenticate(AUTH)
     def share = session.connectShare(SHARE) as DiskShare
-    def dir = share.open(FILE_THAT_EXISTS, AccessMask.GENERIC_READ.value)
+    def dir = share.open(FILE_THAT_EXISTS, EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
 
     then:
     dir instanceof File

@@ -49,18 +49,13 @@ import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_CREATE;
 import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_OPEN;
 import static com.hierynomus.mssmb2.SMB2ShareAccess.*;
 import static com.hierynomus.mssmb2.messages.SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_SECURITY;
-import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
 
 public class DiskShare extends Share {
     public DiskShare(SmbPath smbPath, TreeConnect treeConnect) {
         super(smbPath, treeConnect);
     }
 
-    public DiskEntry open(String path, long accessMask) {
-        return open(path, accessMask, null, null, FILE_OPEN, null);
-    }
-
-    public DiskEntry open(String path, long accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+    public DiskEntry open(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         SMB2CreateResponse response = createFile(path, accessMask, attributes, shareAccesses, createDisposition, createOptions);
         if (response.getFileAttributes().contains(FILE_ATTRIBUTE_DIRECTORY)) {
             return new Directory(response.getFileId(), this, path);
@@ -72,28 +67,39 @@ public class DiskShare extends Share {
     /**
      * Get a handle to a directory in the given path
      */
-    public Directory openDirectory(String path, Set<AccessMask> accessMask, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition) throws SMBApiException {
+    public Directory openDirectory(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        EnumSet<SMB2CreateOptions> actualCreateOptions = createOptions != null ? EnumSet.copyOf(createOptions) : EnumSet.noneOf(SMB2CreateOptions.class);
+        actualCreateOptions.add(SMB2CreateOptions.FILE_DIRECTORY_FILE);
+        actualCreateOptions.remove(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE);
+
+        EnumSet<FileAttributes> actualAttributes = attributes != null ? EnumSet.copyOf(attributes) : EnumSet.noneOf(FileAttributes.class);
+        actualAttributes.add(FILE_ATTRIBUTE_DIRECTORY);
+
         return (Directory) open(
             path,
-            toLong(accessMask),
-            EnumSet.of(FILE_ATTRIBUTE_DIRECTORY),
-            shareAccess,
+            accessMask,
+            actualAttributes,
+            shareAccesses,
             createDisposition,
-            EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE)
+            actualCreateOptions
         );
     }
 
-    /**
-     * Get a handle to a file
-     */
-    public File openFile(String path, Set<AccessMask> accessMask, SMB2CreateDisposition createDisposition) throws SMBApiException {
+    public File openFile(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        EnumSet<SMB2CreateOptions> actualCreateOptions = createOptions != null ? EnumSet.copyOf(createOptions) : EnumSet.noneOf(SMB2CreateOptions.class);
+        actualCreateOptions.add(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE);
+        actualCreateOptions.remove(SMB2CreateOptions.FILE_DIRECTORY_FILE);
+
+        EnumSet<FileAttributes> actualAttributes = attributes != null ? EnumSet.copyOf(attributes) : EnumSet.noneOf(FileAttributes.class);
+        actualAttributes.remove(FILE_ATTRIBUTE_DIRECTORY);
+
         return (File) open(
             path,
-            toLong(accessMask),
-            EnumSet.of(FILE_ATTRIBUTE_NORMAL),
-            EnumSet.noneOf(SMB2ShareAccess.class),
+            accessMask,
+            actualAttributes,
+            shareAccesses,
             createDisposition,
-            EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE)
+            actualCreateOptions
         );
     }
 
@@ -112,7 +118,7 @@ public class DiskShare extends Share {
     }
 
     private boolean exists(String path, EnumSet<SMB2CreateOptions> createOptions) throws SMBApiException {
-        try (DiskEntry ignored = open(path, toLong(EnumSet.of(FILE_READ_ATTRIBUTES)), EnumSet.of(FILE_ATTRIBUTE_NORMAL), EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ), FILE_OPEN, createOptions)){
+        try (DiskEntry ignored = open(path, EnumSet.of(FILE_READ_ATTRIBUTES), EnumSet.of(FILE_ATTRIBUTE_NORMAL), ALL, FILE_OPEN, createOptions)){
             return true;
         } catch (SMBApiException sae) {
             if (sae.getStatus() == NtStatus.STATUS_OBJECT_NAME_NOT_FOUND || sae.getStatus() == NtStatus.STATUS_OBJECT_PATH_NOT_FOUND) {
@@ -127,8 +133,7 @@ public class DiskShare extends Share {
      * Get a listing the given directory path. The "." and ".." are pre-filtered.
      */
     public List<FileIdBothDirectoryInformation> list(String path) throws SMBApiException {
-        try (Directory d = openDirectory(path, EnumSet.of(GENERIC_READ),
-            EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ), FILE_OPEN)) {
+        try (Directory d = openDirectory(path, EnumSet.of(GENERIC_READ), null, ALL, FILE_OPEN, null)) {
             return d.list(FileIdBothDirectoryInformation.class);
         }
     }
@@ -140,8 +145,10 @@ public class DiskShare extends Share {
         Directory fileHandle = openDirectory(
             path,
             EnumSet.of(FILE_LIST_DIRECTORY, FILE_ADD_SUBDIRECTORY),
-            EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ),
-            FILE_CREATE);
+            EnumSet.of(FileAttributes.FILE_ATTRIBUTE_DIRECTORY),
+            ALL,
+            FILE_CREATE,
+            EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE));
         fileHandle.close();
     }
 
@@ -156,7 +163,7 @@ public class DiskShare extends Share {
      * Get information about the given path.
      **/
     public <F extends FileQueryableInformation> F getFileInformation(String path, Class<F> informationClass) throws SMBApiException {
-        try (DiskEntry e = open(path, GENERIC_READ.getValue())) {
+        try (DiskEntry e = open(path, EnumSet.of(GENERIC_READ), null, ALL, FILE_OPEN, null)) {
             return e.getFileInformation(informationClass);
         }
     }
@@ -204,7 +211,7 @@ public class DiskShare extends Share {
      * Get information for a given path
      **/
     public <F extends FileSettableInformation> void setFileInformation(String path, F information) throws SMBApiException {
-        try (DiskEntry e = open(path, GENERIC_WRITE.getValue())) {
+        try (DiskEntry e = open(path, EnumSet.of(GENERIC_WRITE), null, ALL, FILE_OPEN, null)) {
             e.setFileInformation(information);
         }
     }
@@ -213,13 +220,9 @@ public class DiskShare extends Share {
      * Get Share Information for the current Disk Share
      *
      * @return the ShareInfo
-     * @throws SMBApiException
      */
     public ShareInfo getShareInformation() throws SMBApiException {
-        try (Directory directory = openDirectory("",
-            EnumSet.of(FILE_READ_ATTRIBUTES),
-            EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ),
-            FILE_OPEN)) {
+        try (Directory directory = openDirectory("", EnumSet.of(FILE_READ_ATTRIBUTES), null, ALL, FILE_OPEN, null)) {
             byte[] outputBuffer = queryInfo(
                 directory.getFileId(),
                 SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILESYSTEM,
@@ -254,7 +257,7 @@ public class DiskShare extends Share {
         } else {
             try (DiskEntry e = open(
                 path,
-                DELETE.getValue(),
+                EnumSet.of(DELETE),
                 EnumSet.of(FILE_ATTRIBUTE_DIRECTORY),
                 EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ),
                 FILE_OPEN,
@@ -271,7 +274,7 @@ public class DiskShare extends Share {
     public void rm(String path) throws SMBApiException {
         try (DiskEntry e = open(
             path,
-            DELETE.getValue(),
+            EnumSet.of(DELETE),
             EnumSet.of(FILE_ATTRIBUTE_NORMAL),
             EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ),
             FILE_OPEN,
@@ -289,12 +292,12 @@ public class DiskShare extends Share {
      * The SecurityDescriptor(MS-DTYP 2.4.6 SECURITY_DESCRIPTOR) for the Given Path
      */
     public SecurityDescriptor getSecurityInfo(String path, Set<SecurityInformation> securityInfo) throws SMBApiException {
-        long accessMask = GENERIC_READ.getValue();
+        EnumSet<AccessMask> accessMask = EnumSet.of(GENERIC_READ);
         if (securityInfo.contains(SecurityInformation.SACL_SECURITY_INFORMATION)) {
-            accessMask |= ACCESS_SYSTEM_SECURITY.getValue();
+            accessMask.add(ACCESS_SYSTEM_SECURITY);
         }
 
-        try (DiskEntry e = open(path, accessMask)) {
+        try (DiskEntry e = open(path, accessMask, null, ALL, FILE_OPEN, null)) {
             return e.getSecurityInformation(securityInfo);
         }
     }
