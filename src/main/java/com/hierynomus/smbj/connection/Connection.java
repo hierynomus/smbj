@@ -53,6 +53,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static com.hierynomus.mssmb2.SMB2Packet.SINGLE_CREDIT_PAYLOAD_SIZE;
@@ -162,7 +163,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         SMB2SessionSetup req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED));
         req.setSecurityBuffer(securityContext);
         req.getHeader().setSessionId(session.getSessionId());
-        return sendAndReceive(req);
+        return Futures.get(this.<SMB2SessionSetup>send(req), getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
     }
 
     private Authenticator getAuthenticator(AuthenticationContext context) throws IOException {
@@ -215,7 +216,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     }
 
     private <T extends SMB2Packet> T sendAndReceive(SMB2Packet packet) throws TransportException {
-        return Futures.get(this.<T>send(packet), TransportException.Wrapper);
+        return Futures.get(this.<T>send(packet), getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
     }
 
     private int calculateGrantedCredits(final SMB2Packet packet, final int availableCredits) {
@@ -240,7 +241,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         logger.info("Negotiating dialects {} with server {}", config.getSupportedDialects(), getRemoteHostname());
         SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid(), config.isSigningRequired());
         Future<SMB2Packet> send = send(negotiatePacket);
-        SMB2Packet negotiateResponse = Futures.get(send, TransportException.Wrapper);
+        SMB2Packet negotiateResponse = Futures.get(send, getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
         if (!(negotiateResponse instanceof SMB2NegotiateResponse)) {
             throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + negotiateResponse);
         }

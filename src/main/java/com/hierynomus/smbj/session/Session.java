@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A Session
@@ -95,7 +96,7 @@ public class Session implements AutoCloseable {
             SMB2TreeConnectRequest smb2TreeConnectRequest = new SMB2TreeConnectRequest(connection.getNegotiatedProtocol().getDialect(), smbPath, sessionId);
             smb2TreeConnectRequest.getHeader().setCreditRequest(256);
             Future<SMB2TreeConnectResponse> send = this.send(smb2TreeConnectRequest);
-            SMB2TreeConnectResponse response = Futures.get(send, TransportException.Wrapper);
+            SMB2TreeConnectResponse response = Futures.get(send, connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
             if (response.getHeader().getStatus().isError()) {
                 logger.debug(response.getHeader().toString());
                 throw new SMBApiException(response.getHeader(), "Could not connect to " + smbPath);
@@ -145,7 +146,7 @@ public class Session implements AutoCloseable {
             }
         }
         SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
-        SMB2Logoff response = Futures.get(this.<SMB2Logoff>send(logoff), TransportException.Wrapper);
+        SMB2Logoff response = Futures.get(this.<SMB2Logoff>send(logoff), connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
         if (!response.getHeader().getStatus().isSuccess()) {
             throw new SMBApiException(response.getHeader(), "Could not logoff session <<" + sessionId + ">>");
         }
