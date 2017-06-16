@@ -143,7 +143,7 @@ public class File extends DiskEntry {
     }
 
     public InputStream getInputStream(ProgressListener listener) {
-        return new FileInputStream(this, share.getReadBufferSize(), listener);
+        return new FileInputStream(this, share.getReadBufferSize(), share.getReadTimeout(), listener);
     }
 
     Future<SMB2ReadResponse> readAsync(long offset, int length) {
