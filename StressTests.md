@@ -15,6 +15,8 @@ https://dbench.samba.org/web/smb-loadfiles.html
 Application used to simulate high latency, low bandwidth, and packet loss on Windows systems. 
 Allows one to see how an application functions when network conditions are spotty.
 
-### clumsy Website: https://jagt.github.io/clumsy/
+### clumsy Website: 
+https://jagt.github.io/clumsy/
 
-### clumsy Manual: https://jagt.github.io/clumsy/manual.html
+### clumsy Manual: 
+https://jagt.github.io/clumsy/manual.html
