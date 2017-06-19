@@ -35,7 +35,7 @@ public class NamedPipe extends Share {
         return super.openFileId(path, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
     }
 
-    void closeFileId(SMB2FileId fileId) throws SMBApiException {
+    public void closeFileId(SMB2FileId fileId) throws SMBApiException {
         super.closeFileId(fileId);
     }
 }
