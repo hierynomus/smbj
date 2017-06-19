@@ -23,6 +23,7 @@ import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
+import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SmbPath;
 
 public class NamedPipe extends Share {
@@ -32,5 +33,9 @@ public class NamedPipe extends Share {
 
     public SMB2FileId openFileId(String path, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         return super.openFileId(path, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
+    }
+
+    void closeFileId(SMB2FileId fileId) throws SMBApiException {
+        super.closeFileId(fileId);
     }
 }
