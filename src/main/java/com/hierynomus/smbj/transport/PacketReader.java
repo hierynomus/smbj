@@ -45,8 +45,7 @@ public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
                 readPacket();
             } catch (TransportException e) {
                 if (stopped.get()) {
-                    logger.info("PacketReader stopped.");
-                    return;
+                    break;
                 }
                 handler.handleError(e);
                 // TODO Check whether it is enough to just break out of the loop. The exception has been propagated through the handler.
@@ -54,7 +53,7 @@ public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
             }
         }
         if (stopped.get()) {
-            logger.info("PacketReader stopped.");
+            logger.info("{} stopped.", thread);
         }
     }
 
