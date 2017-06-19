@@ -328,6 +328,12 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     @Override
     public void handleError(Throwable t) {
         connectionInfo.getOutstandingRequests().handleError(t);
+        try {
+            this.close();
+        } catch (Exception e) {
+            String exceptionClass = e.getClass().getSimpleName();
+            logger.debug("{} while closing connection on error, ignoring: {}", exceptionClass, e.getMessage());
+        }
     }
 
 
