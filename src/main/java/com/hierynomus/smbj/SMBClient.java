@@ -39,7 +39,7 @@ public class SMBClient {
     private SMBEventBus bus;
 
     public SMBClient() {
-        this(new DefaultConfig());
+        this(Config.createDefaultConfig());
     }
 
     public SMBClient(Config config) {

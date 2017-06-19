@@ -15,7 +15,7 @@
  */
 package com.hierynomus.mssmb2.messages;
 
-import java.util.Date;
+import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Dialect;
@@ -31,10 +31,10 @@ import com.hierynomus.smbj.common.SMBBuffer;
 public class SMB2Close extends SMB2Packet {
 
     private SMB2FileId fileId;
-    private Date creationTime;
-    private Date lastAccessTime;
-    private Date lastWriteTime;
-    private Date changeTime;
+    private FileTime creationTime;
+    private FileTime lastAccessTime;
+    private FileTime lastWriteTime;
+    private FileTime changeTime;
     private long allocationSize;
     private long size;
     private byte[] fileAttributes;
@@ -72,20 +72,20 @@ public class SMB2Close extends SMB2Packet {
         }
     }
 
-    public Date getCreationTime() {
-        return copyOf(creationTime);
+    public FileTime getCreationTime() {
+        return creationTime;
     }
 
-    public Date getLastAccessTime() {
-        return copyOf(lastAccessTime);
+    public FileTime getLastAccessTime() {
+        return lastAccessTime;
     }
 
-    public Date getLastWriteTime() {
-        return copyOf(lastWriteTime);
+    public FileTime getLastWriteTime() {
+        return lastWriteTime;
     }
 
-    public Date getChangeTime() {
-        return copyOf(changeTime);
+    public FileTime getChangeTime() {
+        return changeTime;
     }
 
     public long getAllocationSize() {
@@ -102,9 +102,5 @@ public class SMB2Close extends SMB2Packet {
 
     public void setFileId(SMB2FileId fileId) {
         this.fileId = fileId;
-    }
-
-    private Date copyOf(Date date) {
-        return date != null ? new Date(date.getTime()) : null;
     }
 }

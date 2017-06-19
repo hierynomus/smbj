@@ -18,26 +18,19 @@ package com.hierynomus.smbj.share;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.Future;
+
+import com.hierynomus.mssmb2.SMBApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.messages.SMB2ReadRequest;
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.ProgressListener;
-import com.hierynomus.mssmb2.SMBApiException;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.connection.NegotiatedProtocol;
-import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
 
-public class FileInputStream extends InputStream {
+class FileInputStream extends InputStream {
 
-    protected TreeConnect treeConnect;
-    private Session session;
-    private Connection connection;
-    private SMB2FileId fileId;
+    private File file;
     private long offset = 0;
     private int curr = 0;
     private byte[] buf;
@@ -46,12 +39,11 @@ public class FileInputStream extends InputStream {
     private Future<SMB2ReadResponse> nextResponse;
 
     private static final Logger logger = LoggerFactory.getLogger(FileInputStream.class);
+    private int bufferSize;
 
-    public FileInputStream(File file, ProgressListener progressListener) {
-        this.treeConnect = file.treeConnect;
-        this.fileId = file.fileId;
-        this.session = treeConnect.getSession();
-        this.connection = session.getConnection();
+    FileInputStream(File file, int bufferSize, ProgressListener progressListener) {
+        this.file = file;
+        this.bufferSize = bufferSize;
         this.progressListener = progressListener;
     }
 
@@ -85,14 +77,13 @@ public class FileInputStream extends InputStream {
     @Override
     public void close() throws IOException {
         isClosed = true;
-        session = null;
-        connection = null;
+        file = null;
         buf = null;
     }
 
     @Override
     public int available() throws IOException {
-        throw new IOException("Available not supported");
+        return 0;
     }
 
     private void loadBuffer() throws IOException {
@@ -119,9 +110,6 @@ public class FileInputStream extends InputStream {
     }
 
     private Future<SMB2ReadResponse> sendRequest() throws IOException {
-        NegotiatedProtocol negotiatedProtocol = connection.getNegotiatedProtocol();
-        SMB2ReadRequest rreq = new SMB2ReadRequest(negotiatedProtocol.getDialect(), fileId,
-            session.getSessionId(), treeConnect.getTreeId(), offset, negotiatedProtocol.getMaxReadSize());
-        return session.send(rreq);
+        return file.readAsync(offset, bufferSize);
     }
 }

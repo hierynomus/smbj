@@ -85,15 +85,7 @@ public class SMB2Header {
      * We should at least request the number of credits this request consumes, but we can request more (by calling {@link #setCreditRequest(int)}).
      */
     private void writeCreditRequest(SMBBuffer buffer) {
-        switch (dialect) {
-            case UNKNOWN:
-            case SMB_2_0_2:
-                buffer.putReserved(2);
-                break;
-            default:
-                buffer.putUInt16(creditRequest + creditCharge); // Ask for the credit buffer wanted + what we use
-                break;
-        }
+       buffer.putUInt16(creditRequest + creditCharge); // Ask for the credit buffer wanted + what we use
     }
 
     private void writeCreditCharge(SMBBuffer buffer) {

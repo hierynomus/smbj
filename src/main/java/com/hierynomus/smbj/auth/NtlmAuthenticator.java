@@ -15,12 +15,17 @@
  */
 package com.hierynomus.smbj.auth;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.util.Random;
-
+import com.hierynomus.ntlm.functions.NtlmFunctions;
+import com.hierynomus.ntlm.messages.*;
+import com.hierynomus.protocol.commons.ByteArrayUtils;
+import com.hierynomus.protocol.commons.EnumWithValue;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.session.Session;
+import com.hierynomus.spnego.NegTokenInit;
+import com.hierynomus.spnego.NegTokenTarg;
 import com.hierynomus.spnego.SpnegoException;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.microsoft.MicrosoftObjectIdentifiers;
@@ -28,17 +33,10 @@ import org.bouncycastle.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hierynomus.ntlm.functions.NtlmFunctions;
-import com.hierynomus.ntlm.messages.NtlmAuthenticate;
-import com.hierynomus.ntlm.messages.NtlmChallenge;
-import com.hierynomus.ntlm.messages.NtlmNegotiate;
-import com.hierynomus.ntlm.messages.NtlmNegotiateFlag;
-import com.hierynomus.protocol.commons.ByteArrayUtils;
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.buffer.Endian;
-import com.hierynomus.smbj.session.Session;
-import com.hierynomus.spnego.NegTokenInit;
-import com.hierynomus.spnego.NegTokenTarg;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.util.EnumSet;
+import java.util.Random;
 
 public class NtlmAuthenticator implements Authenticator {
     private static final Logger logger = LoggerFactory.getLogger(NtlmAuthenticator.class);
@@ -69,7 +67,7 @@ public class NtlmAuthenticator implements Authenticator {
             if (completed) {
                 return null;
             } else if (!initialized) {
-                logger.info("Initialized Authentication of {} using NTLM", context.getUsername());
+                logger.debug("Initialized Authentication of {} using NTLM", context.getUsername());
                 NtlmNegotiate ntlmNegotiate = new NtlmNegotiate();
                 initialized = true;
                 return negTokenInit(ntlmNegotiate);
@@ -78,7 +76,7 @@ public class NtlmAuthenticator implements Authenticator {
                 NtlmFunctions ntlmFunctions = new NtlmFunctions(random, securityProvider);
                 NegTokenTarg negTokenTarg = new NegTokenTarg().read(gssToken);
                 BigInteger negotiationResult = negTokenTarg.getNegotiationResult();
-                NtlmChallenge challenge = null;
+                NtlmChallenge challenge;
                 try {
                     challenge = (NtlmChallenge) new NtlmChallenge().read(new Buffer.PlainBuffer(negTokenTarg.getResponseToken(), Endian.LE));
                 } catch (Buffer.BufferException e) {
@@ -90,28 +88,52 @@ public class NtlmAuthenticator implements Authenticator {
                 byte[] responseKeyNT = ntlmFunctions.NTOWFv2(String.valueOf(context.getPassword()), context.getUsername(), context.getDomain());
                 byte[] ntlmv2ClientChallenge = ntlmFunctions.getNTLMv2ClientChallenge(challenge.getTargetInfo());
                 byte[] ntlmv2Response = ntlmFunctions.getNTLMv2Response(responseKeyNT, serverChallenge, ntlmv2ClientChallenge);
-                byte[] sessionkey = null;
+                byte[] sessionkey;
 
-                if (challenge.getNegotiateFlags().contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SIGN)) {
-                    byte[] userSessionKey = ntlmFunctions.hmac_md5(responseKeyNT, Arrays.copyOfRange(ntlmv2Response, 0, 16)); // first 16 bytes of ntlmv2Response is ntProofStr
-                    if ((challenge.getNegotiateFlags().contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH))) {
-                        byte[] masterKey = new byte[16];
-                        random.nextBytes(masterKey);
-                        sessionkey = ntlmFunctions.encryptRc4(userSessionKey, masterKey);
-                        session.setSigningKey(masterKey);
-                    } else {
-                        sessionkey = userSessionKey;
-                        session.setSigningKey(sessionkey);
-                    }
-
+                byte[] userSessionKey = ntlmFunctions.hmac_md5(responseKeyNT, Arrays.copyOfRange(ntlmv2Response, 0, 16)); // first 16 bytes of ntlmv2Response is ntProofStr
+                EnumSet<NtlmNegotiateFlag> negotiateFlags = challenge.getNegotiateFlags();
+                if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH)
+                    && (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SIGN)
+                    || negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SEAL)
+                    || negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_ALWAYS_SIGN))
+                    ) {
+                    byte[] masterKey = new byte[16];
+                    random.nextBytes(masterKey);
+                    sessionkey = ntlmFunctions.encryptRc4(userSessionKey, masterKey);
+                    session.setSigningKey(masterKey);
+                } else {
+                    sessionkey = userSessionKey;
+                    session.setSigningKey(sessionkey);
                 }
 
-                completed = true;
-
                 // If NTLM v2 is used, KeyExchangeKey MUST be set to the given 128-bit SessionBaseKey value.
-                NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
-                    context.getUsername(), context.getDomain(), null, sessionkey, NtlmNegotiate.DEFAULT_FLAGS);
-                return negTokenTarg(resp, negTokenTarg.getResponseToken());
+
+                // MIC (16 bytes) provided if in AvPairType is key MsvAvFlags with value & 0x00000002 is true
+                Object msvAvFlags = challenge.getAvPairObject(AvId.MsvAvFlags);
+                if (msvAvFlags != null && ((int) msvAvFlags & 0x00000002) > 0) {
+                    // MIC should be calculated
+                    NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
+                        context.getUsername(), context.getDomain(), null, sessionkey, EnumWithValue.EnumUtils.toLong(negotiateFlags),
+                        true
+                    );
+
+                    // TODO correct hash should be tested
+
+                    Buffer.PlainBuffer concatenatedBuffer = new Buffer.PlainBuffer(Endian.LE);
+                    concatenatedBuffer.putRawBytes(negTokenTarg.getResponseToken()); //negotiateMessage
+                    concatenatedBuffer.putRawBytes(challenge.getServerChallenge()); //challengeMessage
+                    resp.writeAutentificateMessage(concatenatedBuffer); //authentificateMessage
+
+                    byte[] mic = ntlmFunctions.hmac_md5(userSessionKey, concatenatedBuffer.getCompactData());
+                    resp.setMic(mic);
+                    return negTokenTarg(resp, negTokenTarg.getResponseToken());
+                } else {
+                    NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
+                        context.getUsername(), context.getDomain(), null, sessionkey, EnumWithValue.EnumUtils.toLong(negotiateFlags),
+                        false
+                    );
+                    return negTokenTarg(resp, negTokenTarg.getResponseToken());
+                }
             }
         } catch (SpnegoException spne) {
             throw new SMBRuntimeException(spne);

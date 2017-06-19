@@ -23,7 +23,7 @@ import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2ShareCapabilities
 import com.hierynomus.mssmb2.messages.*
 import com.hierynomus.security.jce.JceSecurityProvider
-import com.hierynomus.smbj.DefaultConfig
+import com.hierynomus.smbj.Config
 import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.common.SMBBuffer
@@ -31,8 +31,6 @@ import com.hierynomus.smbj.common.SmbPath
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.connection.NegotiatedProtocol
 import com.hierynomus.smbj.event.SMBEventBus
-import com.hierynomus.smbj.session.Session
-import com.hierynomus.smbj.transport.TransportLayer
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
@@ -42,15 +40,17 @@ class DFSTest extends Specification {
   def "should resolve dfs for a path"() {
     given:
     def connection
-    def client = Stub(SMBClient) {
+    def config = Config.builder().build()
+    def client = Stub(SMBClient, constructorArgs: [config]) {
       connect(_) >> connection
       connect(_, _) >> connection
     }
     def bus = new SMBEventBus()
     def protocol = new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 1000, 1000, 1000, false)
 
-    connection = Stub(Connection, constructorArgs: [new DefaultConfig(), client, bus]) {
+    connection = Stub(Connection, constructorArgs: [config, client, bus]) {
       getRemoteHostname() >> "10.0.0.10"
+      getConfig() >> config
       getRemotePort() >> 445
       getNegotiatedProtocol() >> protocol
       send(_ as SMB2TreeConnectRequest) >> {
@@ -59,7 +59,7 @@ class DFSTest extends Specification {
             get() >> {
               def response = new SMB2TreeConnectResponse();
               response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
-              response.setCapabilities(EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS));
+              response.capabilities = EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS)
               response.setShareType((byte) 0x01);
               response
             }
@@ -106,9 +106,10 @@ class DFSTest extends Specification {
   def "testdomain"() {
     given:
     def destination = "SERVERHOST"
+    def config = Config.builder().build()
     def connection
     def session
-    def client = Stub(SMBClient) {
+    def client = Stub(SMBClient,constructorArgs: [config]) {
       connect(_) >> { String host -> connection }
       connect(_, _) >> { String host, int port ->
         connection
@@ -117,8 +118,9 @@ class DFSTest extends Specification {
     def bus = new SMBEventBus()
     def protocol = new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 1000, 1000, 1000, false)
 
-    connection = Stub(Connection, constructorArgs: [new DefaultConfig(), client, bus]) {
+    connection = Stub(Connection, constructorArgs: [config, client, bus]) {
       getRemoteHostname() >> "10.0.0.10"
+      getConfig() >> config
       getRemotePort() >> 445
       getNegotiatedProtocol() >> protocol
       getClient() >> client
@@ -131,7 +133,7 @@ class DFSTest extends Specification {
             get() >> {
               def response = new SMB2TreeConnectResponse();
               response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
-              response.setCapabilities(EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS));
+              response.capabilities = EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS)
               response.setShareType((byte) 0x01);
               response
             }
@@ -193,7 +195,8 @@ class DFSTest extends Specification {
   def testResolvePath() {
     def connection
     def session
-    def client = Stub(SMBClient) {
+    def config = Config.builder().build()
+    def client = Stub(SMBClient, constructorArgs: [config]) {
       connect(_) >> { String host -> connection }
       connect(_, _) >> { String host, int port ->
         connection
@@ -201,8 +204,9 @@ class DFSTest extends Specification {
     }
     def bus = new SMBEventBus()
     def protocol = new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 1000, 1000, 1000, false)
-    connection = Stub(Connection, constructorArgs: [new DefaultConfig(), client, bus]) {
+    connection = Stub(Connection, constructorArgs: [config, client, bus]) {
       getRemoteHostname() >> "10.0.0.10"
+      getConfig() >> config
       getRemotePort() >> 445
       getClient() >> client
       getNegotiatedProtocol() >> protocol
@@ -212,7 +216,7 @@ class DFSTest extends Specification {
             get() >> {
               def response = new SMB2TreeConnectResponse();
               response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
-              response.setCapabilities(EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS));
+              response.capabilities = EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS)
               response.setShareType((byte) 0x01);
               response
             }
@@ -260,7 +264,8 @@ class DFSTest extends Specification {
     def destination = "SERVERHOST"
     def connection
     def session
-    def client = Stub(SMBClient) {
+    def config = Config.builder().build()
+    def client = Stub(SMBClient, constructorArgs: [config]) {
       connect(_) >> { String host -> connection }
       connect(_, _) >> { String host, int port ->
         connection
@@ -269,8 +274,9 @@ class DFSTest extends Specification {
     def bus = new SMBEventBus()
     def protocol = new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 1000, 1000, 1000, false)
 
-    connection = Stub(Connection, constructorArgs: [new DefaultConfig(), client, bus]) {
+    connection = Stub(Connection, constructorArgs: [config, client, bus]) {
       getRemoteHostname() >> "10.0.0.10"
+      getConfig() >> config
       getRemotePort() >> 445
       getNegotiatedProtocol() >> protocol
       getClient() >> client
@@ -283,7 +289,7 @@ class DFSTest extends Specification {
             get() >> {
               def response = new SMB2TreeConnectResponse();
               response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
-              response.setCapabilities(EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS));
+              response.capabilities = EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS)
               response.setShareType((byte) 0x01);
               response
             }
@@ -343,7 +349,8 @@ class DFSTest extends Specification {
     def destination = "SERVERHOST"
     def connection
     def session
-    def client = Stub(SMBClient) {
+    def config = Config.builder().build()
+    def client = Stub(SMBClient, constructorArgs: [config]) {
       connect(_) >> { String host -> connection }
       connect(_, _) >> { String host, int port ->
         connection
@@ -352,8 +359,9 @@ class DFSTest extends Specification {
     def bus = new SMBEventBus()
     def protocol = new NegotiatedProtocol(SMB2Dialect.SMB_2_1, 1000, 1000, 1000, false)
 
-    connection = Stub(Connection, constructorArgs: [new DefaultConfig(), client, bus]) {
+    connection = Stub(Connection, constructorArgs: [config, client, bus]) {
       getRemoteHostname() >> "10.0.0.10"
+      getConfig() >> config
       getRemotePort() >> 445
       getNegotiatedProtocol() >> protocol
       getClient() >> client
@@ -366,7 +374,7 @@ class DFSTest extends Specification {
             get() >> {
               def response = new SMB2TreeConnectResponse();
               response.getHeader().setStatus(NtStatus.STATUS_SUCCESS)
-              response.setCapabilities(EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS));
+              response.capabilities = EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS)
               response.setShareType((byte) 0x01);
               response
             }

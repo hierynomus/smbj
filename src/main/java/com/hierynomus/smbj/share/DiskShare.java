@@ -15,123 +15,94 @@
  */
 package com.hierynomus.smbj.share;
 
-import java.util.EnumSet;
-import java.util.List;
-import java.util.concurrent.Future;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SecurityDescriptor;
 import com.hierynomus.msdtyp.SecurityInformation;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
-import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.msfscc.FileSystemInformationClass;
-import com.hierynomus.msfscc.fileinformation.FileInfo;
-import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
-import com.hierynomus.msfscc.fileinformation.ShareInfo;
-import com.hierynomus.mssmb2.SMB2CreateDisposition;
-import com.hierynomus.mssmb2.SMB2CreateOptions;
-import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.SMB2ShareAccess;
-import com.hierynomus.mssmb2.messages.*;
+import com.hierynomus.msfscc.fileinformation.*;
+import com.hierynomus.mssmb2.*;
+import com.hierynomus.mssmb2.messages.SMB2CreateResponse;
+import com.hierynomus.mssmb2.messages.SMB2QueryInfoRequest;
+import com.hierynomus.mssmb2.messages.SMB2SetInfoRequest;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
-import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
 
-import static com.hierynomus.msdtyp.AccessMask.FILE_READ_ATTRIBUTES;
-import static com.hierynomus.msdtyp.AccessMask.GENERIC_READ;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+
+import static com.hierynomus.msdtyp.AccessMask.*;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_DIRECTORY;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_NORMAL;
-import static com.hierynomus.mssmb2.SMB2ShareAccess.EnumUtils;
-import static com.hierynomus.mssmb2.SMB2ShareAccess.FILE_SHARE_DELETE;
-import static com.hierynomus.mssmb2.SMB2ShareAccess.FILE_SHARE_READ;
-import static com.hierynomus.mssmb2.SMB2ShareAccess.FILE_SHARE_WRITE;
+import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_CREATE;
+import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_OPEN;
+import static com.hierynomus.mssmb2.SMB2ShareAccess.*;
 import static com.hierynomus.mssmb2.messages.SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_SECURITY;
-import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
 
 public class DiskShare extends Share {
-
-    private static final Logger logger = LoggerFactory.getLogger(DiskShare.class);
-
     public DiskShare(SmbPath smbPath, TreeConnect treeConnect) {
         super(smbPath, treeConnect);
     }
 
-    /**
-     * Get a listing the given directory path. The "." and ".." are pre-filtered.
-     */
-    public List<FileInfo> list(String path) throws SMBApiException, TransportException {
-        logger.info("List {}", path);
-
-        Directory fileHandle = openDirectory(path, EnumSet.of(GENERIC_READ),
-            EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ), SMB2CreateDisposition.FILE_OPEN);
-
-        try {
-            return fileHandle.list();
-        } finally {
-            if (fileHandle != null) {
-                fileHandle.closeSilently();
-            }
-        }
-    }
-
-    public DiskEntry getFile(String path) {
-        try {
-            FileInfo fileInformation = getFileInformation(path);
-            EnumSet<FileAttributes> fileAttributes = EnumUtils.toEnumSet(fileInformation.getFileAttributes(), FileAttributes.class);
-            if (fileAttributes.contains(FILE_ATTRIBUTE_DIRECTORY)) {
-                return new Directory(null, treeConnect, path);
-            } else {
-                return new File(null, treeConnect, path, fileInformation.getAccessMask());
-            }
-        } catch (SMBApiException ex) {
-//            if (ex.getStatus() == NtStatus.STATUS_OBJECT_NAME_NOT_FOUND) {
-//                return new NonExisting(null, treeConnect, path);
-//            }
-            throw ex;
+    public DiskEntry open(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        SMB2CreateResponse response = createFile(path, accessMask, attributes, shareAccesses, createDisposition, createOptions);
+        if (response.getFileAttributes().contains(FILE_ATTRIBUTE_DIRECTORY)) {
+            return new Directory(response.getFileId(), this, path);
+        } else {
+            return new File(response.getFileId(), this, path);
         }
     }
 
     /**
      * Get a handle to a directory in the given path
      */
-    public Directory openDirectory(
-        String path,
-        EnumSet<AccessMask> accessMask,
-        EnumSet<SMB2ShareAccess> shareAccess,
-        SMB2CreateDisposition createDisposition) throws TransportException, SMBApiException {
-        logger.info("OpenDirectory {},{},{},{},{}", path, accessMask, shareAccess, createDisposition);
+    public Directory openDirectory(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        EnumSet<SMB2CreateOptions> actualCreateOptions = createOptions != null ? EnumSet.copyOf(createOptions) : EnumSet.noneOf(SMB2CreateOptions.class);
+        actualCreateOptions.add(SMB2CreateOptions.FILE_DIRECTORY_FILE);
+        actualCreateOptions.remove(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE);
 
-        SMB2FileId fileId = open(path, toLong(accessMask), EnumSet.of(FILE_ATTRIBUTE_DIRECTORY), shareAccess, createDisposition, EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE));
-        return new Directory(fileId, treeConnect, path);
+        EnumSet<FileAttributes> actualAttributes = attributes != null ? EnumSet.copyOf(attributes) : EnumSet.noneOf(FileAttributes.class);
+        actualAttributes.add(FILE_ATTRIBUTE_DIRECTORY);
 
+        return (Directory) open(
+            path,
+            accessMask,
+            actualAttributes,
+            shareAccesses,
+            createDisposition,
+            actualCreateOptions
+        );
     }
 
-    /**
-     * Get a handle to a file
-     */
-    public File openFile(String path, EnumSet<AccessMask> accessMask, SMB2CreateDisposition createDisposition) throws TransportException, SMBApiException {
-        logger.info("OpenFile {},{},{}", path, accessMask, createDisposition);
+    public File openFile(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        EnumSet<SMB2CreateOptions> actualCreateOptions = createOptions != null ? EnumSet.copyOf(createOptions) : EnumSet.noneOf(SMB2CreateOptions.class);
+        actualCreateOptions.add(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE);
+        actualCreateOptions.remove(SMB2CreateOptions.FILE_DIRECTORY_FILE);
 
-        SMB2FileId fileId = open(path, toLong(accessMask), null, EnumSet.of(FILE_SHARE_READ), createDisposition, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
-        // TODO
-        return new File(fileId, treeConnect, path, 0L);
+        EnumSet<FileAttributes> actualAttributes = attributes != null ? EnumSet.copyOf(attributes) : EnumSet.noneOf(FileAttributes.class);
+        actualAttributes.remove(FILE_ATTRIBUTE_DIRECTORY);
+
+        return (File) open(
+            path,
+            accessMask,
+            actualAttributes,
+            shareAccesses,
+            createDisposition,
+            actualCreateOptions
+        );
     }
 
     /**
      * File in the given path exists or not
      */
     public boolean fileExists(String path) throws SMBApiException {
-        logger.info("file exists {}", path);
         return exists(path, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
     }
 
@@ -139,357 +110,206 @@ public class DiskShare extends Share {
      * Folder in the given path exists or not.
      */
     public boolean folderExists(String path) throws SMBApiException {
-        logger.info("Checking existence of Directory '{}' on {}", path, smbPath);
         return exists(path, EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE));
+    }
+
+    private boolean exists(String path, EnumSet<SMB2CreateOptions> createOptions) throws SMBApiException {
+        try (DiskEntry ignored = open(path, EnumSet.of(FILE_READ_ATTRIBUTES), EnumSet.of(FILE_ATTRIBUTE_NORMAL), ALL, FILE_OPEN, createOptions)){
+            return true;
+        } catch (SMBApiException sae) {
+            if (sae.getStatus() == NtStatus.STATUS_OBJECT_NAME_NOT_FOUND || sae.getStatus() == NtStatus.STATUS_OBJECT_PATH_NOT_FOUND) {
+                return false;
+            } else {
+                throw sae;
+            }
+        }
+    }
+
+    /**
+     * Get a listing the given directory path. The "." and ".." are pre-filtered.
+     */
+    public List<FileIdBothDirectoryInformation> list(String path) throws SMBApiException {
+        try (Directory d = openDirectory(path, EnumSet.of(GENERIC_READ), null, ALL, FILE_OPEN, null)) {
+            return d.list(FileIdBothDirectoryInformation.class);
+        }
     }
 
     /**
      * Create a directory in the given path.
      */
-    public void mkdir(String path) throws TransportException, SMBApiException {
-        logger.info("mkdir {}", path);
-
-        Directory fileHandle = openDirectory(path,
-            EnumSet.of(AccessMask.FILE_LIST_DIRECTORY, AccessMask.FILE_ADD_SUBDIRECTORY),
-            EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE,
-                FILE_SHARE_READ),
-            SMB2CreateDisposition.FILE_CREATE);
-
+    public void mkdir(String path) throws SMBApiException {
+        Directory fileHandle = openDirectory(
+            path,
+            EnumSet.of(FILE_LIST_DIRECTORY, FILE_ADD_SUBDIRECTORY),
+            EnumSet.of(FileAttributes.FILE_ATTRIBUTE_DIRECTORY),
+            ALL,
+            FILE_CREATE,
+            EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE));
         fileHandle.close();
-
     }
 
     /**
      * Get information about the given path.
      **/
-    public FileInfo getFileInformation(String path) throws SMBApiException {
+    public FileAllInformation getFileInformation(String path) throws SMBApiException {
+        return getFileInformation(path, FileAllInformation.class);
+    }
 
-        byte[] outputBuffer = queryInfoCommon(path,
-            SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILE, null,
-            FileInformationClass.FileAllInformation);
-
-        try {
-            return FileInformationFactory.parseFileAllInformation(
-                new Buffer.PlainBuffer(outputBuffer, Endian.LE));
-        } catch (Buffer.BufferException e) {
-            throw new SMBRuntimeException(e);
+    /**
+     * Get information about the given path.
+     **/
+    public <F extends FileQueryableInformation> F getFileInformation(String path, Class<F> informationClass) throws SMBApiException {
+        try (DiskEntry e = open(path, EnumSet.of(GENERIC_READ), null, ALL, FILE_OPEN, null)) {
+            return e.getFileInformation(informationClass);
         }
     }
 
     /**
      * Get information for a given fileId
      **/
-    public FileInfo getFileInformation(SMB2FileId fileId) throws SMBApiException, TransportException {
+    public FileAllInformation getFileInformation(SMB2FileId fileId) throws SMBApiException, TransportException {
+        return getFileInformation(fileId, FileAllInformation.class);
+    }
 
-        byte[] outputBuffer = queryInfoCommon(fileId,
-            SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILE, null,
-            FileInformationClass.FileAllInformation);
+    public <F extends FileQueryableInformation> F getFileInformation(SMB2FileId fileId, Class<F> informationClass) throws SMBApiException {
+        FileInformation.Decoder<F> decoder = FileInformationFactory.getDecoder(informationClass);
+
+        byte[] outputBuffer = queryInfo(
+            fileId,
+            SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILE,
+            null,
+            decoder.getInformationClass(),
+            null
+        ).getOutputBuffer();
 
         try {
-            return FileInformationFactory.parseFileAllInformation(
-                new Buffer.PlainBuffer(outputBuffer, Endian.LE));
+            return decoder.read(new Buffer.PlainBuffer(outputBuffer, Endian.LE));
         } catch (Buffer.BufferException e) {
-            throw new TransportException(e);
+            throw new SMBRuntimeException(e);
+        }
+    }
+
+    public <F extends FileSettableInformation> void setFileInformation(SMB2FileId fileId, F information) {
+        SMBBuffer buffer = new SMBBuffer();
+        FileInformation.Encoder<F> encoder = FileInformationFactory.getEncoder(information);
+        encoder.write(information, buffer);
+
+        setInfo(
+            fileId,
+            SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE,
+            null,
+            encoder.getInformationClass(),
+            buffer.getCompactData()
+        );
+    }
+
+    /**
+     * Get information for a given path
+     **/
+    public <F extends FileSettableInformation> void setFileInformation(String path, F information) throws SMBApiException {
+        try (DiskEntry e = open(path, EnumSet.of(GENERIC_WRITE), null, ALL, FILE_OPEN, null)) {
+            e.setFileInformation(information);
         }
     }
 
     /**
      * Get Share Information for the current Disk Share
-     * 
+     *
      * @return the ShareInfo
-     * @throws SMBApiException
      */
-    public ShareInfo getShareInformation() throws TransportException, SMBApiException {
+    public ShareInfo getShareInformation() throws SMBApiException {
+        try (Directory directory = openDirectory("", EnumSet.of(FILE_READ_ATTRIBUTES), null, ALL, FILE_OPEN, null)) {
+            byte[] outputBuffer = queryInfo(
+                directory.getFileId(),
+                SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILESYSTEM,
+                null,
+                null,
+                FileSystemInformationClass.FileFsFullSizeInformation
+            ).getOutputBuffer();
 
-        Directory directory = openDirectory("",
-                EnumSet.of(FILE_READ_ATTRIBUTES), 
-                EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ),
-                SMB2CreateDisposition.FILE_OPEN);
-
-        byte[] outputBuffer = queryInfoCommon(directory.getFileId(),
-                SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILESYSTEM, null, null,
-                FileSystemInformationClass.FileFsFullSizeInformation);
-
-        try {
-            return ShareInfo.parseFsFullSizeInformation(new Buffer.PlainBuffer(outputBuffer, Endian.LE));
-        } catch (Buffer.BufferException e) {
-            throw new SMBRuntimeException(e);
+            try {
+                return ShareInfo.parseFsFullSizeInformation(new Buffer.PlainBuffer(outputBuffer, Endian.LE));
+            } catch (Buffer.BufferException e) {
+                throw new SMBRuntimeException(e);
+            }
         }
     }
-    
+
     /**
      * Remove the directory at the given path.
      */
-    public void rmdir(String path, boolean recursive) throws TransportException, SMBApiException {
-        logger.info("rmdir {},{}", path, recursive);
-
-        //TODO Even with DELETE_CHILD permission, receiving error, so doing the recursive way for now.
-        //if (recursive) accessMask.add(SMB2DirectoryAccessMask.FILE_DELETE_CHILD);
+    public void rmdir(String path, boolean recursive) throws SMBApiException {
         if (recursive) {
-            List<FileInfo> list = list(path);
-            for (FileInfo fi : list) {
+            List<FileIdBothDirectoryInformation> list = list(path);
+            for (FileIdBothDirectoryInformation fi : list) {
+                String childPath = path + "\\" + fi.getFileName();
                 if (!EnumWithValue.EnumUtils.isSet(fi.getFileAttributes(), FILE_ATTRIBUTE_DIRECTORY)) {
-                    rm(makePath(path, fi.getFileName()));
+                    rm(childPath);
                 } else {
-                    rmdir(makePath(path, fi.getFileName()), recursive);
+                    rmdir(childPath, true);
                 }
             }
             rmdir(path, false);
         } else {
-
-            SMB2CreateRequest smb2CreateRequest =
-                openFileRequest(path,
-                    AccessMask.DELETE.getValue(),
-                    EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE,
-                        FILE_SHARE_READ),
-                    EnumSet.of(FILE_ATTRIBUTE_DIRECTORY),
-                    SMB2CreateDisposition.FILE_OPEN,
-                    null);
-
-            deleteCommon(path, smb2CreateRequest);
+            try (DiskEntry e = open(
+                path,
+                EnumSet.of(DELETE),
+                EnumSet.of(FILE_ATTRIBUTE_DIRECTORY),
+                EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ),
+                FILE_OPEN,
+                EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE)
+                )) {
+                e.deleteOnClose();
+            }
         }
     }
 
     /**
      * Remove the file at the given path
      */
-    public void rm(String path) throws TransportException, SMBApiException {
-        logger.info("rm {}", path);
-        SMB2CreateRequest smb2CreateRequest =
-            openFileRequest(path, AccessMask.DELETE.getValue(), null, null,
-                SMB2CreateDisposition.FILE_OPEN, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
-
-        deleteCommon(path, smb2CreateRequest);
+    public void rm(String path) throws SMBApiException {
+        try (DiskEntry e = open(
+            path,
+            EnumSet.of(DELETE),
+            EnumSet.of(FILE_ATTRIBUTE_NORMAL),
+            EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ),
+            FILE_OPEN,
+            EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE)
+        )) {
+            e.deleteOnClose();
+        }
     }
 
-//    /**
-//     * Write the given input stream to the given path
-//     */
-//    public void write(String path, boolean overWrite,
-//                             InputStream srcStream, ProgressListener progressListener)
-//            throws SMBApiException, IOException {
-//        logger.info("Write {},{}", path, overWrite);
-//        SMB2CreateDisposition createDisposition = SMB2CreateDisposition.FILE_OVERWRITE_IF;
-//        if (!overWrite) createDisposition = SMB2CreateDisposition.FILE_CREATE;
-//        File fileHandle =
-//                openFile(path, EnumSet.of(AccessMask.GENERIC_WRITE), createDisposition);
-//
-//        try {
-//            fileHandle.write(srcStream, progressListener);
-//        } finally {
-//            fileHandle.close();
-//        }
-//    }
-//
-//    /**
-//     * Read the file at the given path and write the data to the given output stream
-//     */
-//    public void read(String path,
-//                            OutputStream destStream, ProgressListener progressListener)
-//            throws SMBApiException, IOException {
-//        logger.info("Read {}", path);
-//        File fileHandle = openFile(path,
-//                EnumSet.of(AccessMask.GENERIC_READ), SMB2CreateDisposition.FILE_OPEN);
-//
-//        try {
-//            fileHandle.read(destStream, progressListener);
-//        } finally {
-//            fileHandle.close();
-//        }
-//    }
+    public void deleteOnClose(SMB2FileId fileId) {
+        setFileInformation(fileId, new FileDispositionInformation(true));
+    }
 
     /**
      * The SecurityDescriptor(MS-DTYP 2.4.6 SECURITY_DESCRIPTOR) for the Given Path
      */
-    public SecurityDescriptor getSecurityInfo(String path, EnumSet<SecurityInformation> securityInfo) throws SMBApiException, TransportException {
-
-        byte[] outputBuffer = queryInfoCommon(path,
-            SMB2_0_INFO_SECURITY, securityInfo, null);
-        SecurityDescriptor sd = new SecurityDescriptor();
-        try {
-            sd.read(new SMBBuffer(outputBuffer));
-        } catch (Buffer.BufferException e) {
-            throw new TransportException(e);
+    public SecurityDescriptor getSecurityInfo(String path, Set<SecurityInformation> securityInfo) throws SMBApiException {
+        EnumSet<AccessMask> accessMask = EnumSet.of(GENERIC_READ);
+        if (securityInfo.contains(SecurityInformation.SACL_SECURITY_INFORMATION)) {
+            accessMask.add(ACCESS_SYSTEM_SECURITY);
         }
-        return sd;
+
+        try (DiskEntry e = open(path, accessMask, null, ALL, FILE_OPEN, null)) {
+            return e.getSecurityInformation(securityInfo);
+        }
     }
 
     /**
      * The SecurityDescriptor(MS-DTYP 2.4.6 SECURITY_DESCRIPTOR) for the Given FileId
      */
-    public SecurityDescriptor getSecurityInfo(SMB2FileId fileId, EnumSet<SecurityInformation> securityInfo) throws SMBApiException, TransportException {
+    public SecurityDescriptor getSecurityInfo(SMB2FileId fileId, Set<SecurityInformation> securityInfo) throws SMBApiException {
 
-        byte[] outputBuffer = queryInfoCommon(fileId, SMB2_0_INFO_SECURITY, securityInfo, null);
+        byte[] outputBuffer = queryInfo(fileId, SMB2_0_INFO_SECURITY, securityInfo, null, null).getOutputBuffer();
         SecurityDescriptor sd = new SecurityDescriptor();
         try {
             sd.read(new SMBBuffer(outputBuffer));
         } catch (Buffer.BufferException e) {
-            throw new TransportException(e);
+            throw new SMBRuntimeException(e);
         }
         return sd;
-    }
-
-
-    private String makePath(String first, String... more) {
-        StringBuilder sb = new StringBuilder(first);
-        for (String aMore : more) {
-            sb.append('\\').append(aMore);
-        }
-        return sb.toString();
-    }
-
-    private void deleteCommon(String path, SMB2CreateRequest smb2CreateRequest)
-        throws TransportException, SMBApiException {
-
-        Session session = treeConnect.getSession();
-        Connection connection = session.getConnection();
-
-        // TODO Use Compounding
-        SMB2CreateResponse response = session.processSendResponse(smb2CreateRequest);
-
-        if (response.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(response.getHeader(), "Create failed for " + path);
-        }
-
-        SMB2FileId fileId = response.getFileId();
-        try {
-            byte[] dispoInfo = FileInformationFactory.getFileDispositionInfo(true);
-            SMB2SetInfoRequest si_req = new SMB2SetInfoRequest(
-                connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
-                SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_FILE, fileId,
-                FileInformationClass.FileDispositionInformation, null, dispoInfo);
-
-            Future<SMB2SetInfoResponse> setInfoFuture = session.send(si_req);
-            SMB2SetInfoResponse setInfoResponse = Futures.get(setInfoFuture, TransportException.Wrapper);
-
-            if (setInfoResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(setInfoResponse.getHeader(), "SetInfo failed for " + path);
-            }
-        } finally {
-            SMB2Close closeReq = new SMB2Close(connection.getNegotiatedProtocol().getDialect(),
-                session.getSessionId(), treeConnect.getTreeId(), fileId);
-            Future<SMB2Close> closeFuture = session.send(closeReq);
-            SMB2Close closeResponse = Futures.get(closeFuture, TransportException.Wrapper);
-
-            if (closeResponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(closeResponse.getHeader(), "Close failed for " + path);
-            }
-
-        }
-    }
-
-    private boolean exists(String path, EnumSet<SMB2CreateOptions> createOptions) throws SMBApiException {
-        logger.info("exists {}", path);
-
-        SMB2FileId fileId = null;
-        try {
-            fileId = open(path, toLong(EnumSet.of(FILE_READ_ATTRIBUTES)), EnumSet.of(FILE_ATTRIBUTE_DIRECTORY),
-                EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ), SMB2CreateDisposition.FILE_OPEN, createOptions);
-            return true;
-        } catch (SMBApiException sae) {
-            if (sae.getStatus() == NtStatus.STATUS_OBJECT_NAME_NOT_FOUND) {
-                return false;
-            } else {
-                throw sae;
-            }
-        } finally {
-            if (fileId != null) {
-                try {
-                    close(fileId);
-                } catch (Exception e) {
-                    logger.warn("File close failed for {},{},{}", path, treeConnect, fileId, e);
-                }
-            }
-        }
-    }
-
-    private byte[] queryInfoCommon(
-        String path,
-        SMB2QueryInfoRequest.SMB2QueryInfoType infoType,
-        EnumSet<SecurityInformation> securityInfo,
-        FileInformationClass fileInformationClass)
-        throws SMBApiException {
-
-        SMB2FileId fileId = null;
-        try {
-            fileId = open(path, toLong(EnumSet.of(GENERIC_READ)), EnumSet.of(FILE_ATTRIBUTE_NORMAL),
-                EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ), SMB2CreateDisposition.FILE_OPEN, null);
-            return queryInfoCommon(fileId, infoType, securityInfo, fileInformationClass);
-        } finally {
-            if (fileId != null) {
-                try {
-                    close(fileId);
-                } catch (Exception e) {
-                    logger.warn("File close failed for {},{},{}", path, treeConnect, fileId, e);
-                }
-            }
-        }
-    }
-
-    private byte[] queryInfoCommon(
-            SMB2FileId fileId,
-            SMB2QueryInfoRequest.SMB2QueryInfoType infoType,
-            EnumSet<SecurityInformation> securityInfo,
-            FileInformationClass fileInformationClass)
-            throws SMBApiException {
-    	return queryInfoCommon(fileId, infoType, securityInfo, fileInformationClass, null);
-    }
-    
-    private byte[] queryInfoCommon(
-        SMB2FileId fileId,
-        SMB2QueryInfoRequest.SMB2QueryInfoType infoType,
-        EnumSet<SecurityInformation> securityInfo,
-        FileInformationClass fileInformationClass,
-        FileSystemInformationClass fileSystemInformationClass)
-        throws SMBApiException {
-
-        Session session = treeConnect.getSession();
-        Connection connection = session.getConnection();
-
-        SMB2QueryInfoRequest qreq = new SMB2QueryInfoRequest(
-            connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
-            fileId, infoType,
-            fileInformationClass, fileSystemInformationClass, null, securityInfo);
-        try {
-            Future<SMB2QueryInfoResponse> qiResponseFuture = session.send(qreq);
-            SMB2QueryInfoResponse qresp = Futures.get(qiResponseFuture, SMBRuntimeException.Wrapper);
-
-            if (qresp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(qresp.getHeader(), "QUERY_INFO failed for " + fileId);
-            }
-            return qresp.getOutputBuffer();
-        } catch (TransportException e) {
-            throw SMBRuntimeException.Wrapper.wrap(e);
-        }
-    }
-
-
-    public boolean checkAccessMask(AccessMask mask, String smbPathOnShare) {
-        File file = null;
-        try {
-            file = openFile(smbPathOnShare, EnumSet.of(mask), SMB2CreateDisposition.FILE_OPEN);
-            return file != null;
-        } catch (TransportException e) {
-            throw new IllegalStateException("Exception occurred while trying to determine permissions on file", e);
-        } catch (SMBApiException e) {
-            return checkPermissions(e);
-        } finally {
-            close(file);
-        }
-    }
-
-    private boolean checkPermissions(SMBApiException e) {
-        if (e.getStatus().equals(NtStatus.STATUS_ACCESS_DENIED)) {
-            return false;
-        }
-        throw e;
-    }
-
-    private void close(File file) {
-        try {
-            close(file.getFileId());
-        } catch (TransportException e) {
-            throw new IllegalStateException("Exception occured while trying to determine permissions on file", e);
-        }
     }
 }

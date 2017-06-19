@@ -17,6 +17,7 @@ package com.hierynomus.smbj
 
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mssmb2.SMB2CreateDisposition
+import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.session.Session
@@ -27,6 +28,8 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import spock.lang.Specification
 
 import java.security.Security
+
+import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_OPEN
 
 class SMB2FileIntegrationTest extends Specification {
 
@@ -54,8 +57,8 @@ class SMB2FileIntegrationTest extends Specification {
 
   def "should check existence of file and directory"() {
     given:
-    def dir = share.getFile("api")
-    def file = share.getFile("README.md")
+    def dir = share.open("api", EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    def file = share.open("README.md", EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
 
     expect:
     dir.exists()
@@ -73,8 +76,8 @@ class SMB2FileIntegrationTest extends Specification {
 
   def "should correctly list read permissions of file"() {
     given:
-    def file = share.getFile("README.md")
-    def dir = share.getFile("api")
+    def file = share.open("README.md", EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    def dir = share.open("api", EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
 
     expect:
     file instanceof File
@@ -83,7 +86,7 @@ class SMB2FileIntegrationTest extends Specification {
 
   def "should transfer big file to share"() {
     given:
-    def file = share.openFile("bigfile", EnumSet.of(AccessMask.FILE_WRITE_DATA), SMB2CreateDisposition.FILE_OVERWRITE_IF)
+    def file = share.openFile("bigfile", EnumSet.of(AccessMask.FILE_WRITE_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OVERWRITE_IF, null)
     def bytes = new byte[32 * 1024 * 1024 + 10]
     Random.newInstance().nextBytes(bytes)
     def istream = new ByteArrayInputStream(bytes)

@@ -170,5 +170,10 @@ public class PacketSignatory {
         public int getStructureSize() {
             return wrappedPacket.getStructureSize();
         }
+
+        @Override
+        public String toString() {
+            return wrappedPacket.toString();
+        }
     }
 }

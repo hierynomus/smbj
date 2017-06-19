@@ -32,8 +32,9 @@ public class SMB2Flush extends SMB2Packet {
         super();
     }
 
-    public SMB2Flush(SMB2Dialect smbDialect) {
+    public SMB2Flush(SMB2Dialect smbDialect, SMB2FileId fileId) {
         super(24, smbDialect, SMB2MessageCommandCode.SMB2_FLUSH);
+        this.fileId = fileId;
     }
 
     @Override
@@ -48,9 +49,5 @@ public class SMB2Flush extends SMB2Packet {
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.readUInt16(); // StructureSize (2 bytes)
         buffer.skip(2); // Reserved (2 bytes)
-    }
-
-    public void setFileId(SMB2FileId fileId) {
-        this.fileId = fileId;
     }
 }

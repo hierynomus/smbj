@@ -68,12 +68,13 @@ public class DFSSession extends Session {
             Future<T> responseFuture = send(packet);
             T response = Futures.get(responseFuture, SMBRuntimeException.Wrapper);
             if (response.getHeader().getStatus() == NtStatus.STATUS_PATH_NOT_COVERED) {
-                try {
-                    packet.setFileName(resolver.resolve(this, packet.getFileName()));
-                    //resolve dfs, modify packet, resend packet to new target, and hopefully it works there
-                } catch (PathResolveException e) { //TODO we wouldn't have to do this if we just threw SMBApiException from inside DFS
-                    throw new SMBApiException(e.getStatus(), packet.getHeader().getMessage(), e);
-                }
+//                try {
+
+//                    packet.setFileName(resolver.resolve(this, packet.getFileName()));
+//                    resolve dfs, modify packet, resend packet to new target, and hopefully it works there
+//                } catch (PathResolveException e) { //TODO we wouldn't have to do this if we just threw SMBApiException from inside DFS
+//                    throw new SMBApiException(e.getStatus(), packet.getHeader().getMessage(), e);
+//                }
                 // and we try again
             } else {
                 return response;

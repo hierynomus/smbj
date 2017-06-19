@@ -15,47 +15,64 @@
  */
 package com.hierynomus.smbj.share;
 
-import java.io.IOException;
-import java.util.EnumSet;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.hierynomus.msdtyp.AccessMask;
+import com.hierynomus.msdtyp.SecurityInformation;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
-import com.hierynomus.mssmb2.SMB2CreateDisposition;
-import com.hierynomus.mssmb2.SMB2CreateOptions;
-import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.SMB2MessageFlag;
-import com.hierynomus.mssmb2.SMB2ShareAccess;
-import com.hierynomus.mssmb2.messages.SMB2Close;
-import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
-import com.hierynomus.mssmb2.messages.SMB2CreateResponse;
+import com.hierynomus.msfscc.FileInformationClass;
+import com.hierynomus.msfscc.FileSystemInformationClass;
+import com.hierynomus.mssmb2.*;
+import com.hierynomus.mssmb2.messages.*;
 import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.mssmb2.SMBApiException;
+import com.hierynomus.smbj.Config;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.connection.NegotiatedProtocol;
+import com.hierynomus.smbj.io.ByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
 
-public class Share implements AutoCloseable {
-    private static final Logger logger = LoggerFactory.getLogger(Share.class);
+import java.io.IOException;
+import java.util.EnumSet;
+import java.util.Set;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-    protected SmbPath smbPath;
-    protected final TreeConnect treeConnect;
-    private AtomicBoolean disconnected = new AtomicBoolean(false);
+public class Share implements AutoCloseable {
+    private static final EnumSet<NtStatus> SUCCESS = EnumSet.of(NtStatus.STATUS_SUCCESS);
+    private static final EnumSet<NtStatus> SUCCESS_OR_NO_MORE_FILES = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_NO_MORE_FILES);
+
+    private final SmbPath smbPath;
+    private final TreeConnect treeConnect;
+    private final long treeId;
+    private final Session session;
+    private final SMB2Dialect dialect;
+    private final int readBufferSize;
+    private final int writeBufferSize;
+    private final int transactBufferSize;
+    private final long sessionId;
+    private final AtomicBoolean disconnected = new AtomicBoolean(false);
 
     Share(SmbPath smbPath, TreeConnect treeConnect) {
         this.smbPath = smbPath;
         this.treeConnect = treeConnect;
-        treeConnect.setHandle(this);
+        session = treeConnect.getSession();
+        Connection connection = treeConnect.getConnection();
+        NegotiatedProtocol negotiatedProtocol = connection.getNegotiatedProtocol();
+        dialect = negotiatedProtocol.getDialect();
+        Config config = connection.getConfig();
+        readBufferSize = Math.min(config.getReadBufferSize(), negotiatedProtocol.getMaxReadSize());
+        writeBufferSize = Math.min(config.getWriteBufferSize(), negotiatedProtocol.getMaxWriteSize());
+        transactBufferSize = Math.min(config.getTransactBufferSize(), negotiatedProtocol.getMaxTransactSize());
+        sessionId = session.getSessionId();
+        treeId = treeConnect.getTreeId();
     }
 
     @Override
     public void close() throws IOException {
         if (!disconnected.getAndSet(true)) {
-            treeConnect.close(this);
+            treeConnect.close();
         }
     }
 
@@ -63,75 +80,144 @@ public class Share implements AutoCloseable {
         return !disconnected.get();
     }
 
+    public SmbPath getSmbPath() {
+        return smbPath;
+    }
+
     public TreeConnect getTreeConnect() {
         return treeConnect;
     }
 
-    public SMB2FileId open(
-        String path, long accessMask,
-        EnumSet<FileAttributes> fileAttributes, EnumSet<SMB2ShareAccess> shareAccess,
-        SMB2CreateDisposition createDisposition, EnumSet<SMB2CreateOptions> createOptions)
-        throws SMBApiException {
-        logger.info("open {},{}", path, fileAttributes);
-
-        Session session = treeConnect.getSession();
-        SMB2CreateRequest cr = openFileRequest(
-            path, accessMask, shareAccess, fileAttributes, createDisposition, createOptions);
-        try {
-            SMB2CreateResponse cresponse = session.processSendResponse(cr);
-            if (cresponse.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-                throw new SMBApiException(cresponse.getHeader(), "Create failed for " + path);
-            }
-
-            return cresponse.getFileId();
-        } catch (TransportException e) {
-            throw SMBRuntimeException.Wrapper.wrap(e);
-        }
+    int getReadBufferSize() {
+        return readBufferSize;
     }
 
-    protected SMB2CreateRequest openFileRequest(
-        String path,
-        long accessMask,
-        EnumSet<SMB2ShareAccess> shareAccess,
-        EnumSet<FileAttributes> fileAttributes,
-        SMB2CreateDisposition createDisposition,
-        EnumSet<SMB2CreateOptions> createOptions) {
+    int getWriteBufferSize() {
+        return writeBufferSize;
+    }
 
-        Session session = treeConnect.getSession();
-        
-        if (treeConnect.isDfsShare()) {
-            if (path != null) {
-                path = treeConnect.getConnection().getRemoteHostname()+"\\"+treeConnect.getShareName()+"\\"+path;
-            } else {
-                path = treeConnect.getConnection().getRemoteHostname()+"\\"+treeConnect.getShareName();
-            }
-        }
+    SMB2FileId openFileId(String path, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        return createFile(path, accessMask, fileAttributes, shareAccess, createDisposition, createOptions).getFileId();
+    }
+
+    SMB2CreateResponse createFile(String path, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         SMB2CreateRequest cr = new SMB2CreateRequest(
-            session.getConnection().getNegotiatedProtocol().getDialect(),
-            session.getSessionId(), treeConnect.getTreeId(),
+            dialect,
+            sessionId, treeId,
             accessMask,
             fileAttributes,
             shareAccess,
             createDisposition,
-            createOptions, path);
-        if (treeConnect.isDfsShare()) {
-            cr.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_DFS_OPERATIONS);
-        }
+            createOptions,
+            path
+        );
 
-        return cr;
+        return sendReceive(cr, "Create", path, SUCCESS);
     }
 
-    public void close(SMB2FileId fileId) throws TransportException, SMBApiException {
-        Session session = treeConnect.getSession();
-        Connection connection = session.getConnection();
-        SMB2Close closeReq = new SMB2Close(
-            connection.getNegotiatedProtocol().getDialect(),
-            treeConnect.getSession().getSessionId(), treeConnect.getTreeId(), fileId);
-        Future<SMB2Close> closeFuture = session.send(closeReq);
-        SMB2Close closeResp = Futures.get(closeFuture, TransportException.Wrapper);
+    void flush(SMB2FileId fileId) throws SMBApiException {
+        SMB2Flush flushReq = new SMB2Flush(
+            dialect,
+            fileId
+        );
+        sendReceive(flushReq, "Flush", fileId, SUCCESS);
+    }
 
-        if (closeResp.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
-            throw new SMBApiException(closeResp.getHeader(), "Close failed for " + fileId);
+    void closeFileId(SMB2FileId fileId) throws SMBApiException {
+        SMB2Close closeReq = new SMB2Close(dialect, sessionId, treeId, fileId);
+        sendReceive(closeReq, "Close", fileId, SUCCESS);
+    }
+
+    SMB2QueryInfoResponse queryInfo(SMB2FileId fileId, SMB2QueryInfoRequest.SMB2QueryInfoType infoType, Set<SecurityInformation> securityInfo, FileInformationClass fileInformationClass, FileSystemInformationClass fileSystemInformationClass) {
+        SMB2QueryInfoRequest qreq = new SMB2QueryInfoRequest(
+            dialect,
+            sessionId, treeId,
+            fileId, infoType,
+            fileInformationClass, fileSystemInformationClass, null, securityInfo
+        );
+        return sendReceive(qreq, "QueryInfo", fileId, SUCCESS);
+    }
+
+    SMB2SetInfoResponse setInfo(SMB2FileId fileId, SMB2SetInfoRequest.SMB2InfoType infoType, Set<SecurityInformation> securityInfo, FileInformationClass fileInformationClass, byte[] buffer) {
+        SMB2SetInfoRequest qreq = new SMB2SetInfoRequest(
+            dialect,
+            sessionId, treeId,
+            infoType, fileId,
+            fileInformationClass, securityInfo, buffer
+        );
+        return sendReceive(qreq, "SetInfo", fileId, SUCCESS);
+    }
+
+    SMB2QueryDirectoryResponse queryDirectory(SMB2FileId fileId, Set<SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags> flags, FileInformationClass informationClass) {
+        SMB2QueryDirectoryRequest qdr = new SMB2QueryDirectoryRequest(
+            dialect,
+            sessionId, treeId,
+            fileId, informationClass,
+            flags,
+            0,
+            null,
+            transactBufferSize
+        );
+
+        return sendReceive(qdr, "Query directory", fileId, SUCCESS_OR_NO_MORE_FILES);
+    }
+
+    SMB2WriteResponse write(SMB2FileId fileId, ByteChunkProvider provider) {
+        SMB2WriteRequest wreq = new SMB2WriteRequest(
+            dialect,
+            fileId,
+            sessionId, treeId,
+            provider,
+            writeBufferSize
+        );
+        return sendReceive(wreq, "Write", fileId, SUCCESS);
+    }
+
+    SMB2ReadResponse read(SMB2FileId fileId, long offset, int length) {
+        return receive(
+            readAsync(fileId, offset, length),
+            "Read",
+            fileId,
+            SUCCESS
+        );
+    }
+
+    Future<SMB2ReadResponse> readAsync(SMB2FileId fileId, long offset, int length) {
+        SMB2ReadRequest rreq = new SMB2ReadRequest(
+            dialect,
+            fileId,
+            sessionId, treeId,
+            offset,
+            Math.min(length, readBufferSize)
+        );
+        return send(rreq);
+    }
+
+    private <T extends SMB2Packet> T sendReceive(SMB2Packet request, String name, Object target, Set<NtStatus> successResponses) {
+        Future<T> fut = send(request);
+        return receive(fut, name, target, successResponses);
+    }
+
+    private <T extends SMB2Packet> Future<T> send(SMB2Packet request) {
+        try {
+            return session.send(request);
+        } catch (TransportException e) {
+            throw new SMBRuntimeException(e);
         }
+    }
+
+    private <T extends SMB2Packet> T receive(Future<T> fut, String name, Object target, Set<NtStatus> successResponses) {
+        T resp;
+        try {
+            resp = Futures.get(fut, TransportException.Wrapper);
+        } catch (TransportException e) {
+            throw new SMBRuntimeException(e);
+        }
+
+        NtStatus status = resp.getHeader().getStatus();
+        if (!successResponses.contains(status)) {
+            throw new SMBApiException(resp.getHeader(), name + " failed for " + target);
+        }
+        return resp;
     }
 }

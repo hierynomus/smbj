@@ -83,10 +83,10 @@ public class Session implements AutoCloseable {
      * @return the handle to the connected share.
      */
     public Share connectShare(String shareName) {
-        TreeConnect connectedConnect = treeConnectTable.getTreeConnect(shareName);
-        if (connectedConnect != null) {
-            logger.info("Returning cached Share {} for {}", connectedConnect.getTreeId(), shareName);
-            return connectedConnect.getHandle();
+        Share connectedShare = treeConnectTable.getTreeConnect(shareName);
+        if (connectedShare != null) {
+            logger.debug("Returning cached Share {} for {}", connectedShare, shareName);
+            return connectedShare;
         } else {
             return connectTree(shareName);
         }
@@ -95,7 +95,7 @@ public class Session implements AutoCloseable {
     private Share connectTree(final String shareName) {
         String remoteHostname = connection.getRemoteHostname();
         SmbPath smbPath = new SmbPath(remoteHostname, shareName);
-        logger.info("Connection to {} on session {}", smbPath, sessionId);
+        logger.info("Connecting to {} on session {}", smbPath, sessionId);
         try {
             SMB2TreeConnectRequest smb2TreeConnectRequest = new SMB2TreeConnectRequest(connection.getNegotiatedProtocol().getDialect(), smbPath, sessionId);
             smb2TreeConnectRequest.getHeader().setCreditRequest(256);
@@ -112,16 +112,20 @@ public class Session implements AutoCloseable {
 
             long treeId = response.getHeader().getTreeId();
             TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), connection, bus);
-            treeConnectTable.register(treeConnect);
+
+            Share share;
             if (response.isDiskShare()) {
-                return new DiskShare(smbPath, treeConnect);
+                share = new DiskShare(smbPath, treeConnect);
             } else if (response.isNamedPipe()) {
-                return new NamedPipe(smbPath, treeConnect);
+                share = new NamedPipe(smbPath, treeConnect);
             } else if (response.isPrinterShare()) {
-                return new PrinterShare(smbPath, treeConnect);
+                share = new PrinterShare(smbPath, treeConnect);
             } else {
                 throw new SMBRuntimeException("Unknown ShareType returned in the TREE_CONNECT Response");
             }
+
+            treeConnectTable.register(share);
+            return share;
         } catch (TransportException e) {
             throw new SMBRuntimeException(e);
         }
@@ -138,11 +142,11 @@ public class Session implements AutoCloseable {
 
     public void logoff() throws TransportException {
         logger.info("Logging off session {} from host {}", sessionId, connection.getRemoteHostname());
-        for (TreeConnect treeConnect : treeConnectTable.getOpenTreeConnects()) {
+        for (Share share : treeConnectTable.getOpenTreeConnects()) {
             try {
-                treeConnect.getHandle().close();
+                share.close();
             } catch (IOException e) {
-                logger.error("Caught exception while closing TreeConnect with id: {}", treeConnect.getTreeId(), e);
+                logger.error("Caught exception while closing TreeConnect with id: {}", share.getTreeConnect().getTreeId(), e);
             }
         }
         SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);

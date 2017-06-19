@@ -193,11 +193,12 @@ jdependMain {
    }
 }
 
-task jdependReport(dependsOn: jdependMain, group: 'verification', description: 'Generates a HTML report after executing jdepend checks.') << {
-   ant.xslt(
-      in: "$reporting.baseDir/jdepend/main.xml",
-      style: "$rootDir/conf/jdepend/jdepend-report.xslt",
-      out:"$reporting.baseDir/jdepend/main.html")
+task jdependReport(dependsOn: jdependMain, group: 'verification', description: 'Generates a HTML report after executing jdepend checks.')
+jdependReport.doLast {
+  ant.xslt(
+    in: "$reporting.baseDir/jdepend/main.xml",
+    style: "$rootDir/conf/jdepend/jdepend-report.xslt",
+    out:"$reporting.baseDir/jdepend/main.html")
 }
 
 tasks.withType(FindBugs) {

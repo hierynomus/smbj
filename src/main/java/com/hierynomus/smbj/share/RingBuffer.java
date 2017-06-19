@@ -70,7 +70,7 @@ class RingBuffer {
         } else {
             int bytesToEnd = buf.length - writeIndex;
             System.arraycopy(b, off, buf, writeIndex, bytesToEnd);
-            System.arraycopy(b, bytesToEnd, buf, bytesToEnd, len - bytesToEnd);
+            System.arraycopy(b, bytesToEnd, buf, 0, len - bytesToEnd);
         }
     }
 
