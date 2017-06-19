@@ -15,13 +15,12 @@
  */
 package com.hierynomus.msdtyp.ace;
 
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.UUID;
-import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SID;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
+
+import java.util.Arrays;
+import java.util.UUID;
 
 // Type 4 - Header/Mask/Flags/ObjectType/InheritedObjectType/Sid/ApplicationData
 // ACCESS_ALLOWED_CALLBACK_OBJECT_ACE, ACCESS_DENIED_CALLBACK_OBJECT_ACE, SYSTEM_AUDIT_OBJECT_ACE,
@@ -30,34 +29,49 @@ class AceType4 extends AceType2 {
 
     private byte[] applicationData;
 
-    AceType4() {
+    private AceType4(AceHeader header) {
+        super(header);
     }
 
-    AceType4(AceType aceType, EnumSet<AceFlags> aceFlags, EnumSet<AccessMask> accessMask,
-             EnumSet<AceObjectFlags> flags, UUID objectType, UUID inheritedObjectType, SID sid, byte[]
-                 applicationData) {
-        super(aceType, aceFlags, accessMask, flags, objectType, inheritedObjectType, sid);
-        aceHeader.setAceSize(aceHeader.getAceSize() + applicationData.length);
+    AceType4(AceHeader header, long accessMask, UUID objectType, UUID inheritedObjectType, SID sid, byte[] applicationData) {
+        super(header, accessMask, objectType, inheritedObjectType, sid);
         this.applicationData = applicationData;
     }
 
     @Override
-    protected void writeTo(SMBBuffer buffer) {
-        super.writeTo(buffer);
+    void writeBody(SMBBuffer buffer) {
+        super.writeBody(buffer);
         buffer.putRawBytes(applicationData);
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
-        super.readMessage(buffer);
-        // application data length is derived from aceHeader.size
-        applicationData = buffer.readRawBytes(aceHeader.getAceSize() - 4 + 4 + 4 + 16 + 16 + getSid().byteCount());
+    protected void readBody(SMBBuffer buffer, int aceStartPos) throws Buffer.BufferException {
+        super.readBody(buffer, aceStartPos);
+        int applicationDataSize = aceHeader.getAceSize() - (buffer.rpos() - aceStartPos);
+        applicationData = buffer.readRawBytes(applicationDataSize);
+    }
+
+    static AceType4 read(AceHeader header, SMBBuffer buffer, int aceStartPos) throws Buffer.BufferException {
+        AceType4 ace = new AceType4(header);
+        ace.readBody(buffer, aceStartPos);
+        return ace;
     }
 
     @Override
     public String toString() {
-        return "AceType4{" +
-            "applicationData=" + Arrays.toString(applicationData) +
-            "} " + super.toString();
+        return String.format(
+            "AceType4{type=%s, flags=%s, access=0x%x, objectType=%s, inheritedObjectType=%s, sid=%s, data=%s}",
+            aceHeader.getAceType(),
+            aceHeader.getAceFlags(),
+            accessMask,
+            objectType,
+            inheritedObjectType,
+            sid,
+            Arrays.toString(applicationData)
+        );
+    }
+
+    public byte[] getApplicationData() {
+        return applicationData;
     }
 }

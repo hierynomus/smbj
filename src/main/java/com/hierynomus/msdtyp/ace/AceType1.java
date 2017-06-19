@@ -15,37 +15,53 @@
  */
 package com.hierynomus.msdtyp.ace;
 
-import java.util.EnumSet;
-import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SID;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
-
-import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
 
 // Type 1 - Header/Mask/SID (ACCESS_ALLOWED_ACE, ACCESS_DENIED_ACE, SYSTEM_AUDIT_ACE, SYSTEM_MANDATORY_LABEL_ACE,
 // SYSTEM_SCOPED_POLICY_ID_ACE
 class AceType1 extends ACE {
 
-    AceType1() {
-    }
+    private long accessMask;
+    private SID sid;
 
-    AceType1(AceType aceType, EnumSet<AceFlags> aceFlags, EnumSet<AccessMask> accessMask, SID sid) {
-        super(new AceHeader(aceType, aceFlags, ACE.HEADER_STRUCTURE_SIZE + 4 + sid.byteCount()),
-            toLong(accessMask), sid);
+    AceType1(AceHeader header, long accessMask, SID sid) {
+        super(header);
+        this.accessMask = accessMask;
+        this.sid = sid;
     }
 
     @Override
-    protected void writeTo(SMBBuffer buffer) {
+    protected void writeBody(SMBBuffer buffer) {
         buffer.putUInt32(accessMask);
-        getSid().write(buffer);
+        sid.write(buffer);
+    }
+
+    static AceType1 read(AceHeader header, SMBBuffer buffer) throws Buffer.BufferException {
+        long accessMask = buffer.readUInt32();
+        SID sid = SID.read(buffer);
+        return new AceType1(header, accessMask, sid);
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
-        accessMask = buffer.readUInt32();
-        getSid().read(buffer);
+    public SID getSid() {
+        return sid;
     }
 
+    @Override
+    public long getAccessMask() {
+        return accessMask;
+    }
 
+    @Override
+    public String toString() {
+        return String.format(
+            "AceType1{type=%s, flags=%s, access=0x%x, sid=%s}",
+            aceHeader.getAceType(),
+            aceHeader.getAceFlags(),
+            accessMask,
+            sid
+        );
+    }
 }
