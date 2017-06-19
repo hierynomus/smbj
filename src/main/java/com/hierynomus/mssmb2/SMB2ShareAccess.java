@@ -17,6 +17,10 @@ package com.hierynomus.mssmb2;
 
 import com.hierynomus.protocol.commons.EnumWithValue;
 
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Set;
+
 /**
  * SMB2 Create 2.2.13 - SMB2ShareAccess
  */
@@ -24,6 +28,8 @@ public enum SMB2ShareAccess implements EnumWithValue<SMB2ShareAccess> {
     FILE_SHARE_READ(0x00000001L),
     FILE_SHARE_WRITE(0x00000002L),
     FILE_SHARE_DELETE(0x00000004L);
+
+    public static final Set<SMB2ShareAccess> ALL = Collections.unmodifiableSet(EnumSet.allOf(SMB2ShareAccess.class));
 
     private long value;
 

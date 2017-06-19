@@ -15,6 +15,7 @@
  */
 package com.hierynomus.mssmb2.messages;
 
+import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.smbj.common.SMBBuffer;
@@ -35,11 +36,11 @@ public class SMB2CreateRequest extends SMB2Packet {
     private final SMB2CreateDisposition createDisposition;
     private final Set<SMB2CreateOptions> createOptions;
     private final String fileName; // Null to indicate the root of share
-    private final long accessMask;
+    private final Set<AccessMask> accessMask;
 
     public SMB2CreateRequest(SMB2Dialect smbDialect,
                              long sessionId, long treeId,
-                             long accessMask,
+                             Set<AccessMask> accessMask,
                              Set<FileAttributes> fileAttributes,
                              Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition,
                              Set<SMB2CreateOptions> createOptions, String fileName) {
@@ -62,7 +63,7 @@ public class SMB2CreateRequest extends SMB2Packet {
         buffer.putUInt32(1); // ImpersonationLevel (4 bytes) - Identification
         buffer.putReserved(8); // SmbCreateFlags (8 bytes)
         buffer.putReserved(8); // Reserved (8 bytes)
-        buffer.putUInt32(accessMask); // DesiredAccess (4 bytes)
+        buffer.putUInt32(toLong(accessMask)); // DesiredAccess (4 bytes)
         buffer.putUInt32(toLong(fileAttributes)); // FileAttributes (4 bytes)
         buffer.putUInt32(toLong(shareAccess)); // ShareAccess (4 bytes)
         buffer.putUInt32(createDisposition == null ? 0 : createDisposition.getValue()); // CreateDisposition (4 bytes)
