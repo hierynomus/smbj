@@ -15,50 +15,65 @@
  */
 package com.hierynomus.msdtyp.ace;
 
-import java.util.Arrays;
-import java.util.EnumSet;
-import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SID;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
-import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
+import java.util.Arrays;
 
 // Type 3 - Header/Mask/SID/ApplicationData
 // (ACCESS_ALLOWED_CALLBACK_ACE, ACCESS_DENIED_CALLBACK_ACE, SYSTEM_AUDIT_CALLBACK_ACE)
 class AceType3 extends ACE {
 
+    private long accessMask;
+    private SID sid;
     private byte[] applicationData;
 
-    AceType3() {
-    }
-
-    AceType3(AceType aceType, EnumSet<AceFlags> aceFlags, EnumSet<AccessMask> accessMask, SID sid, byte[]
-        applicationData) {
-        super(new AceHeader(aceType, aceFlags, ACE.HEADER_STRUCTURE_SIZE + 4 + 4 + sid.byteCount() +
-                applicationData.length),
-            toLong(accessMask), sid);
+    AceType3(AceHeader header, long accessMask, SID sid, byte[] applicationData) {
+        super(header);
+        this.accessMask = accessMask;
+        this.sid = sid;
         this.applicationData = applicationData;
     }
 
     @Override
-    protected void writeTo(SMBBuffer buffer) {
+    protected void writeBody(SMBBuffer buffer) {
         buffer.putUInt32(accessMask);
-        getSid().write(buffer);
+        sid.write(buffer);
         buffer.putRawBytes(applicationData);
     }
 
-    @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
-        accessMask = buffer.readUInt32();
-        getSid().read(buffer);
-        applicationData = buffer.readRawBytes(aceHeader.getAceSize() - 4 + 4 + getSid().byteCount());
+    static AceType3 read(AceHeader header, SMBBuffer buffer, int aceStartPos) throws Buffer.BufferException {
+        long accessMask = buffer.readUInt32();
+        SID sid = SID.read(buffer);
+        int applicationDataSize = header.getAceSize() - (buffer.rpos() - aceStartPos);
+        byte[] applicationData = buffer.readRawBytes(applicationDataSize);
+        return new AceType3(header, accessMask, sid, applicationData);
     }
 
     @Override
     public String toString() {
-        return "AceType3{" +
-            "applicationData=" + Arrays.toString(applicationData) +
-            "} " + super.toString();
+        return String.format(
+            "AceType3{type=%s, flags=%s, access=0x%x, sid=%s, data=%s}",
+            aceHeader.getAceType(),
+            aceHeader.getAceFlags(),
+            accessMask,
+            sid,
+            Arrays.toString(applicationData)
+        );
+    }
+
+    @Override
+    public SID getSid() {
+        return sid;
+    }
+
+    @Override
+    public long getAccessMask() {
+        return accessMask;
+    }
+
+    public byte[] getApplicationData() {
+        return applicationData;
     }
 }

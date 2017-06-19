@@ -345,4 +345,40 @@ public class DiskShare extends Share {
         }
         return sd;
     }
+
+    /**
+     * The SecurityDescriptor(MS-DTYP 2.4.6 SECURITY_DESCRIPTOR) for the Given FileId
+     */
+    public void setSecurityInfo(String path, Set<SecurityInformation> securityInfo, SecurityDescriptor securityDescriptor) throws SMBApiException {
+        Set<AccessMask> accessMask = EnumSet.of(GENERIC_WRITE);
+        if (securityInfo.contains(SecurityInformation.SACL_SECURITY_INFORMATION)) {
+            accessMask.add(ACCESS_SYSTEM_SECURITY);
+        }
+        if (securityInfo.contains(SecurityInformation.OWNER_SECURITY_INFORMATION)) {
+            accessMask.add(WRITE_OWNER);
+        }
+        if (securityInfo.contains(SecurityInformation.DACL_SECURITY_INFORMATION)) {
+            accessMask.add(WRITE_DAC);
+        }
+
+        try (DiskEntry e = open(path, accessMask, null, ALL, FILE_OPEN, null)) {
+            e.setSecurityInformation(securityDescriptor, securityInfo);
+        }
+    }
+
+    /**
+     * The SecurityDescriptor(MS-DTYP 2.4.6 SECURITY_DESCRIPTOR) for the Given FileId
+     */
+    public void setSecurityInfo(SMB2FileId fileId, Set<SecurityInformation> securityInfo, SecurityDescriptor securityDescriptor) throws SMBApiException {
+        SMBBuffer buffer = new SMBBuffer();
+        securityDescriptor.write(buffer);
+
+        setInfo(
+            fileId,
+            SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_SECURITY,
+            securityInfo,
+            null,
+            buffer.getCompactData()
+        );
+    }
 }
