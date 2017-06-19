@@ -70,7 +70,7 @@ public class SpnegoAuthenticator implements Authenticator {
 
     private byte[] authenticateSession(GSSAuthenticationContext context, byte[] gssToken, Session session) throws TransportException {
         try {
-            logger.info("Authenticating {} on {} using SPNEGO", context.getUsername(), session.getConnection().getRemoteHostname());
+            logger.debug("Authenticating {} on {} using SPNEGO", context.getUsername(), session.getConnection().getRemoteHostname());
             if (gssContext == null) {
                 GSSManager gssManager = GSSManager.getInstance();
                 Oid spnegoOid = new Oid("1.3.6.1.5.5.2"); //SPNEGO

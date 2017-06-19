@@ -198,7 +198,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
             int availableCredits = connectionInfo.getSequenceWindow().available();
             int grantCredits = calculateGrantedCredits(packet, availableCredits);
             if (availableCredits == 0) {
-                logger.info("There are no credits left to send {}, will block until there are more credits available.", packet.getHeader().getMessage());
+                logger.warn("There are no credits left to send {}, will block until there are more credits available.", packet.getHeader().getMessage());
             }
             long[] messageIds = connectionInfo.getSequenceWindow().get(grantCredits);
             packet.getHeader().setMessageId(messageIds[0]);
@@ -237,7 +237,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     }
 
     private void negotiateDialect() throws TransportException {
-        logger.info("Negotiating dialects {} with server {}", config.getSupportedDialects(), getRemoteHostname());
+        logger.debug("Negotiating dialects {} with server {}", config.getSupportedDialects(), getRemoteHostname());
         SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid(), config.isSigningRequired());
         Future<SMB2Packet> send = send(negotiatePacket);
         SMB2Packet negotiateResponse = Futures.get(send, TransportException.Wrapper);
@@ -246,7 +246,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         }
         SMB2NegotiateResponse resp = (SMB2NegotiateResponse) negotiateResponse;
         connectionInfo.negotiated(resp);
-        logger.info("Negotiated the following connection settings: {}", connectionInfo);
+        logger.debug("Negotiated the following connection settings: {}", connectionInfo);
     }
 
 
