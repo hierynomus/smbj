@@ -47,9 +47,9 @@ public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
                 if (stopped.get()) {
                     break;
                 }
+                logger.info("PacketReader error.");
                 handler.handleError(e);
-                // TODO Check whether it is enough to just break out of the loop. The exception has been propagated through the handler.
-                throw new RuntimeException(e);
+                return;
             }
         }
         if (stopped.get()) {
