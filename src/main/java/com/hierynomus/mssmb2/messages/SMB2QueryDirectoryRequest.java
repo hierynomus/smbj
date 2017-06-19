@@ -63,7 +63,7 @@ public class SMB2QueryDirectoryRequest extends SMB2MultiCreditPacket {
         int offset = SMB2Header.STRUCTURE_SIZE + 32;
         buffer.putUInt16(offset); // FileNameOffset (2 bytes)
         buffer.putUInt16(searchPattern.length() * 2); // FileNameLength (2 bytes)
-        buffer.putUInt32(SINGLE_CREDIT_PAYLOAD_SIZE * getCreditsAssigned()); // OutputBufferLength (4 bytes)
+        buffer.putUInt32(Math.min(getMaxPayloadSize(), SINGLE_CREDIT_PAYLOAD_SIZE * getCreditsAssigned())); // OutputBufferLength (4 bytes)
         buffer.putString(searchPattern); // Buffer (variable)
     }
 

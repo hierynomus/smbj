@@ -15,11 +15,12 @@
  */
 package com.hierynomus.smbj;
 
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.event.SMBEventBus;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.event.SMBEventBus;
 
 /**
  * Server Message Block Client API.

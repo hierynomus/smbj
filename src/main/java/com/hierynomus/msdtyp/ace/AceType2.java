@@ -15,13 +15,14 @@
  */
 package com.hierynomus.msdtyp.ace;
 
-import java.util.EnumSet;
-import java.util.UUID;
-import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.msdtyp.SID;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
+
+import java.util.EnumSet;
+import java.util.Set;
+import java.util.UUID;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
@@ -29,62 +30,107 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
 // Type 2 - Header/Mask/Flags/ObjectType/InheritedObjectType/SID
 // (ACCESS_ALLOWED_OBJECT_ACE, ACCESS_DENIED_OBJECT_ACE)
 class AceType2 extends ACE {
-    private EnumSet<AceObjectFlags> flags;
-    private UUID objectType;
-    private UUID inheritedObjectType;
+    long accessMask;
+    SID sid;
+    UUID objectType;
+    UUID inheritedObjectType;
 
-    AceType2(AceType aceType, EnumSet<AceFlags> aceFlags, EnumSet<AccessMask> accessMask,
-             EnumSet<AceObjectFlags> flags, UUID objectType, UUID inheritedObjectType, SID sid) {
-        super(new AceHeader(aceType, aceFlags, ACE.HEADER_STRUCTURE_SIZE + 4 + 4 + 16 + 16 + sid.byteCount()),
-            toLong(accessMask), sid);
-        this.flags = flags;
+    AceType2(AceHeader header) {
+        super(header);
+    }
+
+    AceType2(AceHeader header, long accessMask, UUID objectType, UUID inheritedObjectType, SID sid) {
+        super(header);
+        this.accessMask = accessMask;
+        this.sid = sid;
         this.objectType = objectType;
         this.inheritedObjectType = inheritedObjectType;
     }
 
-    AceType2() {
-    }
-
     @Override
-    protected void writeTo(SMBBuffer buffer) {
+    void writeBody(SMBBuffer buffer) {
         buffer.putUInt32(accessMask);
+
+        EnumSet<AceObjectFlags> flags = EnumSet.noneOf(AceObjectFlags.class);
+        if (objectType != null) {
+            flags.add(AceObjectFlags.ACE_OBJECT_TYPE_PRESENT);
+        }
+        if (inheritedObjectType != null) {
+            flags.add(AceObjectFlags.ACE_INHERITED_OBJECT_TYPE_PRESENT);
+        }
         buffer.putUInt32(toLong(flags));
-        if (flags.contains(AceObjectFlags.ACE_OBJECT_TYPE_PRESENT)) {
+
+        if (objectType != null) {
             MsDataTypes.putGuid(objectType, buffer);
         } else {
             buffer.putReserved(16);
         }
-        if (flags.contains(AceObjectFlags.ACE_INHERITED_OBJECT_TYPE_PRESENT)) {
+
+        if (inheritedObjectType != null) {
             MsDataTypes.putGuid(inheritedObjectType, buffer);
         } else {
             buffer.putReserved(16);
         }
-        getSid().write(buffer);
+
+        sid.write(buffer);
     }
 
-    @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    void readBody(SMBBuffer buffer, int aceStartPos) throws Buffer.BufferException {
         accessMask = buffer.readUInt32();
-        flags = toEnumSet(buffer.readUInt32(), AceObjectFlags.class);
+
+        Set<AceObjectFlags> flags = toEnumSet(buffer.readUInt32(), AceObjectFlags.class);
+
+        objectType = null;
         if (flags.contains(AceObjectFlags.ACE_OBJECT_TYPE_PRESENT)) {
             objectType = MsDataTypes.readGuid(buffer);
         } else {
             buffer.skip(16);
         }
+
+        inheritedObjectType = null;
         if (flags.contains(AceObjectFlags.ACE_INHERITED_OBJECT_TYPE_PRESENT)) {
             inheritedObjectType = MsDataTypes.readGuid(buffer);
         } else {
             buffer.skip(16);
         }
-        getSid().read(buffer);
+
+        sid = SID.read(buffer);
+    }
+
+    static AceType2 read(AceHeader header, SMBBuffer buffer, int aceStartPos) throws Buffer.BufferException {
+        AceType2 ace = new AceType2(header);
+        ace.readBody(buffer, aceStartPos);
+        return ace;
     }
 
     @Override
     public String toString() {
-        return "AceType2{" +
-            "flags=" + flags +
-            ", objectType=" + objectType +
-            ", inheritedObjectType=" + inheritedObjectType +
-            "} " + super.toString();
+        return String.format(
+            "AceType2{type=%s, flags=%s, access=0x%x, objectType=%s, inheritedObjectType=%s, sid=%s}",
+            aceHeader.getAceType(),
+            aceHeader.getAceFlags(),
+            accessMask,
+            objectType,
+            inheritedObjectType,
+            sid
+        );
+    }
+
+    @Override
+    public SID getSid() {
+        return sid;
+    }
+
+    @Override
+    public long getAccessMask() {
+        return accessMask;
+    }
+
+    public UUID getObjectType() {
+        return objectType;
+    }
+
+    public UUID getInheritedObjectType() {
+        return inheritedObjectType;
     }
 }

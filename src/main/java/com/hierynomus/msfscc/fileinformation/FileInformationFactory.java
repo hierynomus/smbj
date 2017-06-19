@@ -367,9 +367,7 @@ public class FileInformationFactory {
                         offsetStart += nextOffset;
                     }
 
-                    if (!(".".equals(fileInfo.getFileName()) || "..".equals(fileInfo.getFileName()))) {
-                        next = fileInfo;
-                    }
+                    next = fileInfo;
                 }
 
                 return next;

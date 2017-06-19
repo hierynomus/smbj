@@ -15,10 +15,27 @@
  */
 package com.hierynomus.smbj.share;
 
+import java.util.Set;
+
+import com.hierynomus.msdtyp.AccessMask;
+import com.hierynomus.msfscc.FileAttributes;
+import com.hierynomus.mssmb2.SMB2CreateDisposition;
+import com.hierynomus.mssmb2.SMB2CreateOptions;
+import com.hierynomus.mssmb2.SMB2FileId;
+import com.hierynomus.mssmb2.SMB2ShareAccess;
+import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SmbPath;
 
 public class NamedPipe extends Share {
     public NamedPipe(SmbPath smbPath, TreeConnect treeConnect) {
         super(smbPath, treeConnect);
+    }
+
+    public SMB2FileId openFileId(String path, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        return super.openFileId(path, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
+    }
+
+    public void closeFileId(SMB2FileId fileId) throws SMBApiException {
+        super.closeFileId(fileId);
     }
 }

@@ -130,11 +130,40 @@ public class DiskShare extends Share {
     }
 
     /**
-     * Get a listing the given directory path. The "." and ".." are pre-filtered.
+     * Equivalent to calling {@link #list(String, Class, String) list(path, FileIdBothDirectoryInformation.class, null)}.
+     *
+     * @see #list(String, Class, String)
      */
     public List<FileIdBothDirectoryInformation> list(String path) throws SMBApiException {
+        return list(path, FileIdBothDirectoryInformation.class, null);
+    }
+
+    /**
+     * Equivalent to calling {@link #list(String, Class, String) list(path, FileIdBothDirectoryInformation.class, searchPattern)}.
+     *
+     * @see #list(String, Class, String)
+     */
+    public List<FileIdBothDirectoryInformation> list(String path, String searchPattern) throws SMBApiException {
+        return list(path, FileIdBothDirectoryInformation.class, searchPattern);
+    }
+
+    /**
+     * Equivalent to calling {@link #list(String, Class, String) list(path, informationClass, null)}.
+     *
+     * @see #list(String, Class, String)
+     */
+    public <I extends FileDirectoryQueryableInformation> List<I> list(String path, Class<I> informationClass) {
+        return list(path, informationClass, null);
+    }
+
+    /**
+     * Opens the given path for read-only access and performs a directory listing.
+     *
+     * @see Directory#iterator(Class, String)
+     */
+    public <I extends FileDirectoryQueryableInformation> List<I> list(String path, Class<I> informationClass, String searchPattern) {
         try (Directory d = openDirectory(path, EnumSet.of(GENERIC_READ), null, ALL, FILE_OPEN, null)) {
-            return d.list(FileIdBothDirectoryInformation.class);
+            return d.list(informationClass, searchPattern);
         }
     }
 
@@ -315,5 +344,41 @@ public class DiskShare extends Share {
             throw new SMBRuntimeException(e);
         }
         return sd;
+    }
+
+    /**
+     * The SecurityDescriptor(MS-DTYP 2.4.6 SECURITY_DESCRIPTOR) for the Given FileId
+     */
+    public void setSecurityInfo(String path, Set<SecurityInformation> securityInfo, SecurityDescriptor securityDescriptor) throws SMBApiException {
+        Set<AccessMask> accessMask = EnumSet.of(GENERIC_WRITE);
+        if (securityInfo.contains(SecurityInformation.SACL_SECURITY_INFORMATION)) {
+            accessMask.add(ACCESS_SYSTEM_SECURITY);
+        }
+        if (securityInfo.contains(SecurityInformation.OWNER_SECURITY_INFORMATION)) {
+            accessMask.add(WRITE_OWNER);
+        }
+        if (securityInfo.contains(SecurityInformation.DACL_SECURITY_INFORMATION)) {
+            accessMask.add(WRITE_DAC);
+        }
+
+        try (DiskEntry e = open(path, accessMask, null, ALL, FILE_OPEN, null)) {
+            e.setSecurityInformation(securityDescriptor, securityInfo);
+        }
+    }
+
+    /**
+     * The SecurityDescriptor(MS-DTYP 2.4.6 SECURITY_DESCRIPTOR) for the Given FileId
+     */
+    public void setSecurityInfo(SMB2FileId fileId, Set<SecurityInformation> securityInfo, SecurityDescriptor securityDescriptor) throws SMBApiException {
+        SMBBuffer buffer = new SMBBuffer();
+        securityDescriptor.write(buffer);
+
+        setInfo(
+            fileId,
+            SMB2SetInfoRequest.SMB2InfoType.SMB2_0_INFO_SECURITY,
+            securityInfo,
+            null,
+            buffer.getCompactData()
+        );
     }
 }
