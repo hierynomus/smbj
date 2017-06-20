@@ -36,8 +36,9 @@ public abstract class SocketClient {
 
     private int soTimeout = 0;
 
-    public SocketClient(int defaultPort) {
+    public SocketClient(int defaultPort, int soTimeout) {
         this.defaultPort = defaultPort;
+        this.soTimeout = soTimeout;
     }
 
     public void connect(String hostname, int port) throws IOException {
@@ -93,14 +94,6 @@ public abstract class SocketClient {
         } else {
             socketFactory = factory;
         }
-    }
-
-    public int getSoTimeout() {
-        return soTimeout;
-    }
-
-    public void setSoTimeout(int soTimeout) {
-        this.soTimeout = soTimeout;
     }
 
     public Socket getSocket() {
