@@ -148,14 +148,14 @@ public class Share implements AutoCloseable {
         return sendReceive(qreq, "SetInfo", fileId, SUCCESS);
     }
 
-    SMB2QueryDirectoryResponse queryDirectory(SMB2FileId fileId, Set<SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags> flags, FileInformationClass informationClass) {
+    SMB2QueryDirectoryResponse queryDirectory(SMB2FileId fileId, Set<SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags> flags, FileInformationClass informationClass, String searchPattern) {
         SMB2QueryDirectoryRequest qdr = new SMB2QueryDirectoryRequest(
             dialect,
             sessionId, treeId,
             fileId, informationClass,
             flags,
             0,
-            null,
+            searchPattern,
             transactBufferSize
         );
 

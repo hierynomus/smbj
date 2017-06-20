@@ -16,6 +16,8 @@
 package com.hierynomus.msdtyp;
 
 import java.util.EnumSet;
+import java.util.Set;
+
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
@@ -25,7 +27,7 @@ import com.hierynomus.smbj.common.SMBBuffer;
  */
 public class SecurityDescriptor {
 
-    private EnumSet<Control> control;
+    private Set<Control> control;
     private SID ownerSid;
     private SID groupSid;
     private ACL sacl;
@@ -34,69 +36,110 @@ public class SecurityDescriptor {
     public SecurityDescriptor() {
     }
 
-    //    public SecurityDescriptor(EnumSet<Control> control, SID ownerSid, SID groupSid, ACL sacl, ACL dacl) {
-//        this.control = control;
-//        this.ownerSid = ownerSid;
-//        this.groupSid = groupSid;
-//        this.sacl = sacl;
-//        this.dacl = dacl;
-//    }
-//
-    public void write(SMBBuffer buffer) {
-//        buffer.putByte((byte)1); // Revision (1 byte)
-//        buffer.putByte((byte)0); // Sbz1 (1 byte)
-//        buffer.putUInt16((int) EnumWithValue.EnumUtils.toLong(control)); // Control (2 bytes)
-//        int offset = SMB2Header.STRUCTURE_SIZE + 20; // TODO break cyclic package dep!
-//        if (ownerSid != null) {
-//            buffer.putUInt32(offset);
-//            offset += ownerSid.byteCount();
-//        }
-//        if (groupSid != null) {
-//            buffer.putUInt32(offset);
-//            offset += groupSid.byteCount();
-//        }
-//        if (sacl != null) {
-//            sacl.write(buffer);
-//            offset += sacl.getAclSize();
-//        }
-//        if (dacl != null) {
-//            dacl.write(buffer);
-//            offset += dacl.getAclSize();
-//        }
+    public SecurityDescriptor(Set<Control> control, SID ownerSid, SID groupSid, ACL sacl, ACL dacl) {
+        this.control = control;
+        this.ownerSid = ownerSid;
+        this.groupSid = groupSid;
+        this.sacl = sacl;
+        this.dacl = dacl;
     }
 
-    public void read(SMBBuffer buffer) throws Buffer.BufferException {
+    public void write(SMBBuffer buffer) {
+        int startPos = buffer.wpos();
+        buffer.putByte((byte)1); // Revision (1 byte)
+        buffer.putByte((byte)0); // Sbz1 (1 byte)
+
+        EnumSet<Control> c = EnumSet.copyOf(control);
+        // Always generate self-relative security descriptors; required for SMB
+        c.add(Control.SR);
+        if (sacl != null) {
+            c.add(Control.SP);
+        }
+        if (dacl != null) {
+            c.add(Control.DP);
+        }
+
+        buffer.putUInt16((int) EnumWithValue.EnumUtils.toLong(control)); // Control (2 bytes)
+
+        int offsetsPos = buffer.wpos();
+        buffer.putUInt32(0);
+        buffer.putUInt32(0);
+        buffer.putUInt32(0);
+        buffer.putUInt32(0);
+
+        int ownerOffset;
+        if (ownerSid != null) {
+            ownerOffset = buffer.wpos() - startPos;
+            ownerSid.write(buffer);
+        } else {
+            ownerOffset = 0;
+        }
+        int groupOffset;
+        if (groupSid != null) {
+            groupOffset = buffer.wpos() - startPos;
+            groupSid.write(buffer);
+        } else {
+            groupOffset = 0;
+        }
+        int saclOffset;
+        if (sacl != null) {
+            saclOffset = buffer.wpos() - startPos;
+            sacl.write(buffer);
+        } else {
+            saclOffset = 0;
+        }
+        int daclOffset;
+        if (dacl != null) {
+            daclOffset = buffer.wpos() - startPos;
+            dacl.write(buffer);
+        } else {
+            daclOffset = 0;
+        }
+
+        int endPos = buffer.wpos();
+        buffer.wpos(offsetsPos);
+        buffer.putUInt32(ownerOffset);
+        buffer.putUInt32(groupOffset);
+        buffer.putUInt32(saclOffset);
+        buffer.putUInt32(daclOffset);
+        buffer.wpos(endPos);
+    }
+
+    public static SecurityDescriptor read(SMBBuffer buffer) throws Buffer.BufferException {
+        int startPos = buffer.rpos();
+
         buffer.readByte(); // Revision
         buffer.readByte(); // Sbz1
-        control = EnumWithValue.EnumUtils.toEnumSet(buffer.readUInt16(), Control.class);
+        EnumSet<Control> control = EnumWithValue.EnumUtils.toEnumSet(buffer.readUInt16(), Control.class);
         int ownerOffset = buffer.readUInt32AsInt();
         int groupOffset = buffer.readUInt32AsInt();
         int saclOffset = buffer.readUInt32AsInt();
         int daclOffset = buffer.readUInt32AsInt();
 
+        SID ownerSid = null;
         if (ownerOffset > 0) {
-            buffer.rpos(ownerOffset);
-            ownerSid = new SID();
-            ownerSid.read(buffer);
+            buffer.rpos(startPos + ownerOffset);
+            ownerSid = SID.read(buffer);
         }
+        SID groupSid = null;
         if (groupOffset > 0) {
-            buffer.rpos(groupOffset);
-            groupSid = new SID();
-            groupSid.read(buffer);
+            buffer.rpos(startPos + groupOffset);
+            groupSid = SID.read(buffer);
         }
+        ACL sacl = null;
         if (saclOffset > 0) {
-            buffer.rpos(saclOffset);
-            sacl = new ACL();
-            sacl.read(buffer);
+            buffer.rpos(startPos + saclOffset);
+            sacl = ACL.read(buffer);
         }
+        ACL dacl = null;
         if (daclOffset > 0) {
-            buffer.rpos(daclOffset);
-            dacl = new ACL();
-            dacl.read(buffer);
+            buffer.rpos(startPos + daclOffset);
+            dacl = ACL.read(buffer);
         }
+        return new SecurityDescriptor(control, ownerSid, groupSid, sacl, dacl);
     }
 
-    public EnumSet<Control> getControl() {
+    public Set<Control> getControl() {
         return control;
     }
 
@@ -130,22 +173,70 @@ public class SecurityDescriptor {
     // SecurityDescriptor Control bits
     public enum Control implements EnumWithValue<Control> {
         NONE(0x00000000L),
-        SR(0x00000001L),
-        RM(0x00000002L),
-        PS(0x00000004L),
-        PD(0x00000008L),
-        SI(0x00000010L),
-        DI(0x00000020L),
-        SC(0x00000040L),
-        DC(0x00000080L),
-        DT(0x00000100L),
-        SS(0x00000200L),
-        SD(0x00000400L),
-        SP(0x00000800L),
-        DD(0x00001000L),
-        DP(0x00002000L),
-        GD(0x00004000L),
-        OD(0x00008000L);
+        /**
+         * Owner defaulted
+         */
+        OD(0x00000001L),
+        /**
+         * Group defaulted
+         */
+        GD(0x00000002L),
+        /**
+         * DACL present
+         */
+        DP(0x00000004L),
+        /**
+         * DACL defaulted
+         */
+        DD(0x00000008L),
+        /**
+         * SACL present
+         */
+        SP(0x00000010L),
+        /**
+         * SACL defaulted
+         */
+        SD(0x00000020L),
+        /**
+         * Server security
+         */
+        SS(0x00000040L),
+        /**
+         * DACL Trusted
+         */
+        DT(0x00000080L),
+        /**
+         * DACL Computed Inheritance Required
+         */
+        DC(0x00000100L),
+        /**
+         * SACL Computed Inheritance Required
+         */
+        SC(0x00000200L),
+        /**
+         * DACL auto-inherited
+         */
+        DI(0x00000400L),
+        /**
+         * SACL auto-inherited
+         */
+        SI(0x00000800L),
+        /**
+         * DACL protected
+         */
+        PD(0x00001000L),
+        /**
+         * SACL protected
+         */
+        PS(0x00002000L),
+        /**
+         * Resource manager
+         */
+        RM(0x00004000L),
+        /**
+         * Self-relative
+         */
+        SR(0x00008000L);
 
         private long value;
 

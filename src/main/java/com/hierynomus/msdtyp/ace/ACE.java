@@ -15,127 +15,104 @@
  */
 package com.hierynomus.msdtyp.ace;
 
-import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SID;
-import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
-
-import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.valueOf;
 
 /**
  * [MS-DTYP].pdf 2.4.4 ACE
  */
 public abstract class ACE {
-
-    static int HEADER_STRUCTURE_SIZE = 4;
+    private static int HEADER_STRUCTURE_SIZE = 4;
 
     AceHeader aceHeader = new AceHeader();
 
-    long accessMask;
-    private SID sid = new SID();
-
-    ACE(AceHeader aceHeader, long accessMask, SID sid) {
-        this.aceHeader = aceHeader;
-        this.accessMask = accessMask;
-        this.sid = sid;
+    ACE(AceHeader header) {
+        this.aceHeader = header;
     }
 
     protected ACE() {
     }
 
     public final void write(SMBBuffer buffer) {
-        aceHeader.writeTo(buffer);
-        writeTo(buffer);
+        int startPos = buffer.wpos();
+
+        buffer.wpos(startPos + HEADER_STRUCTURE_SIZE);
+        writeBody(buffer);
+
+        int endPos = buffer.wpos();
+
+        buffer.wpos(startPos);
+        aceHeader.writeTo(buffer, endPos - startPos);
+        buffer.wpos(endPos);
     }
 
-    protected abstract void writeTo(SMBBuffer buffer);
+    abstract void writeBody(SMBBuffer buffer);
 
-    public final ACE read(SMBBuffer buffer) throws Buffer.BufferException {
-        aceHeader.readFrom(buffer);
-        readMessage(buffer);
-        return this;
-    }
-
-    public static ACE factory(SMBBuffer buffer) throws Buffer.BufferException {
-        AceType aceType = valueOf(buffer.readByte(), AceType.class, null);
-        buffer.rpos(buffer.rpos() - 1); // Go back
-        ACE ace = null;
-        switch (aceType) {
+    public static ACE read(SMBBuffer buffer) throws Buffer.BufferException {
+        int startPos = buffer.rpos();
+        AceHeader header = AceHeader.readFrom(buffer);
+        ACE ace;
+        switch (header.getAceType()) {
             case ACCESS_ALLOWED_ACE_TYPE:
-                ace = new AceType1().read(buffer);
+                ace = AceType1.read(header, buffer);
                 break;
             case ACCESS_ALLOWED_CALLBACK_ACE_TYPE:
-                ace = new AceType3().read(buffer);
+                ace = AceType3.read(header, buffer, startPos);
                 break;
             case ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE:
-                ace = new AceType4().read(buffer);
+                ace = AceType4.read(header, buffer, startPos);
                 break;
             case ACCESS_ALLOWED_OBJECT_ACE_TYPE:
-                ace = new AceType2().read(buffer);
+                ace = AceType2.read(header, buffer, startPos);
                 break;
             case ACCESS_DENIED_ACE_TYPE:
-                ace = new AceType1().read(buffer);
+                ace = AceType1.read(header, buffer);
                 break;
             case ACCESS_DENIED_CALLBACK_ACE_TYPE:
-                ace = new AceType3().read(buffer);
+                ace = AceType3.read(header, buffer, startPos);
                 break;
             case ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE:
-                ace = new AceType4().read(buffer);
+                ace = AceType4.read(header, buffer, startPos);
                 break;
             case ACCESS_DENIED_OBJECT_ACE_TYPE:
-                ace = new AceType2().read(buffer);
+                ace = AceType2.read(header, buffer, startPos);
                 break;
             case SYSTEM_AUDIT_ACE_TYPE:
-                ace = new AceType1().read(buffer);
+                ace = AceType1.read(header, buffer);
                 break;
             case SYSTEM_AUDIT_CALLBACK_ACE_TYPE:
-                ace = new AceType3().read(buffer);
+                ace = AceType3.read(header, buffer, startPos);
                 break;
             case SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE:
-                ace = new AceType4().read(buffer);
+                ace = AceType4.read(header, buffer, startPos);
                 break;
             case SYSTEM_AUDIT_OBJECT_ACE_TYPE:
-                ace = new AceType4().read(buffer);
+                ace = AceType4.read(header, buffer, startPos);
                 break;
             case SYSTEM_MANDATORY_LABEL_ACE_TYPE:
-                ace = new AceType1().read(buffer);
+                ace = AceType1.read(header, buffer);
                 break;
             case SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE:
-                ace = new AceType3().read(buffer);
+                ace = AceType3.read(header, buffer, startPos);
                 break;
             case SYSTEM_SCOPED_POLICY_ID_ACE_TYPE:
-                ace = new AceType1().read(buffer);
+                ace = AceType1.read(header, buffer);
                 break;
             default:
-                throw new IllegalStateException("Unknown ACE type: " + aceType);
+                throw new IllegalStateException("Unknown ACE type: " + header.getAceType());
         }
 
         return ace;
     }
 
-    @Override
-    public String toString() {
-        return "ACE{" +
-            "aceHeader=" + aceHeader +
-            ", accessMask=" + EnumWithValue.EnumUtils.toEnumSet(accessMask, AccessMask.class) +
-            ", sid=" + sid +
-            '}';
-    }
-
-    protected abstract void readMessage(SMBBuffer buffer) throws Buffer.BufferException;
-
     public AceHeader getAceHeader() {
         return aceHeader;
     }
 
-    public SID getSid() {
-        return sid;
-    }
+    public abstract SID getSid();
 
-    public long getAccessMask() {
-        return accessMask;
-    }
+    public abstract long getAccessMask();
 }
 
 

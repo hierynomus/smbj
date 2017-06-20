@@ -35,8 +35,10 @@ class SMB2QueryDirectoryResponseTest extends Specification {
         def fileInfoList = FileInformationFactory.parseFileInformationList(response.outputBuffer, FileInformationFactory.getDecoder(FileIdBothDirectoryInformation.class))
 
         then:
-        fileInfoList.size() == 16
-        fileInfoList.get(0).fileName == "2"
-        fileInfoList.get(6).fileName == "䐀䔀嘀尀樀甀渀椀琀开琀攀猀琀猀洀戀樀愀瀀椀"
+        fileInfoList.size() == 18
+        fileInfoList.get(0).fileName == "."
+        fileInfoList.get(1).fileName == ".."
+        fileInfoList.get(2).fileName == "2"
+        fileInfoList.get(8).fileName == "䐀䔀嘀尀樀甀渀椀琀开琀攀猀琀猀洀戀樀愀瀀椀"
     }
 }

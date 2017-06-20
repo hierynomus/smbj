@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
+import java.util.EnumSet;
 import java.util.Set;
 
 public abstract class DiskEntry implements Closeable {
@@ -65,6 +66,31 @@ public abstract class DiskEntry implements Closeable {
 
     public SecurityDescriptor getSecurityInformation(Set<SecurityInformation> securityInfo) throws SMBApiException {
         return share.getSecurityInfo(fileId, securityInfo);
+    }
+
+    public void setSecurityInformation(SecurityDescriptor securityDescriptor) throws SMBApiException {
+        EnumSet<SecurityInformation> securityInfo = EnumSet.noneOf(SecurityInformation.class);
+        if (securityDescriptor.getOwnerSid() != null) {
+            securityInfo.add(SecurityInformation.OWNER_SECURITY_INFORMATION);
+        }
+
+        if (securityDescriptor.getGroupSid() != null) {
+            securityInfo.add(SecurityInformation.GROUP_SECURITY_INFORMATION);
+        }
+
+        if (securityDescriptor.getControl().contains(SecurityDescriptor.Control.DP)) {
+            securityInfo.add(SecurityInformation.DACL_SECURITY_INFORMATION);
+        }
+
+        if (securityDescriptor.getControl().contains(SecurityDescriptor.Control.SP)) {
+            securityInfo.add(SecurityInformation.SACL_SECURITY_INFORMATION);
+        }
+
+        share.setSecurityInfo(fileId, securityInfo, securityDescriptor);
+    }
+
+    public void setSecurityInformation(SecurityDescriptor securityDescriptor, Set<SecurityInformation> securityInfo) throws SMBApiException {
+        share.setSecurityInfo(fileId, securityInfo, securityDescriptor);
     }
 
     public void rename(String newName) throws SMBApiException {
