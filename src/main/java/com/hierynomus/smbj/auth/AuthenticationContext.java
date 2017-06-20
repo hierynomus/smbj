@@ -28,6 +28,14 @@ public class AuthenticationContext {
         this.domain = domain;
     }
 
+    public static AuthenticationContext anonymous() {
+        return new AuthenticationContext("", new char[0], null);
+    }
+
+    public static AuthenticationContext guest() {
+        return new AuthenticationContext("Guest", new char[0], null);
+    }
+
     public String getUsername() {
         return username;
     }
