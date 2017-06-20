@@ -38,6 +38,7 @@ public final class Config {
     private int readBufferSize;
     private int writeBufferSize;
     private int transactBufferSize;
+    private int soTimeout;
 
     public static Config createDefaultConfig() {
         return builder().build();
@@ -58,6 +59,7 @@ public final class Config {
     private Config() {
         dialects = EnumSet.noneOf(SMB2Dialect.class);
         authenticators = new ArrayList<>();
+        soTimeout = 0;
     }
 
     private Config(Config other) {
@@ -71,6 +73,7 @@ public final class Config {
         readBufferSize = other.readBufferSize;
         writeBufferSize = other.writeBufferSize;
         transactBufferSize = other.transactBufferSize;
+        soTimeout = other.soTimeout;
     }
 
     public Random getRandomProvider() {
@@ -109,6 +112,10 @@ public final class Config {
         return transactBufferSize;
     }
 
+    public int getSoTimeout() {
+        return soTimeout;
+    }
+    
     public static class Builder {
         private Config config;
 
@@ -216,6 +223,14 @@ public final class Config {
                 throw new IllegalArgumentException("Buffer size must be greater than zero");
             }
             return withReadBufferSize(bufferSize).withWriteBufferSize(bufferSize).withTransactBufferSize(bufferSize);
+        }
+
+        public Builder withSoTimeout(int soTimeout) {
+            if (soTimeout < 0) {
+                throw new IllegalArgumentException("Socket timeout must be zero (=no timeout) or a positive number of milliseconds");
+            }
+            config.soTimeout = soTimeout;
+            return this;
         }
 
         public Config build() {

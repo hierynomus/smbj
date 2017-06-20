@@ -73,6 +73,9 @@ public class SMBClient {
         synchronized (this) {
             if (!connectionTable.containsKey(hostname)) {
                 Connection connection = new Connection(config, bus);
+                if (config.getSoTimeout() > 0) {
+                    connection.setSoTimeout(config.getSoTimeout());
+                }
                 connection.connect(hostname, port);
                 connectionTable.put(hostname, connection);
                 return connection;
