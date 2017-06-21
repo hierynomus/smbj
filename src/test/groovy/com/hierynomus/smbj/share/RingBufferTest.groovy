@@ -232,6 +232,24 @@ public class RingBufferTest extends Specification {
     byteArray == [5, 6, 7, 8, 9, 10] as byte[]
   }
 
+  def "should be able to append bytes in the middle of array if write position has wrapped around"() {
+	given:
+    cBuf = new RingBuffer(3);
+    def b1 = [1, 2, 3, 4, 5] as byte[]
+    def r1 = new byte[2];
+    def r2 = new byte[3];
+    
+	when:
+	cBuf.write(b1, 0, 2);
+	cBuf.read(r1);
+	cBuf.write(b1, 2, 3);
+	cBuf.read(r2);
+
+	then:
+	r1 == [1, 2] as byte[]
+	r2 == [3, 4, 5] as byte[]
+  }
+
   def "should throw exception if full when write position has wrapped around"() {
     given:
     cBuf = new RingBuffer(6);
