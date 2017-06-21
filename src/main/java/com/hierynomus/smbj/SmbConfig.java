@@ -27,10 +27,16 @@ import com.hierynomus.smbj.auth.SpnegoAuthenticator;
 import javax.net.SocketFactory;
 import java.security.SecureRandom;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public final class SmbConfig {
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 1024;
+
     private static final int DEFAULT_SO_TIMEOUT = 0;
+    private static final TimeUnit DEFAULT_SO_TIMEOUT_UNIT = TimeUnit.SECONDS;
+
+    private static final int DEFAULT_TIMEOUT = 60;
+    private static final TimeUnit DEFAULT_TIMEOUT_UNIT = TimeUnit.SECONDS;
 
     private Set<SMB2Dialect> dialects;
     private List<Factory.Named<Authenticator>> authenticators;
@@ -40,8 +46,11 @@ public final class SmbConfig {
     private boolean signingRequired;
     private SecurityProvider securityProvider;
     private int readBufferSize;
+    private long readTimeout;
     private int writeBufferSize;
+    private long writeTimeout;
     private int transactBufferSize;
+    private long transactTimeout;
 
     private int soTimeout;
 
@@ -57,10 +66,11 @@ public final class SmbConfig {
             .withSocketFactory(new ProxySocketFactory())
             .withSigningRequired(false)
             .withBufferSize(DEFAULT_BUFFER_SIZE)
-            .withSoTimeout(DEFAULT_SO_TIMEOUT)
+            .withSoTimeout(DEFAULT_SO_TIMEOUT, DEFAULT_SO_TIMEOUT_UNIT)
             .withDialects(SMB2Dialect.SMB_2_1, SMB2Dialect.SMB_2_0_2)
             // order is important.  The authenticators listed first will be selected
-            .withAuthenticators(new SpnegoAuthenticator.Factory(), new NtlmAuthenticator.Factory());
+            .withAuthenticators(new SpnegoAuthenticator.Factory(), new NtlmAuthenticator.Factory())
+            .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT);
     }
 
     private SmbConfig() {
@@ -78,8 +88,11 @@ public final class SmbConfig {
         signingRequired = other.signingRequired;
         securityProvider = other.securityProvider;
         readBufferSize = other.readBufferSize;
+        readTimeout = other.readTimeout;
         writeBufferSize = other.writeBufferSize;
+        writeTimeout = other.writeTimeout;
         transactBufferSize = other.transactBufferSize;
+        transactTimeout = other.transactTimeout;
         soTimeout = other.soTimeout;
     }
 
@@ -111,12 +124,24 @@ public final class SmbConfig {
         return readBufferSize;
     }
 
+    public long getReadTimeout() {
+        return readTimeout;
+    }
+
     public int getWriteBufferSize() {
         return writeBufferSize;
     }
 
+    public long getWriteTimeout() {
+        return writeTimeout;
+    }
+
     public int getTransactBufferSize() {
         return transactBufferSize;
+    }
+
+    public long getTransactTimeout() {
+        return transactTimeout;
     }
 
     public int getSoTimeout() {
@@ -217,6 +242,11 @@ public final class SmbConfig {
             return this;
         }
 
+        public Builder withReadTimeout(long timeout, TimeUnit timeoutUnit) {
+            config.readTimeout = timeoutUnit.toMillis(timeout);
+            return this;
+        }
+
         public Builder withWriteBufferSize(int writeBufferSize) {
             if (writeBufferSize <= 0) {
                 throw new IllegalArgumentException("Write buffer size must be greater than zero");
@@ -225,11 +255,21 @@ public final class SmbConfig {
             return this;
         }
 
+        public Builder withWriteTimeout(long timeout, TimeUnit timeoutUnit) {
+            config.writeTimeout = timeoutUnit.toMillis(timeout);
+            return this;
+        }
+
         public Builder withTransactBufferSize(int transactBufferSize) {
             if (transactBufferSize <= 0) {
                 throw new IllegalArgumentException("Transact buffer size must be greater than zero");
             }
             config.transactBufferSize = transactBufferSize;
+            return this;
+        }
+
+        public Builder withTransactTimeout(long timeout, TimeUnit timeoutUnit) {
+            config.transactTimeout = timeoutUnit.toMillis(timeout);
             return this;
         }
 
@@ -244,11 +284,24 @@ public final class SmbConfig {
             return withReadBufferSize(bufferSize).withWriteBufferSize(bufferSize).withTransactBufferSize(bufferSize);
         }
 
-        public Builder withSoTimeout(int soTimeout) {
-            if (soTimeout < 0) {
-                throw new IllegalArgumentException("Socket Timeout should be either 0 (no timeout) or a positive number expressed in milliseconds.");
+        public Builder withTimeout(long timeout, TimeUnit timeoutUnit) {
+            return withReadTimeout(timeout, timeoutUnit).withWriteTimeout(timeout, timeoutUnit).withTransactTimeout(timeout, timeoutUnit);
+        }
+
+        public Builder withSoTimeout(int timeout) {
+            return withSoTimeout(timeout, TimeUnit.MILLISECONDS);
+        }
+
+        public Builder withSoTimeout(long timeout, TimeUnit timeoutUnit) {
+            if (timeout < 0) {
+                throw new IllegalArgumentException("Socket timeout should be either 0 (no timeout) or a positive value");
             }
-            config.soTimeout = soTimeout;
+            long timeoutMillis = timeoutUnit.toMillis(timeout);
+            if (timeoutMillis > Integer.MAX_VALUE) {
+                throw new IllegalArgumentException("Socket timeout should be less than " + Integer.MAX_VALUE + "ms");
+            }
+
+            config.soTimeout = (int) timeoutMillis;
             return this;
         }
 
