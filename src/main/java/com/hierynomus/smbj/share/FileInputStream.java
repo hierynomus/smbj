@@ -18,6 +18,8 @@ package com.hierynomus.smbj.share;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.hierynomus.mserref.NtStatus;
@@ -29,6 +31,7 @@ import com.hierynomus.smbj.transport.TransportException;
 
 class FileInputStream extends InputStream {
 
+    private final long readTimeout;
     private File file;
     private long offset = 0;
     private int curr = 0;
@@ -40,10 +43,11 @@ class FileInputStream extends InputStream {
     private static final Logger logger = LoggerFactory.getLogger(FileInputStream.class);
     private int bufferSize;
 
-    FileInputStream(File file, int bufferSize, ProgressListener progressListener) {
+    FileInputStream(File file, int bufferSize, long readTimeout, ProgressListener progressListener) {
         this.file = file;
         this.bufferSize = bufferSize;
         this.progressListener = progressListener;
+        this.readTimeout = readTimeout;
     }
 
     @Override
@@ -90,7 +94,7 @@ class FileInputStream extends InputStream {
         if (nextResponse == null)
             nextResponse = sendRequest();
 
-        SMB2ReadResponse res = Futures.get(nextResponse, TransportException.Wrapper);
+        SMB2ReadResponse res = Futures.get(nextResponse, readTimeout, TimeUnit.MILLISECONDS, TransportException.Wrapper);
         if (res.getHeader().getStatus() == NtStatus.STATUS_SUCCESS) {
             buf = res.getData();
             curr = 0;
