@@ -60,15 +60,21 @@ class FileOutputStream extends OutputStream {
     @Override
     public void write(byte b[], int off, int len) throws IOException {
         verifyConnectionNotClosed();
+        do {
+            int writeLen = Math.min(len, provider.maxSize());
 
-        while (provider.isBufferFull(len)) {
-            flush();
-        }
+            while (provider.isBufferFull(writeLen)) {
+                flush();
+            }
 
-        if (!provider.isBufferFull()) {
-            provider.writeBytes(b, off, len);
-        }
-
+            if (!provider.isBufferFull()) {
+                provider.writeBytes(b, off, writeLen);
+            }
+            
+            off += writeLen;
+            len -= writeLen;
+            
+        } while (len > 0);
     }
 
     @Override
@@ -138,6 +144,10 @@ class FileOutputStream extends OutputStream {
 
         public boolean isBufferFull(int len) {
             return buf.isFull(len);
+        }
+
+        public int maxSize() {
+            return buf.maxSize();
         }
 
         private void reset() {
