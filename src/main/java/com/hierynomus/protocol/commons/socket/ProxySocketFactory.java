@@ -53,6 +53,11 @@ public class ProxySocketFactory extends SocketFactory {
     }
 
     @Override
+    public Socket createSocket() throws IOException {
+        return new Socket(proxy);
+    }
+
+    @Override
     public Socket createSocket(String address, int port) throws IOException {
         return createSocket(new InetSocketAddress(address, port), null);
     }
