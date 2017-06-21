@@ -24,7 +24,7 @@ import com.hierynomus.msfscc.FileSystemInformationClass;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.*;
 import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.smbj.Config;
+import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
@@ -62,7 +62,7 @@ public class Share implements AutoCloseable {
         Connection connection = treeConnect.getConnection();
         NegotiatedProtocol negotiatedProtocol = connection.getNegotiatedProtocol();
         dialect = negotiatedProtocol.getDialect();
-        Config config = connection.getConfig();
+        SmbConfig config = connection.getConfig();
         readBufferSize = Math.min(config.getReadBufferSize(), negotiatedProtocol.getMaxReadSize());
         writeBufferSize = Math.min(config.getWriteBufferSize(), negotiatedProtocol.getMaxWriteSize());
         transactBufferSize = Math.min(config.getTransactBufferSize(), negotiatedProtocol.getMaxTransactSize());
