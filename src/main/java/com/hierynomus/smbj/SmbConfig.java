@@ -177,7 +177,7 @@ public final class SmbConfig {
 
         public Builder withSocketFactory(SocketFactory socketFactory) {
             if (socketFactory == null) {
-                throw new IllegalArgumentException("Cannot set a null SocketFactory");
+                throw new IllegalArgumentException("Socket factory may not be null");
             }
             config.socketFactory = socketFactory;
             return this;
