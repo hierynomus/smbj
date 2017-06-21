@@ -27,7 +27,7 @@ import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.commons.socket.SocketClient;
-import com.hierynomus.smbj.Config;
+import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.common.SMBApiException;
@@ -68,18 +68,18 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
     private ConnectionInfo connectionInfo;
 
-    private Config config;
+    private SmbConfig config;
     private TransportLayer<SMB2Packet> transport;
     private final SMBEventBus bus;
     private PacketReader<SMB2Packet> packetReader;
     private final ReentrantLock lock = new ReentrantLock();
 
-    public Connection(Config config, SMBEventBus bus) {
+    public Connection(SmbConfig config, SMBEventBus bus) {
         this(config, new DirectTcpTransport<SMB2Packet>(), bus);
     }
 
-    private Connection(Config config, TransportLayer<SMB2Packet> transport, SMBEventBus bus) {
-        super(transport.getDefaultPort(), config.getSoTimeout());
+    private Connection(SmbConfig config, TransportLayer<SMB2Packet> transport, SMBEventBus bus) {
+        super(transport.getDefaultPort(), config.getSoTimeout(), config.getSocketFactory());
         this.config = config;
         this.transport = transport;
         this.bus = bus;
@@ -115,7 +115,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         super.disconnect();
     }
 
-    public Config getConfig() {
+    public SmbConfig getConfig() {
         return config;
     }
 

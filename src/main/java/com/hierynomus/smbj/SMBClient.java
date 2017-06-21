@@ -33,15 +33,15 @@ public class SMBClient {
 
     private Map<String, Connection> connectionTable = new ConcurrentHashMap<>();
 
-    private Config config;
+    private SmbConfig config;
 
     private SMBEventBus bus;
 
     public SMBClient() {
-        this(Config.createDefaultConfig());
+        this(SmbConfig.createDefaultConfig());
     }
 
-    public SMBClient(Config config) {
+    public SMBClient(SmbConfig config) {
         this.config = config;
         bus = new SMBEventBus();
     }

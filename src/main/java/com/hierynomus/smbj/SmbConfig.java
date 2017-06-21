@@ -17,17 +17,19 @@ package com.hierynomus.smbj;
 
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.protocol.commons.Factory;
+import com.hierynomus.protocol.commons.socket.ProxySocketFactory;
 import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.security.jce.JceSecurityProvider;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
 import com.hierynomus.smbj.auth.SpnegoAuthenticator;
 
+import javax.net.SocketFactory;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-public final class Config {
+public final class SmbConfig {
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 1024;
 
     private static final int DEFAULT_SO_TIMEOUT = 0;
@@ -38,6 +40,7 @@ public final class Config {
 
     private Set<SMB2Dialect> dialects;
     private List<Factory.Named<Authenticator>> authenticators;
+    private SocketFactory socketFactory;
     private Random random;
     private UUID clientGuid;
     private boolean signingRequired;
@@ -51,7 +54,7 @@ public final class Config {
 
     private int soTimeout;
 
-    public static Config createDefaultConfig() {
+    public static SmbConfig createDefaultConfig() {
         return builder().build();
     }
 
@@ -60,6 +63,7 @@ public final class Config {
             .withClientGuid(UUID.randomUUID())
             .withRandomProvider(new SecureRandom())
             .withSecurityProvider(new JceSecurityProvider())
+            .withSocketFactory(new ProxySocketFactory())
             .withSigningRequired(false)
             .withBufferSize(DEFAULT_BUFFER_SIZE)
             .withSoTimeout(DEFAULT_SO_TIMEOUT, DEFAULT_SO_TIMEOUT_UNIT)
@@ -69,15 +73,16 @@ public final class Config {
             .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT);
     }
 
-    private Config() {
+    private SmbConfig() {
         dialects = EnumSet.noneOf(SMB2Dialect.class);
         authenticators = new ArrayList<>();
     }
 
-    private Config(Config other) {
+    private SmbConfig(SmbConfig other) {
         this();
         dialects.addAll(other.dialects);
         authenticators.addAll(other.authenticators);
+        socketFactory = other.socketFactory;
         random = other.random;
         clientGuid = other.clientGuid;
         signingRequired = other.signingRequired;
@@ -143,11 +148,15 @@ public final class Config {
         return soTimeout;
     }
 
+    public SocketFactory getSocketFactory() {
+        return socketFactory;
+    }
+
     public static class Builder {
-        private Config config;
+        private SmbConfig config;
 
         Builder() {
-            config = new Config();
+            config = new SmbConfig();
         }
 
         public Builder withRandomProvider(Random random) {
@@ -163,6 +172,14 @@ public final class Config {
                 throw new IllegalArgumentException("Security provider may not be null");
             }
             config.securityProvider = securityProvider;
+            return this;
+        }
+
+        public Builder withSocketFactory(SocketFactory socketFactory) {
+            if (socketFactory == null) {
+                throw new IllegalArgumentException("Socket factory may not be null");
+            }
+            config.socketFactory = socketFactory;
             return this;
         }
 
@@ -288,11 +305,11 @@ public final class Config {
             return this;
         }
 
-        public Config build() {
+        public SmbConfig build() {
             if (config.dialects.isEmpty()) {
                 throw new IllegalStateException("At least one SMB dialect should be specified");
             }
-            return new Config(config);
+            return new SmbConfig(config);
         }
     }
 }
