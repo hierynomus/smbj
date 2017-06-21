@@ -18,9 +18,9 @@ package com.hierynomus.smbj.connection;
 import com.hierynomus.msdfsc.DFSSession;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.*;
+import com.hierynomus.mssmb2.messages.SMB2MessageConverter;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
-import com.hierynomus.mssmb2.messages.SMB2MessageConverter;
 import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.concurrent.Futures;
@@ -83,7 +83,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     }
 
     private Connection(Config config, SMBClient client, TransportLayer<SMB2Packet> transport, SMBEventBus bus) {
-        super(transport.getDefaultPort());
+        super(transport.getDefaultPort(), config.getSoTimeout());
         this.config = config;
         this.client = client;
         this.transport = transport;
@@ -92,7 +92,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     }
 
     public Connection(Connection connection) {
-        super(connection.defaultPort);
+        super(connection.defaultPort, connection.config.getSoTimeout());
         this.client = connection.client;
         this.config = connection.config;
         this.transport = connection.transport;

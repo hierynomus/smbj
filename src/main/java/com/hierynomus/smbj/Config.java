@@ -28,6 +28,7 @@ import java.util.*;
 
 public final class Config {
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 1024;
+    private static final int DEFAULT_SO_TIMEOUT = 0;
 
     private Set<SMB2Dialect> dialects;
     private List<Factory.Named<Authenticator>> authenticators;
@@ -39,6 +40,8 @@ public final class Config {
     private int readBufferSize;
     private int writeBufferSize;
     private int transactBufferSize;
+
+    private int soTimeout;
 
     public static Config createDefaultConfig() {
         return builder().build();
@@ -52,6 +55,7 @@ public final class Config {
             .withSigningRequired(false)
             .witDfsEnabled(true)
             .withBufferSize(DEFAULT_BUFFER_SIZE)
+            .withSoTimeout(DEFAULT_SO_TIMEOUT)
             .withDialects(SMB2Dialect.SMB_2_1, SMB2Dialect.SMB_2_0_2)
             // order is important.  The authenticators listed first will be selected
             .withAuthenticators(new SpnegoAuthenticator.Factory(), new NtlmAuthenticator.Factory());
@@ -74,6 +78,7 @@ public final class Config {
         readBufferSize = other.readBufferSize;
         writeBufferSize = other.writeBufferSize;
         transactBufferSize = other.transactBufferSize;
+        soTimeout = other.soTimeout;
     }
 
     public Random getRandomProvider() {
@@ -118,6 +123,10 @@ public final class Config {
 
     public int getTransactBufferSize() {
         return transactBufferSize;
+    }
+
+    public int getSoTimeout() {
+        return soTimeout;
     }
 
     public static class Builder {
@@ -227,6 +236,14 @@ public final class Config {
                 throw new IllegalArgumentException("Buffer size must be greater than zero");
             }
             return withReadBufferSize(bufferSize).withWriteBufferSize(bufferSize).withTransactBufferSize(bufferSize);
+        }
+
+        public Builder withSoTimeout(int soTimeout) {
+            if (soTimeout < 0) {
+                throw new IllegalArgumentException("Socket Timeout should be either 0 (no timeout) or a positive number expressed in milliseconds.");
+            }
+            config.soTimeout = soTimeout;
+            return this;
         }
 
         public Config build() {
