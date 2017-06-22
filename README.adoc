@@ -50,3 +50,5 @@ The implementation is based on the following specifications:
 - https://msdn.microsoft.com/en-us/library/cc231196.aspx[[MS-ERREF\]: Windows Error Codes]
 - https://msdn.microsoft.com/en-us/library/cc231987.aspx[[MS-FSCC\]: File System Control Codes]
 
+== Stress Test Tools
+https://github.com/NinjaChris16/smbj/blob/master/StressTests.md[Look at the following documentation for some tools to aid in stress testing your SMB implmentations]

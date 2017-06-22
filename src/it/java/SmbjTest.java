@@ -286,6 +286,7 @@ public class SmbjTest {
         return randomBytes;
     }
 
+    //Define Rpc?
     @Test
     public void testRpc() throws IOException, SMBApiException, URISyntaxException {
         logger.info("Connect {},{},{},{}", ci.host, ci.user, ci.domain, ci.sharePath);
@@ -401,14 +402,15 @@ public class SmbjTest {
     }
 
 
-    // Caution load whole files into memory
+    // Caution: load whole files into memory
     private void assertFileContent(String localResource, String downloadedFile)
             throws URISyntaxException, IOException {
         byte[] expectedBytes = Files.readAllBytes(Paths.get(this.getClass().getResource(localResource).toURI()));
         byte[] bytes = Files.readAllBytes(Paths.get(downloadedFile));
         assertArrayEquals(expectedBytes, bytes);
     }
-
+    
+    
     void write(DiskShare share, String remotePath, String localResource)
             throws IOException, SMBApiException {
         logger.debug("Writing {}, {} to {}", localResource, this.getClass().getResource(localResource), remotePath);
