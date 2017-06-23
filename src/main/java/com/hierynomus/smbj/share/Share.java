@@ -44,6 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class Share implements AutoCloseable {
     private static final EnumSet<NtStatus> SUCCESS = EnumSet.of(NtStatus.STATUS_SUCCESS);
     private static final EnumSet<NtStatus> SUCCESS_OR_NO_MORE_FILES = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_NO_MORE_FILES);
+    private static final EnumSet<NtStatus> SUCCESS_OR_EOF = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_END_OF_FILE);
 
     private final SmbPath smbPath;
     private final TreeConnect treeConnect;
@@ -190,7 +191,7 @@ public class Share implements AutoCloseable {
             readAsync(fileId, offset, length),
             "Read",
             fileId,
-            SUCCESS,
+            SUCCESS_OR_EOF,
             readTimeout
         );
     }

@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.share;
 
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
 import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
@@ -102,7 +103,7 @@ public class File extends DiskEntry {
      * Read data from this file starting at position fileOffset into the given buffer.
      * @param buffer the buffer to write into
      * @param fileOffset The offset, in bytes, into the file from which the data should be read
-     * @return the actual number of bytes that were read
+     * @return the actual number of bytes that were read; or -1 if the end of the file was reached
      */
     public int read(byte[] buffer, long fileOffset) throws IOException {
         return read(buffer, fileOffset, 0, buffer.length);
@@ -114,14 +115,22 @@ public class File extends DiskEntry {
      * @param fileOffset The offset, in bytes, into the file from which the data should be read
      * @param offset the start offset in the buffer at which to write data
      * @param length the maximum number of bytes to read
-     * @return the actual number of bytes that were read
+     * @return the actual number of bytes that were read; or -1 if the end of the file was reached
      */
     public int read(byte[] buffer, long fileOffset, int offset, int length) throws IOException {
         SMB2ReadResponse response = share.read(fileId, fileOffset, length);
-        byte[] data = response.getData();
-        int bytesRead = Math.min(length, data.length);
-        System.arraycopy(data, 0, buffer, offset, bytesRead);
-        return bytesRead;
+        if (response.getHeader().getStatus() == NtStatus.STATUS_END_OF_FILE) {
+            return -1;
+        } else {
+            byte[] data = response.getData();
+            int bytesRead = Math.min(length, data.length);
+            System.arraycopy(data, 0, buffer, offset, bytesRead);
+            return bytesRead;
+        }
+    }
+
+    Future<SMB2ReadResponse> readAsync(long offset, int length) {
+        return share.readAsync(fileId, offset, length);
     }
 
     public void read(OutputStream destStream) throws IOException {
@@ -144,10 +153,6 @@ public class File extends DiskEntry {
 
     public InputStream getInputStream(ProgressListener listener) {
         return new FileInputStream(this, share.getReadBufferSize(), share.getReadTimeout(), listener);
-    }
-
-    Future<SMB2ReadResponse> readAsync(long offset, int length) {
-        return share.readAsync(fileId, offset, length);
     }
 
     @Override
