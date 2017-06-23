@@ -271,6 +271,9 @@ public class DiskShare extends Share {
         if (recursive) {
             List<FileIdBothDirectoryInformation> list = list(path);
             for (FileIdBothDirectoryInformation fi : list) {
+	            if (fi.getFileName().equals(".") || fi.getFileName().equals("..")) {
+		            continue;
+	            }
                 String childPath = path + "\\" + fi.getFileName();
                 if (!EnumWithValue.EnumUtils.isSet(fi.getFileAttributes(), FILE_ATTRIBUTE_DIRECTORY)) {
                     rm(childPath);

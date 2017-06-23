@@ -32,13 +32,14 @@ public abstract class SocketClient {
     private InputStream input;
     private OutputStream output;
 
-    private SocketFactory socketFactory = new ProxySocketFactory();
+    private SocketFactory socketFactory;
 
     private int soTimeout = 0;
 
-    public SocketClient(int defaultPort, int soTimeout) {
+    public SocketClient(int defaultPort, int soTimeout, SocketFactory socketFactory) {
         this.defaultPort = defaultPort;
         this.soTimeout = soTimeout;
+        this.socketFactory = socketFactory;
     }
 
     public void connect(String hostname, int port) throws IOException {
@@ -86,14 +87,6 @@ public abstract class SocketClient {
 
     public boolean isConnected() {
         return (socket != null) && socket.isConnected();
-    }
-
-    public void setSocketFactory(SocketFactory factory) {
-        if (factory == null) {
-            socketFactory = new ProxySocketFactory();
-        } else {
-            socketFactory = factory;
-        }
     }
 
     public Socket getSocket() {

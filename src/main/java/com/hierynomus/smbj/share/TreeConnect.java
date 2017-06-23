@@ -29,6 +29,7 @@ import com.hierynomus.smbj.transport.TransportException;
 
 import java.util.Set;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -58,7 +59,7 @@ public class TreeConnect {
     void close() throws TransportException {
         SMB2TreeDisconnect disconnect = new SMB2TreeDisconnect(connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeId);
         Future<SMB2Packet> send = session.send(disconnect);
-        SMB2Packet smb2Packet = Futures.get(send, TransportException.Wrapper);
+        SMB2Packet smb2Packet = Futures.get(send, connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
         if (!smb2Packet.getHeader().getStatus().isSuccess()) {
             throw new SMBApiException(smb2Packet.getHeader(), "Error closing connection to " + smbPath);
         }

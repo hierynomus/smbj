@@ -25,8 +25,8 @@ import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.commons.socket.SocketClient;
-import com.hierynomus.smbj.Config;
 import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.common.SMBRuntimeException;
@@ -52,6 +52,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static com.hierynomus.mssmb2.SMB2Packet.SINGLE_CREDIT_PAYLOAD_SIZE;
@@ -72,18 +73,18 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         return client;
     }
 
-    private Config config;
+    private SmbConfig config;
     private TransportLayer<SMB2Packet> transport;
     private final SMBEventBus bus;
     private PacketReader<SMB2Packet> packetReader;
     private final ReentrantLock lock = new ReentrantLock();
 
-    public Connection(Config config, SMBClient client, SMBEventBus bus) {
+    public Connection(SmbConfig config, SMBClient client, SMBEventBus bus) {
         this(config, client, new DirectTcpTransport<SMB2Packet>(), bus);
     }
 
-    private Connection(Config config, SMBClient client, TransportLayer<SMB2Packet> transport, SMBEventBus bus) {
-        super(transport.getDefaultPort(), config.getSoTimeout());
+    private Connection(SmbConfig config, SMBClient client, TransportLayer<SMB2Packet> transport, SMBEventBus bus) {
+        super(transport.getDefaultPort(), config.getSoTimeout(), config.getSocketFactory());
         this.config = config;
         this.client = client;
         this.transport = transport;
@@ -92,7 +93,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     }
 
     public Connection(Connection connection) {
-        super(connection.defaultPort, connection.config.getSoTimeout());
+        super(connection.defaultPort, connection.config.getSoTimeout(), connection.config.getSocketFactory());
         this.client = connection.client;
         this.config = connection.config;
         this.transport = connection.transport;
@@ -129,7 +130,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         super.disconnect();
     }
 
-    public Config getConfig() {
+    public SmbConfig getConfig() {
         return config;
     }
 
@@ -186,7 +187,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
                 connectionInfo.getClientCapabilities());
         req.setSecurityBuffer(securityContext);
         req.getHeader().setSessionId(session.getSessionId());
-        return sendAndReceive(req);
+        return Futures.get(this.<SMB2SessionSetup>send(req), getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
     }
 
     private Authenticator getAuthenticator(AuthenticationContext context) throws IOException, SpnegoException {
@@ -239,7 +240,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
     }
 
     private <T extends SMB2Packet> T sendAndReceive(SMB2Packet packet) throws TransportException {
-        return Futures.get(this.<T>send(packet), TransportException.Wrapper);
+        return Futures.get(this.<T>send(packet), getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
     }
 
     private int calculateGrantedCredits(final SMB2Packet packet, final int availableCredits) {
@@ -264,7 +265,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         logger.debug("Negotiating dialects {} with server {}", config.getSupportedDialects(), getRemoteHostname());
         SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid(), config.isSigningRequired());
         Future<SMB2Packet> send = send(negotiatePacket);
-        SMB2Packet negotiateResponse = Futures.get(send, TransportException.Wrapper);
+        SMB2Packet negotiateResponse = Futures.get(send, getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
         if (!(negotiateResponse instanceof SMB2NegotiateResponse)) {
             throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + negotiateResponse);
         }
