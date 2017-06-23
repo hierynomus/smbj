@@ -22,9 +22,12 @@ class StubResponder {
   Map<Class, Queue<SMB2Packet>> responses = [:]
 
   def register(Class c, SMB2Packet response) {
-    def queue = responses.getOrDefault(c, new ArrayDeque<SMB2Packet>())
+    def queue = responses.get(c)
+    if (!queue) {
+      queue = new ArrayDeque<SMB2Packet>()
+      responses.put(c, queue)
+    }
     queue.add(response)
-    responses.put(c, queue)
   }
 
   SMB2Packet respond(Object o) {
