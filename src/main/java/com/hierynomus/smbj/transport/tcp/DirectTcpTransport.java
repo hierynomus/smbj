@@ -67,7 +67,7 @@ public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer
             try {
                 logger.debug("Writing packet {}", packet);
                 Buffer<?> packetData = handlers.getSerializer().write(packet);
-                writePacketSize(packetData.available());
+                writeDirectTcpPacketHeader(packetData.available());
                 writePacketData(packetData);
                 output.flush();
             } catch (IOException ioe) {
@@ -135,7 +135,7 @@ public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer
         output.write(packetData.array(), packetData.rpos(), packetData.available());
     }
 
-    private void writePacketSize(int size) throws IOException {
+    private void writeDirectTcpPacketHeader(int size) throws IOException {
         output.write(0);
         output.write((byte) (size >> 16));
         output.write((byte) (size >> 8));

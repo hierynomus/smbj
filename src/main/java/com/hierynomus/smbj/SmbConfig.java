@@ -298,7 +298,7 @@ public final class SmbConfig {
 
         public Builder withTransportLayerFactory(TransportLayerFactory<SMB2Packet> transportLayerFactory) {
             if (transportLayerFactory == null) {
-                throw new IllegalArgumentException("Transport mode may not be null");
+                throw new IllegalArgumentException("Transport layer factory may not be null");
             }
             config.transportLayerFactory = transportLayerFactory;
             return this;
