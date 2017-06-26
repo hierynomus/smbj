@@ -171,7 +171,7 @@ public final class SmbConfig {
             config = new SmbConfig();
         }
 
-		public Builder withRandomProvider(Random random) {
+        public Builder withRandomProvider(Random random) {
             if (random == null) {
                 throw new IllegalArgumentException("Random provider may not be null");
             }
