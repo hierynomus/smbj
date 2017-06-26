@@ -15,6 +15,13 @@
  */
 package com.hierynomus.smbj.connection;
 
-public enum TransportMode {
-	DIRECT_TCP_SYNC, DIRECT_TCP_ASYNC
+import com.hierynomus.protocol.Packet;
+import com.hierynomus.smbj.SmbConfig;
+import com.hierynomus.smbj.transport.PacketReceiver;
+import com.hierynomus.smbj.transport.TransportLayer;
+
+public interface TransportLayerFactory<P extends Packet<P, ?>> {
+
+    TransportLayer<P> createTransportLayer(PacketReceiver<P> receiver, SmbConfig config);
+
 }

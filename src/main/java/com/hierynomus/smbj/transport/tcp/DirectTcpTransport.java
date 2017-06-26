@@ -40,24 +40,24 @@ import com.hierynomus.smbj.transport.TransportLayer;
  */
 public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer<P> {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
-	private final PacketHandlers<P> handlers;
-	
+    private final PacketHandlers<P> handlers;
+
     private final ReentrantLock writeLock = new ReentrantLock();
-    
+
     private SocketFactory socketFactory = new ProxySocketFactory();
-	private int soTimeout;
+    private int soTimeout;
 
-	private Socket socket;
-	private BufferedOutputStream output;
-	private PacketReader<P> packetReaderThread;
-	
-	private static final int INITIAL_BUFFER_SIZE = 9000;
+    private Socket socket;
+    private BufferedOutputStream output;
+    private PacketReader<P> packetReaderThread;
 
-	public DirectTcpTransport(SocketFactory socketFactory, int soTimeout, PacketHandlers<P> handlers) {
-		this.soTimeout = soTimeout;
-		this.socketFactory = socketFactory;
-		this.handlers = handlers;
-	}
+    private static final int INITIAL_BUFFER_SIZE = 9000;
+
+    public DirectTcpTransport(SocketFactory socketFactory, int soTimeout, PacketHandlers<P> handlers) {
+        this.soTimeout = soTimeout;
+        this.socketFactory = socketFactory;
+        this.handlers = handlers;
+    }
 
     @Override
     public void write(P packet) throws TransportException {
@@ -81,32 +81,32 @@ public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer
 
     @Override
     public void connect(InetSocketAddress remoteAddress) throws IOException {
-    	String remoteHostname = remoteAddress.getHostString();
+        String remoteHostname = remoteAddress.getHostString();
         this.socket = socketFactory.createSocket(remoteHostname, remoteAddress.getPort());
-		initWithSocket(remoteHostname);
+        initWithSocket(remoteHostname);
     }
-    
+
     @Override
     public void connect(InetSocketAddress remoteAddress, InetSocketAddress localAddress) throws IOException {
         String remoteHostname = remoteAddress.getHostString();
         InetAddress localInetAddress = InetAddress.getByName(localAddress.getHostString());
-	    this.socket = socketFactory.createSocket(remoteHostname, remoteAddress.getPort(), localInetAddress, localAddress.getPort());
-	    initWithSocket(remoteHostname);
+        this.socket = socketFactory.createSocket(remoteHostname, remoteAddress.getPort(), localInetAddress, localAddress.getPort());
+        initWithSocket(remoteHostname);
     }
-    
+
     private void initWithSocket(String remoteHostname) throws IOException {
         this.socket.setSoTimeout(soTimeout);
         this.output = new BufferedOutputStream(this.socket.getOutputStream(), INITIAL_BUFFER_SIZE);
         packetReaderThread = new DirectTcpPacketReader<P>(remoteHostname, socket.getInputStream(), handlers.getPacketFactory(), handlers.getReceiver());
         packetReaderThread.start();
-	}
+    }
 
 
     @Override
-	public void disconnect() throws IOException {
+    public void disconnect() throws IOException {
         packetReaderThread.stop();
         if (socket.getInputStream() != null) {
-        	socket.getInputStream().close();
+            socket.getInputStream().close();
         }
         if (output != null) {
             output.close();
@@ -117,7 +117,7 @@ public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer
             socket = null;
         }
     }
-    
+
     @Override
     public boolean isConnected() {
         return (socket != null) && socket.isConnected();
@@ -125,21 +125,21 @@ public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer
 
     public void setSocketFactory(SocketFactory socketFactory) {
         this.socketFactory = socketFactory;
-	}
+    }
 
-	public void setSoTimeout(int soTimeout) {
-		this.soTimeout = soTimeout;
-	}
+    public void setSoTimeout(int soTimeout) {
+        this.soTimeout = soTimeout;
+    }
 
-	private void writePacketData(Buffer<?> packetData) throws IOException {
-		output.write(packetData.array(), packetData.rpos(), packetData.available());
-	}
+    private void writePacketData(Buffer<?> packetData) throws IOException {
+        output.write(packetData.array(), packetData.rpos(), packetData.available());
+    }
 
-	private void writePacketSize(int size) throws IOException {
-		output.write(0);
+    private void writePacketSize(int size) throws IOException {
+        output.write(0);
         output.write((byte) (size >> 16));
         output.write((byte) (size >> 8));
         output.write((byte) (size & 0xFF));
-	}
+    }
 
 }

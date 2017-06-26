@@ -62,7 +62,6 @@ import static java.lang.String.format;
  */
 public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
-    private static final SMBTransportFactory transportFactory = new SMBTransportFactory();
     private ConnectionInfo connectionInfo;
     private String remoteName;
 
@@ -73,7 +72,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
 
     public Connection(SmbConfig config, SMBEventBus bus) {
         this.config = config;
-        this.transport = transportFactory.createTransportLayer(this, config);
+        this.transport = config.getTransportLayerFactory().createTransportLayer(this, config);
         this.bus = bus;
         bus.subscribe(this);
     }

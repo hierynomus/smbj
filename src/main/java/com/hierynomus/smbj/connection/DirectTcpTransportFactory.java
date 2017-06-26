@@ -23,24 +23,13 @@ import com.hierynomus.smbj.transport.PacketReceiver;
 import com.hierynomus.smbj.transport.TransportLayer;
 import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
 
-/**
- * Creates an SMB-specific transport layer with the requested mode.
- */
-class SMBTransportFactory {
-	private static final SMB2MessageConverter converter = new SMB2MessageConverter();
+public class DirectTcpTransportFactory implements TransportLayerFactory<SMB2Packet> {
+    private static final SMB2MessageConverter converter = new SMB2MessageConverter();
 
-	public TransportLayer<SMB2Packet> createTransportLayer(PacketReceiver<SMB2Packet> receiver, SmbConfig config) {
-		switch (config.getTransportMode()) {
-		case DIRECT_TCP_SYNC:
-			return createDirectTcpSmbTransportLayer(receiver, config);
-		default:
-			throw new UnsupportedOperationException("Transport mode not supported: " + config.getTransportMode());
-		}
-	}
-
-	DirectTcpTransport<SMB2Packet> createDirectTcpSmbTransportLayer(PacketReceiver<SMB2Packet> receiver, SmbConfig config) {
-		PacketHandlers<SMB2Packet> handlers = new PacketHandlers<>(converter, receiver, converter);
-		return new DirectTcpTransport<SMB2Packet>(config.getSocketFactory(), config.getSoTimeout(), handlers);
-	}
+    @Override
+    public TransportLayer<SMB2Packet> createTransportLayer(PacketReceiver<SMB2Packet> receiver, SmbConfig config) {
+        PacketHandlers<SMB2Packet> handlers = new PacketHandlers<>(converter, receiver, converter);
+        return new DirectTcpTransport<SMB2Packet>(config.getSocketFactory(), config.getSoTimeout(), handlers);
+    }
 
 }

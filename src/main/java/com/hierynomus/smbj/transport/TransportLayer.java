@@ -31,22 +31,25 @@ public interface TransportLayer<P extends Packet<P, ?>> {
 
     /**
      * Connect to the remote side
+     * 
      * @param remoteAddress The remote address to connect to
      */
-	void connect(InetSocketAddress remoteAddress) throws IOException;
+    void connect(InetSocketAddress remoteAddress) throws IOException;
 
     /**
      * Connect to the remote side
+     * 
      * @param remoteAddress The remote address to connect to
      * @param localAddress The local address to use
      */
-	void connect(InetSocketAddress remoteAddress, InetSocketAddress localAddress) throws IOException;
+    void connect(InetSocketAddress remoteAddress, InetSocketAddress localAddress) throws IOException;
 
-	/**
-	 * Disconnect from the remote side
-	 * @throws IOException
-	 */
-	void disconnect() throws IOException;
+    /**
+     * Disconnect from the remote side
+     * 
+     * @throws IOException
+     */
+    void disconnect() throws IOException;
 
-	boolean isConnected();
+    boolean isConnected();
 }
