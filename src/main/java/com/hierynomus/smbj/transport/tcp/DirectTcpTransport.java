@@ -53,8 +53,9 @@ public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer
 	
 	private static final int INITIAL_BUFFER_SIZE = 9000;
 
-	public DirectTcpTransport(int soTimeout, PacketHandlers<P> handlers) {
+	public DirectTcpTransport(SocketFactory socketFactory, int soTimeout, PacketHandlers<P> handlers) {
 		this.soTimeout = soTimeout;
+		this.socketFactory = socketFactory;
 		this.handlers = handlers;
 	}
 
@@ -87,10 +88,10 @@ public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer
     
     @Override
     public void connect(InetSocketAddress remoteAddress, InetSocketAddress localAddress) throws IOException {
-    	String remoteHostname = remoteAddress.getHostString();
+        String remoteHostname = remoteAddress.getHostString();
         InetAddress localInetAddress = InetAddress.getByName(localAddress.getHostString());
-		this.socket = socketFactory.createSocket(remoteHostname, remoteAddress.getPort(), localInetAddress, localAddress.getPort());
-		initWithSocket(remoteHostname);
+	    this.socket = socketFactory.createSocket(remoteHostname, remoteAddress.getPort(), localInetAddress, localAddress.getPort());
+	    initWithSocket(remoteHostname);
     }
     
     private void initWithSocket(String remoteHostname) throws IOException {
@@ -103,7 +104,7 @@ public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer
 
     @Override
 	public void disconnect() throws IOException {
-    	packetReaderThread.stop();
+        packetReaderThread.stop();
         if (socket.getInputStream() != null) {
         	socket.getInputStream().close();
         }
@@ -117,8 +118,13 @@ public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer
         }
     }
     
-	public void setSocketFactory(SocketFactory socketFactory) {
-		this.socketFactory = socketFactory;
+    @Override
+    public boolean isConnected() {
+        return (socket != null) && socket.isConnected();
+    }
+
+    public void setSocketFactory(SocketFactory socketFactory) {
+        this.socketFactory = socketFactory;
 	}
 
 	public void setSoTimeout(int soTimeout) {

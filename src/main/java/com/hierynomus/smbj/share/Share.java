@@ -24,7 +24,7 @@ import com.hierynomus.msfscc.FileSystemInformationClass;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.*;
 import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.smbj.Config;
+import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Share implements AutoCloseable {
@@ -50,8 +51,11 @@ public class Share implements AutoCloseable {
     private final Session session;
     private final SMB2Dialect dialect;
     private final int readBufferSize;
+    private final long readTimeout;
     private final int writeBufferSize;
+    private final long writeTimeout;
     private final int transactBufferSize;
+    private final long transactTimeout;
     private final long sessionId;
     private final AtomicBoolean disconnected = new AtomicBoolean(false);
 
@@ -62,10 +66,13 @@ public class Share implements AutoCloseable {
         Connection connection = treeConnect.getConnection();
         NegotiatedProtocol negotiatedProtocol = connection.getNegotiatedProtocol();
         dialect = negotiatedProtocol.getDialect();
-        Config config = connection.getConfig();
+        SmbConfig config = connection.getConfig();
         readBufferSize = Math.min(config.getReadBufferSize(), negotiatedProtocol.getMaxReadSize());
+        readTimeout = config.getReadTimeout();
         writeBufferSize = Math.min(config.getWriteBufferSize(), negotiatedProtocol.getMaxWriteSize());
+        writeTimeout = config.getWriteTimeout();
         transactBufferSize = Math.min(config.getTransactBufferSize(), negotiatedProtocol.getMaxTransactSize());
+        transactTimeout = config.getTransactTimeout();
         sessionId = session.getSessionId();
         treeId = treeConnect.getTreeId();
     }
@@ -93,6 +100,10 @@ public class Share implements AutoCloseable {
         return readBufferSize;
     }
 
+    long getReadTimeout() {
+        return readTimeout;
+    }
+
     int getWriteBufferSize() {
         return writeBufferSize;
     }
@@ -113,7 +124,7 @@ public class Share implements AutoCloseable {
             path
         );
 
-        return sendReceive(cr, "Create", path, SUCCESS);
+        return sendReceive(cr, "Create", path, SUCCESS, transactTimeout);
     }
 
     void flush(SMB2FileId fileId) throws SMBApiException {
@@ -121,12 +132,12 @@ public class Share implements AutoCloseable {
             dialect,
             fileId
         );
-        sendReceive(flushReq, "Flush", fileId, SUCCESS);
+        sendReceive(flushReq, "Flush", fileId, SUCCESS, writeTimeout);
     }
 
     void closeFileId(SMB2FileId fileId) throws SMBApiException {
         SMB2Close closeReq = new SMB2Close(dialect, sessionId, treeId, fileId);
-        sendReceive(closeReq, "Close", fileId, SUCCESS);
+        sendReceive(closeReq, "Close", fileId, SUCCESS, transactTimeout);
     }
 
     SMB2QueryInfoResponse queryInfo(SMB2FileId fileId, SMB2QueryInfoRequest.SMB2QueryInfoType infoType, Set<SecurityInformation> securityInfo, FileInformationClass fileInformationClass, FileSystemInformationClass fileSystemInformationClass) {
@@ -136,7 +147,7 @@ public class Share implements AutoCloseable {
             fileId, infoType,
             fileInformationClass, fileSystemInformationClass, null, securityInfo
         );
-        return sendReceive(qreq, "QueryInfo", fileId, SUCCESS);
+        return sendReceive(qreq, "QueryInfo", fileId, SUCCESS, transactTimeout);
     }
 
     SMB2SetInfoResponse setInfo(SMB2FileId fileId, SMB2SetInfoRequest.SMB2InfoType infoType, Set<SecurityInformation> securityInfo, FileInformationClass fileInformationClass, byte[] buffer) {
@@ -146,7 +157,7 @@ public class Share implements AutoCloseable {
             infoType, fileId,
             fileInformationClass, securityInfo, buffer
         );
-        return sendReceive(qreq, "SetInfo", fileId, SUCCESS);
+        return sendReceive(qreq, "SetInfo", fileId, SUCCESS, transactTimeout);
     }
 
     SMB2QueryDirectoryResponse queryDirectory(SMB2FileId fileId, Set<SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags> flags, FileInformationClass informationClass, String searchPattern) {
@@ -160,7 +171,7 @@ public class Share implements AutoCloseable {
             transactBufferSize
         );
 
-        return sendReceive(qdr, "Query directory", fileId, SUCCESS_OR_NO_MORE_FILES);
+        return sendReceive(qdr, "Query directory", fileId, SUCCESS_OR_NO_MORE_FILES, transactTimeout);
     }
 
     SMB2WriteResponse write(SMB2FileId fileId, ByteChunkProvider provider) {
@@ -171,7 +182,7 @@ public class Share implements AutoCloseable {
             provider,
             writeBufferSize
         );
-        return sendReceive(wreq, "Write", fileId, SUCCESS);
+        return sendReceive(wreq, "Write", fileId, SUCCESS, writeTimeout);
     }
 
     SMB2ReadResponse read(SMB2FileId fileId, long offset, int length) {
@@ -179,7 +190,8 @@ public class Share implements AutoCloseable {
             readAsync(fileId, offset, length),
             "Read",
             fileId,
-            SUCCESS
+            SUCCESS,
+            readTimeout
         );
     }
 
@@ -194,9 +206,9 @@ public class Share implements AutoCloseable {
         return send(rreq);
     }
 
-    private <T extends SMB2Packet> T sendReceive(SMB2Packet request, String name, Object target, Set<NtStatus> successResponses) {
+    private <T extends SMB2Packet> T sendReceive(SMB2Packet request, String name, Object target, Set<NtStatus> successResponses, long timeout) {
         Future<T> fut = send(request);
-        return receive(fut, name, target, successResponses);
+        return receive(fut, name, target, successResponses, timeout);
     }
 
     private <T extends SMB2Packet> Future<T> send(SMB2Packet request) {
@@ -207,10 +219,10 @@ public class Share implements AutoCloseable {
         }
     }
 
-    private <T extends SMB2Packet> T receive(Future<T> fut, String name, Object target, Set<NtStatus> successResponses) {
+    private <T extends SMB2Packet> T receive(Future<T> fut, String name, Object target, Set<NtStatus> successResponses, long timeout) {
         T resp;
         try {
-            resp = Futures.get(fut, TransportException.Wrapper);
+            resp = Futures.get(fut, timeout, TimeUnit.MILLISECONDS, TransportException.Wrapper);
         } catch (TransportException e) {
             throw new SMBRuntimeException(e);
         }

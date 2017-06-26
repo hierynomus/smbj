@@ -275,6 +275,9 @@ public class DiskShare extends Share {
         if (recursive) {
             List<FileIdBothDirectoryInformation> list = list(path);
             for (FileIdBothDirectoryInformation fi : list) {
+	            if (fi.getFileName().equals(".") || fi.getFileName().equals("..")) {
+		            continue;
+	            }
                 String childPath = path + "\\" + fi.getFileName();
                 if (!EnumWithValue.EnumUtils.isSet(fi.getFileAttributes(), FILE_ATTRIBUTE_DIRECTORY)) {
                     rm(childPath);
@@ -337,13 +340,11 @@ public class DiskShare extends Share {
     public SecurityDescriptor getSecurityInfo(SMB2FileId fileId, Set<SecurityInformation> securityInfo) throws SMBApiException {
 
         byte[] outputBuffer = queryInfo(fileId, SMB2_0_INFO_SECURITY, securityInfo, null, null).getOutputBuffer();
-        SecurityDescriptor sd = new SecurityDescriptor();
         try {
-            sd.read(new SMBBuffer(outputBuffer));
+            return SecurityDescriptor.read(new SMBBuffer(outputBuffer));
         } catch (Buffer.BufferException e) {
             throw new SMBRuntimeException(e);
         }
-        return sd;
     }
 
     /**

@@ -25,7 +25,7 @@ import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.smbj.Config;
+import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.common.SMBApiException;
@@ -49,6 +49,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static com.hierynomus.mssmb2.SMB2Packet.SINGLE_CREDIT_PAYLOAD_SIZE;
@@ -65,12 +66,12 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
     private ConnectionInfo connectionInfo;
     private String remoteName;
 
-    private Config config;
+    private SmbConfig config;
     private TransportLayer<SMB2Packet> transport;
     private final SMBEventBus bus;
     private final ReentrantLock lock = new ReentrantLock();
 
-    public Connection(Config config, SMBEventBus bus) {
+    public Connection(SmbConfig config, SMBEventBus bus) {
         this.config = config;
         this.transport = transportFactory.createTransportLayer(this, config);
         this.bus = bus;
@@ -78,8 +79,8 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
     }
 
     public void connect(String hostname, int port) throws IOException {
-    	this.remoteName = hostname;
-    	transport.connect(new InetSocketAddress(hostname, port));
+        this.remoteName = hostname;
+        transport.connect(new InetSocketAddress(hostname, port));
         this.connectionInfo = new ConnectionInfo(config.getClientGuid(), hostname);
         negotiateDialect();
         logger.info("Successfully connected to: {}", getRemoteHostname());
@@ -98,7 +99,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
         transport.disconnect();
     }
 
-    public Config getConfig() {
+    public SmbConfig getConfig() {
         return config;
     }
 
@@ -146,7 +147,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
         SMB2SessionSetup req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED));
         req.setSecurityBuffer(securityContext);
         req.getHeader().setSessionId(session.getSessionId());
-        return sendAndReceive(req);
+        return Futures.get(this.<SMB2SessionSetup>send(req), getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
     }
 
     private Authenticator getAuthenticator(AuthenticationContext context) throws IOException {
@@ -199,7 +200,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
     }
 
     private <T extends SMB2Packet> T sendAndReceive(SMB2Packet packet) throws TransportException {
-        return Futures.get(this.<T>send(packet), TransportException.Wrapper);
+        return Futures.get(this.<T>send(packet), getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
     }
 
     private int calculateGrantedCredits(final SMB2Packet packet, final int availableCredits) {
@@ -224,7 +225,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
         logger.debug("Negotiating dialects {} with server {}", config.getSupportedDialects(), getRemoteHostname());
         SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid(), config.isSigningRequired());
         Future<SMB2Packet> send = send(negotiatePacket);
-        SMB2Packet negotiateResponse = Futures.get(send, TransportException.Wrapper);
+        SMB2Packet negotiateResponse = Futures.get(send, getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
         if (!(negotiateResponse instanceof SMB2NegotiateResponse)) {
             throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + negotiateResponse);
         }
@@ -324,6 +325,10 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
     	return remoteName;
     }
 
+    public boolean isConnected() {
+    	return transport.isConnected();
+    }
+    
     @Handler
     @SuppressWarnings("unused")
     private void sessionLogoff(SessionLoggedOff loggedOff) {

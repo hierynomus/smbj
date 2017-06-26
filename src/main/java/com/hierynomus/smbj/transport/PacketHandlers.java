@@ -18,30 +18,31 @@ package com.hierynomus.smbj.transport;
 import com.hierynomus.protocol.Packet;
 
 /**
- * Groups together all the various handlers involved in dealing with packets of type P.
+ * Groups together all the various handlers involved in dealing with packets of
+ * type P.
  */
 public class PacketHandlers<P extends Packet<P, ?>> {
-	private final PacketSerializer<P> serializer;
-	private final PacketReceiver<P> receiver;
-	private final PacketFactory<P> packetFactory;
+    private final PacketSerializer<P> serializer;
+    private final PacketReceiver<P> receiver;
+    private final PacketFactory<P> packetFactory;
 
-	public PacketHandlers(PacketSerializer<P> serializer, PacketReceiver<P> receiver, PacketFactory<P> packetFactory) {
-		super();
-		this.serializer = serializer;
-		this.receiver = receiver;
-		this.packetFactory = packetFactory;
-	}
+    public PacketHandlers(PacketSerializer<P> serializer, PacketReceiver<P> receiver, PacketFactory<P> packetFactory) {
+        super();
+        this.serializer = serializer;
+        this.receiver = receiver;
+        this.packetFactory = packetFactory;
+    }
 
-	public PacketSerializer<P> getSerializer() {
-		return serializer;
-	}
+    public PacketSerializer<P> getSerializer() {
+        return serializer;
+    }
 
-	public PacketReceiver<P> getReceiver() {
-		return receiver;
-	}
+    public PacketReceiver<P> getReceiver() {
+        return receiver;
+    }
 
-	public PacketFactory<P> getPacketFactory() {
-		return packetFactory;
-	}
+    public PacketFactory<P> getPacketFactory() {
+        return packetFactory;
+    }
 
 }
