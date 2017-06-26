@@ -22,11 +22,9 @@ import com.hierynomus.mssmb2.SMB2MessageFlag;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
-import com.hierynomus.mssmb2.messages.SMB2MessageConverter;
 import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.protocol.commons.socket.SocketClient;
 import com.hierynomus.smbj.Config;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
@@ -35,12 +33,9 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.transport.PacketReader;
 import com.hierynomus.smbj.transport.PacketReceiver;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.smbj.transport.TransportLayer;
-import com.hierynomus.smbj.transport.tcp.DirectTcpPacketReader;
-import com.hierynomus.smbj.transport.tcp.DirectTcpTransport;
 import com.hierynomus.spnego.NegTokenInit;
 import net.engio.mbassy.listener.Handler;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
@@ -48,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -63,39 +59,28 @@ import static java.lang.String.format;
 /**
  * A connection to a server.
  */
-public class Connection extends SocketClient implements AutoCloseable, PacketReceiver<SMB2Packet> {
+public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
+    private static final SMBTransportFactory transportFactory = new SMBTransportFactory();
     private ConnectionInfo connectionInfo;
+    private String remoteName;
 
     private Config config;
     private TransportLayer<SMB2Packet> transport;
     private final SMBEventBus bus;
-    private PacketReader<SMB2Packet> packetReader;
     private final ReentrantLock lock = new ReentrantLock();
 
     public Connection(Config config, SMBEventBus bus) {
-        this(config, new DirectTcpTransport<SMB2Packet>(), bus);
-    }
-
-    private Connection(Config config, TransportLayer<SMB2Packet> transport, SMBEventBus bus) {
-        super(transport.getDefaultPort(), config.getSoTimeout());
         this.config = config;
-        this.transport = transport;
+        this.transport = transportFactory.createTransportLayer(this, config);
         this.bus = bus;
         bus.subscribe(this);
     }
 
-    /**
-     * On connection establishment, also initializes the transport via {@link DirectTcpTransport#init}.
-     */
-    @Override
-    protected void onConnect() throws IOException {
-        super.onConnect();
-        this.connectionInfo = new ConnectionInfo(config.getClientGuid(), getRemoteHostname());
-        SMB2MessageConverter smb2MessageConverter = new SMB2MessageConverter();
-        packetReader = new DirectTcpPacketReader<>(getRemoteHostname(), getInputStream(), smb2MessageConverter, this);
-        packetReader.start();
-        transport.init(getInputStream(), getOutputStream(), smb2MessageConverter);
+    public void connect(String hostname, int port) throws IOException {
+    	this.remoteName = hostname;
+    	transport.connect(new InetSocketAddress(hostname, port));
+        this.connectionInfo = new ConnectionInfo(config.getClientGuid(), hostname);
         negotiateDialect();
         logger.info("Successfully connected to: {}", getRemoteHostname());
     }
@@ -109,9 +94,8 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
                 logger.warn("Exception while closing session {}", session.getSessionId(), e);
             }
         }
-        packetReader.stop();
         logger.info("Closed connection to {}", getRemoteHostname());
-        super.disconnect();
+        transport.disconnect();
     }
 
     public Config getConfig() {
@@ -146,7 +130,7 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
                     // process the last received buffer
                     authenticator.authenticate(authContext, receive.getSecurityBuffer(), session);
                 }
-                logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), getRemoteHostname(), session.getSessionId());
+                logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), remoteName, session.getSessionId());
                 connectionInfo.getSessionTable().registerSession(session.getSessionId(), session);
                 return session;
             } finally {
@@ -336,6 +320,9 @@ public class Connection extends SocketClient implements AutoCloseable, PacketRec
         }
     }
 
+    public String getRemoteHostname() {
+    	return remoteName;
+    }
 
     @Handler
     @SuppressWarnings("unused")

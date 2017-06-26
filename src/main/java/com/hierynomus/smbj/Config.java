@@ -22,6 +22,7 @@ import com.hierynomus.security.jce.JceSecurityProvider;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
 import com.hierynomus.smbj.auth.SpnegoAuthenticator;
+import com.hierynomus.smbj.connection.TransportMode;
 
 import java.security.SecureRandom;
 import java.util.*;
@@ -39,6 +40,7 @@ public final class Config {
     private int readBufferSize;
     private int writeBufferSize;
     private int transactBufferSize;
+    private TransportMode transportMode;
 
     private int soTimeout;
 
@@ -53,6 +55,7 @@ public final class Config {
             .withSecurityProvider(new JceSecurityProvider())
             .withSigningRequired(false)
             .withBufferSize(DEFAULT_BUFFER_SIZE)
+            .withTransportMode(TransportMode.DIRECT_TCP_SYNC)
             .withSoTimeout(DEFAULT_SO_TIMEOUT)
             .withDialects(SMB2Dialect.SMB_2_1, SMB2Dialect.SMB_2_0_2)
             // order is important.  The authenticators listed first will be selected
@@ -75,6 +78,7 @@ public final class Config {
         readBufferSize = other.readBufferSize;
         writeBufferSize = other.writeBufferSize;
         transactBufferSize = other.transactBufferSize;
+        transportMode = other.transportMode;
         soTimeout = other.soTimeout;
     }
 
@@ -114,6 +118,10 @@ public final class Config {
         return transactBufferSize;
     }
 
+    public TransportMode getTransportMode() {
+        return transportMode;
+    }
+
     public int getSoTimeout() {
         return soTimeout;
     }
@@ -125,7 +133,7 @@ public final class Config {
             config = new Config();
         }
 
-        public Builder withRandomProvider(Random random) {
+		public Builder withRandomProvider(Random random) {
             if (random == null) {
                 throw new IllegalArgumentException("Random provider may not be null");
             }
@@ -226,6 +234,14 @@ public final class Config {
             }
             return withReadBufferSize(bufferSize).withWriteBufferSize(bufferSize).withTransactBufferSize(bufferSize);
         }
+
+        public Builder withTransportMode(TransportMode transportMode) {
+        	if (transportMode == null) {
+        		throw new IllegalArgumentException("Transport mode may not be null");
+        	}
+			config.transportMode = transportMode;
+			return this;
+		}
 
         public Builder withSoTimeout(int soTimeout) {
             if (soTimeout < 0) {
