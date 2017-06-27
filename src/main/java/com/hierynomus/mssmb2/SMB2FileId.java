@@ -28,7 +28,7 @@ public class SMB2FileId {
 
     private byte[] volatileHandle;
 
-    private SMB2FileId(byte[] persistentHandle, byte[] volatileHandle) {
+    public SMB2FileId(byte[] persistentHandle, byte[] volatileHandle) {
         this.persistentHandle = persistentHandle;
         this.volatileHandle = volatileHandle;
     }

@@ -20,6 +20,7 @@ import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
 import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
 import com.hierynomus.smbj.ProgressListener;
+import com.hierynomus.smbj.io.ArrayByteChunkProvider;
 import com.hierynomus.smbj.io.ByteChunkProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +35,7 @@ public class File extends DiskEntry {
     private static final Logger logger = LoggerFactory.getLogger(File.class);
 
     File(SMB2FileId fileId, DiskShare diskShare, String fileName) {
-        super(diskShare, fileId, fileName);
+        super(fileId, diskShare, fileName);
     }
 
     /**
@@ -43,7 +44,7 @@ public class File extends DiskEntry {
      * @param fileOffset The offset, in bytes, into the file to which the data should be written
      * @return the actual number of bytes that was written to the file
      */
-    public int write(byte[] buffer, long fileOffset) throws IOException {
+    public int write(byte[] buffer, long fileOffset) {
         return write(buffer, fileOffset, 0, buffer.length);
     }
 
@@ -55,7 +56,7 @@ public class File extends DiskEntry {
      * @param length the number of bytes that are written
      * @return the actual number of bytes that was written to the file
      */
-    public int write(byte[] buffer, long fileOffset, int offset, int length) throws IOException {
+    public int write(byte[] buffer, long fileOffset, int offset, int length) {
         return write(new ArrayByteChunkProvider(buffer, offset, length, fileOffset), null);
     }
 
@@ -65,7 +66,7 @@ public class File extends DiskEntry {
      * @param provider the byte chunk provider
      * @return the actual number of bytes that was written to the file
      */
-    public int write(ByteChunkProvider provider) throws IOException {
+    public int write(ByteChunkProvider provider) {
         return write(provider, null);
     }
 
@@ -105,7 +106,7 @@ public class File extends DiskEntry {
      * @param fileOffset The offset, in bytes, into the file from which the data should be read
      * @return the actual number of bytes that were read; or -1 if the end of the file was reached
      */
-    public int read(byte[] buffer, long fileOffset) throws IOException {
+    public int read(byte[] buffer, long fileOffset) {
         return read(buffer, fileOffset, 0, buffer.length);
     }
 
@@ -117,7 +118,7 @@ public class File extends DiskEntry {
      * @param length the maximum number of bytes to read
      * @return the actual number of bytes that were read; or -1 if the end of the file was reached
      */
-    public int read(byte[] buffer, long fileOffset, int offset, int length) throws IOException {
+    public int read(byte[] buffer, long fileOffset, int offset, int length) {
         SMB2ReadResponse response = share.read(fileId, fileOffset, length);
         if (response.getHeader().getStatus() == NtStatus.STATUS_END_OF_FILE) {
             return -1;
@@ -163,40 +164,4 @@ public class File extends DiskEntry {
             '}';
     }
 
-    private static class ArrayByteChunkProvider extends ByteChunkProvider {
-
-        private final byte[] data;
-        private int bufferOffset;
-        private int remaining;
-
-        ArrayByteChunkProvider(byte[] data, int offset, int length, long fileOffset) {
-            this.data = data;
-            this.offset = fileOffset;
-            this.bufferOffset = offset;
-            this.remaining = length;
-        }
-
-        @Override
-        public boolean isAvailable() {
-            return remaining > 0;
-        }
-
-        @Override
-        protected int getChunk(byte[] chunk) throws IOException {
-            int write = chunk.length;
-            if (write > remaining) {
-                write = remaining;
-            }
-            System.arraycopy(data, bufferOffset, chunk, 0, write);
-            bufferOffset += write;
-            remaining -= write;
-
-            return write;
-        }
-
-        @Override
-        public int bytesLeft() {
-            return remaining;
-        }
-    }
 }

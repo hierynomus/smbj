@@ -30,7 +30,7 @@ import java.util.*;
 
 public class Directory extends DiskEntry implements Iterable<FileIdBothDirectoryInformation> {
     Directory(SMB2FileId fileId, DiskShare diskShare, String fileName) {
-        super(diskShare, fileId, fileName);
+        super(fileId, diskShare, fileName);
     }
 
     /**
