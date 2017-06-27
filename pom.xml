@@ -1,0 +1,74 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+   <groupId>com.hierynomus</groupId>
+   <artifactId>smbj</artifactId>
+   <version>0.0.9-SNAPSHOT</version>
+   <name>dcerpc</name>
+   <properties>
+      <thirdparty.bouncycastle.version>1.57</thirdparty.bouncycastle.version>
+      <thirdparty.commons-io.version>2.5</thirdparty.commons-io.version>
+      <thirdparty.commons-lang3.version>3.4</thirdparty.commons-lang3.version>
+      <thirdparty.guava.version>18.0</thirdparty.guava.version>
+      <thirdparty.hamcrest.version>1.3</thirdparty.hamcrest.version>
+      <thirdparty.junit.version>4.12</thirdparty.junit.version>
+      <thirdparty.mbassador.version>1.2.4.2</thirdparty.mbassador.version>
+      <thirdparty.mockito.version>1.10.19</thirdparty.mockito.version>
+      <thirdparty.slf4j.version>1.7.25</thirdparty.slf4j.version>
+      <maven.compiler.target>1.7</maven.compiler.target>
+      <maven.compiler.source>1.7</maven.compiler.source>
+   </properties>
+   <dependencies>
+      <!-- 3rdparty dependencies. -->
+      <dependency>
+         <groupId>org.bouncycastle</groupId>
+         <artifactId>bcprov-jdk15on</artifactId>
+         <version>${thirdparty.bouncycastle.version}</version>
+      </dependency>
+      <dependency>
+         <groupId>commons-io</groupId>
+         <artifactId>commons-io</artifactId>
+         <version>${thirdparty.commons-io.version}</version>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.commons</groupId>
+         <artifactId>commons-lang3</artifactId>
+         <version>${thirdparty.commons-lang3.version}</version>
+      </dependency>
+      <dependency>
+         <groupId>com.google.guava</groupId>
+         <artifactId>guava</artifactId>
+         <version>${thirdparty.guava.version}</version>
+      </dependency>
+      <dependency>
+         <groupId>net.engio</groupId>
+         <artifactId>mbassador</artifactId>
+         <version>${thirdparty.mbassador.version}</version>
+      </dependency>
+      <dependency>
+         <groupId>org.slf4j</groupId>
+         <artifactId>slf4j-simple</artifactId>
+         <version>${thirdparty.slf4j.version}</version>
+      </dependency>
+
+      <!-- Test dependencies. -->
+      <!-- 3rdparty dependencies. -->
+      <dependency>
+         <groupId>org.hamcrest</groupId>
+         <artifactId>hamcrest-all</artifactId>
+         <version>${thirdparty.hamcrest.version}</version>
+         <scope>test</scope>
+      </dependency>
+      <dependency>
+         <groupId>junit</groupId>
+         <artifactId>junit</artifactId>
+         <version>${thirdparty.junit.version}</version>
+         <scope>test</scope>
+      </dependency>
+      <dependency>
+         <groupId>org.mockito</groupId>
+         <artifactId>mockito-core</artifactId>
+         <version>${thirdparty.mockito.version}</version>
+         <scope>test</scope>
+      </dependency>
+   </dependencies>
+</project>
