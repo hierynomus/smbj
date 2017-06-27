@@ -131,6 +131,7 @@ public class AsyncDirectTcpTransport<P extends Packet<P, ?>> implements Transpor
         toSend.order(ByteOrder.BIG_ENDIAN);
         toSend.putInt(packetData.available());
         toSend.put(packetData.array(), packetData.rpos(), packetData.available());
+        toSend.flip();
         try {
             packetData.skip(dataSize);
         } catch (BufferException e) {

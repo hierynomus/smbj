@@ -102,11 +102,13 @@ public class AsyncPacketReader<P extends Packet<P, ?>> {
             handleEndOfData();
             return; // don't try to read more data
         }
+        readBuffer.flip();
         if (isAwaitingHeader()) {
             readPacketHeaderAndBody(bytesRead);
         } else {
             readPacketBody(bytesRead);
         }
+        readBuffer.flip();
         initiateNextRead();
     }
 
