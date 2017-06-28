@@ -30,7 +30,7 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.valueOf;
  */
 public class SMB2IoctlResponse extends SMB2Packet {
 
-    private SMB2IoctlRequest.ControlCode controlCode;
+    private int controlCode;
     private SMB2FileId fileId;
 
     byte[] inputBuffer;
@@ -47,7 +47,7 @@ public class SMB2IoctlResponse extends SMB2Packet {
 
         buffer.skip(2); // StructureSize (2 bytes)
         buffer.skip(2); // Reserved (2 bytes)
-        controlCode = valueOf(buffer.readUInt32(), SMB2IoctlRequest.ControlCode.class, null); // CtlCode (4 bytes)
+        controlCode = buffer.readUInt32AsInt(); // CtlCode (4 bytes)
         fileId = SMB2FileId.read(buffer); // FileId (16 bytes)
 
         int inputOffset = buffer.readUInt32AsInt(); // Input Offset (4 bytes)

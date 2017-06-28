@@ -30,7 +30,9 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.connection.NegotiatedProtocol;
+import com.hierynomus.smbj.io.ArrayByteChunkProvider;
 import com.hierynomus.smbj.io.ByteChunkProvider;
+import com.hierynomus.smbj.io.EmptyByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.TransportException;
 
@@ -42,8 +44,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Share implements AutoCloseable {
+    private static final SMB2FileId ROOT_ID = new SMB2FileId(
+        new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF},
+        new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF}
+    );
+
     private static final EnumSet<NtStatus> SUCCESS = EnumSet.of(NtStatus.STATUS_SUCCESS);
     private static final EnumSet<NtStatus> SUCCESS_OR_NO_MORE_FILES = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_NO_MORE_FILES);
+    private static final EnumSet<NtStatus> SUCCESS_OR_EOF = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_END_OF_FILE);
 
     private final SmbPath smbPath;
     private final TreeConnect treeConnect;
@@ -190,7 +198,7 @@ public class Share implements AutoCloseable {
             readAsync(fileId, offset, length),
             "Read",
             fileId,
-            SUCCESS,
+            SUCCESS_OR_EOF,
             readTimeout
         );
     }
@@ -206,6 +214,98 @@ public class Share implements AutoCloseable {
         return send(rreq);
     }
 
+    private static final EmptyByteChunkProvider EMPTY = new EmptyByteChunkProvider(0);
+
+    /**
+     * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
+     * corresponding operation.
+     *
+     * @param ctlCode  the control code
+     * @param isFsCtl  true if the control code is an FSCTL; false if it is an IOCTL
+     * @param inData   the control code dependent input data
+     * @param inOffset the offset in <code>inData</code> where the input data starts
+     * @param inLength the number of bytes from <code>inData</code> to send, starting at <code>offset</code>
+     * @return the response data or <code>null</code> if the control code did not produce a response
+     */
+    public byte[] ioctl(int ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength) {
+        return ioctl(ROOT_ID, ctlCode, isFsCtl, inData, inOffset, inLength);
+    }
+
+    /**
+     * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
+     * corresponding operation.
+     *
+     * @param ctlCode  the control code
+     * @param isFsCtl  true if the control code is an FSCTL; false if it is an IOCTL
+     * @param inData   the control code dependent input data
+     * @param inOffset the offset in <code>inData</code> where the input data starts
+     * @param inLength the number of bytes from <code>inData</code> to send, starting at <code>inOffset</code>
+     * @param outData   the buffer where the response data should be written
+     * @param outOffset the offset in <code>outData</code> where the output data should be written
+     * @param outLength the maximum amount of data to write in <code>outData</code>, starting at <code>outOffset</code>
+     * @return the number of bytes written to <code>outData</code>
+     */
+    public int ioctl(int ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength, byte[] outData, int outOffset, int outLength) {
+        return ioctl(ROOT_ID, ctlCode, isFsCtl, inData, inOffset, inLength, outData, outOffset, outLength);
+    }
+
+    byte[] ioctl(SMB2FileId fileId, int ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength) {
+        return ioctl(fileId, ctlCode, isFsCtl, inData, inOffset, inLength, -1);
+    }
+
+    byte[] ioctl(SMB2FileId fileId, int ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength, int maxOutputResponse) {
+        SMB2IoctlResponse response = ioctl(fileId, ctlCode, isFsCtl, new ArrayByteChunkProvider(inData, inOffset, inLength, 0), maxOutputResponse);
+        return response.getOutputBuffer();
+    }
+
+    int ioctl(SMB2FileId fileId, int ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength, byte[] outData, int outOffset, int outLength) {
+        SMB2IoctlResponse response = ioctl(fileId, ctlCode, isFsCtl, new ArrayByteChunkProvider(inData, inOffset, inLength, 0), outLength);
+        int length = 0;
+        if (outData != null) {
+            byte[] outputBuffer = response.getOutputBuffer();
+            length = Math.min(outLength, outputBuffer.length);
+            System.arraycopy(outputBuffer, 0, outData, outOffset, length);
+        }
+        return length;
+    }
+
+    private SMB2IoctlResponse ioctl(SMB2FileId fileId, int ctlCode, boolean isFsCtl, ByteChunkProvider inputData, int maxOutputResponse) {
+        Future<SMB2IoctlResponse> fut = ioctlAsync(fileId, ctlCode, isFsCtl, inputData, maxOutputResponse);
+        return receive(fut, "IOCTL", fileId, SUCCESS, transactTimeout);
+    }
+
+    Future<SMB2IoctlResponse> ioctlAsync(int ctlCode, boolean isFsCtl, ByteChunkProvider inputData) {
+        return ioctlAsync(ROOT_ID, ctlCode, isFsCtl, inputData, -1);
+    }
+
+    private Future<SMB2IoctlResponse> ioctlAsync(SMB2FileId fileId, int ctlCode, boolean isFsCtl, ByteChunkProvider inputData, int maxOutputResponse) {
+        ByteChunkProvider inData = inputData == null ? EMPTY : inputData;
+
+        if (inData.bytesLeft() > transactBufferSize) {
+            throw new SMBRuntimeException("Input data size exceeds maximum allowed by server: " + inData.bytesLeft() + " > " + transactBufferSize);
+        }
+
+        int maxResponse;
+        if (maxOutputResponse < 0) {
+            maxResponse = transactBufferSize;
+        } else if (maxOutputResponse > transactBufferSize) {
+            throw new SMBRuntimeException("Output data size exceeds maximum allowed by server: " + maxOutputResponse + " > " + transactBufferSize);
+        } else {
+            maxResponse = maxOutputResponse;
+        }
+
+        SMB2IoctlRequest ioreq = new SMB2IoctlRequest(
+            dialect,
+            sessionId, treeId,
+            ctlCode,
+            fileId,
+            inData,
+            isFsCtl,
+            maxResponse
+        );
+        return send(ioreq);
+    }
+
     private <T extends SMB2Packet> T sendReceive(SMB2Packet request, String name, Object target, Set<NtStatus> successResponses, long timeout) {
         Future<T> fut = send(request);
         return receive(fut, name, target, successResponses, timeout);
@@ -219,17 +319,26 @@ public class Share implements AutoCloseable {
         }
     }
 
-    private <T extends SMB2Packet> T receive(Future<T> fut, String name, Object target, Set<NtStatus> successResponses, long timeout) {
-        T resp;
-        try {
-            resp = Futures.get(fut, timeout, TimeUnit.MILLISECONDS, TransportException.Wrapper);
-        } catch (TransportException e) {
-            throw new SMBRuntimeException(e);
-        }
+    <T extends SMB2Packet> T receive(Future<T> fut, String name, Object target, Set<NtStatus> successResponses, long timeout) {
+        T resp = receive(fut, timeout);
 
         NtStatus status = resp.getHeader().getStatus();
         if (!successResponses.contains(status)) {
             throw new SMBApiException(resp.getHeader(), name + " failed for " + target);
+        }
+        return resp;
+    }
+
+    <T extends SMB2Packet> T receive(Future<T> fut, long timeout) {
+        T resp;
+        try {
+            if (timeout > 0) {
+                resp = Futures.get(fut, timeout, TimeUnit.MILLISECONDS, TransportException.Wrapper);
+            } else {
+                resp = Futures.get(fut, TransportException.Wrapper);
+            }
+        } catch (TransportException e) {
+            throw new SMBRuntimeException(e);
         }
         return resp;
     }
