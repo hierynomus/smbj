@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.transport.tcp;
+package com.hierynomus.smbj.lock;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -23,11 +23,12 @@ import java.util.concurrent.locks.ReentrantLock;
  * by a different thread.
  */
 public class CrossThreadLock {
+    private static final long FOREVER_MILLIS = 0xfffffffffffffffL;
     boolean isLocked = false;
 
     public void lock() {
         try {
-            tryLock(0xfffffffffffffffL, TimeUnit.MILLISECONDS);
+            tryLock(FOREVER_MILLIS, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -56,16 +57,21 @@ public class CrossThreadLock {
     public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
         long millisRemaining = unit.convert(time, TimeUnit.MILLISECONDS);
         long upToTime = System.currentTimeMillis() + millisRemaining;
-        synchronized (this) {
-            while (isLocked) {
+        while (millisRemaining > 0) {
+            synchronized (this) {
                 millisRemaining = upToTime - System.currentTimeMillis();
                 if (millisRemaining < 0) {
-                    return false; // out of time
+                    return false; // ran out of time while waiting to synchronize
                 }
-                this.wait(millisRemaining);
+                if (!isLocked) {
+                    isLocked = true;
+                    return true;
+                }
+                if (millisRemaining > 0) {
+                    this.wait(millisRemaining);
+                }
             }
-            isLocked = true;
-            return true;
         }
+        return false;
     }
 }
