@@ -17,6 +17,8 @@ package com.hierynomus.smbj.connection;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.messages.SMB2MessageConverter;
@@ -46,4 +48,29 @@ public class AsyncDirectTcpTransportFactory implements TransportLayerFactory<SMB
         this.group = group;
     }
     
+    /**
+     * Convenience method for setting up a just single thread that will do all
+     * asynchronous I/O, unlike the default configuration which spins up
+     * multiple I/O processing threads. Using this group makes it easier to
+     * understand which thread does what when debugging.
+     */
+    public void setChannelGroupWithSingleThread(String threadName) {
+        ExecutorService executor = createSingleThreadExecutor(threadName);
+        try {
+            this.setGroup(AsynchronousChannelGroup.withThreadPool(executor));
+        } catch (IOException e) {
+            throw new RuntimeException(e); // local server is choking?
+        }
+    }
+
+    private ExecutorService createSingleThreadExecutor(final String threadName) {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.submit(new Runnable() {
+            @Override
+            public void run() {
+                Thread.currentThread().setName(threadName);
+            }
+        });
+        return executor;
+    }
 }
