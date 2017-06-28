@@ -19,6 +19,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.concurrent.TimeUnit;
@@ -77,8 +78,10 @@ public class AsyncPacketReader<P extends Packet<P, ?>> {
 
     private void initiateNextRead() {
         if (stopped.get()) {
-            logger.debug("Stopped, not initiating another read operation.");
+            logger.trace("Stopped, not initiating another read operation.");
+            return;
         }
+        logger.trace("Initiating next read");
         channel.read(readBuffer, this.soTimeout, TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer, Object>() {
             @Override
             public void completed(Integer bytesRead, Object attachment) {
@@ -98,17 +101,19 @@ public class AsyncPacketReader<P extends Packet<P, ?>> {
     }
 
     private void readPacket(int bytesRead) throws TransportException {
+        logger.trace("Received {} bytes", bytesRead);
         if (bytesRead < 0) {
             handleEndOfData();
             return; // don't try to read more data
         }
-        readBuffer.flip();
+        readBuffer.flip(); // prepare to process received data
         if (isAwaitingHeader()) {
             readPacketHeaderAndBody(bytesRead);
         } else {
             readPacketBody(bytesRead);
         }
-        readBuffer.flip();
+        logger.trace("{} bytes remaining in read buffer", readBuffer.remaining());
+        readBuffer.compact(); // prepare to receive more data
         initiateNextRead();
     }
 
@@ -139,7 +144,7 @@ public class AsyncPacketReader<P extends Packet<P, ?>> {
         P packet;
         try {
             packet = packetFactory.read(buf);
-            logger.debug("Received packet << {} >>", packet);
+            logger.trace("Received packet << {} >>", packet);
             handler.handle(packet);
         } catch (BufferException | TransportException e) {
             handleAsyncFailure(e);
@@ -160,8 +165,20 @@ public class AsyncPacketReader<P extends Packet<P, ?>> {
     }
 
     private void handleAsyncFailure(Throwable exc) {
-        String excClass = exc.getClass().getSimpleName();
-        logger.info("{} on channel to {}, closing channel: {}", excClass, remoteHost, exc.getMessage());
+        if (isChannelClosedByOtherParty(exc)) {
+            logger.trace("Channel to {} closed by other party, closing it locally.", remoteHost);
+        } else {
+            String excClass = exc.getClass().getSimpleName();
+            logger.trace("{} on channel to {}, closing channel: {}", excClass, remoteHost, exc.getMessage());
+        }
+        closeChannelQuietly();
+    }
+
+    private boolean isChannelClosedByOtherParty(Throwable exc) {
+        return exc instanceof AsynchronousCloseException;
+    }
+
+    private void closeChannelQuietly() {
         try {
             channel.close();
         } catch (IOException e) {

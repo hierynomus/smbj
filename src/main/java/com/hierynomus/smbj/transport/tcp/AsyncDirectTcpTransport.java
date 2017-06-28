@@ -50,29 +50,34 @@ public class AsyncDirectTcpTransport<P extends Packet<P, ?>> implements Transpor
     private final AsyncPacketReader<P> packetReader;
     private int soTimeout = 0;
 
-    private final CrossThreadLock writeLock = new CrossThreadLock();
+    // AsynchronousSocketChannel doesn't support concurrent writes
+    private final CrossThreadLock channelWriteLock = new CrossThreadLock();
 
-    public AsyncDirectTcpTransport(int soTimeout, PacketHandlers<P> handlers, AsynchronousChannelGroup group) throws IOException {
+    public AsyncDirectTcpTransport(int soTimeout, PacketHandlers<P> handlers, AsynchronousChannelGroup group)
+            throws IOException {
         this.soTimeout = soTimeout;
         this.handlers = handlers;
         this.socketChannel = AsynchronousSocketChannel.open(group);
-        this.packetReader = new AsyncPacketReader<>(this.socketChannel, handlers.getPacketFactory(), handlers.getReceiver());
+        this.packetReader = new AsyncPacketReader<>(this.socketChannel, handlers.getPacketFactory(),
+                handlers.getReceiver());
     }
 
     @Override
     public void write(P packet) throws TransportException {
         logger.trace("Acquiring write lock to send packet << {} >>", packet);
-        writeLock.lock();
+        boolean writeStarted = false;
+        channelWriteLock.lock();
         try {
-            try {
-                logger.debug("Writing packet {}", packet);
-                Buffer<?> packetData = handlers.getSerializer().write(packet);
-                writePacket(packetData);
-            } catch (IOException ioe) {
-                throw new TransportException(ioe);
-            }
+            logger.debug("Writing packet {}", packet);
+            Buffer<?> packetData = handlers.getSerializer().write(packet);
+            writePacket(packetData);
+            writeStarted = true;
+        } catch (IOException ioe) {
+            throw new TransportException(ioe);
         } finally {
-            logger.trace("Packet {} sent, lock released.", packet);
+            if (!writeStarted) {
+                channelWriteLock.unlock();
+            }
         }
     }
 
@@ -114,12 +119,12 @@ public class AsyncDirectTcpTransport<P extends Packet<P, ?>> implements Transpor
 
             @Override
             public void completed(Integer result, Object attachment) {
-                writeLock.unlock();
+                channelWriteLock.unlock();
             }
 
             @Override
             public void failed(Throwable exc, Object attachment) {
-                writeLock.unlock();
+                channelWriteLock.unlock();
                 handlers.getReceiver().handleError(exc);
             }
 
@@ -130,7 +135,7 @@ public class AsyncDirectTcpTransport<P extends Packet<P, ?>> implements Transpor
         int dataSize = packetData.available();
         ByteBuffer toSend = ByteBuffer.allocate(dataSize + Integer.BYTES);
         toSend.order(ByteOrder.BIG_ENDIAN);
-        toSend.putInt(packetData.available());
+        toSend.putInt(packetData.available()); // also writes the initial 0 byte
         toSend.put(packetData.array(), packetData.rpos(), packetData.available());
         toSend.flip();
         try {
