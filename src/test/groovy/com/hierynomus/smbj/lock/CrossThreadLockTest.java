@@ -28,7 +28,7 @@ import org.junit.Test;
 
 public class CrossThreadLockTest {
     private static int numTestThreads = Integer.parseInt(System.getProperty("numThreads", "10"));
-    private static long testTimeMillis = Long.parseLong(System.getProperty("testTimeMillis", "10000"));
+    private static long testTimeMillis = Long.parseLong(System.getProperty("testTimeMillis", "2000"));
     private static long postTestUnlockTimeMillis = Long.parseLong(System.getProperty("postTestUnlockTimeMillis", "50"));
     private static long millisToWaitForCrossThreadLock = Long.parseLong(System.getProperty("millisToWaitForCrossThreadLock", "5"));
 
