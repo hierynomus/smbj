@@ -79,6 +79,7 @@ public class PacketSignatory {
             byte[] receivedSignature = Arrays.copyOfRange(buffer.array(), SIGNATURE_OFFSET, STRUCTURE_SIZE);
             for (int i = 0; i < SIGNATURE_SIZE; i++) {
                 if (signature[i] != receivedSignature[i]) {
+                    logger.error("Signatures for packet {} do not match (received: {}, calculated: {})", packet, Arrays.toString(receivedSignature), Arrays.toString(signature));
                     return false;
                 }
             }
