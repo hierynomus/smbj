@@ -18,6 +18,8 @@ package com.hierynomus.smbj.lock;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.hierynomus.smbj.common.SMBRuntimeException;
+
 /**
  * A simple, non-reentrant lock mechanism, which unlike {@link ReentrantLock} allows a thread to release a lock acquired
  * by a different thread.
@@ -30,7 +32,7 @@ public class CrossThreadLock {
         try {
             tryLock(FOREVER_MILLIS, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new SMBRuntimeException(e);
         }
     }
 

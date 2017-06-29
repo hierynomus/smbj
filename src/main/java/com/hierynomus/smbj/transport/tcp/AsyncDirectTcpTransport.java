@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.lock.CrossThreadLock;
 import com.hierynomus.smbj.transport.PacketHandlers;
 import com.hierynomus.smbj.transport.TransportException;
@@ -141,7 +142,7 @@ public class AsyncDirectTcpTransport<P extends Packet<P, ?>> implements Transpor
         try {
             packetData.skip(dataSize);
         } catch (BufferException e) {
-            throw new RuntimeException(e); // should never happen
+            throw new SMBRuntimeException(e); // should never happen
         }
         return toSend;
     }

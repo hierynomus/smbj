@@ -42,14 +42,14 @@ public class CrossThreadLockTest {
     private CountDownLatch testEndLatch;
 
     @Before
-    public void setup() {
+    public void setUp() {
         lock = new CrossThreadLock();
         testEndTimeMillis = System.currentTimeMillis() + testTimeMillis;
         testEndLatch = new CountDownLatch(numTestThreads);
     }
 
     @Test
-    public void manyIndependentThreads_shouldNotHangOrStarve() throws InterruptedException {
+    public void manyIndependentThreadsShouldNotHangOrStarve() throws InterruptedException {
         for (int i = 0; i < numTestThreads; ++i) {
             testThreads[i] = new LockingAndReleasing(i);
         }
@@ -58,7 +58,7 @@ public class CrossThreadLockTest {
     }
 
     @Test
-    public void crossDependentThreads_shouldNotHangOrStarve() throws InterruptedException {
+    public void crossDependentThreadsShouldNotHangOrStarve() throws InterruptedException {
         for (int i = 0; i < numTestThreads; ++i) {
             testThreads[i] = new LockingAndAskingAnotherToRelease(i);
         }
@@ -108,7 +108,7 @@ public class CrossThreadLockTest {
             try {
                 doLoop();
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                throw new IllegalStateException(e);
             } finally {
                 testEndLatch.countDown();
             }
