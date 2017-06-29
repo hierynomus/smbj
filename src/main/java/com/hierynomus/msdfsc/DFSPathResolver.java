@@ -18,24 +18,25 @@ package com.hierynomus.msdfsc;
 import com.hierynomus.msdfsc.messages.SMB2GetDFSReferralRequest;
 import com.hierynomus.msdfsc.messages.SMB2GetDFSReferralResponse;
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.messages.SMB2IoctlRequest;
 import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.io.ArrayByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.PathResolveException;
 import com.hierynomus.smbj.share.Share;
-import com.hierynomus.smbj.share.TreeConnect;
 import com.hierynomus.smbj.transport.TransportException;
 
 import java.io.IOException;
 import java.util.concurrent.Future;
 
 public class DFSPathResolver {
+    private static final long FSCTL_DFS_GET_REFERRALS = 0x00060194L;
+    private static final long FSCTL_DFS_GET_REFERRALS_EX = 0x000601B0L;
+
     private enum DfsRequestType {
         DOMAIN,
         DC,
@@ -320,7 +321,7 @@ public class DFSPathResolver {
             Connection oldConnection = session.getConnection();
             Connection connection;
             try {
-                connection = oldConnection.getClient().connect(hostName, oldConnection.getRemotePort());
+                connection = oldConnection.getClient().connect(hostName, 451); // TODO
             } catch (IOException e) {
                 throw new DFSException(e);
             }
@@ -328,25 +329,18 @@ public class DFSPathResolver {
         }
 
         try (Share dfsShare = dfsSession.connectShare("IPC$")) {
-            return getReferral(type, dfsShare.getTreeConnect(), path);
+            return getReferral(type, dfsShare, path);
         } catch (Buffer.BufferException | IOException e) {
             throw new DFSException(e);
         }
     }
 
-    private ReferralResult getReferral(DfsRequestType type, TreeConnect treeConnect, DFSPath path) throws TransportException, Buffer.BufferException {
-        Session session = treeConnect.getSession();
-        Connection connection = session.getConnection();
-
+    private ReferralResult getReferral(DfsRequestType type, Share share, DFSPath path) throws TransportException, Buffer.BufferException {
         SMB2GetDFSReferralRequest req = new SMB2GetDFSReferralRequest(path.toPath());
         SMBBuffer buffer = new SMBBuffer();
         req.writeTo(buffer);
-        SMB2IoctlRequest msg = new SMB2IoctlRequest(connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeConnect.getTreeId(),
-            SMB2IoctlRequest.ControlCode.FSCTL_DFS_GET_REFERRALS, new SMB2FileId(),
-            buffer.getCompactData(), true);
-
-        Future<SMB2IoctlResponse> sendFuture = session.send(msg);
-        SMB2IoctlResponse response = Futures.get(sendFuture, TransportException.Wrapper);
+        Future<SMB2IoctlResponse> ioctl = share.ioctlAsync(FSCTL_DFS_GET_REFERRALS, true, new ArrayByteChunkProvider(buffer.getCompactData(), 0));
+        SMB2IoctlResponse response = Futures.get(ioctl, TransportException.Wrapper);
         return handleReferralResponse(type, response, path);
 
     }

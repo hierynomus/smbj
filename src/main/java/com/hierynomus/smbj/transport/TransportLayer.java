@@ -17,30 +17,39 @@ package com.hierynomus.smbj.transport;
 
 import com.hierynomus.protocol.Packet;
 
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.IOException;
+import java.net.InetSocketAddress;
 
 public interface TransportLayer<P extends Packet<P, ?>> {
-
-    /**
-     * Initialize the Transport layer.
-     * <p>
-     * This is called directly after a connection has been established.
-     */
-    void init(InputStream in, OutputStream out, PacketSerializer<P> packetSerializer);
-
-    /**
-     * The default port for the specified SMB transport layer.
-     *
-     * @return the default port
-     */
-    int getDefaultPort();
 
     /**
      * Write the packet to the transport.
      *
      * @param packet The packet to write.
-     * @return The sequence number of the packet.
      */
     void write(P packet) throws TransportException;
+
+    /**
+     * Connect to the remote side
+     * 
+     * @param remoteAddress The remote address to connect to
+     */
+    void connect(InetSocketAddress remoteAddress) throws IOException;
+
+    /**
+     * Connect to the remote side
+     * 
+     * @param remoteAddress The remote address to connect to
+     * @param localAddress The local address to use
+     */
+    void connect(InetSocketAddress remoteAddress, InetSocketAddress localAddress) throws IOException;
+
+    /**
+     * Disconnect from the remote side
+     * 
+     * @throws IOException
+     */
+    void disconnect() throws IOException;
+
+    boolean isConnected();
 }

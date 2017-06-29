@@ -336,13 +336,11 @@ public class DiskShare extends Share {
     public SecurityDescriptor getSecurityInfo(SMB2FileId fileId, Set<SecurityInformation> securityInfo) throws SMBApiException {
 
         byte[] outputBuffer = queryInfo(fileId, SMB2_0_INFO_SECURITY, securityInfo, null, null).getOutputBuffer();
-        SecurityDescriptor sd = new SecurityDescriptor();
         try {
-            sd.read(new SMBBuffer(outputBuffer));
+            return SecurityDescriptor.read(new SMBBuffer(outputBuffer));
         } catch (Buffer.BufferException e) {
             throw new SMBRuntimeException(e);
         }
-        return sd;
     }
 
     /**

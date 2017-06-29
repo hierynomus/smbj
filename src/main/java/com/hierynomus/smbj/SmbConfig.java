@@ -16,6 +16,7 @@
 package com.hierynomus.smbj;
 
 import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.socket.ProxySocketFactory;
 import com.hierynomus.security.SecurityProvider;
@@ -23,6 +24,8 @@ import com.hierynomus.security.jce.JceSecurityProvider;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
 import com.hierynomus.smbj.auth.SpnegoAuthenticator;
+import com.hierynomus.smbj.connection.DirectTcpTransportFactory;
+import com.hierynomus.smbj.connection.TransportLayerFactory;
 
 import javax.net.SocketFactory;
 import java.security.SecureRandom;
@@ -38,6 +41,8 @@ public final class SmbConfig {
     private static final int DEFAULT_TIMEOUT = 60;
     private static final TimeUnit DEFAULT_TIMEOUT_UNIT = TimeUnit.SECONDS;
 
+    private static final TransportLayerFactory<SMB2Packet> DEFAULT_TRANSPORT_LAYER_FACTORY = new DirectTcpTransportFactory();
+
     private Set<SMB2Dialect> dialects;
     private List<Factory.Named<Authenticator>> authenticators;
     private SocketFactory socketFactory;
@@ -51,6 +56,7 @@ public final class SmbConfig {
     private int writeBufferSize;
     private long writeTimeout;
     private int transactBufferSize;
+    private TransportLayerFactory<SMB2Packet> transportLayerFactory;
     private long transactTimeout;
 
     private int soTimeout;
@@ -66,8 +72,9 @@ public final class SmbConfig {
             .withSecurityProvider(new JceSecurityProvider())
             .withSocketFactory(new ProxySocketFactory())
             .withSigningRequired(false)
-            .witDfsEnabled(true)
+            .withDfsEnabled(true)
             .withBufferSize(DEFAULT_BUFFER_SIZE)
+            .withTransportLayerFactory(DEFAULT_TRANSPORT_LAYER_FACTORY)
             .withSoTimeout(DEFAULT_SO_TIMEOUT, DEFAULT_SO_TIMEOUT_UNIT)
             .withDialects(SMB2Dialect.SMB_2_1, SMB2Dialect.SMB_2_0_2)
             // order is important.  The authenticators listed first will be selected
@@ -96,6 +103,7 @@ public final class SmbConfig {
         writeTimeout = other.writeTimeout;
         transactBufferSize = other.transactBufferSize;
         transactTimeout = other.transactTimeout;
+        transportLayerFactory = other.transportLayerFactory;
         soTimeout = other.soTimeout;
     }
 
@@ -153,6 +161,10 @@ public final class SmbConfig {
 
     public long getTransactTimeout() {
         return transactTimeout;
+    }
+
+    public TransportLayerFactory<SMB2Packet> getTransportLayerFactory() {
+        return transportLayerFactory;
     }
 
     public int getSoTimeout() {
@@ -295,6 +307,14 @@ public final class SmbConfig {
             return withReadBufferSize(bufferSize).withWriteBufferSize(bufferSize).withTransactBufferSize(bufferSize);
         }
 
+        public Builder withTransportLayerFactory(TransportLayerFactory<SMB2Packet> transportLayerFactory) {
+            if (transportLayerFactory == null) {
+                throw new IllegalArgumentException("Transport layer factory may not be null");
+            }
+            config.transportLayerFactory = transportLayerFactory;
+            return this;
+        }
+
         public Builder withTimeout(long timeout, TimeUnit timeoutUnit) {
             return withReadTimeout(timeout, timeoutUnit).withWriteTimeout(timeout, timeoutUnit).withTransactTimeout(timeout, timeoutUnit);
         }
@@ -323,7 +343,7 @@ public final class SmbConfig {
             return new SmbConfig(config);
         }
 
-        public Builder witDfsEnabled(boolean dfsEnabled) {
+        public Builder withDfsEnabled(boolean dfsEnabled) {
             config.dfsEnabled = dfsEnabled;
             return this;
         }
