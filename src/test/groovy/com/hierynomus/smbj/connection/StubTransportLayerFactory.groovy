@@ -58,22 +58,22 @@ class StubTransportLayerFactory implements TransportLayerFactory<SMB2Packet> {
 
     @Override
     void connect(InetSocketAddress remoteAddress) throws IOException {
-      connected = true;
+      connected = true
     }
 
     @Override
     void connect(InetSocketAddress remoteAddress, InetSocketAddress localAddress) throws IOException {
-      connect(remoteAddress);
+      connect(remoteAddress)
     }
 
     @Override
     void disconnect() throws IOException {
-      connected = false;
+      connected = false
     }
 
     @Override
     boolean isConnected() {
-      return connected;
+      return connected
     }
   }
 

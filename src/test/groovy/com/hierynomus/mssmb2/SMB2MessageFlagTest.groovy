@@ -20,16 +20,16 @@ import spock.lang.Specification
 
 class SMB2MessageFlagTest extends Specification {
 
-    def "should correctly detect that flag is set"() {
-        given:
-        long b = 0x10000001
+  def "should correctly detect that flag is set"() {
+    given:
+    long b = 0x10000001
 
-        when:
-        def flagses = EnumWithValue.EnumUtils.toEnumSet(b, SMB2MessageFlag.class)
+    when:
+    def flagses = EnumWithValue.EnumUtils.toEnumSet(b, SMB2MessageFlag.class)
 
-        then:
-        flagses.size() == 2
-        flagses.contains(SMB2MessageFlag.SMB2_FLAGS_DFS_OPERATIONS)
-        flagses.contains(SMB2MessageFlag.SMB2_FLAGS_SERVER_TO_REDIR)
-    }
+    then:
+    flagses.size() == 2
+    flagses.contains(SMB2MessageFlag.SMB2_FLAGS_DFS_OPERATIONS)
+    flagses.contains(SMB2MessageFlag.SMB2_FLAGS_SERVER_TO_REDIR)
+  }
 }

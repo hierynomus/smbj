@@ -16,7 +16,6 @@
 package com.hierynomus.mssmb2.messages
 
 import com.hierynomus.msdtyp.FileTime
-import com.hierynomus.mssmb2.messages.SMB2CreateResponse
 import com.hierynomus.smbj.common.SMBBuffer
 import spock.lang.Specification
 
@@ -24,18 +23,18 @@ import javax.xml.bind.DatatypeConverter
 
 class SMB2CreateResponseTest extends Specification {
 
-    def "should parse SMB2 Create Response without Maximal Content"() {
-        given:
-        String hexString1 = "fe534d4240000000000000000500010001000000000000000400000000000000000000000100000009000000004000000000000000000000000000000000000059000000010000006aa787efa59dd1016aa787efa59dd1016aa787efa59dd101954ff5efa59dd101000000000000000000000000000000001000000000000000030000001000000001000000100000000000000000000000";
-        byte[] bytes1 = DatatypeConverter.parseHexBinary(hexString1);
-        SMB2CreateResponse resp = new SMB2CreateResponse();
+  def "should parse SMB2 Create Response without Maximal Content"() {
+    given:
+    String hexString1 = "fe534d4240000000000000000500010001000000000000000400000000000000000000000100000009000000004000000000000000000000000000000000000059000000010000006aa787efa59dd1016aa787efa59dd1016aa787efa59dd101954ff5efa59dd101000000000000000000000000000000001000000000000000030000001000000001000000100000000000000000000000"
+    byte[] bytes1 = DatatypeConverter.parseHexBinary(hexString1)
+    SMB2CreateResponse resp = new SMB2CreateResponse()
 
-        when:
-        resp.read(new SMBBuffer(bytes1))
+    when:
+    resp.read(new SMBBuffer(bytes1))
 
-        then:
-        resp.getCreationTime() == new FileTime(131059200184264554L)
-        Arrays.equals(([0x03,0x00,0x00,0x00,0x10,0x00,0x00,0x00] as byte[]), resp.fileId.persistentHandle)
-    }
+    then:
+    resp.getCreationTime() == new FileTime(131059200184264554L)
+    Arrays.equals(([0x03, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00] as byte[]), resp.fileId.persistentHandle)
+  }
 
 }
