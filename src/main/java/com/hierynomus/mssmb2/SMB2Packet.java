@@ -15,6 +15,7 @@
  */
 package com.hierynomus.mssmb2;
 
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
@@ -24,6 +25,7 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
     protected final SMB2Header header = new SMB2Header();
     protected int structureSize;
     private SMBBuffer buffer;
+    private SMB2Error error;
     private int messageStartPos;
     private int messageEndPos;
 
@@ -102,13 +104,36 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
         this.buffer = buffer; // remember the buffer we read it from
         this.messageStartPos = buffer.rpos();
         header.readFrom(buffer);
-        readMessage(buffer);
+        if (isSuccess(header.getStatus())) {
+            readMessage(buffer);
+        } else {
+            readError(buffer);
+        }
         this.messageEndPos = buffer.rpos();
         return this;
     }
 
+    protected void readError(SMBBuffer buffer) throws Buffer.BufferException {
+        this.error = SMB2Error.readFrom(buffer);
+    }
+
+    /**
+     * Read the message, this is only called in case the response is a success response according to {@link #isSuccess(NtStatus)}
+     *
+     * @param buffer
+     * @throws Buffer.BufferException
+     */
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         throw new UnsupportedOperationException("Should be implemented by specific message type");
+    }
+
+    /**
+     * Callback to verify whether the status is a success status. Some responses have error codes that should be treated as success responses.
+     * @param status The status to verify
+     * @return {@code true} is {@link NtStatus#isSuccess()}
+     */
+    protected boolean isSuccess(NtStatus status) {
+        return status.isSuccess();
     }
 
     /**
@@ -126,6 +151,10 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
     }
     public void setCreditsAssigned(int creditsAssigned) {
         getHeader().setCreditCharge(creditsAssigned);
+    }
+
+    public SMB2Error getError() {
+        return error;
     }
 
     @Override
