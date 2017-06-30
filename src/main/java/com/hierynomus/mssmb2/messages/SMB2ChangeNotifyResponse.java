@@ -15,6 +15,7 @@
  */
 package com.hierynomus.mssmb2.messages;
 
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileNotifyAction;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.EnumWithValue;
@@ -46,6 +47,17 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
         if (outputBufferOffset > 0 && length > 0) {
             fileNotifyInfoList = readFileNotifyInfo(buffer, outputBufferOffset);
         }
+    }
+
+    /**
+     * [MS-SMB2].pdf 3.3.4.4
+     * STATUS_NOTIFY_ENUM_DIR should be treated as a success code.
+     * @param status The status to verify
+     * @return
+     */
+    @Override
+    protected boolean isSuccess(NtStatus status) {
+        return super.isSuccess(status) || status == NtStatus.STATUS_NOTIFY_ENUM_DIR;
     }
 
     private List<FileNotifyInfo> readFileNotifyInfo(SMBBuffer buffer, int outputBufferOffset)

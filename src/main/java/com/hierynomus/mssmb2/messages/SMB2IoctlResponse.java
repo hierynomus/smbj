@@ -15,6 +15,7 @@
  */
 package com.hierynomus.mssmb2.messages;
 
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
@@ -61,6 +62,17 @@ public class SMB2IoctlResponse extends SMB2Packet {
             outputBuffer = buffer.readRawBytes(outputCount);
         }
 
+    }
+
+    /**
+     * [MS-SMB2].pdf 3.3.4.4
+     * STATUS_BUFFER_OVERFLOW and STATUS_INVALID_PARAMETER should be treated as a success code.
+     * @param status The status to verify
+     * @return
+     */
+    @Override
+    protected boolean isSuccess(NtStatus status) {
+        return super.isSuccess(status) || status == NtStatus.STATUS_BUFFER_OVERFLOW || status == NtStatus.STATUS_INVALID_PARAMETER;
     }
 
     public byte[] getOutputBuffer() {
