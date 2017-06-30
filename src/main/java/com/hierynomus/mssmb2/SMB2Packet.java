@@ -29,18 +29,18 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
     private int messageStartPos;
     private int messageEndPos;
 
-    public SMB2Packet() {
+    protected SMB2Packet() {
     }
 
-    public SMB2Packet(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType) {
+    protected SMB2Packet(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType) {
         this(structureSize, dialect, messageType, 0, 0);
     }
 
-    public SMB2Packet(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType, long sessionId) {
+    protected SMB2Packet(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType, long sessionId) {
         this(structureSize, dialect, messageType, sessionId, 0);
     }
 
-    public SMB2Packet(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType, long sessionId, long treeId) {
+    protected SMB2Packet(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType, long sessionId, long treeId) {
         this.structureSize = structureSize;
         header.setDialect(dialect);
         header.setMessageType(messageType);
@@ -114,7 +114,7 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
     }
 
     protected void readError(SMBBuffer buffer) throws Buffer.BufferException {
-        this.error = SMB2Error.readFrom(buffer);
+        this.error = SMB2Error.readFrom(header, buffer);
     }
 
     /**
