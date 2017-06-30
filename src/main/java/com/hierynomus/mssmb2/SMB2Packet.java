@@ -114,7 +114,7 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
     }
 
     protected void readError(SMBBuffer buffer) throws Buffer.BufferException {
-        this.error = SMB2Error.readFrom(header, buffer);
+        this.error = new SMB2Error().read(header, buffer);
     }
 
     /**

@@ -21,7 +21,6 @@ import com.hierynomus.smbj.common.SMBBuffer;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -29,31 +28,25 @@ import java.util.List;
  */
 public class SMB2Error {
 
-    private List<SMB2ErrorData> errorData;
+    private List<SMB2ErrorData> errorData = new ArrayList<>();
 
-    private SMB2Error(List<SMB2ErrorData> errorData) {
-        this.errorData = errorData;
-    }
+    SMB2Error() {}
 
-    static SMB2Error readFrom(SMB2Header header, SMBBuffer buffer) throws Buffer.BufferException {
+    SMB2Error read(SMB2Header header, SMBBuffer buffer) throws Buffer.BufferException {
         buffer.skip(2); // StructureSize (2 bytes)
         int errorContextCount = buffer.readByte(); // ErrorContextCount (1 byte)
         buffer.skip(1); // Reserved (1 byte)
         int byteCount = buffer.readUInt32AsInt(); // ByteCount (4 bytes)
-        List<SMB2ErrorData> errorData = Collections.emptyList();
 
         if (errorContextCount > 0) {
-            errorData = readErrorContext(header, buffer, errorContextCount);
+            readErrorContext(header, buffer, errorContextCount);
         } else if (byteCount > 0) {
-            SMB2ErrorData smb2ErrorData = readErrorData(header, buffer);
-            if (smb2ErrorData != null) {
-                errorData = Collections.singletonList(smb2ErrorData);
-            }
+            readErrorData(header, buffer);
         } else if (byteCount == 0) {
             buffer.skip(1); // ErrorData (1 byte)
         }
 
-        return new SMB2Error(errorData);
+        return this;
     }
 
     /**
@@ -61,18 +54,14 @@ public class SMB2Error {
      * @param header
      * @param buffer
      * @param errorContextCount
-     * @return
      * @throws Buffer.BufferException
      */
-    private static List<SMB2ErrorData> readErrorContext(SMB2Header header, SMBBuffer buffer, int errorContextCount) throws Buffer.BufferException {
-        List<SMB2ErrorData> datas = new ArrayList<>();
+    private void readErrorContext(SMB2Header header, SMBBuffer buffer, int errorContextCount) throws Buffer.BufferException {
         for (int i = 0; i < errorContextCount; i++) {
             buffer.readUInt32AsInt(); // ErrorDataLength (4 bytes)
             buffer.skip(4); // ErrorId (always SMB2_ERROR_ID_DEFAULT (0x0)) (4 bytes)
-            SMB2ErrorData data = readErrorData(header, buffer);
-            datas.add(data);
+            readErrorData(header, buffer);
         }
-        return datas;
     }
 
     /**
@@ -82,15 +71,12 @@ public class SMB2Error {
      * @return
      * @throws Buffer.BufferException
      */
-    private static SMB2ErrorData readErrorData(SMB2Header header, SMBBuffer buffer) throws Buffer.BufferException {
+    private void readErrorData(SMB2Header header, SMBBuffer buffer) throws Buffer.BufferException {
         if (header.getStatus() == NtStatus.STATUS_BUFFER_TOO_SMALL) {
-            return new BufferTooSmallError(buffer.readUInt32()); // minimum required buffer length (4 bytes)
+            this.errorData.add(new BufferTooSmallError().read(buffer));
         } else if (header.getStatus() == NtStatus.STATUS_STOPPED_ON_SYMLINK) {
-            SymbolicLinkError symbolicLinkError = new SymbolicLinkError();
-            symbolicLinkError.readFrom(buffer);
-            return symbolicLinkError;
+            this.errorData.add(new SymbolicLinkError().read(buffer));
         }
-        return null;
     }
 
     public List<SMB2ErrorData> getErrorData() {
@@ -108,7 +94,7 @@ public class SMB2Error {
         private SymbolicLinkError() {
         }
 
-        private void readFrom(SMBBuffer buffer) throws Buffer.BufferException {
+        private SymbolicLinkError read(SMBBuffer buffer) throws Buffer.BufferException {
             int symLinkLength = buffer.readUInt32AsInt();// SymLinkLength (4 bytes)
             int endOfResponse = buffer.rpos() + symLinkLength;
             buffer.skip(4); // SymLinkErrorTag (4 bytes) (always 0x4C4D5953)
@@ -122,6 +108,7 @@ public class SMB2Error {
             substituteName = readOffsettedString(buffer, substituteNameOffset, substituteNameLength); // PathBuffer (variable)
             printName = readOffsettedString(buffer, printNameOffset, printNameLength); // PathBuffer (variable)
             buffer.rpos(endOfResponse); // Set buffer to the end of the response, so that we're aligned for any next response.
+            return this;
         }
 
         private String readOffsettedString(SMBBuffer buffer, int offset, int length) throws Buffer.BufferException {
@@ -155,8 +142,12 @@ public class SMB2Error {
     public static class BufferTooSmallError implements SMB2ErrorData {
         private long requiredBufferLength;
 
-        private BufferTooSmallError(long requiredBufferLength) {
-            this.requiredBufferLength = requiredBufferLength;
+        private BufferTooSmallError() {
+        }
+
+        public BufferTooSmallError read(SMBBuffer buffer) throws Buffer.BufferException {
+            this.requiredBufferLength = buffer.readUInt32(); // minimum required buffer size
+            return this;
         }
 
         public long getRequiredBufferLength() {
