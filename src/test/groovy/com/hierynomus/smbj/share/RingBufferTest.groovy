@@ -18,13 +18,9 @@ package com.hierynomus.smbj.share
 import spock.lang.Specification
 
 
-public class RingBufferTest extends Specification {
+class RingBufferTest extends Specification {
 
-  private RingBuffer cBuf;
-
-  protected void setup() {
-    cBuf = new RingBuffer(10);
-  }
+  private RingBuffer cBuf = new RingBuffer(10)
 
   def "should be able to append all bytes to buffer"() {
     given:

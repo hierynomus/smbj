@@ -48,25 +48,25 @@ class BasicPacketProcessor {
     processPacket.call(req)
   }
 
-  private SMB2Packet negotiateResponse() {
+  private static SMB2Packet negotiateResponse() {
     def response = new SMB2NegotiateResponse()
     response.header.status = NtStatus.STATUS_SUCCESS
     response
   }
 
-  private SMB2Packet sessionSetupResponse() {
+  private static SMB2Packet sessionSetupResponse() {
     def response = new SMB2SessionSetup()
     response.header.status = NtStatus.STATUS_SUCCESS
     response
   }
 
-  private SMB2Packet logoffResponse() {
+  private static SMB2Packet logoffResponse() {
     def response = new SMB2Logoff()
     response.header.status = NtStatus.STATUS_SUCCESS
     response
   }
 
-  private SMB2Packet connectResponse() {
+  private static SMB2Packet connectResponse() {
     def response = new SMB2TreeConnectResponse()
     response.header.status = NtStatus.STATUS_SUCCESS
     response.capabilities = EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS)
@@ -74,7 +74,7 @@ class BasicPacketProcessor {
     response
   }
 
-  private SMB2Packet disconnectResponse() {
+  private static SMB2Packet disconnectResponse() {
     def response = new SMB2TreeDisconnect()
     response.header.status = NtStatus.STATUS_SUCCESS
     response
