@@ -125,9 +125,7 @@ public class AsyncDirectTcpTransport<P extends Packet<P, ?>> implements Transpor
 
             @Override
             public void completed(Integer result, Object attachment) {
-                synchronized (AsyncDirectTcpTransport.this) {
-                    startNextWriteIfWaiting();
-                }
+                startNextWriteIfWaiting();
             }
 
             @Override
@@ -137,11 +135,13 @@ public class AsyncDirectTcpTransport<P extends Packet<P, ?>> implements Transpor
             }
 
             private void startNextWriteIfWaiting() {
-                ByteBuffer nextBufferToWrite = writeQueue.poll();
-                if (nextBufferToWrite != null) {
-                    startAsyncWrite(nextBufferToWrite);
-                } else {
-                    writingNow = false;
+                synchronized (AsyncDirectTcpTransport.this) {
+                    ByteBuffer nextBufferToWrite = writeQueue.poll();
+                    if (nextBufferToWrite != null) {
+                        startAsyncWrite(nextBufferToWrite);
+                    } else {
+                        writingNow = false;
+                    }
                 }
             }
         });
