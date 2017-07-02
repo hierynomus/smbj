@@ -22,8 +22,10 @@ import java.nio.ByteOrder;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
+import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -34,7 +36,6 @@ import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
-import com.hierynomus.smbj.lock.CrossThreadLock;
 import com.hierynomus.smbj.transport.PacketHandlers;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.smbj.transport.TransportLayer;
@@ -51,8 +52,9 @@ public class AsyncDirectTcpTransport<P extends Packet<P, ?>> implements Transpor
     private final AsyncPacketReader<P> packetReader;
     private int soTimeout = 0;
 
-    // AsynchronousSocketChannel doesn't support concurrent writes
-    private final CrossThreadLock channelWriteLock = new CrossThreadLock();
+    // AsynchronousSocketChannel doesn't support concurrent writes, so queue pending writes for later
+    private final Queue<ByteBuffer> writeQueue;
+    private boolean writingNow = false;
 
     public AsyncDirectTcpTransport(int soTimeout, PacketHandlers<P> handlers, AsynchronousChannelGroup group)
             throws IOException {
@@ -61,23 +63,27 @@ public class AsyncDirectTcpTransport<P extends Packet<P, ?>> implements Transpor
         this.socketChannel = AsynchronousSocketChannel.open(group);
         this.packetReader = new AsyncPacketReader<>(this.socketChannel, handlers.getPacketFactory(),
                 handlers.getReceiver());
+        this.writeQueue = new LinkedBlockingQueue<>();
     }
 
     @Override
     public void write(P packet) throws TransportException {
-        logger.trace("Acquiring write lock to send packet << {} >>", packet);
-        boolean writeStarted = false;
-        channelWriteLock.lock();
+        ByteBuffer bufferToSend = prepareBufferToSend(packet); // Serialize first, as it might throw
+        logger.trace("Sending packet << {} >>", packet);
         try {
-            logger.debug("Writing packet {}", packet);
-            Buffer<?> packetData = handlers.getSerializer().write(packet);
-            writePacket(packetData);
-            writeStarted = true;
+            writeOrEnqueue(bufferToSend);
         } catch (IOException ioe) {
-            throw new TransportException(ioe);
-        } finally {
-            if (!writeStarted) {
-                channelWriteLock.unlock();
+            throw TransportException.Wrapper.wrap(ioe);
+        }
+    }
+
+    private void writeOrEnqueue(ByteBuffer buffer) throws IOException {
+        synchronized (this) {
+            if (!writingNow) {
+                writingNow = true;
+                startAsyncWrite(buffer);
+            } else {
+                writeQueue.add(buffer);
             }
         }
     }
@@ -95,7 +101,7 @@ public class AsyncDirectTcpTransport<P extends Packet<P, ?>> implements Transpor
         try {
             connectFuture.get(DEFAULT_CONNECT_TIMEOUT, TimeUnit.MILLISECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            throw new IOException(e);
+            throw TransportException.Wrapper.wrap(e);
         }
         packetReader.start(remoteHostname, this.soTimeout);
     }
@@ -114,25 +120,35 @@ public class AsyncDirectTcpTransport<P extends Packet<P, ?>> implements Transpor
         this.soTimeout = soTimeout;
     }
 
-    private void writePacket(Buffer<?> packetData) throws IOException {
-        ByteBuffer toSend = prepareBufferToSend(packetData);
+    private void startAsyncWrite(ByteBuffer toSend) {
         socketChannel.write(toSend, soTimeout, TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer, Object>() {
 
             @Override
             public void completed(Integer result, Object attachment) {
-                channelWriteLock.unlock();
+                synchronized (AsyncDirectTcpTransport.this) {
+                    startNextWriteIfWaiting();
+                }
             }
 
             @Override
             public void failed(Throwable exc, Object attachment) {
-                channelWriteLock.unlock();
+                startNextWriteIfWaiting();
                 handlers.getReceiver().handleError(exc);
             }
 
+            private void startNextWriteIfWaiting() {
+                ByteBuffer nextBufferToWrite = writeQueue.poll();
+                if (nextBufferToWrite != null) {
+                    startAsyncWrite(nextBufferToWrite);
+                } else {
+                    writingNow = false;
+                }
+            }
         });
     }
 
-    private ByteBuffer prepareBufferToSend(Buffer<?> packetData) {
+    private ByteBuffer prepareBufferToSend(P packet) {
+        Buffer<?> packetData = handlers.getSerializer().write(packet);
         int dataSize = packetData.available();
         ByteBuffer toSend = ByteBuffer.allocate(dataSize + Integer.BYTES);
         toSend.order(ByteOrder.BIG_ENDIAN);
@@ -142,7 +158,7 @@ public class AsyncDirectTcpTransport<P extends Packet<P, ?>> implements Transpor
         try {
             packetData.skip(dataSize);
         } catch (BufferException e) {
-            throw new SMBRuntimeException(e); // should never happen
+            throw SMBRuntimeException.Wrapper.wrap(e); // should never happen
         }
         return toSend;
     }
