@@ -24,7 +24,7 @@ import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.io.ArrayByteChunkProvider;
+import com.hierynomus.smbj.io.BufferByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.PathResolveException;
 import com.hierynomus.smbj.share.Share;
@@ -339,7 +339,7 @@ public class DFSPathResolver {
         SMB2GetDFSReferralRequest req = new SMB2GetDFSReferralRequest(path.toPath());
         SMBBuffer buffer = new SMBBuffer();
         req.writeTo(buffer);
-        Future<SMB2IoctlResponse> ioctl = share.ioctlAsync(FSCTL_DFS_GET_REFERRALS, true, new ArrayByteChunkProvider(buffer.getCompactData(), 0));
+        Future<SMB2IoctlResponse> ioctl = share.ioctlAsync(FSCTL_DFS_GET_REFERRALS, true, new BufferByteChunkProvider(buffer));
         SMB2IoctlResponse response = Futures.get(ioctl, TransportException.Wrapper);
         return handleReferralResponse(type, response, path);
 
