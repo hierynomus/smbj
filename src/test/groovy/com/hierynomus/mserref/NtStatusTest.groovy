@@ -21,19 +21,19 @@ import spock.lang.Unroll
 @Unroll
 class NtStatusTest extends Specification {
 
-    def "#ntStatus should be STATUS_SEVERITY_SUCCESS status code"() {
-        expect:
-        ntStatus.isSuccess()
+  def "#ntStatus should be STATUS_SEVERITY_SUCCESS status code"() {
+    expect:
+    ntStatus.isSuccess()
 
-        where:
-        ntStatus << [NtStatus.STATUS_SUCCESS, NtStatus.STATUS_PENDING]
-    }
+    where:
+    ntStatus << [NtStatus.STATUS_SUCCESS, NtStatus.STATUS_PENDING]
+  }
 
-    def "#ntStatus should be STATUS_SEVERITY_ERROR status code"() {
-        expect:
-        ntStatus.isError()
+  def "#ntStatus should be STATUS_SEVERITY_ERROR status code"() {
+    expect:
+    ntStatus.isError()
 
-        where:
-        ntStatus << [NtStatus.STATUS_ACCESS_DENIED, NtStatus.STATUS_END_OF_FILE]
-    }
+    where:
+    ntStatus << [NtStatus.STATUS_ACCESS_DENIED, NtStatus.STATUS_END_OF_FILE]
+  }
 }
