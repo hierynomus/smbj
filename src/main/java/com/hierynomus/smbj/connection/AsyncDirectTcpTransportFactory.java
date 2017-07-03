@@ -47,12 +47,12 @@ public class AsyncDirectTcpTransportFactory implements TransportLayerFactory<SMB
         this((AsynchronousChannelGroup) DEFAULT_CHANNEL_GROUP);
     }
 
-    public AsyncDirectTcpTransportFactory(AsynchronousChannelGroup group) {
-        this.group = group;
+    public AsyncDirectTcpTransportFactory(ExecutorService executor) {
+        this(createGroup(executor));
     }
 
-    public AsyncDirectTcpTransportFactory(ExecutorService executor) {
-        this.group = createGroup(executor);
+    public AsyncDirectTcpTransportFactory(AsynchronousChannelGroup group) {
+        this.group = group;
     }
 
     private static AsynchronousChannelGroup createGroup(ExecutorService executor) {
