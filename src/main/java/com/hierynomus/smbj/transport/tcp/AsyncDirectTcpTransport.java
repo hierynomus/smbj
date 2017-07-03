@@ -45,6 +45,7 @@ import com.hierynomus.smbj.transport.TransportLayer;
  */
 public class AsyncDirectTcpTransport<P extends Packet<P, ?>> implements TransportLayer<P> {
     public static final int DEFAULT_CONNECT_TIMEOUT = 5000;
+    private static final int DIRECT_HEADER_SIZE = 4;
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final PacketHandlers<P> handlers;
@@ -150,7 +151,7 @@ public class AsyncDirectTcpTransport<P extends Packet<P, ?>> implements Transpor
     private ByteBuffer prepareBufferToSend(P packet) {
         Buffer<?> packetData = handlers.getSerializer().write(packet);
         int dataSize = packetData.available();
-        ByteBuffer toSend = ByteBuffer.allocate(dataSize + Integer.BYTES);
+        ByteBuffer toSend = ByteBuffer.allocate(dataSize + DIRECT_HEADER_SIZE);
         toSend.order(ByteOrder.BIG_ENDIAN);
         toSend.putInt(packetData.available()); // also writes the initial 0 byte
         toSend.put(packetData.array(), packetData.rpos(), packetData.available());
