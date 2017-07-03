@@ -71,10 +71,18 @@ public class SMB2SessionSetup extends SMB2Packet {
         sessionFlags = toEnumSet(buffer.readUInt16(), SMB2SessionFlags.class); // SessionFlags (2 bytes)
         int securityBufferOffset = buffer.readUInt16(); // SecurityBufferOffset (2 bytes)
         int securityBufferLength = buffer.readUInt16(); // SecurityBufferLength (2 bytes)
-        if (getHeader().getStatus() == NtStatus.STATUS_SUCCESS ||
-            getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
-            securityBuffer = readSecurityBuffer(buffer, securityBufferOffset, securityBufferLength); // SecurityBuffer (variable)
-        }
+        securityBuffer = readSecurityBuffer(buffer, securityBufferOffset, securityBufferLength); // SecurityBuffer (variable)
+    }
+
+    /**
+     * [MS-SMB2].pdf 3.3.4.4
+     * STATUS_MORE_PROCESSING_REQUIRED should be treated as a success code.
+     * @param status The status to verify
+     * @return
+     */
+    @Override
+    protected boolean isSuccess(NtStatus status) {
+        return super.isSuccess(status) || status == NtStatus.STATUS_MORE_PROCESSING_REQUIRED;
     }
 
     private byte[] readSecurityBuffer(SMBBuffer buffer, int securityBufferOffset, int securityBufferLength) throws Buffer.BufferException {
