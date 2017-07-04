@@ -17,7 +17,6 @@ package com.hierynomus.mssmb2.messages;
 
 import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.msdtyp.MsDataTypes;
-import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
@@ -57,19 +56,17 @@ public class SMB2Close extends SMB2Packet {
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
-        if (getHeader().getStatus() == NtStatus.STATUS_SUCCESS) {
-            buffer.readUInt16(); // StructureSize (2 bytes)
-            // We set the Flags value 0x01 hardcoded, so the server should also echo that
-            buffer.readUInt16(); // Flags (2 bytes)
-            buffer.skip(4); // Reserved (4 bytes)
-            creationTime = MsDataTypes.readFileTime(buffer); // CreationTime (8 bytes)
-            lastAccessTime = MsDataTypes.readFileTime(buffer); // LastAccessTime (8 bytes)
-            lastWriteTime = MsDataTypes.readFileTime(buffer); // LastWriteTime (8 bytes)
-            changeTime = MsDataTypes.readFileTime(buffer); // ChangeTime (8 bytes)
-            allocationSize = buffer.readUInt64(); // AllocationSize (8 bytes)
-            size = buffer.readUInt64(); // EndOfFile (8 bytes)
-            fileAttributes = buffer.readRawBytes(4); // FileAttributes (4 bytes)
-        }
+        buffer.readUInt16(); // StructureSize (2 bytes)
+        // We set the Flags value 0x01 hardcoded, so the server should also echo that
+        buffer.readUInt16(); // Flags (2 bytes)
+        buffer.skip(4); // Reserved (4 bytes)
+        creationTime = MsDataTypes.readFileTime(buffer); // CreationTime (8 bytes)
+        lastAccessTime = MsDataTypes.readFileTime(buffer); // LastAccessTime (8 bytes)
+        lastWriteTime = MsDataTypes.readFileTime(buffer); // LastWriteTime (8 bytes)
+        changeTime = MsDataTypes.readFileTime(buffer); // ChangeTime (8 bytes)
+        allocationSize = buffer.readUInt64(); // AllocationSize (8 bytes)
+        size = buffer.readUInt64(); // EndOfFile (8 bytes)
+        fileAttributes = buffer.readRawBytes(4); // FileAttributes (4 bytes)
     }
 
     public FileTime getCreationTime() {
