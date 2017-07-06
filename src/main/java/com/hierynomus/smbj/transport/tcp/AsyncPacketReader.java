@@ -18,7 +18,6 @@ package com.hierynomus.smbj.transport.tcp;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
@@ -46,122 +45,76 @@ public class AsyncPacketReader<P extends Packet<P, ?>> {
 
     private AtomicBoolean stopped = new AtomicBoolean(false);
 
-    private static final int READ_BUFFER_CAPACITY = 9000; // Size of a Jumbo frame
-    private static final int HEADER_SIZE = 4;
-
-    private final ByteBuffer readBuffer;
-    private int bytesWaitingToBeProcessed = 0;
-
-    private static final int NO_PACKET_LENGTH = -1;
-
-    private int currentPacketLength = NO_PACKET_LENGTH;
-
-
     public AsyncPacketReader(AsynchronousSocketChannel channel, PacketFactory<P> packetFactory,
             PacketReceiver<P> handler) {
         this.channel = channel;
         this.packetFactory = packetFactory;
         this.handler = handler;
-        this.readBuffer = ByteBuffer.allocate(READ_BUFFER_CAPACITY);
-        this.readBuffer.order(ByteOrder.BIG_ENDIAN);
     }
 
     public void start(String remoteHost, int soTimeout) {
         this.remoteHost = remoteHost;
         this.soTimeout = soTimeout;
-        initiateNextRead();
+        initiateNextRead(new PacketBufferReader());
     }
-    
+
     public void stop() {
         stopped.set(true);
     }
 
-    private void initiateNextRead() {
+    private void initiateNextRead(final PacketBufferReader bufferReader) {
         if (stopped.get()) {
             logger.trace("Stopped, not initiating another read operation.");
             return;
         }
         logger.trace("Initiating next read");
-        channel.read(readBuffer, this.soTimeout, TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer, Object>() {
-            @Override
-            public void completed(Integer bytesRead, Object attachment) {
-                try {
-                    readPacket(bytesRead);
-                } catch (TransportException e) {
-                    handleAsyncFailure(e);
-                }
-            }
+        ByteBuffer readBuffer = bufferReader.getBuffer();
+        channel.read(readBuffer, this.soTimeout, TimeUnit.MILLISECONDS, bufferReader,
+                new CompletionHandler<Integer, PacketBufferReader>() {
 
-            @Override
-            public void failed(Throwable exc, Object attachment) {
-                handleAsyncFailure(exc);
-            }
+                    @Override
+                    public void completed(Integer bytesRead, PacketBufferReader reader) {
+                        logger.trace("Received {} bytes", bytesRead);
+                        if (bytesRead < 0) {
+                            handleClosedReader();
+                            return;  // stop the read cycle
+                        }
+                        try {
+                            processPackets(reader);
+                            initiateNextRead(bufferReader);
+                        } catch (RuntimeException e) {
+                            handleAsyncFailure(e);
+                        }
+                    }
 
-        });
+                    @Override
+                    public void failed(Throwable exc, PacketBufferReader attachment) {
+                        handleAsyncFailure(exc);
+                    }
+
+                    private void processPackets(PacketBufferReader reader) {
+                        for (byte[] packetBytes = reader.readNext(); packetBytes != null; packetBytes = reader.readNext()) {
+                            readAndHandlePacket(packetBytes);
+                        }
+                    }
+
+                    private void handleClosedReader() {
+                        if(!stopped.get()) {
+                            handleAsyncFailure(new EOFException("Connection closed by server"));
+                        }
+                    }
+
+                });
     }
 
-    private void readPacket(int bytesRead) throws TransportException {
-        logger.trace("Received {} bytes", bytesRead);
-        if (bytesRead < 0) {
-            handleEndOfData();
-            return; // don't try to read more data
-        }
-        readBuffer.flip(); // prepare to process received data
-        if (isAwaitingHeader()) {
-            readPacketHeaderAndBody(bytesRead);
-        } else {
-            readPacketBody(bytesRead);
-        }
-        logger.trace("{} bytes remaining in read buffer", readBuffer.remaining());
-        readBuffer.compact(); // prepare to receive more data
-        initiateNextRead();
-    }
-
-    private void handleEndOfData() {
-        if (!stopped.get()) {
-            handleAsyncFailure(new EOFException("Connection closed by server"));
-        }
-    }
-
-    private boolean isAwaitingHeader() {
-        return currentPacketLength == NO_PACKET_LENGTH;
-    }
-
-    private void readPacketHeaderAndBody(int bytesRead) {
-        if (!ensureBytesAvailable(bytesRead, HEADER_SIZE)) {
-            return; // can't read header yet
-        }
-        this.currentPacketLength = readBuffer.getInt() & 0xffffff;
-        readPacketBody(0);
-    }
-
-    private void readPacketBody(int bytesRead) {
-        if (!ensureBytesAvailable(bytesRead, this.currentPacketLength)) {
-            return; // can't read body yet
-        }
-        byte[] buf = new byte[this.currentPacketLength];
-        readBuffer.get(buf);
-        P packet;
+    private void readAndHandlePacket(byte[] packetBytes) {
         try {
-            packet = packetFactory.read(buf);
+            P packet = packetFactory.read(packetBytes);
             logger.trace("Received packet << {} >>", packet);
             handler.handle(packet);
         } catch (BufferException | TransportException e) {
             handleAsyncFailure(e);
         }
-        resetPacketReadState();
-    }
-
-    private void resetPacketReadState() {
-        this.bytesWaitingToBeProcessed = 0;
-        this.currentPacketLength = NO_PACKET_LENGTH;
-        this.readBuffer.compact();
-        this.readBuffer.flip();
-    }
-
-    private boolean ensureBytesAvailable(int bytesRead, int bytesNeeded) {
-        bytesWaitingToBeProcessed += bytesRead;
-        return bytesWaitingToBeProcessed >= bytesNeeded;
     }
 
     private void handleAsyncFailure(Throwable exc) {
