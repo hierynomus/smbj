@@ -62,14 +62,13 @@ public class AsyncPacketReader<P extends Packet<P, ?>> {
         stopped.set(true);
     }
 
-    private void initiateNextRead(final PacketBufferReader bufferReader) {
+    private void initiateNextRead(PacketBufferReader bufferReader) {
         if (stopped.get()) {
             logger.trace("Stopped, not initiating another read operation.");
             return;
         }
         logger.trace("Initiating next read");
-        ByteBuffer readBuffer = bufferReader.getBuffer();
-        channel.read(readBuffer, this.soTimeout, TimeUnit.MILLISECONDS, bufferReader,
+        channel.read(bufferReader.getBuffer(), this.soTimeout, TimeUnit.MILLISECONDS, bufferReader,
                 new CompletionHandler<Integer, PacketBufferReader>() {
 
                     @Override
@@ -77,11 +76,11 @@ public class AsyncPacketReader<P extends Packet<P, ?>> {
                         logger.trace("Received {} bytes", bytesRead);
                         if (bytesRead < 0) {
                             handleClosedReader();
-                            return;  // stop the read cycle
+                            return; // stop the read cycle
                         }
                         try {
                             processPackets(reader);
-                            initiateNextRead(bufferReader);
+                            initiateNextRead(reader);
                         } catch (RuntimeException e) {
                             handleAsyncFailure(e);
                         }
@@ -93,13 +92,14 @@ public class AsyncPacketReader<P extends Packet<P, ?>> {
                     }
 
                     private void processPackets(PacketBufferReader reader) {
-                        for (byte[] packetBytes = reader.readNext(); packetBytes != null; packetBytes = reader.readNext()) {
+                        for (byte[] packetBytes = reader.readNext(); packetBytes != null; packetBytes = reader
+                                .readNext()) {
                             readAndHandlePacket(packetBytes);
                         }
                     }
 
                     private void handleClosedReader() {
-                        if(!stopped.get()) {
+                        if (!stopped.get()) {
                             handleAsyncFailure(new EOFException("Connection closed by server"));
                         }
                     }
