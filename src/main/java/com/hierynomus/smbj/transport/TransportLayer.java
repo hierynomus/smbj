@@ -42,6 +42,8 @@ public interface TransportLayer<P extends Packet<P, ?>> {
      * @throws IOException
      */
     void disconnect() throws IOException;
-
+    /**
+     * Checks if the transport layer is currently connected.
+     */
     boolean isConnected();
 }
