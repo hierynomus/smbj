@@ -19,10 +19,7 @@ import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.fsctl.FsCtlPipeWaitRequest;
-import com.hierynomus.mssmb2.SMB2CreateDisposition;
-import com.hierynomus.mssmb2.SMB2CreateOptions;
-import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.SMB2ShareAccess;
+import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.SMB2CreateResponse;
 import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
 import com.hierynomus.smbj.common.SMBApiException;
@@ -94,13 +91,13 @@ public class PipeShare extends Share {
         }
     }
 
-    public NamedPipe open(String name, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
-        SMB2CreateResponse response = createFile(name, accessMask, attributes, shareAccesses, createDisposition, createOptions);
+    public NamedPipe open(String name, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        SMB2CreateResponse response = createFile(name, impersonationLevel, accessMask, attributes, shareAccesses, createDisposition, createOptions);
         return new NamedPipe(response.getFileId(), this, name);
     }
 
-    public SMB2FileId openFileId(String path, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
-        return super.openFileId(path, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
+    public SMB2FileId openFileId(String path, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        return super.openFileId(path, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
     }
 
     public void closeFileId(SMB2FileId fileId) throws SMBApiException {

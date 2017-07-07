@@ -71,5 +71,9 @@ public interface EnumWithValue<E extends Enum<E>> {
                 return set;
             }
         }
+
+        public static <E extends Enum<E>> E ensureNotNull(E value, E defaultValue) {
+            return value != null ? value : defaultValue;
+        }
     }
 }
