@@ -88,6 +88,7 @@ public class SMBClient {
     }
 
     @Handler
+    @SuppressWarnings("unused")
     private void connectionClosed(ConnectionClosed event) {
         synchronized (this) {
             String hostPort = event.getHostname() + ":" + event.getPort();
