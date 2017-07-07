@@ -30,6 +30,7 @@ import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.session.Session;
@@ -69,6 +70,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
     private TransportLayer<SMB2Packet> transport;
     private final SMBEventBus bus;
     private final ReentrantLock lock = new ReentrantLock();
+    private int remotePort;
 
     public Connection(SmbConfig config, SMBEventBus bus) {
         this.config = config;
@@ -82,6 +84,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
             throw new IllegalStateException(format("This connection is already connected to %s", getRemoteHostname()));
         }
         this.remoteName = hostname;
+        this.remotePort = port;
         transport.connect(new InetSocketAddress(hostname, port));
         this.connectionInfo = new ConnectionInfo(config.getClientGuid(), hostname);
         negotiateDialect();
@@ -99,6 +102,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
         }
         logger.info("Closed connection to {}", getRemoteHostname());
         transport.disconnect();
+        bus.publish(new ConnectionClosed(remoteName, remotePort));
     }
 
     public SmbConfig getConfig() {
