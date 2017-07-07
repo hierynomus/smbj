@@ -18,13 +18,7 @@ package com.hierynomus.smbj.connection
 import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb2.SMB2Packet
 import com.hierynomus.mssmb2.SMB2ShareCapabilities
-import com.hierynomus.mssmb2.messages.SMB2Logoff
-import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest
-import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse
-import com.hierynomus.mssmb2.messages.SMB2SessionSetup
-import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest
-import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse
-import com.hierynomus.mssmb2.messages.SMB2TreeDisconnect
+import com.hierynomus.mssmb2.messages.*
 
 class BasicPacketProcessor {
   private Closure<SMB2Packet> processPacket

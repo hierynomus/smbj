@@ -15,10 +15,6 @@
  */
 package com.hierynomus.smbj.connection;
 
-import java.io.IOException;
-import java.nio.channels.AsynchronousChannelGroup;
-import java.util.concurrent.ExecutorService;
-
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.messages.SMB2MessageConverter;
 import com.hierynomus.smbj.SmbConfig;
@@ -27,6 +23,10 @@ import com.hierynomus.smbj.transport.PacketHandlers;
 import com.hierynomus.smbj.transport.PacketReceiver;
 import com.hierynomus.smbj.transport.TransportLayer;
 import com.hierynomus.smbj.transport.tcp.AsyncDirectTcpTransport;
+
+import java.io.IOException;
+import java.nio.channels.AsynchronousChannelGroup;
+import java.util.concurrent.ExecutorService;
 
 public class AsyncDirectTcpTransportFactory implements TransportLayerFactory<SMB2Packet> {
     private static final AsynchronousChannelGroup DEFAULT_CHANNEL_GROUP = null;  // use system default

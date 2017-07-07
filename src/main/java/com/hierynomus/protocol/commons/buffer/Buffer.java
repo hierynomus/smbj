@@ -15,13 +15,14 @@
  */
 package com.hierynomus.protocol.commons.buffer;
 
+import com.hierynomus.protocol.commons.ByteArrayUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import com.hierynomus.protocol.commons.ByteArrayUtils;
 
 public class Buffer<T extends Buffer<T>> {
     private static final Logger logger = LoggerFactory.getLogger(Buffer.class);

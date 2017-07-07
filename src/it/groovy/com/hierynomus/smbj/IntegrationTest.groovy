@@ -22,10 +22,7 @@ import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.share.Directory
 import com.hierynomus.smbj.share.DiskShare
 import com.hierynomus.smbj.share.File
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import spock.lang.Specification
-
-import java.security.Security
 
 import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_OPEN
 

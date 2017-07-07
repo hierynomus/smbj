@@ -15,6 +15,15 @@
  */
 package com.hierynomus.smbj.transport.tcp;
 
+import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
+import com.hierynomus.smbj.transport.PacketFactory;
+import com.hierynomus.smbj.transport.PacketReader;
+import com.hierynomus.smbj.transport.PacketReceiver;
+import com.hierynomus.smbj.transport.TransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.channels.AsynchronousCloseException;
@@ -22,16 +31,6 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.hierynomus.protocol.Packet;
-import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
-import com.hierynomus.smbj.transport.PacketFactory;
-import com.hierynomus.smbj.transport.PacketReader;
-import com.hierynomus.smbj.transport.PacketReceiver;
-import com.hierynomus.smbj.transport.TransportException;
 
 public class AsyncPacketReader<P extends Packet<P, ?>> {
     private static final Logger logger = LoggerFactory.getLogger(PacketReader.class);

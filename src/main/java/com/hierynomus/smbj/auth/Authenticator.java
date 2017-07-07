@@ -15,11 +15,11 @@
  */
 package com.hierynomus.smbj.auth;
 
-import java.io.IOException;
-import java.util.Random;
-
 import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smbj.session.Session;
+
+import java.io.IOException;
+import java.util.Random;
 
 public interface Authenticator {
 

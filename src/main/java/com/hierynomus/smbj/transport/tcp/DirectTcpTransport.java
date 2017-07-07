@@ -15,19 +15,6 @@
  */
 package com.hierynomus.smbj.transport.tcp;
 
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantLock;
-
-import javax.net.SocketFactory;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.socket.ProxySocketFactory;
@@ -35,6 +22,16 @@ import com.hierynomus.smbj.transport.PacketHandlers;
 import com.hierynomus.smbj.transport.PacketReader;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.smbj.transport.TransportLayer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.net.SocketFactory;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A transport layer over Direct TCP/IP.

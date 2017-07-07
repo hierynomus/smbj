@@ -15,6 +15,16 @@
  */
 package com.hierynomus.smbj.transport.tcp;
 
+import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
+import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.transport.PacketHandlers;
+import com.hierynomus.smbj.transport.TransportException;
+import com.hierynomus.smbj.transport.TransportLayer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -23,22 +33,7 @@ import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.Queue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.hierynomus.protocol.Packet;
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
-import com.hierynomus.smbj.common.SMBRuntimeException;
-import com.hierynomus.smbj.transport.PacketHandlers;
-import com.hierynomus.smbj.transport.TransportException;
-import com.hierynomus.smbj.transport.TransportLayer;
+import java.util.concurrent.*;
 
 /**
  * A transport layer over Direct TCP/IP that uses asynchronous I/O.

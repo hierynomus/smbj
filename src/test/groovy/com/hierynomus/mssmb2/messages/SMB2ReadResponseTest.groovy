@@ -16,7 +16,6 @@
 package com.hierynomus.mssmb2.messages
 
 import com.hierynomus.mserref.NtStatus
-import com.hierynomus.mssmb2.messages.SMB2ReadResponse
 import com.hierynomus.smbj.common.SMBBuffer
 import spock.lang.Specification
 
