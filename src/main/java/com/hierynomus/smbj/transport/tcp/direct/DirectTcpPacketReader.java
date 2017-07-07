@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.transport.tcp;
+package com.hierynomus.smbj.transport.tcp.direct;
 
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;

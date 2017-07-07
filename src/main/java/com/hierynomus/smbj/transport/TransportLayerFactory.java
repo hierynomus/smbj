@@ -16,32 +16,10 @@
 package com.hierynomus.smbj.transport;
 
 import com.hierynomus.protocol.Packet;
+import com.hierynomus.smbj.SmbConfig;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
+public interface TransportLayerFactory<P extends Packet<P, ?>> {
 
-public interface TransportLayer<P extends Packet<P, ?>> {
+    TransportLayer<P> createTransportLayer(PacketHandlers<P> handlers, SmbConfig config);
 
-    /**
-     * Write the packet to the transport.
-     *
-     * @param packet The packet to write.
-     */
-    void write(P packet) throws TransportException;
-
-    /**
-     * Connect to the remote side
-     * 
-     * @param remoteAddress The remote address to connect to
-     */
-    void connect(InetSocketAddress remoteAddress) throws IOException;
-
-    /**
-     * Disconnect from the remote side
-     * 
-     * @throws IOException
-     */
-    void disconnect() throws IOException;
-
-    boolean isConnected();
 }

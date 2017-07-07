@@ -13,15 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.connection;
+package com.hierynomus.smbj.transport.tcp.direct;
 
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.smbj.SmbConfig;
-import com.hierynomus.smbj.transport.PacketReceiver;
+import com.hierynomus.smbj.transport.PacketHandlers;
 import com.hierynomus.smbj.transport.TransportLayer;
+import com.hierynomus.smbj.transport.TransportLayerFactory;
 
-public interface TransportLayerFactory<P extends Packet<P, ?>> {
-
-    TransportLayer<P> createTransportLayer(PacketReceiver<P> receiver, SmbConfig config);
+public class DirectTcpTransportFactory<P extends Packet<P, ?>> implements TransportLayerFactory<P> {
+    @Override
+    public TransportLayer<P> createTransportLayer(PacketHandlers<P> handlers, SmbConfig config) {
+        return new DirectTcpTransport<>(config.getSocketFactory(), config.getSoTimeout(), handlers);
+    }
 
 }

@@ -20,6 +20,7 @@ import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.transport.PacketReceiver
 import com.hierynomus.smbj.transport.TransportException
 import com.hierynomus.smbj.transport.TransportLayer
+import com.hierynomus.smbj.transport.TransportLayerFactory
 
 class StubTransportLayerFactory implements TransportLayerFactory<SMB2Packet> {
   private Closure<SMB2Packet> processPacket

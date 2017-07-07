@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.transport.tcp;
+package com.hierynomus.smbj.transport.tcp.async;
 
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
@@ -82,12 +82,6 @@ public class AsyncDirectTcpTransport<P extends Packet<P, ?>> implements Transpor
                 writeQueue.add(buffer);
             }
         }
-    }
-
-    @Override
-    public void connect(InetSocketAddress remoteAddress, InetSocketAddress localAddress) throws IOException {
-        socketChannel.bind(localAddress);
-        connect(remoteAddress);
     }
 
     @Override
