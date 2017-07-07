@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static com.hierynomus.mssmb2.SMB2Packet.SINGLE_CREDIT_PAYLOAD_SIZE;
@@ -68,6 +69,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
     private SmbConfig config;
     private TransportLayer<SMB2Packet> transport;
     private final SMBEventBus bus;
+    private AtomicBoolean connected = new AtomicBoolean(false);
     private final ReentrantLock lock = new ReentrantLock();
 
     public Connection(SmbConfig config, SMBEventBus bus) {
@@ -78,6 +80,9 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
     }
 
     public void connect(String hostname, int port) throws IOException {
+        if (isConnected()) {
+            throw new IllegalStateException(format("This connection is already connected to %s", getRemoteHostname()));
+        }
         this.remoteName = hostname;
         transport.connect(new InetSocketAddress(hostname, port));
         this.connectionInfo = new ConnectionInfo(config.getClientGuid(), hostname);

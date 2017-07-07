@@ -46,23 +46,13 @@ class SMB2FileIntegrationTest extends Specification {
 
   def setup() {
     client = new SMBClient()
-    connection = client.connect("172.16.37.149")
-    session = connection.authenticate(new AuthenticationContext("Administrator", "xeb1aLabs".toCharArray(), null))
-    share = session.connectShare("Go") as DiskShare
+    connection = client.connect("172.16.93.194")
+    session = connection.authenticate(new AuthenticationContext("jeroen", "jeroen".toCharArray(), null))
+    share = session.connectShare("NewShare") as DiskShare
   }
 
   def cleanup() {
     connection.close()
-  }
-
-  def "should check existence of file and directory"() {
-    given:
-    def dir = share.open("api", EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
-    def file = share.open("README.md", EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
-
-    expect:
-    dir.exists()
-    file.exists()
   }
 
   def "should list contents of share"() {
@@ -70,8 +60,7 @@ class SMB2FileIntegrationTest extends Specification {
     def list = share.list("")
 
     expect:
-    list.size() == 10
-
+    list.size() == 6
   }
 
   def "should correctly list read permissions of file"() {

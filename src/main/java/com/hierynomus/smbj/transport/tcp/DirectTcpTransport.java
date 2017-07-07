@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.net.SocketFactory;
@@ -38,7 +39,7 @@ import com.hierynomus.smbj.transport.TransportLayer;
 /**
  * A transport layer over Direct TCP/IP.
  */
-public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer<P> {
+public class DirectTcpTransport<P extends Packet<P, ?>> implements TransportLayer<P> {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final PacketHandlers<P> handlers;
 
@@ -104,6 +105,10 @@ public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer
 
     @Override
     public void disconnect() throws IOException {
+        if (!isConnected()) {
+            return;
+        }
+
         packetReaderThread.stop();
         if (socket.getInputStream() != null) {
             socket.getInputStream().close();
@@ -111,7 +116,7 @@ public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer
         if (output != null) {
             output.close();
             output = null;
-        }   	
+        }
         if (socket != null) {
             socket.close();
             socket = null;
