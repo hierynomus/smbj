@@ -17,9 +17,11 @@ package com.hierynomus.smbj.connection
 
 import com.hierynomus.mssmb2.SMB2Packet
 import com.hierynomus.smbj.SmbConfig
+import com.hierynomus.smbj.transport.PacketHandlers
 import com.hierynomus.smbj.transport.PacketReceiver
 import com.hierynomus.smbj.transport.TransportException
 import com.hierynomus.smbj.transport.TransportLayer
+import com.hierynomus.smbj.transport.TransportLayerFactory
 
 class StubTransportLayerFactory implements TransportLayerFactory<SMB2Packet> {
   private Closure<SMB2Packet> processPacket
@@ -29,8 +31,8 @@ class StubTransportLayerFactory implements TransportLayerFactory<SMB2Packet> {
   }
 
   @Override
-  TransportLayer<SMB2Packet> createTransportLayer(PacketReceiver<SMB2Packet> receiver, SmbConfig config) {
-    return new StubTransportLayer(receiver, processPacket)
+  TransportLayer<SMB2Packet> createTransportLayer(PacketHandlers<SMB2Packet> handlers, SmbConfig config) {
+    return new StubTransportLayer(handlers.receiver, processPacket)
   }
 
   private static class StubTransportLayer implements TransportLayer<SMB2Packet> {
@@ -59,11 +61,6 @@ class StubTransportLayerFactory implements TransportLayerFactory<SMB2Packet> {
     @Override
     void connect(InetSocketAddress remoteAddress) throws IOException {
       connected = true
-    }
-
-    @Override
-    void connect(InetSocketAddress remoteAddress, InetSocketAddress localAddress) throws IOException {
-      connect(remoteAddress)
     }
 
     @Override

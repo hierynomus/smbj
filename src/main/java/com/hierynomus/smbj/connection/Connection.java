@@ -20,6 +20,7 @@ import com.hierynomus.mssmb2.SMB2GlobalCapability;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2MessageFlag;
 import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.messages.SMB2MessageConverter;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
@@ -34,6 +35,7 @@ import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.transport.PacketHandlers;
 import com.hierynomus.smbj.transport.PacketReceiver;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.smbj.transport.TransportLayer;
@@ -63,6 +65,8 @@ import static java.lang.String.format;
  */
 public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
+    private static final SMB2MessageConverter converter = new SMB2MessageConverter();
+
     private ConnectionInfo connectionInfo;
     private String remoteName;
 
@@ -74,7 +78,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
 
     public Connection(SmbConfig config, SMBEventBus bus) {
         this.config = config;
-        this.transport = config.getTransportLayerFactory().createTransportLayer(this, config);
+        this.transport = config.getTransportLayerFactory().createTransportLayer(new PacketHandlers<>(converter, this, converter), config);
         this.bus = bus;
         bus.subscribe(this);
     }

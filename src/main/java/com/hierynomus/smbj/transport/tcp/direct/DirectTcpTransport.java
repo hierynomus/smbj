@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.transport.tcp;
+package com.hierynomus.smbj.transport.tcp.direct;
 
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import javax.net.SocketFactory;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.concurrent.locks.ReentrantLock;
@@ -81,14 +80,6 @@ public class DirectTcpTransport<P extends Packet<P, ?>> implements TransportLaye
     public void connect(InetSocketAddress remoteAddress) throws IOException {
         String remoteHostname = remoteAddress.getHostString();
         this.socket = socketFactory.createSocket(remoteHostname, remoteAddress.getPort());
-        initWithSocket(remoteHostname);
-    }
-
-    @Override
-    public void connect(InetSocketAddress remoteAddress, InetSocketAddress localAddress) throws IOException {
-        String remoteHostname = remoteAddress.getHostString();
-        InetAddress localInetAddress = InetAddress.getByName(localAddress.getHostString());
-        this.socket = socketFactory.createSocket(remoteHostname, remoteAddress.getPort(), localInetAddress, localAddress.getPort());
         initWithSocket(remoteHostname);
     }
 
