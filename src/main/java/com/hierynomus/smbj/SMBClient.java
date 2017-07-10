@@ -17,7 +17,6 @@ package com.hierynomus.smbj;
 
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.event.ConnectionClosed;
-import com.hierynomus.smbj.event.SMBEvent;
 import com.hierynomus.smbj.event.SMBEventBus;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
