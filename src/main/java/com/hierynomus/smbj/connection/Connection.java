@@ -97,15 +97,28 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
 
     @Override
     public void close() throws Exception {
-        for (Session session : connectionInfo.getSessionTable().activeSessions()) {
-            try {
-                session.close();
-            } catch (IOException e) {
-                logger.warn("Exception while closing session {}", session.getSessionId(), e);
+        close(false);
+    }
+
+    /**
+     * Close the Connection. If {@code force} is set to true, it forgoes the {@link Session#close()} operation on the open sessions, and it just
+     * calls the {@link TransportLayer#disconnect()}.
+     *
+     * @param force if set, does not nicely terminate the open sessions.
+     * @throws Exception If any error occurred during close-ing.
+     */
+    public void close(boolean force) throws Exception {
+        if (!force) {
+            for (Session session : connectionInfo.getSessionTable().activeSessions()) {
+                try {
+                    session.close();
+                } catch (IOException e) {
+                    logger.warn("Exception while closing session {}", session.getSessionId(), e);
+                }
             }
         }
-        logger.info("Closed connection to {}", getRemoteHostname());
         transport.disconnect();
+        logger.info("Closed connection to {}", getRemoteHostname());
         bus.publish(new ConnectionClosed(remoteName, remotePort));
     }
 

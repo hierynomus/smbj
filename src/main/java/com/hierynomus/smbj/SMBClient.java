@@ -17,6 +17,7 @@ package com.hierynomus.smbj;
 
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.event.ConnectionClosed;
+import com.hierynomus.smbj.event.SMBEvent;
 import com.hierynomus.smbj.event.SMBEventBus;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
@@ -46,8 +47,12 @@ public class SMBClient {
     }
 
     public SMBClient(SmbConfig config) {
+        this(config, new SMBEventBus());
+    }
+
+    public SMBClient(SmbConfig config, SMBEventBus bus) {
         this.config = config;
-        bus = new SMBEventBus();
+        this.bus = bus;
         bus.subscribe(this);
     }
 

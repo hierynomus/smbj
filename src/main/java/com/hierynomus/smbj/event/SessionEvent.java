@@ -25,4 +25,19 @@ abstract class SessionEvent implements SMBEvent {
     public long getSessionId() {
         return sessionId;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        SessionEvent that = (SessionEvent) o;
+
+        return sessionId == that.sessionId;
+    }
+
+    @Override
+    public int hashCode() {
+        return (int) (sessionId ^ (sessionId >>> 32));
+    }
 }
