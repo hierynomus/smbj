@@ -113,7 +113,7 @@ public class DirectTcpTransport<P extends Packet<P, ?>> implements TransportLaye
 
     @Override
     public boolean isConnected() {
-        return (socket != null) && socket.isConnected();
+        return (socket != null) && socket.isConnected() && !socket.isClosed();
     }
 
     public void setSocketFactory(SocketFactory socketFactory) {

@@ -31,4 +31,22 @@ public class ConnectionClosed implements SMBEvent {
     public int getPort() {
         return port;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ConnectionClosed that = (ConnectionClosed) o;
+
+        if (port != that.port) return false;
+        return hostname.equals(that.hostname);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = hostname.hashCode();
+        result = 31 * result + port;
+        return result;
+    }
 }

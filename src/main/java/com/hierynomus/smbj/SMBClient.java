@@ -46,8 +46,12 @@ public class SMBClient {
     }
 
     public SMBClient(SmbConfig config) {
+        this(config, new SMBEventBus());
+    }
+
+    public SMBClient(SmbConfig config, SMBEventBus bus) {
         this.config = config;
-        bus = new SMBEventBus();
+        this.bus = bus;
         bus.subscribe(this);
     }
 
