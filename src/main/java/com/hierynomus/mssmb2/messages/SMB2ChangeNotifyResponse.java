@@ -43,10 +43,21 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.skip(2); // StructureSize (2 bytes)
         int outputBufferOffset = buffer.readUInt16(); // OutputBufferOffset (2 bytes)
-        buffer.readUInt32AsInt(); // OutputBufferLength (4 bytes)
-        if (getHeader().getStatus() == NtStatus.STATUS_SUCCESS) {
+        int length = buffer.readUInt32AsInt();// OutputBufferLength (4 bytes)
+        if (outputBufferOffset > 0 && length > 0) {
             fileNotifyInfoList = readFileNotifyInfo(buffer, outputBufferOffset);
         }
+    }
+
+    /**
+     * [MS-SMB2].pdf 3.3.4.4
+     * STATUS_NOTIFY_ENUM_DIR should be treated as a success code.
+     * @param status The status to verify
+     * @return
+     */
+    @Override
+    protected boolean isSuccess(NtStatus status) {
+        return super.isSuccess(status) || status == NtStatus.STATUS_NOTIFY_ENUM_DIR;
     }
 
     private List<FileNotifyInfo> readFileNotifyInfo(SMBBuffer buffer, int outputBufferOffset)

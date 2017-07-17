@@ -16,7 +16,11 @@
 package com.hierynomus.smbj;
 
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
+import net.engio.mbassy.listener.Handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
@@ -42,8 +46,13 @@ public class SMBClient {
     }
 
     public SMBClient(SmbConfig config) {
+        this(config, new SMBEventBus());
+    }
+
+    public SMBClient(SmbConfig config, SMBEventBus bus) {
         this.config = config;
-        bus = new SMBEventBus();
+        this.bus = bus;
+        bus.subscribe(this);
     }
 
     /**
@@ -71,13 +80,26 @@ public class SMBClient {
 
     private Connection getEstablishedOrConnect(String hostname, int port) throws IOException {
         synchronized (this) {
-            if (!connectionTable.containsKey(hostname)) {
+            String hostPort = hostname + ":" + port;
+            if (!connectionTable.containsKey(hostPort)) {
                 Connection connection = new Connection(config, bus);
                 connection.connect(hostname, port);
-                connectionTable.put(hostname, connection);
+                connectionTable.put(hostPort, connection);
                 return connection;
             }
-            return connectionTable.get(hostname);
+            return connectionTable.get(hostPort);
         }
     }
+
+    @Handler
+    @SuppressWarnings("unused")
+    private void connectionClosed(ConnectionClosed event) {
+        synchronized (this) {
+            String hostPort = event.getHostname() + ":" + event.getPort();
+            connectionTable.remove(hostPort);
+            log.debug("Connection to << {} >> closed", hostPort);
+        }
+    }
+
+    private static final Logger log = LoggerFactory.getLogger(SMBClient.class);
 }

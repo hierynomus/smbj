@@ -18,22 +18,15 @@ package com.hierynomus.ntlm.functions
 import com.hierynomus.security.bc.BCSecurityProvider
 import com.hierynomus.security.jce.JceSecurityProvider
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
 
 import java.security.SecureRandom
-import java.security.Security
 
 class NtlmFunctionsTest extends Specification {
 
-  static SecureRandom random
-  static def providers
-
-  def setupSpec() {
-    random = new SecureRandom()
-    providers = [new JceSecurityProvider(), new JceSecurityProvider(new BouncyCastleProvider()), new BCSecurityProvider()]
-  }
+  static SecureRandom random = new SecureRandom()
+  static def providers = [new JceSecurityProvider(), new JceSecurityProvider(new BouncyCastleProvider()), new BCSecurityProvider()]
 
   @Unroll
   def "should correctly determine LMOWFv1 LM hash"() {

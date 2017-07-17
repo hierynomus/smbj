@@ -15,9 +15,9 @@
  */
 package com.hierynomus.smbj.auth;
 
-import javax.security.auth.Subject;
-
 import org.ietf.jgss.GSSCredential;
+
+import javax.security.auth.Subject;
 
 public class GSSAuthenticationContext extends AuthenticationContext {
     Subject subject;

@@ -15,12 +15,13 @@
  */
 package com.hierynomus.spnego;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import org.bouncycastle.asn1.*;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import org.bouncycastle.asn1.*;
+
+import java.io.IOException;
+import java.math.BigInteger;
 
 /**
  * This class can encode and decode the SPNEGO negTokenInit Token.

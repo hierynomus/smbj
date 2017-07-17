@@ -19,7 +19,10 @@ import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mserref.NtStatus
 import com.hierynomus.msfscc.FileAttributes
 import com.hierynomus.mssmb2.*
-import com.hierynomus.mssmb2.messages.*
+import com.hierynomus.mssmb2.messages.SMB2CreateRequest
+import com.hierynomus.mssmb2.messages.SMB2CreateResponse
+import com.hierynomus.mssmb2.messages.SMB2ReadRequest
+import com.hierynomus.mssmb2.messages.SMB2ReadResponse
 import com.hierynomus.protocol.commons.ByteArrayUtils
 import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.SmbConfig

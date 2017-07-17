@@ -37,22 +37,23 @@ public class SMB2CreateRequest extends SMB2Packet {
     private final Set<SMB2CreateOptions> createOptions;
     private final String fileName; // Null to indicate the root of share
     private final Set<AccessMask> accessMask;
+    private final SMB2ImpersonationLevel impersonationLevel;
 
     public SMB2CreateRequest(SMB2Dialect smbDialect,
                              long sessionId, long treeId,
+                             SMB2ImpersonationLevel impersonationLevel,
                              Set<AccessMask> accessMask,
                              Set<FileAttributes> fileAttributes,
                              Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition,
                              Set<SMB2CreateOptions> createOptions, String fileName) {
-
         super(57, smbDialect, SMB2MessageCommandCode.SMB2_CREATE, sessionId, treeId);
+        this.impersonationLevel = ensureNotNull(impersonationLevel, SMB2ImpersonationLevel.Identification);
         this.accessMask = accessMask;
         this.fileAttributes = ensureNotNull(fileAttributes, FileAttributes.class);
         this.shareAccess = ensureNotNull(shareAccess, SMB2ShareAccess.class);
-        this.createDisposition = createDisposition;
+        this.createDisposition = ensureNotNull(createDisposition, SMB2CreateDisposition.FILE_SUPERSEDE);
         this.createOptions = ensureNotNull(createOptions, SMB2CreateOptions.class);
         this.fileName = fileName;
-
     }
 
     @Override
@@ -60,13 +61,13 @@ public class SMB2CreateRequest extends SMB2Packet {
         buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putByte((byte) 0); // SecurityFlags (1 byte) - Reserved
         buffer.putByte((byte) 0);  // RequestedOpLockLevel (1 byte) - None
-        buffer.putUInt32(1); // ImpersonationLevel (4 bytes) - Identification
+        buffer.putUInt32(impersonationLevel.getValue()); // ImpersonationLevel (4 bytes) - Identification
         buffer.putReserved(8); // SmbCreateFlags (8 bytes)
         buffer.putReserved(8); // Reserved (8 bytes)
         buffer.putUInt32(toLong(accessMask)); // DesiredAccess (4 bytes)
         buffer.putUInt32(toLong(fileAttributes)); // FileAttributes (4 bytes)
         buffer.putUInt32(toLong(shareAccess)); // ShareAccess (4 bytes)
-        buffer.putUInt32(createDisposition == null ? 0 : createDisposition.getValue()); // CreateDisposition (4 bytes)
+        buffer.putUInt32(createDisposition.getValue()); // CreateDisposition (4 bytes)
         buffer.putUInt32(toLong(createOptions)); // CreateOptions (4 bytes)
         int offset = SMB2Header.STRUCTURE_SIZE + structureSize - 1; // The structureSize is including the minimum of 1 byte for the fileName
 

@@ -13,19 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.transport.tcp;
-
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.util.concurrent.locks.ReentrantLock;
-
-import javax.net.SocketFactory;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+package com.hierynomus.smbj.transport.tcp.direct;
 
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
@@ -34,11 +22,20 @@ import com.hierynomus.smbj.transport.PacketHandlers;
 import com.hierynomus.smbj.transport.PacketReader;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.smbj.transport.TransportLayer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.net.SocketFactory;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A transport layer over Direct TCP/IP.
  */
-public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer<P> {
+public class DirectTcpTransport<P extends Packet<P, ?>> implements TransportLayer<P> {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final PacketHandlers<P> handlers;
 
@@ -86,14 +83,6 @@ public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer
         initWithSocket(remoteHostname);
     }
 
-    @Override
-    public void connect(InetSocketAddress remoteAddress, InetSocketAddress localAddress) throws IOException {
-        String remoteHostname = remoteAddress.getHostString();
-        InetAddress localInetAddress = InetAddress.getByName(localAddress.getHostString());
-        this.socket = socketFactory.createSocket(remoteHostname, remoteAddress.getPort(), localInetAddress, localAddress.getPort());
-        initWithSocket(remoteHostname);
-    }
-
     private void initWithSocket(String remoteHostname) throws IOException {
         this.socket.setSoTimeout(soTimeout);
         this.output = new BufferedOutputStream(this.socket.getOutputStream(), INITIAL_BUFFER_SIZE);
@@ -104,6 +93,10 @@ public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer
 
     @Override
     public void disconnect() throws IOException {
+        if (!isConnected()) {
+            return;
+        }
+
         packetReaderThread.stop();
         if (socket.getInputStream() != null) {
             socket.getInputStream().close();
@@ -111,7 +104,7 @@ public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer
         if (output != null) {
             output.close();
             output = null;
-        }   	
+        }
         if (socket != null) {
             socket.close();
             socket = null;
@@ -120,7 +113,7 @@ public class DirectTcpTransport<P extends Packet<P,?>> implements TransportLayer
 
     @Override
     public boolean isConnected() {
-        return (socket != null) && socket.isConnected();
+        return (socket != null) && socket.isConnected() && !socket.isClosed();
     }
 
     public void setSocketFactory(SocketFactory socketFactory) {

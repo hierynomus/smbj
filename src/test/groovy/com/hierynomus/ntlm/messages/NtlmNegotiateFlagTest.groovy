@@ -22,22 +22,22 @@ import spock.lang.Unroll
 @Unroll
 class NtlmNegotiateFlagTest extends Specification {
 
-    def "flag #flag should be set in flags #flags"() {
-        given:
+  def "flag #flag should be set in flags #flags"() {
+    given:
 
-        expect:
-        EnumWithValue.EnumUtils.isSet(flags, flag)
+    expect:
+    EnumWithValue.EnumUtils.isSet(flags, flag)
 
-        where:
-        flags       | flag
-        0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_56
-        0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_128
-        0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_TARGET_INFO
-        0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY
-        0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_NTLM
-        0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_NTLM
-        0xa0880205L | NtlmNegotiateFlag.NTLMSSP_REQUEST_TARGET
-        0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_UNICODE
+    where:
+    flags       | flag
+    0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_56
+    0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_128
+    0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_TARGET_INFO
+    0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY
+    0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_NTLM
+    0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_NTLM
+    0xa0880205L | NtlmNegotiateFlag.NTLMSSP_REQUEST_TARGET
+    0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_UNICODE
 
-    }
+  }
 }

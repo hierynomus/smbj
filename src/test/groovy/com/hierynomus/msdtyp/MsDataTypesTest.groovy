@@ -28,7 +28,6 @@ class MsDataTypesTest extends Specification {
         when:
         MsDataTypes.putGuid(uuid, buffer)
 
-
         then:
         buffer.printHex() == "95 18 bd fb 40 af a4 48 a1 83 8d ab eb 1e 90 1a"
         MsDataTypes.readGuid(buffer) == uuid
