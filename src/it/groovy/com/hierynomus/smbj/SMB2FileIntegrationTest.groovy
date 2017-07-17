@@ -17,9 +17,11 @@ package com.hierynomus.smbj
 
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mssmb2.SMB2CreateDisposition
+import com.hierynomus.mssmb2.SMB2CreateOptions
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.Connection
+import com.hierynomus.smbj.io.ArrayByteChunkProvider
 import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.share.Directory
 import com.hierynomus.smbj.share.DiskShare
@@ -27,8 +29,10 @@ import com.hierynomus.smbj.share.File
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import spock.lang.Specification
 
+import java.nio.charset.StandardCharsets
 import java.security.Security
 
+import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_CREATE
 import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_OPEN
 
 class SMB2FileIntegrationTest extends Specification {
@@ -46,7 +50,7 @@ class SMB2FileIntegrationTest extends Specification {
 
   def setup() {
     client = new SMBClient()
-    connection = client.connect("172.16.93.194")
+    connection = client.connect("172.16.93.203")
     session = connection.authenticate(new AuthenticationContext("jeroen", "jeroen".toCharArray(), null))
     share = session.connectShare("NewShare") as DiskShare
   }
@@ -55,22 +59,58 @@ class SMB2FileIntegrationTest extends Specification {
     connection.close()
   }
 
-  def "should list contents of share"() {
+  def "should list contents of empty share"() {
     given:
     def list = share.list("")
 
     expect:
-    list.size() == 6
+    list.size() == 2
+    list.get(0).fileName == "."
+    list.get(1).fileName == ".."
   }
 
-  def "should correctly list read permissions of file"() {
+  def "should create file and list contents of share"() {
     given:
-    def file = share.open("README.md", EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
-    def dir = share.open("api", EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    def f = share.openFile("test", EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, FILE_CREATE, null)
+    f.close()
 
     expect:
-    file instanceof File
-    dir instanceof Directory
+    share.list("").collect { it.fileName } contains "test"
+
+    cleanup:
+    share.rm("test")
+  }
+
+  def "should create directory and list contents"() {
+    given:
+    share.mkdir("folder-1")
+
+    expect:
+    share.list("").collect { it.fileName } contains "folder-1"
+    share.list("folder-1").collect { it.fileName } == [".", ".."]
+
+    cleanup:
+    share.rmdir("folder-1", true)
+  }
+
+  def "should read file contents of file in directory"() {
+    given:
+    share.mkdir("api")
+    def textFile = share.openFile("api\\test.txt", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_CREATE, null)
+    textFile.write(new ArrayByteChunkProvider("Hello World!".getBytes(StandardCharsets.UTF_8), 0))
+    textFile.close()
+
+    when:
+    def read = share.openFile("api\\test.txt", EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+
+    then:
+    def is = read.getInputStream()
+    is.readLines() == ["Hello World!"]
+
+    cleanup:
+    is?.close()
+    read.close()
+    share.rmdir("api", true)
   }
 
   def "should transfer big file to share"() {
