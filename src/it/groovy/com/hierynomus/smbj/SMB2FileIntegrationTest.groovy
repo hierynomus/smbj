@@ -16,10 +16,12 @@
 package com.hierynomus.smbj
 
 import com.hierynomus.msdtyp.AccessMask
+import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb2.SMB2CreateDisposition
 import com.hierynomus.mssmb2.SMB2CreateOptions
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.smbj.auth.AuthenticationContext
+import com.hierynomus.smbj.common.SMBApiException
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.io.ArrayByteChunkProvider
 import com.hierynomus.smbj.session.Session
@@ -50,7 +52,7 @@ class SMB2FileIntegrationTest extends Specification {
 
   def setup() {
     client = new SMBClient()
-    connection = client.connect("172.16.93.203")
+    connection = client.connect("172.16.93.206")
     session = connection.authenticate(new AuthenticationContext("jeroen", "jeroen".toCharArray(), null))
     share = session.connectShare("NewShare") as DiskShare
   }
@@ -111,6 +113,23 @@ class SMB2FileIntegrationTest extends Specification {
     is?.close()
     read.close()
     share.rmdir("api", true)
+  }
+
+  def "should delete locked file"() {
+    given:
+    def lockedFile = share.openFile("locked", EnumSet.of(AccessMask.GENERIC_WRITE), null, EnumSet.noneOf(SMB2ShareAccess.class), FILE_CREATE, null)
+
+    when:
+    share.rm("locked")
+
+    then:
+    def e = thrown(SMBApiException.class)
+    e.status == NtStatus.STATUS_SHARING_VIOLATION
+    share.list("").collect { it.fileName } contains "locked"
+
+    cleanup:
+    lockedFile.close()
+    share.rm("locked")
   }
 
   def "should transfer big file to share"() {
