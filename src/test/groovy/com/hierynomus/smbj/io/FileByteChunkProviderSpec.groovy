@@ -19,7 +19,7 @@ import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import spock.lang.Specification
 
-class FileByteChunkProviderTest extends Specification {
+class FileByteChunkProviderSpec extends Specification {
   @Rule
   TemporaryFolder temp
 

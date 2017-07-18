@@ -21,7 +21,7 @@ import spock.lang.Unroll
 import java.nio.charset.Charset
 
 @Unroll
-class BufferTest extends Specification {
+class BufferSpec extends Specification {
 
   def "should read and write value #value as uint#size in #endian"() {
     given:

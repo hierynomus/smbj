@@ -35,7 +35,7 @@ import spock.lang.Specification
 import java.security.DigestOutputStream
 import java.security.MessageDigest
 
-class FileReadTest extends Specification {
+class FileReadSpec extends Specification {
   private byte[] expectedDigest
   private MessageDigest digest
   private File file

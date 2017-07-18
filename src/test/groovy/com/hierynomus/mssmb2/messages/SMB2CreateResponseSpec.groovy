@@ -21,7 +21,7 @@ import spock.lang.Specification
 
 import javax.xml.bind.DatatypeConverter
 
-class SMB2CreateResponseTest extends Specification {
+class SMB2CreateResponseSpec extends Specification {
 
   def "should parse SMB2 Create Response without Maximal Content"() {
     given:

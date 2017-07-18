@@ -21,7 +21,7 @@ import spock.lang.Specification
 
 import javax.xml.bind.DatatypeConverter
 
-class SMB2TreeConnectResponseTest extends Specification {
+class SMB2TreeConnectResponseSpec extends Specification {
 
   def "should parse tree connects"() {
     given:
