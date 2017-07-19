@@ -21,8 +21,6 @@ import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
 
-import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.valueOf;
-
 /**
  * [MS-SMB2].pdf 2.2.32 SMB2 IOCTL Response
  * <p>
@@ -42,9 +40,6 @@ public class SMB2IoctlResponse extends SMB2Packet {
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
-        // TODO how to handle errors correctly
-        if (header.getStatus() != NtStatus.STATUS_SUCCESS) return;
-
         buffer.skip(2); // StructureSize (2 bytes)
         buffer.skip(2); // Reserved (2 bytes)
         controlCode = buffer.readUInt32AsInt(); // CtlCode (4 bytes)
@@ -67,6 +62,17 @@ public class SMB2IoctlResponse extends SMB2Packet {
             outputBuffer = buffer.readRawBytes(outputCount);
         }
 
+    }
+
+    /**
+     * [MS-SMB2].pdf 3.3.4.4
+     * STATUS_BUFFER_OVERFLOW and STATUS_INVALID_PARAMETER should be treated as a success code.
+     * @param status The status to verify
+     * @return
+     */
+    @Override
+    protected boolean isSuccess(NtStatus status) {
+        return super.isSuccess(status) || status == NtStatus.STATUS_BUFFER_OVERFLOW || status == NtStatus.STATUS_INVALID_PARAMETER;
     }
 
     public byte[] getOutputBuffer() {

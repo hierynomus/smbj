@@ -15,12 +15,12 @@
  */
 package com.hierynomus.msdtyp;
 
-import java.util.EnumSet;
-import java.util.Set;
-
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBBuffer;
+
+import java.util.EnumSet;
+import java.util.Set;
 
 /**
  * [MS-DTYP].pdf 2.4.6 SecurityDescriptor

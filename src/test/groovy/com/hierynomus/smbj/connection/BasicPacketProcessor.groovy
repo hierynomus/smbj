@@ -18,13 +18,7 @@ package com.hierynomus.smbj.connection
 import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb2.SMB2Packet
 import com.hierynomus.mssmb2.SMB2ShareCapabilities
-import com.hierynomus.mssmb2.messages.SMB2Logoff
-import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest
-import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse
-import com.hierynomus.mssmb2.messages.SMB2SessionSetup
-import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest
-import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse
-import com.hierynomus.mssmb2.messages.SMB2TreeDisconnect
+import com.hierynomus.mssmb2.messages.*
 
 class BasicPacketProcessor {
   private Closure<SMB2Packet> processPacket
@@ -48,25 +42,25 @@ class BasicPacketProcessor {
     processPacket.call(req)
   }
 
-  private SMB2Packet negotiateResponse() {
+  private static SMB2Packet negotiateResponse() {
     def response = new SMB2NegotiateResponse()
     response.header.status = NtStatus.STATUS_SUCCESS
     response
   }
 
-  private SMB2Packet sessionSetupResponse() {
+  private static SMB2Packet sessionSetupResponse() {
     def response = new SMB2SessionSetup()
     response.header.status = NtStatus.STATUS_SUCCESS
     response
   }
 
-  private SMB2Packet logoffResponse() {
+  private static SMB2Packet logoffResponse() {
     def response = new SMB2Logoff()
     response.header.status = NtStatus.STATUS_SUCCESS
     response
   }
 
-  private SMB2Packet connectResponse() {
+  private static SMB2Packet connectResponse() {
     def response = new SMB2TreeConnectResponse()
     response.header.status = NtStatus.STATUS_SUCCESS
     response.capabilities = EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS)
@@ -74,7 +68,7 @@ class BasicPacketProcessor {
     response
   }
 
-  private SMB2Packet disconnectResponse() {
+  private static SMB2Packet disconnectResponse() {
     def response = new SMB2TreeDisconnect()
     response.header.status = NtStatus.STATUS_SUCCESS
     response

@@ -15,8 +15,9 @@
  */
 package com.hierynomus.smbj.common;
 
-import java.io.IOException;
 import com.hierynomus.protocol.commons.concurrent.ExceptionWrapper;
+
+import java.io.IOException;
 
 public class SMBException extends IOException {
     public static ExceptionWrapper<SMBException> Wrapper = new ExceptionWrapper<SMBException>() {

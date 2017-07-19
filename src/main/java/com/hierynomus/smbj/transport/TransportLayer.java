@@ -37,19 +37,13 @@ public interface TransportLayer<P extends Packet<P, ?>> {
     void connect(InetSocketAddress remoteAddress) throws IOException;
 
     /**
-     * Connect to the remote side
-     * 
-     * @param remoteAddress The remote address to connect to
-     * @param localAddress The local address to use
-     */
-    void connect(InetSocketAddress remoteAddress, InetSocketAddress localAddress) throws IOException;
-
-    /**
      * Disconnect from the remote side
      * 
      * @throws IOException
      */
     void disconnect() throws IOException;
-
+    /**
+     * Checks if the transport layer is currently connected.
+     */
     boolean isConnected();
 }

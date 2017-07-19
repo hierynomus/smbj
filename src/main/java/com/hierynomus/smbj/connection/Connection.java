@@ -18,6 +18,7 @@ package com.hierynomus.smbj.connection;
 import com.hierynomus.msdfsc.DFSSession;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.*;
+import com.hierynomus.mssmb2.messages.SMB2MessageConverter;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
@@ -28,9 +29,11 @@ import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.transport.PacketHandlers;
 import com.hierynomus.smbj.transport.PacketReceiver;
 import com.hierynomus.smbj.transport.TransportException;
 import com.hierynomus.smbj.transport.TransportLayer;
@@ -61,6 +64,8 @@ import static java.lang.String.format;
  */
 public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
+    private static final SMB2MessageConverter converter = new SMB2MessageConverter();
+
     private ConnectionInfo connectionInfo;
     private String remoteName;
 
@@ -74,11 +79,12 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
     private TransportLayer<SMB2Packet> transport;
     private final SMBEventBus bus;
     private final ReentrantLock lock = new ReentrantLock();
+    private int remotePort;
 
     public Connection(SmbConfig config, SMBClient client, SMBEventBus bus) {
         this.config = config;
-        this.transport = config.getTransportLayerFactory().createTransportLayer(this, config);
         this.client = client;
+        this.transport = config.getTransportLayerFactory().createTransportLayer(new PacketHandlers<>(converter, this, converter), config);
         this.bus = bus;
         bus.subscribe(this);
     }
@@ -92,7 +98,11 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
     }
 
     public void connect(String hostname, int port) throws IOException {
+        if (isConnected()) {
+            throw new IllegalStateException(format("This connection is already connected to %s", getRemoteHostname()));
+        }
         this.remoteName = hostname;
+        this.remotePort = port;
         transport.connect(new InetSocketAddress(hostname, port));
         this.connectionInfo = new ConnectionInfo(config.getClientGuid(), hostname);
         negotiateDialect();
@@ -101,15 +111,29 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
 
     @Override
     public void close() throws Exception {
-        for (Session session : connectionInfo.getSessionTable().activeSessions()) {
-            try {
-                session.close();
-            } catch (IOException e) {
-                logger.warn("Exception while closing session {}", session.getSessionId(), e);
+        close(false);
+    }
+
+    /**
+     * Close the Connection. If {@code force} is set to true, it forgoes the {@link Session#close()} operation on the open sessions, and it just
+     * calls the {@link TransportLayer#disconnect()}.
+     *
+     * @param force if set, does not nicely terminate the open sessions.
+     * @throws Exception If any error occurred during close-ing.
+     */
+    public void close(boolean force) throws Exception {
+        if (!force) {
+            for (Session session : connectionInfo.getSessionTable().activeSessions()) {
+                try {
+                    session.close();
+                } catch (IOException e) {
+                    logger.warn("Exception while closing session {}", session.getSessionId(), e);
+                }
             }
         }
-        logger.info("Closed connection to {}", getRemoteHostname());
         transport.disconnect();
+        logger.info("Closed connection to {}", getRemoteHostname());
+        bus.publish(new ConnectionClosed(remoteName, remotePort));
     }
 
     public SmbConfig getConfig() {
@@ -284,11 +308,12 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
         logger.debug("Server granted us {} credits for {}, now available: {} credits", packet.getHeader().getCreditResponse(), packet, connectionInfo.getSequenceWindow().available());
 
         Request request = connectionInfo.getOutstandingRequests().getRequestByMessageId(messageId);
-        logger.trace("Send/Recv of packet with message id << {} >> took << {} ms >>", messageId, System.currentTimeMillis() - request.getTimestamp().getTime());
+        logger.trace("Send/Recv of packet {} took << {} ms >>", packet, System.currentTimeMillis() - request.getTimestamp().getTime());
 
         // [MS-SMB2].pdf 3.2.5.1.5 Handling Asynchronous Responses
         if (isSet(packet.getHeader().getFlags(), SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
             if (packet.getHeader().getStatus() == NtStatus.STATUS_PENDING) {
+                logger.debug("Received ASYNC packet {} with AsyncId << {} >>", packet, packet.getHeader().getAsyncId());
                 request.setAsyncId(packet.getHeader().getAsyncId());
                 // TODO Expiration timer
                 return;
