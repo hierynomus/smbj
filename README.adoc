@@ -84,6 +84,26 @@ C - Adjusting Timeout and Socket Timeout
 
 ```
 
+== Groovy Examples
+
+A - Show if a file exists, get a file, and list all of the files in a directory
+
+
+    
+    def smb = new SMBClient()                                                   //Define the SMB Client
+    def conn = smb.connect("GenericWebsite.com")                                //Define and set up connection to the host site
+    def session = conn.authenticate( new AuthenticationContext(                 //Log in to the host site using proper credentials
+            "administrator",
+            'password'.toCharArray(),
+            "localhost")
+    )
+    def cDriveShare = session.connectShare('c$')                                //Set up the share connection
+    println cDriveShare.fileExists("File\\Path\\Here\\ExampleFile.txt")         //Show if a file exists
+    def file = cDriveShare.getFile("Example\\Path\\Again\\ExampleFile.txt")     //Get file
+    def desktop = cDriveShare.list("Users\\Desktop")                            //List the files in the defined directory
+    println desktop.join("\n")                                                  //Print out all of the files listed in the current working directory
+    println desktop[4].dump()
+
 == Depending on SMBJ
 If you're building your project using Maven, you can add the following dependency to the `pom.xml`:
 
