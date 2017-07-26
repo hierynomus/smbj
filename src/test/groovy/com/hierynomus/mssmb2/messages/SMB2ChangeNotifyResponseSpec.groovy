@@ -20,7 +20,7 @@ import spock.lang.Specification
 
 import javax.xml.bind.DatatypeConverter
 
-class SMB2ChangeNotifyResponseTest extends Specification {
+class SMB2ChangeNotifyResponseSpec extends Specification {
 
   def "should parse notifications"() {
     given:

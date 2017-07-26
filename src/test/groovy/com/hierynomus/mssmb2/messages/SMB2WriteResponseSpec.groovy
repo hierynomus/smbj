@@ -13,23 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.msdtyp
+package com.hierynomus.mssmb2.messages
 
 import com.hierynomus.smbj.common.SMBBuffer
 import spock.lang.Specification
 
-class MsDataTypesTest extends Specification {
+import javax.xml.bind.DatatypeConverter
 
-    def "should read/write UUID correctly"() {
-        given:
-        def buffer = new SMBBuffer()
-        def uuid = UUID.fromString("fbbd1895-af40-48a4-a183-8dabeb1e901a")
+class SMB2WriteResponseSpec extends Specification {
 
-        when:
-        MsDataTypes.putGuid(uuid, buffer)
+  def "should parse write response"() {
+    given:
+    String hexString1 = "fe534d4240000000000000000900010001000000000000004d00000000000000000000000100000061000000007400000000000000000000000000000000000011000000002000000000000000000000"
+    byte[] bytes1 = DatatypeConverter.parseHexBinary(hexString1)
+    SMB2WriteResponse response = new SMB2WriteResponse()
 
-        then:
-        buffer.printHex() == "95 18 bd fb 40 af a4 48 a1 83 8d ab eb 1e 90 1a"
-        MsDataTypes.readGuid(buffer) == uuid
-    }
+    when:
+    response.read(new SMBBuffer(bytes1))
+
+    then:
+    response.bytesWritten == 8192
+  }
 }

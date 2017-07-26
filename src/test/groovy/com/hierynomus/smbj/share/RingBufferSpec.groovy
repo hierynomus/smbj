@@ -18,7 +18,7 @@ package com.hierynomus.smbj.share
 import spock.lang.Specification
 
 
-class RingBufferTest extends Specification {
+class RingBufferSpec extends Specification {
 
   private RingBuffer cBuf = new RingBuffer(10)
 

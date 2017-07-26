@@ -23,7 +23,7 @@ import spock.lang.Unroll
 
 import java.security.SecureRandom
 
-class NtlmFunctionsTest extends Specification {
+class NtlmFunctionsSpec extends Specification {
 
   static SecureRandom random = new SecureRandom()
   static def providers = [new JceSecurityProvider(), new JceSecurityProvider(new BouncyCastleProvider()), new BCSecurityProvider()]

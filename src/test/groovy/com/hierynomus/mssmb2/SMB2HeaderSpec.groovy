@@ -13,27 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.mserref
+package com.hierynomus.mssmb2
 
+import com.hierynomus.smbj.common.SMBBuffer
 import spock.lang.Specification
 import spock.lang.Unroll
 
-@Unroll
-class NtStatusTest extends Specification {
+class SMB2HeaderSpec extends Specification {
 
-  def "#ntStatus should be STATUS_SEVERITY_SUCCESS status code"() {
-    expect:
-    ntStatus.isSuccess()
+  @Unroll
+  def "should write credit request for dialect #dialect"() {
+    given:
+    def header = new SMB2Header()
+    header.setCreditRequest(66)
+    header.setCreditCharge(0)
+    header.setDialect(dialect)
+    header.setMessageType(SMB2MessageCommandCode.SMB2_NEGOTIATE)
+    def buffer = new SMBBuffer()
+
+    when:
+    header.writeTo(buffer)
+
+    then:
+    buffer.rpos(14)
+    buffer.readUInt16() == 66
 
     where:
-    ntStatus << [NtStatus.STATUS_SUCCESS, NtStatus.STATUS_PENDING]
-  }
-
-  def "#ntStatus should be STATUS_SEVERITY_ERROR status code"() {
-    expect:
-    ntStatus.isError()
-
-    where:
-    ntStatus << [NtStatus.STATUS_ACCESS_DENIED, NtStatus.STATUS_END_OF_FILE]
+    dialect << [SMB2Dialect.SMB_2_1, SMB2Dialect.SMB_2_0_2, SMB2Dialect.SMB_2XX]
   }
 }
