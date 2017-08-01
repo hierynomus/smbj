@@ -23,7 +23,7 @@ import spock.lang.Specification
 
 import javax.xml.bind.DatatypeConverter
 
-class NegTokenInitTest extends Specification {
+class NegTokenInitSpec extends Specification {
 
   def "should correctly decode GSS-API negInitToken"() {
     given:

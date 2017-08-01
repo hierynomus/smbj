@@ -21,7 +21,7 @@ import spock.lang.Specification
 
 import javax.xml.bind.DatatypeConverter
 
-class SMB2CreateResponseTest extends Specification {
+class SMB2CreateResponseSpec extends Specification {
 
   def "should parse SMB2 Create Response without Maximal Content"() {
     given:
@@ -37,4 +37,13 @@ class SMB2CreateResponseTest extends Specification {
     Arrays.equals(([0x03, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00] as byte[]), resp.fileId.persistentHandle)
   }
 
+  def "should parse SMB2 Create Response with STATUS_PENDING"() {
+    given:
+    def hex = "fe534d424000010003010000050002000300000000000000040000000000000001000000000000004100000800280000e73d1a019d13aca24830757ebad16519090000000000000000"
+    def bytes = DatatypeConverter.parseHexBinary(hex)
+    def resp = SMB2MessageConverter.newInstance().read(bytes)
+
+    expect:
+    resp instanceof SMB2CreateResponse
+  }
 }

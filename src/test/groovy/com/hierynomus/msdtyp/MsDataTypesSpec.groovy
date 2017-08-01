@@ -13,23 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.mssmb2
+package com.hierynomus.msdtyp
 
-import com.hierynomus.protocol.commons.EnumWithValue
+import com.hierynomus.smbj.common.SMBBuffer
 import spock.lang.Specification
 
-class SMB2MessageFlagTest extends Specification {
+class MsDataTypesSpec extends Specification {
 
-  def "should correctly detect that flag is set"() {
-    given:
-    long b = 0x10000001
+    def "should read/write UUID correctly"() {
+        given:
+        def buffer = new SMBBuffer()
+        def uuid = UUID.fromString("fbbd1895-af40-48a4-a183-8dabeb1e901a")
 
-    when:
-    def flagses = EnumWithValue.EnumUtils.toEnumSet(b, SMB2MessageFlag.class)
+        when:
+        MsDataTypes.putGuid(uuid, buffer)
 
-    then:
-    flagses.size() == 2
-    flagses.contains(SMB2MessageFlag.SMB2_FLAGS_DFS_OPERATIONS)
-    flagses.contains(SMB2MessageFlag.SMB2_FLAGS_SERVER_TO_REDIR)
-  }
+        then:
+        buffer.printHex() == "95 18 bd fb 40 af a4 48 a1 83 8d ab eb 1e 90 1a"
+        MsDataTypes.readGuid(buffer) == uuid
+    }
 }

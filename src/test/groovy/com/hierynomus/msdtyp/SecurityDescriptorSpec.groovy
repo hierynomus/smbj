@@ -27,7 +27,7 @@ import static com.hierynomus.msdtyp.SecurityDescriptor.Control.*
 import static com.hierynomus.msdtyp.ace.AceFlags.INHERITED_ACE
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet
 
-class SecurityDescriptorTest extends Specification {
+class SecurityDescriptorSpec extends Specification {
   def "should decode security descriptor"() {
     given:
     String hex = "010004841400000030000000000000004c0000000105000000000005150000008c2d23f408cdaa9b272443ebef0300000105000000000005150000008c2d23f408cdaa9b272443eb01020000020084000500000001001800bd0002000102000000000005200000002702000000102400ff011f000105000000000005150000008c2d23f408cdaa9b272443ebef03000000101400ff011f0001010000000000010000000000101800ff011f000102000000000005200000002002000000101400ff011f00010100000000000512000000"

@@ -20,7 +20,7 @@ import spock.lang.Specification
 import spock.lang.Unroll
 
 @Unroll
-class NtlmNegotiateFlagTest extends Specification {
+class NtlmNegotiateFlagSpec extends Specification {
 
   def "flag #flag should be set in flags #flags"() {
     given:
