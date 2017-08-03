@@ -26,6 +26,7 @@ import com.hierynomus.smbj.common.SMBBuffer;
 public class SMB2ReadResponse extends SMB2Packet {
 
     private int dataLength;
+    private int dataRemaining;
     private byte[] data;
 
     public SMB2ReadResponse() {
@@ -39,7 +40,7 @@ public class SMB2ReadResponse extends SMB2Packet {
         byte dataOffset = buffer.readByte(); // DataOffset (1 byte)
         buffer.skip(1); // Reserved (1 byte)
         dataLength = buffer.readUInt32AsInt(); // DataLength (4 bytes)
-        buffer.readUInt32AsInt(); // DataRemaining (4 bytes)
+        dataRemaining = buffer.readUInt32AsInt(); // DataRemaining (4 bytes)
         buffer.skip(4); // Reserved2 (4 bytes)
         buffer.rpos(dataOffset);
         data = buffer.readRawBytes(dataLength); // Buffer (variable)
@@ -58,6 +59,10 @@ public class SMB2ReadResponse extends SMB2Packet {
 
     public int getDataLength() {
         return dataLength;
+    }
+
+    public int getDataRemaining() {
+        return dataRemaining;
     }
 
     public byte[] getData() {
