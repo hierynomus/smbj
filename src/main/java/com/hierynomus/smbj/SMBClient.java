@@ -85,8 +85,6 @@ public class SMBClient {
                 Connection connection = new Connection(config, bus);
                 try {
                     connection.connect(hostname, port);
-                    connectionTable.put(hostPort, connection);
-                    return connection;
                 } catch (IOException e) {
                     try {
                         connection.close();
@@ -95,6 +93,8 @@ public class SMBClient {
                     }
                     throw e;
                 }
+                connectionTable.put(hostPort, connection);
+                return connection;
             }
             return connectionTable.get(hostPort);
         }
