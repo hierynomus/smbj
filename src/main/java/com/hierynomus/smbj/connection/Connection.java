@@ -113,7 +113,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
                 for (Session session : connectionInfo.getSessionTable().activeSessions()) {
                     try {
                         session.close();
-                    } catch (Exception e) {
+                    } catch (IOException e) {
                         logger.warn("Exception while closing session {}", session.getSessionId(), e);
                     }
                 }
