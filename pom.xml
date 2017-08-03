@@ -2,7 +2,7 @@
    <modelVersion>4.0.0</modelVersion>
    <groupId>com.hierynomus</groupId>
    <artifactId>smbj</artifactId>
-   <version>0.0.9-SNAPSHOT</version>
+   <version>0.2.1-SNAPSHOT</version>
    <name>dcerpc</name>
    <properties>
       <thirdparty.bouncycastle.version>1.57</thirdparty.bouncycastle.version>
