@@ -83,7 +83,16 @@ public class SMBClient {
             String hostPort = hostname + ":" + port;
             if (!connectionTable.containsKey(hostPort)) {
                 Connection connection = new Connection(config, bus);
-                connection.connect(hostname, port);
+                try {
+                    connection.connect(hostname, port);
+                } catch (IOException e) {
+                    try {
+                        connection.close();
+                    } catch (Exception e1) {
+                        // Quietly close broken connection.
+                    }
+                    throw e;
+                }
                 connectionTable.put(hostPort, connection);
                 return connection;
             }
