@@ -120,8 +120,7 @@ public class Promise<V, T extends Throwable> {
      * @return the value
      * @throws T in case another thread informs the promise of an error meanwhile
      */
-    public V retrieve()
-        throws T {
+    public V retrieve() throws T {
         return tryRetrieve(0, TimeUnit.SECONDS);
     }
 
@@ -133,13 +132,13 @@ public class Promise<V, T extends Throwable> {
      * @return the value
      * @throws T in case another thread informs the promise of an error meanwhile, or the timeout expires
      */
-    public V retrieve(long timeout, TimeUnit unit)
-        throws T {
+    public V retrieve(long timeout, TimeUnit unit) throws T {
         final V value = tryRetrieve(timeout, unit);
-        if (value == null)
+        if (value == null) {
             throw wrapper.wrap(new TimeoutException("Timeout expired"));
-        else
+        } else {
             return value;
+        }
     }
 
     /**
