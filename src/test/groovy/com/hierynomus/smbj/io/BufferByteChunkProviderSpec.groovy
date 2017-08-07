@@ -19,7 +19,7 @@ import com.hierynomus.protocol.commons.buffer.Buffer
 import com.hierynomus.protocol.commons.buffer.Endian
 import spock.lang.Specification
 
-class BufferByteChunkProviderTest extends Specification {
+class BufferByteChunkProviderSpec extends Specification {
 
   def buffer = new Buffer.PlainBuffer(Endian.BE)
   def provider = new BufferByteChunkProvider(buffer)

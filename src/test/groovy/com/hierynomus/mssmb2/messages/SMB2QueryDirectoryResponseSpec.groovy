@@ -22,7 +22,7 @@ import spock.lang.Specification
 
 import javax.xml.bind.DatatypeConverter
 
-class SMB2QueryDirectoryResponseTest extends Specification {
+class SMB2QueryDirectoryResponseSpec extends Specification {
 
   def "should parse query directory with FileIdBothDirectoryInformation"() {
     given:

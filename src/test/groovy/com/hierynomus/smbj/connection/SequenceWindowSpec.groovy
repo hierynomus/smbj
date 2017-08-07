@@ -18,7 +18,7 @@ package com.hierynomus.smbj.connection
 import com.hierynomus.smbj.common.SMBRuntimeException
 import spock.lang.Specification
 
-class SequenceWindowTest extends Specification {
+class SequenceWindowSpec extends Specification {
   SequenceWindow window
 
   def setup() {

@@ -286,11 +286,12 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
         logger.debug("Server granted us {} credits for {}, now available: {} credits", packet.getHeader().getCreditResponse(), packet, connectionInfo.getSequenceWindow().available());
 
         Request request = connectionInfo.getOutstandingRequests().getRequestByMessageId(messageId);
-        logger.trace("Send/Recv of packet with message id << {} >> took << {} ms >>", messageId, System.currentTimeMillis() - request.getTimestamp().getTime());
+        logger.trace("Send/Recv of packet {} took << {} ms >>", packet, System.currentTimeMillis() - request.getTimestamp().getTime());
 
         // [MS-SMB2].pdf 3.2.5.1.5 Handling Asynchronous Responses
         if (isSet(packet.getHeader().getFlags(), SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
             if (packet.getHeader().getStatus() == NtStatus.STATUS_PENDING) {
+                logger.debug("Received ASYNC packet {} with AsyncId << {} >>", packet, packet.getHeader().getAsyncId());
                 request.setAsyncId(packet.getHeader().getAsyncId());
                 // TODO Expiration timer
                 return;

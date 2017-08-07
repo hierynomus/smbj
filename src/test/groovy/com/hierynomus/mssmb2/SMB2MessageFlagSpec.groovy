@@ -15,30 +15,21 @@
  */
 package com.hierynomus.mssmb2
 
-import com.hierynomus.smbj.common.SMBBuffer
+import com.hierynomus.protocol.commons.EnumWithValue
 import spock.lang.Specification
-import spock.lang.Unroll
 
-class SMB2HeaderTest extends Specification {
+class SMB2MessageFlagSpec extends Specification {
 
-  @Unroll
-  def "should write credit request for dialect #dialect"() {
+  def "should correctly detect that flag is set"() {
     given:
-    def header = new SMB2Header()
-    header.setCreditRequest(66)
-    header.setCreditCharge(0)
-    header.setDialect(dialect)
-    header.setMessageType(SMB2MessageCommandCode.SMB2_NEGOTIATE)
-    def buffer = new SMBBuffer()
+    long b = 0x10000001
 
     when:
-    header.writeTo(buffer)
+    def flagses = EnumWithValue.EnumUtils.toEnumSet(b, SMB2MessageFlag.class)
 
     then:
-    buffer.rpos(14)
-    buffer.readUInt16() == 66
-
-    where:
-    dialect << [SMB2Dialect.SMB_2_1, SMB2Dialect.SMB_2_0_2, SMB2Dialect.SMB_2XX]
+    flagses.size() == 2
+    flagses.contains(SMB2MessageFlag.SMB2_FLAGS_DFS_OPERATIONS)
+    flagses.contains(SMB2MessageFlag.SMB2_FLAGS_SERVER_TO_REDIR)
   }
 }

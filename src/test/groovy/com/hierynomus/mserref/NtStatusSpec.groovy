@@ -13,25 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.mssmb2.messages
+package com.hierynomus.mserref
 
-import com.hierynomus.smbj.common.SMBBuffer
 import spock.lang.Specification
+import spock.lang.Unroll
 
-import javax.xml.bind.DatatypeConverter
+@Unroll
+class NtStatusSpec extends Specification {
 
-class SMB2WriteResponseTest extends Specification {
+  def "#ntStatus should be STATUS_SEVERITY_SUCCESS status code"() {
+    expect:
+    ntStatus.isSuccess()
 
-  def "should parse write response"() {
-    given:
-    String hexString1 = "fe534d4240000000000000000900010001000000000000004d00000000000000000000000100000061000000007400000000000000000000000000000000000011000000002000000000000000000000"
-    byte[] bytes1 = DatatypeConverter.parseHexBinary(hexString1)
-    SMB2WriteResponse response = new SMB2WriteResponse()
+    where:
+    ntStatus << [NtStatus.STATUS_SUCCESS, NtStatus.STATUS_PENDING]
+  }
 
-    when:
-    response.read(new SMBBuffer(bytes1))
+  def "#ntStatus should be STATUS_SEVERITY_ERROR status code"() {
+    expect:
+    ntStatus.isError()
 
-    then:
-    response.bytesWritten == 8192
+    where:
+    ntStatus << [NtStatus.STATUS_ACCESS_DENIED, NtStatus.STATUS_END_OF_FILE]
   }
 }

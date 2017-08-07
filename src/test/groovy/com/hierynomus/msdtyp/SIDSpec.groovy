@@ -17,7 +17,7 @@ package com.hierynomus.msdtyp
 
 import spock.lang.Specification
 
-class SIDTest extends Specification {
+class SIDSpec extends Specification {
 
   def "SID.EVERYONE should be 'S-1-1-0'"() {
     expect:

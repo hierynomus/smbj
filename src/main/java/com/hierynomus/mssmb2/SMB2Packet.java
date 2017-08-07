@@ -133,7 +133,7 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
      * @return {@code true} is {@link NtStatus#isSuccess()}
      */
     protected boolean isSuccess(NtStatus status) {
-        return status.isSuccess();
+        return status.isSuccess() && status != NtStatus.STATUS_PENDING;
     }
 
     /**

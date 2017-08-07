@@ -20,7 +20,7 @@ import com.hierynomus.protocol.commons.buffer.Buffer
 import com.hierynomus.protocol.commons.buffer.Endian
 import spock.lang.Specification
 
-class NegTokenTargTest extends Specification {
+class NegTokenTargSpec extends Specification {
 
     def "should parse negTokenTarg with ntlm challenge"() {
         given:
