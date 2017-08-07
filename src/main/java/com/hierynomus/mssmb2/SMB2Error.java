@@ -99,6 +99,7 @@ public class SMB2Error {
             int endOfResponse = buffer.rpos() + symLinkLength;
             buffer.skip(4); // SymLinkErrorTag (4 bytes) (always 0x4C4D5953)
             buffer.skip(4); // ReparseTag (4 bytes) (always 0xA000000C)
+            buffer.skip(2); // ReparseDataLength (2 bytes)
             unparsedPathLength = buffer.readUInt16(); // UnparsedPathLength (2 bytes)
             int substituteNameOffset = buffer.readUInt16(); // SubstituteNameOffset (2 bytes)
             int substituteNameLength = buffer.readUInt16(); // SubstituteNameLength (2 bytes)
