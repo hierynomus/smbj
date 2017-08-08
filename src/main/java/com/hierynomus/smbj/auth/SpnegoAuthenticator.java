@@ -19,7 +19,7 @@ import com.hierynomus.mssmb2.SMB2Header;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.transport.TransportException;
+import com.hierynomus.protocol.transport.TransportException;
 import com.sun.security.jgss.ExtendedGSSContext;
 import com.sun.security.jgss.InquireType;
 import org.ietf.jgss.*;

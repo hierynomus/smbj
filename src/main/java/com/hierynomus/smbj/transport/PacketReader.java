@@ -16,13 +16,15 @@
 package com.hierynomus.smbj.transport;
 
 import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.transport.PacketReceiver;
+import com.hierynomus.protocol.transport.TransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
+public abstract class PacketReader<P extends Packet<?>> implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(PacketReader.class);
 
     protected InputStream in;
@@ -64,9 +66,9 @@ public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
     }
 
     private void readPacket() throws TransportException {
-        P smb2Packet = doRead();
-        logger.debug("Received packet {}", smb2Packet);
-        handler.handle(smb2Packet);
+        P packet = doRead();
+        logger.debug("Received packet {}", packet);
+        handler.handle(packet);
     }
 
     /**

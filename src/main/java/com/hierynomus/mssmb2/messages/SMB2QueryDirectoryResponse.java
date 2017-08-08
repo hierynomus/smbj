@@ -17,7 +17,7 @@ package com.hierynomus.mssmb2.messages;
 
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 /**
  * [MS-SMB2].pdf 2.2.34 SMB2 QUERY_DIRECTORY Response

@@ -18,15 +18,15 @@ package com.hierynomus.smbj.transport.tcp.async;
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.common.SMBRuntimeException;
-import com.hierynomus.smbj.transport.PacketHandlers;
-import com.hierynomus.smbj.transport.TransportLayer;
+import com.hierynomus.protocol.transport.PacketHandlers;
+import com.hierynomus.protocol.transport.TransportLayer;
 import com.hierynomus.smbj.transport.TransportLayerFactory;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.util.concurrent.ExecutorService;
 
-public class AsyncDirectTcpTransportFactory<P extends Packet<P, ?>> implements TransportLayerFactory<P> {
+public class AsyncDirectTcpTransportFactory<P extends Packet<?>> implements TransportLayerFactory<P> {
     private static final AsynchronousChannelGroup DEFAULT_CHANNEL_GROUP = null;  // use system default
     private final AsynchronousChannelGroup group;
 

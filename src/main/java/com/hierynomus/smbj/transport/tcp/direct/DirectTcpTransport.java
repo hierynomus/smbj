@@ -18,10 +18,10 @@ package com.hierynomus.smbj.transport.tcp.direct;
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.socket.ProxySocketFactory;
-import com.hierynomus.smbj.transport.PacketHandlers;
+import com.hierynomus.protocol.transport.PacketHandlers;
 import com.hierynomus.smbj.transport.PacketReader;
-import com.hierynomus.smbj.transport.TransportException;
-import com.hierynomus.smbj.transport.TransportLayer;
+import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.protocol.transport.TransportLayer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +35,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * A transport layer over Direct TCP/IP.
  */
-public class DirectTcpTransport<P extends Packet<P, ?>> implements TransportLayer<P> {
+public class DirectTcpTransport<P extends Packet<?>> implements TransportLayer<P> {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final PacketHandlers<P> handlers;
 
@@ -86,7 +86,7 @@ public class DirectTcpTransport<P extends Packet<P, ?>> implements TransportLaye
     private void initWithSocket(String remoteHostname) throws IOException {
         this.socket.setSoTimeout(soTimeout);
         this.output = new BufferedOutputStream(this.socket.getOutputStream(), INITIAL_BUFFER_SIZE);
-        packetReaderThread = new DirectTcpPacketReader<P>(remoteHostname, socket.getInputStream(), handlers.getPacketFactory(), handlers.getReceiver());
+        packetReaderThread = new DirectTcpPacketReader<>(remoteHostname, socket.getInputStream(), handlers.getPacketFactory(), handlers.getReceiver());
         packetReaderThread.start();
     }
 

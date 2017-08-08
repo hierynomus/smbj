@@ -13,12 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.transport;
+package com.hierynomus.smbj.connection;
 
-import com.hierynomus.protocol.Packet;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.transport.PacketSerializer;
+import com.hierynomus.smb.SMBBuffer;
+import com.hierynomus.smb.SMBPacket;
 
-public interface PacketSerializer<P extends Packet<P, ?>> {
-
-    Buffer<?> write(P packet);
+public class SMBPacketSerializer<P extends SMBPacket<?>> implements PacketSerializer<P, SMBBuffer> {
+    @Override
+    public SMBBuffer write(P packet) {
+        SMBBuffer b = new SMBBuffer();
+        packet.write(b);
+        return b;
+    }
 }

@@ -17,7 +17,7 @@ package com.hierynomus.msdtyp.ace;
 
 import com.hierynomus.msdtyp.SID;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 import java.util.Arrays;
 

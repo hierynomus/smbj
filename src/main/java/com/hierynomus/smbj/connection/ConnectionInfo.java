@@ -24,7 +24,7 @@ import java.util.UUID;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
-public class ConnectionInfo {
+class ConnectionInfo {
 
     // All SMB2 Dialect
     private SessionTable sessionTable = new SessionTable();
@@ -51,7 +51,7 @@ public class ConnectionInfo {
     private String cipherId;
 
 
-    public ConnectionInfo(UUID clientGuid, String serverName) {
+    ConnectionInfo(UUID clientGuid, String serverName) {
         // new SessionTable
         // new OutstandingRequests
         this.clientGuid = clientGuid;
