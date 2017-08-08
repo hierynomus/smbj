@@ -117,7 +117,7 @@ public class SMB2Error {
             String s = null;
             if (length > 0) {
                 buffer.rpos(curpos + offset);
-                s = buffer.readString(StandardCharsets.UTF_16, length);
+                s = buffer.readString(StandardCharsets.UTF_16, length / 2);
             }
             buffer.rpos(curpos);
             return s;
