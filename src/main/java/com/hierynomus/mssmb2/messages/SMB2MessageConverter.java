@@ -18,13 +18,12 @@ package com.hierynomus.mssmb2.messages;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.transport.PacketFactory;
 import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smbj.common.Check;
 import com.hierynomus.smbj.common.SMBRuntimeException;
-import com.hierynomus.smbj.transport.PacketFactory;
-import com.hierynomus.smbj.transport.PacketSerializer;
 
-public class SMB2MessageConverter implements PacketFactory<SMB2Packet>, PacketSerializer<SMB2Packet> {
+public class SMB2MessageConverter implements PacketFactory<SMB2Packet> {
 
     private SMB2Packet read(SMBBuffer buffer) throws Buffer.BufferException {
         // Check we see a valid header start
@@ -87,9 +86,7 @@ public class SMB2MessageConverter implements PacketFactory<SMB2Packet>, PacketSe
     }
 
     @Override
-    public Buffer<?> write(SMB2Packet packet) {
-        SMBBuffer b = new SMBBuffer();
-        packet.write(b);
-        return b;
+    public boolean canHandle(byte[] data) {
+        return data[0] == (byte) 0xFE && data[1] == 'S' && data[2] == 'M' && data[3] == 'B';
     }
 }

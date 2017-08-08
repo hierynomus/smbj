@@ -650,6 +650,43 @@ public class Buffer<T extends Buffer<T>> {
     }
 
     /**
+     * Write the string with an additional null-terminator in the specified charset.
+     * <p/>
+     * If the charset is UTF-16, the buffer's endianness is used to determine the correct byte order.
+     *
+     * @param string  The string to write
+     * @param charset The charset to use
+     * @return this
+     * @throws UnsupportedCharsetException If the charset specified is not supported by the buffer.
+     */
+    public Buffer<T> putNullTerminatedString(String string, Charset charset) {
+        return putNullTerminatedString(string, charset, endianness);
+    }
+
+    private Buffer<T> putNullTerminatedString(String string, Charset charset, Endian endianness) {
+        switch (charset.name()) {
+            case "UTF-16":
+                endianness.writeNullTerminatedUtf16String(this, string);
+                break;
+            case "UTF-16LE":
+                Endian.LE.writeNullTerminatedUtf16String(this, string);
+                break;
+            case "UTF-16BE":
+                Endian.BE.writeNullTerminatedUtf16String(this, string);
+                break;
+            case "UTF-8":
+                byte[] bytes = string.getBytes(charset);
+                putRawBytes(bytes);
+                putByte((byte) 0);
+                break;
+            default:
+                throw new UnsupportedCharsetException(charset.name());
+        }
+        return this;
+    }
+
+
+    /**
      * Skip the specified number of bytes.
      *
      * @param length The number of bytes to skip
