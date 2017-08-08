@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.transport;
+package com.hierynomus.smb;
 
-import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
-public interface PacketSerializer<P extends Packet<P, ?>> {
+public interface SMBHeader {
+    void writeTo(SMBBuffer buffer);
 
-    Buffer<?> write(P packet);
+    void readFrom(Buffer<?> buffer) throws Buffer.BufferException;
 }

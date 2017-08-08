@@ -24,8 +24,8 @@ import com.hierynomus.security.jce.JceSecurityProvider;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
 import com.hierynomus.smbj.auth.SpnegoAuthenticator;
-import com.hierynomus.smbj.transport.tcp.direct.DirectTcpTransportFactory;
 import com.hierynomus.smbj.transport.TransportLayerFactory;
+import com.hierynomus.smbj.transport.tcp.direct.DirectTcpTransportFactory;
 
 import javax.net.SocketFactory;
 import java.security.SecureRandom;

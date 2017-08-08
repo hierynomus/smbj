@@ -13,15 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.transport;
+package com.hierynomus.protocol.transport;
 
 import com.hierynomus.protocol.Packet;
-import com.hierynomus.protocol.transport.PacketHandlers;
-import com.hierynomus.protocol.transport.TransportLayer;
-import com.hierynomus.smbj.SmbConfig;
+import com.hierynomus.protocol.commons.buffer.Buffer;
 
-public interface TransportLayerFactory<P extends Packet<?>> {
+public interface PacketSerializer<P extends Packet<B>, B extends Buffer<B>> {
 
-    TransportLayer<P> createTransportLayer(PacketHandlers<P> handlers, SmbConfig config);
-
+    B write(P packet);
 }

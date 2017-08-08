@@ -17,9 +17,9 @@ package com.hierynomus.protocol;
 
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
-public interface Packet<P extends Packet<P, T>, T extends Buffer<T>> {
+public interface Packet<B extends Buffer<B>> {
 
-    void write(T buffer);
+    void write(B buffer);
 
     void read(B buffer) throws Buffer.BufferException;
 }

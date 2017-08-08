@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.transport;
+package com.hierynomus.protocol.transport;
 
 import com.hierynomus.protocol.commons.concurrent.ExceptionWrapper;
 

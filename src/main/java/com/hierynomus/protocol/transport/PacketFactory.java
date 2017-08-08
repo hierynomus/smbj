@@ -13,20 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.ntlm.messages;
+package com.hierynomus.protocol.transport;
 
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
-public class NtlmPacket implements Packet<Buffer.PlainBuffer> {
+import java.io.IOException;
 
-    @Override
-    public void write(Buffer.PlainBuffer buffer) {
-        throw new UnsupportedOperationException("Not implemented by base class");
-    }
+public interface PacketFactory<P extends Packet<?>> {
 
-    @Override
-    public void read(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
-        throw new UnsupportedOperationException("Not implemented by base class");
-    }
+    /**
+     * Construct a packet out of the raw byte data.
+     * @param data the byte array containing the full packet data
+     * @return A newly constructed packet.
+     */
+    P read(byte[] data) throws Buffer.BufferException, IOException;
+
+    /**
+     * Checks whether this PacketFactory is able to handle the incoming raw byte data.
+     * @param data the byte array containing the full packet data
+     * @return true if the {@link #read(byte[])} will result in a packet, false otherwise.
+     */
+    boolean canHandle(byte[] data);
 }

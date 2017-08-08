@@ -36,7 +36,7 @@ import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
-import com.hierynomus.smbj.transport.TransportException;
+import com.hierynomus.protocol.transport.TransportException;
 
 import java.util.EnumSet;
 import java.util.List;

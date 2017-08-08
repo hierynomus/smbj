@@ -16,13 +16,12 @@
 package com.hierynomus.mssmb2;
 
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
+import com.hierynomus.smb.SMBPacket;
 
-public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
+public class SMB2Packet extends SMBPacket<SMB2Header> {
     public static final int SINGLE_CREDIT_PAYLOAD_SIZE = 64 * 1024;
-    protected final SMB2Header header = new SMB2Header();
     protected int structureSize;
     private SMBBuffer buffer;
     private SMB2Error error;
@@ -30,6 +29,7 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
     private int messageEndPos;
 
     protected SMB2Packet() {
+        super(new SMB2Header());
     }
 
     protected SMB2Packet(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType) {
@@ -41,15 +41,12 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
     }
 
     protected SMB2Packet(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType, long sessionId, long treeId) {
+        super(new SMB2Header());
         this.structureSize = structureSize;
         header.setDialect(dialect);
         header.setMessageType(messageType);
         header.setSessionId(sessionId);
         header.setTreeId(treeId);
-    }
-
-    public SMB2Header getHeader() {
-        return header;
     }
 
     public long getSequenceNumber() {

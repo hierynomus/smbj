@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.transport;
+package com.hierynomus.protocol.transport;
 
 import com.hierynomus.protocol.Packet;
 
@@ -21,19 +21,19 @@ import com.hierynomus.protocol.Packet;
  * Groups together all the various handlers involved in dealing with packets of
  * type P.
  */
-public class PacketHandlers<P extends Packet<P, ?>> {
-    private final PacketSerializer<P> serializer;
+public class PacketHandlers<P extends Packet<?>> {
+    private final PacketSerializer<P, ?> serializer;
     private final PacketReceiver<P> receiver;
     private final PacketFactory<P> packetFactory;
 
-    public PacketHandlers(PacketSerializer<P> serializer, PacketReceiver<P> receiver, PacketFactory<P> packetFactory) {
+    public PacketHandlers(PacketSerializer<P, ?> serializer, PacketReceiver<P> receiver, PacketFactory<P> packetFactory) {
         super();
         this.serializer = serializer;
         this.receiver = receiver;
         this.packetFactory = packetFactory;
     }
 
-    public PacketSerializer<P> getSerializer() {
+    public PacketSerializer<P, ?> getSerializer() {
         return serializer;
     }
 
