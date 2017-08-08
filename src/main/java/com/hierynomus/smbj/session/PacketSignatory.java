@@ -21,7 +21,7 @@ import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.security.SecurityException;
 import com.hierynomus.security.SecurityProvider;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

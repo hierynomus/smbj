@@ -17,7 +17,7 @@ package com.hierynomus.mssmb2;
 
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;

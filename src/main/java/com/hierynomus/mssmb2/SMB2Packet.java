@@ -18,7 +18,7 @@ package com.hierynomus.mssmb2;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
     public static final int SINGLE_CREDIT_PAYLOAD_SIZE = 64 * 1024;
