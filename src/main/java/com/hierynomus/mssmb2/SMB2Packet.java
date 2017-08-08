@@ -20,6 +20,8 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smb.SMBPacket;
 
+import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
+
 public class SMB2Packet extends SMBPacket<SMB2Header> {
     public static final int SINGLE_CREDIT_PAYLOAD_SIZE = 64 * 1024;
     protected int structureSize;
@@ -130,6 +132,13 @@ public class SMB2Packet extends SMBPacket<SMB2Header> {
      */
     protected boolean isSuccess(NtStatus status) {
         return status.isSuccess() && status != NtStatus.STATUS_PENDING;
+    }
+
+    /**
+     * Check whether this packet is an intermediate ASYNC response
+     */
+    public boolean isIntermediateAsyncResponse() {
+        return isSet(header.getFlags(), SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND) && header.getStatus() == NtStatus.STATUS_PENDING;
     }
 
     /**

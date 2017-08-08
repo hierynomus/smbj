@@ -57,7 +57,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static com.hierynomus.mssmb2.SMB2Packet.SINGLE_CREDIT_PAYLOAD_SIZE;
 import static com.hierynomus.mssmb2.messages.SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_ENABLED;
-import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 import static java.lang.String.format;
 
 /**
@@ -326,13 +325,11 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
         logger.trace("Send/Recv of packet {} took << {} ms >>", packet, System.currentTimeMillis() - request.getTimestamp().getTime());
 
         // [MS-SMB2].pdf 3.2.5.1.5 Handling Asynchronous Responses
-        if (isSet(packet.getHeader().getFlags(), SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
-            if (packet.getHeader().getStatus() == NtStatus.STATUS_PENDING) {
-                logger.debug("Received ASYNC packet {} with AsyncId << {} >>", packet, packet.getHeader().getAsyncId());
-                request.setAsyncId(packet.getHeader().getAsyncId());
-                // TODO Expiration timer
-                return;
-            }
+        if (packet.isIntermediateAsyncResponse()) {
+            logger.debug("Received ASYNC packet {} with AsyncId << {} >>", packet, packet.getHeader().getAsyncId());
+            request.setAsyncId(packet.getHeader().getAsyncId());
+            // TODO Expiration timer
+            return;
         }
 
         // [MS-SMB2].pdf 3.2.5.1.6 Handling Session Expiration
@@ -354,21 +351,25 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
             }
 
             // check packet signature.  Drop the packet if it is not correct.
-            if (packet.getHeader().isFlagSet(SMB2MessageFlag.SMB2_FLAGS_SIGNED)) {
-                if (!session.getPacketSignatory().verify(packet)) {
-                    logger.warn("Invalid packet signature for packet {}", packet);
-                    if (config.isSigningRequired()) {
-                        throw new TransportException("Packet signature for packet " + packet + " was not correct");
-                    }
-                }
-            } else if (config.isSigningRequired()) {
-                logger.warn("Illegal request, client requires message signing, but the received message is not signed.");
-                throw new TransportException("Client requires signing, but packet " + packet + " was not signed");
-            }
+            verifyPacketSignature(packet, session);
         }
 
         // [MS-SMB2].pdf 3.2.5.1.8 Processing the Response
         connectionInfo.getOutstandingRequests().receivedResponseFor(messageId).getPromise().deliver(packet);
+    }
+
+    private void verifyPacketSignature(SMB2Packet packet, Session session) throws TransportException {
+        if (packet.getHeader().isFlagSet(SMB2MessageFlag.SMB2_FLAGS_SIGNED)) {
+            if (!session.getPacketSignatory().verify(packet)) {
+                logger.warn("Invalid packet signature for packet {}", packet);
+                if (config.isSigningRequired()) {
+                    throw new TransportException("Packet signature for packet " + packet + " was not correct");
+                }
+            }
+        } else if (config.isSigningRequired()) {
+            logger.warn("Illegal request, client requires message signing, but the received message is not signed.");
+            throw new TransportException("Client requires signing, but packet " + packet + " was not signed");
+        }
     }
 
     @Override
