@@ -107,18 +107,21 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
      * @throws Exception If any error occurred during close-ing.
      */
     public void close(boolean force) throws Exception {
-        if (!force) {
-            for (Session session : connectionInfo.getSessionTable().activeSessions()) {
-                try {
-                    session.close();
-                } catch (IOException e) {
-                    logger.warn("Exception while closing session {}", session.getSessionId(), e);
+        try {
+            if (!force) {
+                for (Session session : connectionInfo.getSessionTable().activeSessions()) {
+                    try {
+                        session.close();
+                    } catch (IOException e) {
+                        logger.warn("Exception while closing session {}", session.getSessionId(), e);
+                    }
                 }
             }
+        } finally {
+            transport.disconnect();
+            logger.info("Closed connection to {}", getRemoteHostname());
+            bus.publish(new ConnectionClosed(remoteName, remotePort));
         }
-        transport.disconnect();
-        logger.info("Closed connection to {}", getRemoteHostname());
-        bus.publish(new ConnectionClosed(remoteName, remotePort));
     }
 
     public SmbConfig getConfig() {

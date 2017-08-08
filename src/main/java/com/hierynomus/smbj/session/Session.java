@@ -137,20 +137,23 @@ public class Session implements AutoCloseable {
     }
 
     public void logoff() throws TransportException {
-        logger.info("Logging off session {} from host {}", sessionId, connection.getRemoteHostname());
-        for (Share share : treeConnectTable.getOpenTreeConnects()) {
-            try {
-                share.close();
-            } catch (IOException e) {
-                logger.error("Caught exception while closing TreeConnect with id: {}", share.getTreeConnect().getTreeId(), e);
+        try {
+            logger.info("Logging off session {} from host {}", sessionId, connection.getRemoteHostname());
+            for (Share share : treeConnectTable.getOpenTreeConnects()) {
+                try {
+                    share.close();
+                } catch (IOException e) {
+                    logger.error("Caught exception while closing TreeConnect with id: {}", share.getTreeConnect().getTreeId(), e);
+                }
             }
+            SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
+            SMB2Logoff response = Futures.get(this.<SMB2Logoff>send(logoff), connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
+            if (!response.getHeader().getStatus().isSuccess()) {
+                throw new SMBApiException(response.getHeader(), "Could not logoff session <<" + sessionId + ">>");
+            }
+        } finally {
+            bus.publish(new SessionLoggedOff(sessionId));
         }
-        SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
-        SMB2Logoff response = Futures.get(this.<SMB2Logoff>send(logoff), connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
-        if (!response.getHeader().getStatus().isSuccess()) {
-            throw new SMBApiException(response.getHeader(), "Could not logoff session <<" + sessionId + ">>");
-        }
-        bus.publish(new SessionLoggedOff(sessionId));
     }
 
     public boolean isSigningRequired() {
