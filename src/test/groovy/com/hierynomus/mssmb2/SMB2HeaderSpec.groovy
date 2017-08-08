@@ -15,7 +15,7 @@
  */
 package com.hierynomus.mssmb2
 
-import com.hierynomus.smbj.common.SMBBuffer
+import com.hierynomus.smb.SMBBuffer
 import spock.lang.Specification
 import spock.lang.Unroll
 

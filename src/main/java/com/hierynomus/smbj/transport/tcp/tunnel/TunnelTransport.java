@@ -16,8 +16,8 @@
 package com.hierynomus.smbj.transport.tcp.tunnel;
 
 import com.hierynomus.protocol.Packet;
-import com.hierynomus.smbj.transport.TransportException;
-import com.hierynomus.smbj.transport.TransportLayer;
+import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.protocol.transport.TransportLayer;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -29,7 +29,7 @@ import java.net.InetSocketAddress;
  *
  * @param <P>
  */
-public class TunnelTransport<P extends Packet<P, ?>> implements TransportLayer<P> {
+public class TunnelTransport<P extends Packet<?>> implements TransportLayer<P> {
     private TransportLayer<P> tunnel;
     private String tunnelHost;
     private int tunnelPort;

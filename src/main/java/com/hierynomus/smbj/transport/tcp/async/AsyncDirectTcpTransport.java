@@ -19,9 +19,9 @@ import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
-import com.hierynomus.smbj.transport.PacketHandlers;
-import com.hierynomus.smbj.transport.TransportException;
-import com.hierynomus.smbj.transport.TransportLayer;
+import com.hierynomus.protocol.transport.PacketHandlers;
+import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.protocol.transport.TransportLayer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +38,7 @@ import java.util.concurrent.*;
 /**
  * A transport layer over Direct TCP/IP that uses asynchronous I/O.
  */
-public class AsyncDirectTcpTransport<P extends Packet<P, ?>> implements TransportLayer<P> {
+public class AsyncDirectTcpTransport<P extends Packet<?>> implements TransportLayer<P> {
     public static final int DEFAULT_CONNECT_TIMEOUT = 5000;
     private static final int DIRECT_HEADER_SIZE = 4;
 

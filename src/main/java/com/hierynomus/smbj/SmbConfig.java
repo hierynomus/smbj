@@ -16,16 +16,16 @@
 package com.hierynomus.smbj;
 
 import com.hierynomus.mssmb2.SMB2Dialect;
-import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.socket.ProxySocketFactory;
 import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.security.jce.JceSecurityProvider;
+import com.hierynomus.smb.SMBPacket;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
 import com.hierynomus.smbj.auth.SpnegoAuthenticator;
-import com.hierynomus.smbj.transport.tcp.direct.DirectTcpTransportFactory;
 import com.hierynomus.smbj.transport.TransportLayerFactory;
+import com.hierynomus.smbj.transport.tcp.direct.DirectTcpTransportFactory;
 
 import javax.net.SocketFactory;
 import java.security.SecureRandom;
@@ -41,7 +41,7 @@ public final class SmbConfig {
     private static final int DEFAULT_TIMEOUT = 60;
     private static final TimeUnit DEFAULT_TIMEOUT_UNIT = TimeUnit.SECONDS;
 
-    private static final TransportLayerFactory<SMB2Packet> DEFAULT_TRANSPORT_LAYER_FACTORY = new DirectTcpTransportFactory();
+    private static final TransportLayerFactory<SMBPacket<?>> DEFAULT_TRANSPORT_LAYER_FACTORY = new DirectTcpTransportFactory();
 
     private Set<SMB2Dialect> dialects;
     private List<Factory.Named<Authenticator>> authenticators;
@@ -49,13 +49,14 @@ public final class SmbConfig {
     private Random random;
     private UUID clientGuid;
     private boolean signingRequired;
+    private boolean useMultiProtocolNegotiate;
     private SecurityProvider securityProvider;
     private int readBufferSize;
     private long readTimeout;
     private int writeBufferSize;
     private long writeTimeout;
     private int transactBufferSize;
-    private TransportLayerFactory<SMB2Packet> transportLayerFactory;
+    private TransportLayerFactory<SMBPacket<?>> transportLayerFactory;
     private long transactTimeout;
 
     private int soTimeout;
@@ -71,6 +72,7 @@ public final class SmbConfig {
             .withSecurityProvider(new JceSecurityProvider())
             .withSocketFactory(new ProxySocketFactory())
             .withSigningRequired(false)
+            .withMultiProtocolNegotiate(false)
             .withBufferSize(DEFAULT_BUFFER_SIZE)
             .withTransportLayerFactory(DEFAULT_TRANSPORT_LAYER_FACTORY)
             .withSoTimeout(DEFAULT_SO_TIMEOUT, DEFAULT_SO_TIMEOUT_UNIT)
@@ -102,6 +104,7 @@ public final class SmbConfig {
         transactTimeout = other.transactTimeout;
         transportLayerFactory = other.transportLayerFactory;
         soTimeout = other.soTimeout;
+        useMultiProtocolNegotiate = other.useMultiProtocolNegotiate;
     }
 
     public Random getRandomProvider() {
@@ -128,6 +131,10 @@ public final class SmbConfig {
         return signingRequired;
     }
 
+    public boolean isUseMultiProtocolNegotiate() {
+        return useMultiProtocolNegotiate;
+    }
+
     public int getReadBufferSize() {
         return readBufferSize;
     }
@@ -152,7 +159,7 @@ public final class SmbConfig {
         return transactTimeout;
     }
 
-    public TransportLayerFactory<SMB2Packet> getTransportLayerFactory() {
+    public TransportLayerFactory<SMBPacket<?>> getTransportLayerFactory() {
         return transportLayerFactory;
     }
 
@@ -296,7 +303,7 @@ public final class SmbConfig {
             return withReadBufferSize(bufferSize).withWriteBufferSize(bufferSize).withTransactBufferSize(bufferSize);
         }
 
-        public Builder withTransportLayerFactory(TransportLayerFactory<SMB2Packet> transportLayerFactory) {
+        public Builder withTransportLayerFactory(TransportLayerFactory<SMBPacket<?>> transportLayerFactory) {
             if (transportLayerFactory == null) {
                 throw new IllegalArgumentException("Transport layer factory may not be null");
             }
@@ -330,6 +337,11 @@ public final class SmbConfig {
                 throw new IllegalStateException("At least one SMB dialect should be specified");
             }
             return new SmbConfig(config);
+        }
+
+        public Builder withMultiProtocolNegotiate(boolean useMultiProtocolNegotiate) {
+            config.useMultiProtocolNegotiate = useMultiProtocolNegotiate;
+            return this;
         }
     }
 }

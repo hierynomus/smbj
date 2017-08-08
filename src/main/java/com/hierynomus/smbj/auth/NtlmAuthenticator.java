@@ -73,9 +73,9 @@ public class NtlmAuthenticator implements Authenticator {
             NtlmFunctions ntlmFunctions = new NtlmFunctions(random, securityProvider);
             NegTokenTarg negTokenTarg = new NegTokenTarg().read(gssToken);
             BigInteger negotiationResult = negTokenTarg.getNegotiationResult();
-            NtlmChallenge challenge;
+            NtlmChallenge challenge = new NtlmChallenge();
             try {
-                challenge = (NtlmChallenge) new NtlmChallenge().read(new Buffer.PlainBuffer(negTokenTarg.getResponseToken(), Endian.LE));
+                challenge.read(new Buffer.PlainBuffer(negTokenTarg.getResponseToken(), Endian.LE));
             } catch (Buffer.BufferException e) {
                 throw new IOException(e);
             }

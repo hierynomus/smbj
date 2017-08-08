@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.transport;
+package com.hierynomus.protocol.transport;
 
 import com.hierynomus.protocol.Packet;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
-public interface TransportLayer<P extends Packet<P, ?>> {
+public interface TransportLayer<P extends Packet<?>> {
 
     /**
      * Write the packet to the transport.

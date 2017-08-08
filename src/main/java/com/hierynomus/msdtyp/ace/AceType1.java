@@ -17,7 +17,7 @@ package com.hierynomus.msdtyp.ace;
 
 import com.hierynomus.msdtyp.SID;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 // Type 1 - Header/Mask/SID (ACCESS_ALLOWED_ACE, ACCESS_DENIED_ACE, SYSTEM_AUDIT_ACE, SYSTEM_MANDATORY_LABEL_ACE,
 // SYSTEM_SCOPED_POLICY_ID_ACE
