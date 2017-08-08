@@ -16,7 +16,7 @@
 package com.hierynomus.mssmb2.messages
 
 import com.hierynomus.msdtyp.FileTime
-import com.hierynomus.smbj.common.SMBBuffer
+import com.hierynomus.smb.SMBBuffer
 import spock.lang.Specification
 
 import javax.xml.bind.DatatypeConverter

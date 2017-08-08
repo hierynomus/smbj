@@ -16,7 +16,7 @@
 package com.hierynomus.mssmb2.messages;
 
 import com.hierynomus.mssmb2.*;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smbj.io.ByteChunkProvider;
 
 /**

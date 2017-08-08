@@ -51,8 +51,9 @@ class SMB2FileIntegrationTest extends Specification {
   }
 
   def setup() {
-    client = new SMBClient()
-    connection = client.connect("172.16.93.206")
+    def config = SmbConfig.builder().withMultiProtocolNegotiate(true).build()
+    client = new SMBClient(config)
+    connection = client.connect("172.16.93.209")
     session = connection.authenticate(new AuthenticationContext("jeroen", "jeroen".toCharArray(), null))
     share = session.connectShare("NewShare") as DiskShare
   }

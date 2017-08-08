@@ -18,7 +18,7 @@ package com.hierynomus.mssmb2.messages;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.mssmb2.*;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 import java.util.Set;
 

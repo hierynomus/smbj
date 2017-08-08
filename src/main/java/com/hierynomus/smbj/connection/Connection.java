@@ -16,16 +16,20 @@
 package com.hierynomus.smbj.connection;
 
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.mssmb2.SMB2GlobalCapability;
-import com.hierynomus.mssmb2.SMB2MessageCommandCode;
-import com.hierynomus.mssmb2.SMB2MessageFlag;
-import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb.SMB1MessageConverter;
+import com.hierynomus.mssmb.SMB1NotSupportedException;
+import com.hierynomus.mssmb.SMB1Packet;
+import com.hierynomus.mssmb.messages.SMB1ComNegotiateRequest;
+import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.SMB2MessageConverter;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.protocol.commons.Factory;
+import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.Futures;
+import com.hierynomus.protocol.transport.*;
+import com.hierynomus.smb.SMBPacket;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
@@ -35,10 +39,6 @@ import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.transport.PacketHandlers;
-import com.hierynomus.smbj.transport.PacketReceiver;
-import com.hierynomus.smbj.transport.TransportException;
-import com.hierynomus.smbj.transport.TransportLayer;
 import com.hierynomus.spnego.NegTokenInit;
 import net.engio.mbassy.listener.Handler;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
@@ -57,28 +57,27 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static com.hierynomus.mssmb2.SMB2Packet.SINGLE_CREDIT_PAYLOAD_SIZE;
 import static com.hierynomus.mssmb2.messages.SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_ENABLED;
-import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 import static java.lang.String.format;
 
 /**
  * A connection to a server.
  */
-public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
+public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
-    private static final SMB2MessageConverter converter = new SMB2MessageConverter();
+    private static final DelegatingSMBMessageConverter converter = new DelegatingSMBMessageConverter(new SMB2MessageConverter(), new SMB1MessageConverter());
 
     private ConnectionInfo connectionInfo;
     private String remoteName;
 
     private SmbConfig config;
-    private TransportLayer<SMB2Packet> transport;
+    private TransportLayer<SMBPacket<?>> transport;
     private final SMBEventBus bus;
     private final ReentrantLock lock = new ReentrantLock();
     private int remotePort;
 
     public Connection(SmbConfig config, SMBEventBus bus) {
         this.config = config;
-        this.transport = config.getTransportLayerFactory().createTransportLayer(new PacketHandlers<>(converter, this, converter), config);
+        this.transport = config.getTransportLayerFactory().createTransportLayer(new PacketHandlers<>(new SMBPacketSerializer(), this, converter), config);
         this.bus = bus;
         bus.subscribe(this);
     }
@@ -216,7 +215,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
             logger.debug("Granted {} (out of {}) credits to {}", grantCredits, availableCredits, packet);
             packet.getHeader().setCreditRequest(Math.max(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits, grantCredits));
 
-            Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID(), packet);
+            Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID());
             connectionInfo.getOutstandingRequests().registerOutstanding(request);
             transport.write(packet);
             return request.getFuture(null); // TODO cancel callback
@@ -249,15 +248,46 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
 
     private void negotiateDialect() throws TransportException {
         logger.debug("Negotiating dialects {} with server {}", config.getSupportedDialects(), getRemoteHostname());
+        SMB2Packet resp;
+        if (config.isUseMultiProtocolNegotiate()) {
+            resp = multiProtocolNegotiate();
+        } else {
+            resp = smb2OnlyNegotiate();
+        }
+        if (!(resp instanceof SMB2NegotiateResponse)) {
+            throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + resp);
+        }
+        SMB2NegotiateResponse negotiateResponse = (SMB2NegotiateResponse) resp;
+        connectionInfo.negotiated(negotiateResponse);
+        logger.debug("Negotiated the following connection settings: {}", connectionInfo);
+    }
+
+    private SMB2Packet smb2OnlyNegotiate() throws TransportException {
         SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid(), config.isSigningRequired());
         Future<SMB2Packet> send = send(negotiatePacket);
-        SMB2Packet negotiateResponse = Futures.get(send, getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
-        if (!(negotiateResponse instanceof SMB2NegotiateResponse)) {
-            throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + negotiateResponse);
+        return Futures.get(send, getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
+    }
+
+    private SMB2Packet multiProtocolNegotiate() throws TransportException {
+        SMB1Packet negotiatePacket = new SMB1ComNegotiateRequest(config.getSupportedDialects());
+        long l = connectionInfo.getSequenceWindow().get();
+        if (l != 0) {
+            throw new IllegalStateException("The SMBv1 SMB_COM_NEGOTIATE packet needs to be the first packet sent.");
         }
-        SMB2NegotiateResponse resp = (SMB2NegotiateResponse) negotiateResponse;
-        connectionInfo.negotiated(resp);
-        logger.debug("Negotiated the following connection settings: {}", connectionInfo);
+        Request request = new Request(l, UUID.randomUUID());
+        connectionInfo.getOutstandingRequests().registerOutstanding(request);
+        transport.write(negotiatePacket);
+        Future<SMB2Packet> future = request.getFuture(null);
+        SMB2Packet packet = Futures.get(future, getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
+        if (!(packet instanceof SMB2NegotiateResponse)) {
+            throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response to our SMB_COM_NEGOTIATE, but got: " + packet);
+        }
+        SMB2NegotiateResponse negotiateResponse = (SMB2NegotiateResponse) packet;
+
+        if (negotiateResponse.getDialect() == SMB2Dialect.SMB_2XX) {
+            return smb2OnlyNegotiate();
+        }
+        return negotiateResponse;
     }
 
 
@@ -278,8 +308,14 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
     }
 
     @Override
-    public void handle(SMB2Packet packet) throws TransportException {
+    public void handle(SMBPacket uncheckedPacket) throws TransportException {
+        if (!(uncheckedPacket instanceof SMB2Packet)) {
+            throw new SMB1NotSupportedException();
+        }
+
+        SMB2Packet packet = (SMB2Packet) uncheckedPacket;
         long messageId = packet.getSequenceNumber();
+
         if (!connectionInfo.getOutstandingRequests().isOutstanding(messageId)) {
             throw new TransportException("Received response with unknown sequence number <<" + messageId + ">>");
         }
@@ -292,13 +328,11 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
         logger.trace("Send/Recv of packet {} took << {} ms >>", packet, System.currentTimeMillis() - request.getTimestamp().getTime());
 
         // [MS-SMB2].pdf 3.2.5.1.5 Handling Asynchronous Responses
-        if (isSet(packet.getHeader().getFlags(), SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
-            if (packet.getHeader().getStatus() == NtStatus.STATUS_PENDING) {
-                logger.debug("Received ASYNC packet {} with AsyncId << {} >>", packet, packet.getHeader().getAsyncId());
-                request.setAsyncId(packet.getHeader().getAsyncId());
-                // TODO Expiration timer
-                return;
-            }
+        if (packet.isIntermediateAsyncResponse()) {
+            logger.debug("Received ASYNC packet {} with AsyncId << {} >>", packet, packet.getHeader().getAsyncId());
+            request.setAsyncId(packet.getHeader().getAsyncId());
+            // TODO Expiration timer
+            return;
         }
 
         // [MS-SMB2].pdf 3.2.5.1.6 Handling Session Expiration
@@ -320,21 +354,25 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
             }
 
             // check packet signature.  Drop the packet if it is not correct.
-            if (packet.getHeader().isFlagSet(SMB2MessageFlag.SMB2_FLAGS_SIGNED)) {
-                if (!session.getPacketSignatory().verify(packet)) {
-                    logger.warn("Invalid packet signature for packet {}", packet);
-                    if (config.isSigningRequired()) {
-                        throw new TransportException("Packet signature for packet " + packet + " was not correct");
-                    }
-                }
-            } else if (config.isSigningRequired()) {
-                logger.warn("Illegal request, client requires message signing, but the received message is not signed.");
-                throw new TransportException("Client requires signing, but packet " + packet + " was not signed");
-            }
+            verifyPacketSignature(packet, session);
         }
 
         // [MS-SMB2].pdf 3.2.5.1.8 Processing the Response
         connectionInfo.getOutstandingRequests().receivedResponseFor(messageId).getPromise().deliver(packet);
+    }
+
+    private void verifyPacketSignature(SMB2Packet packet, Session session) throws TransportException {
+        if (packet.getHeader().isFlagSet(SMB2MessageFlag.SMB2_FLAGS_SIGNED)) {
+            if (!session.getPacketSignatory().verify(packet)) {
+                logger.warn("Invalid packet signature for packet {}", packet);
+                if (config.isSigningRequired()) {
+                    throw new TransportException("Packet signature for packet " + packet + " was not correct");
+                }
+            }
+        } else if (config.isSigningRequired()) {
+            logger.warn("Illegal request, client requires message signing, but the received message is not signed.");
+            throw new TransportException("Client requires signing, but packet " + packet + " was not signed");
+        }
     }
 
     @Override
@@ -361,5 +399,33 @@ public class Connection implements AutoCloseable, PacketReceiver<SMB2Packet> {
     private void sessionLogoff(SessionLoggedOff loggedOff) {
         connectionInfo.getSessionTable().sessionClosed(loggedOff.getSessionId());
         logger.debug("Session << {} >> logged off", loggedOff.getSessionId());
+    }
+
+    private static class DelegatingSMBMessageConverter implements PacketFactory<SMBPacket<?>> {
+        private PacketFactory<?>[] packetFactories;
+
+        public DelegatingSMBMessageConverter(PacketFactory<?>... packetFactories) {
+            this.packetFactories = packetFactories;
+        }
+
+        @Override
+        public SMBPacket<?> read(byte[] data) throws Buffer.BufferException, IOException {
+            for (PacketFactory<?> packetFactory : packetFactories) {
+                if (packetFactory.canHandle(data)) {
+                    return (SMBPacket<?>) packetFactory.read(data);
+                }
+            }
+            throw new IOException("Unknown packet format received.");
+        }
+
+        @Override
+        public boolean canHandle(byte[] data) {
+            for (PacketFactory<?> packetFactory : packetFactories) {
+                if (packetFactory.canHandle(data)) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }
