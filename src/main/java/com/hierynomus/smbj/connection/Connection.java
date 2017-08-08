@@ -310,8 +310,10 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
         if (!(uncheckedPacket instanceof SMB2Packet)) {
             throw new SMB1NotSupportedException();
         }
+
         SMB2Packet packet = (SMB2Packet) uncheckedPacket;
         long messageId = packet.getSequenceNumber();
+
         if (!connectionInfo.getOutstandingRequests().isOutstanding(messageId)) {
             throw new TransportException("Received response with unknown sequence number <<" + messageId + ">>");
         }

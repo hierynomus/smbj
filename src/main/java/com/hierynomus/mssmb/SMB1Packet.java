@@ -32,6 +32,7 @@ public class SMB1Packet extends SMBPacket<SMB1Header> {
 
     @Override
     public void read(SMBBuffer buffer) throws Buffer.BufferException {
+        throw new UnsupportedOperationException("Receiving SMBv1 Messages not supported in SMBJ");
     }
 
 
