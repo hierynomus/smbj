@@ -21,5 +21,5 @@ public interface Packet<P extends Packet<P, T>, T extends Buffer<T>> {
 
     void write(T buffer);
 
-    P read(T buffer) throws Buffer.BufferException;
+    void read(B buffer) throws Buffer.BufferException;
 }

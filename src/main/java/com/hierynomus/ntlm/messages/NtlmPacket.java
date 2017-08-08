@@ -26,7 +26,7 @@ public class NtlmPacket implements Packet<NtlmPacket, Buffer.PlainBuffer> {
     }
 
     @Override
-    public NtlmPacket read(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+    public void read(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
         throw new UnsupportedOperationException("Not implemented by base class");
     }
 }

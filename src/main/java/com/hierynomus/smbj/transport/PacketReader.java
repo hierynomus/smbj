@@ -64,9 +64,9 @@ public abstract class PacketReader<P extends Packet<P, ?>> implements Runnable {
     }
 
     private void readPacket() throws TransportException {
-        P smb2Packet = doRead();
-        logger.debug("Received packet {}", smb2Packet);
-        handler.handle(smb2Packet);
+        P packet = doRead();
+        logger.debug("Received packet {}", packet);
+        handler.handle(packet);
     }
 
     /**

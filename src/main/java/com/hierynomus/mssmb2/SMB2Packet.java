@@ -100,7 +100,7 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
         throw new UnsupportedOperationException("Should be implemented by specific message type");
     }
 
-    public final SMB2Packet read(SMBBuffer buffer) throws Buffer.BufferException {
+    public final void read(SMBBuffer buffer) throws Buffer.BufferException {
         this.buffer = buffer; // remember the buffer we read it from
         this.messageStartPos = buffer.rpos();
         header.readFrom(buffer);
@@ -110,7 +110,6 @@ public class SMB2Packet implements Packet<SMB2Packet, SMBBuffer> {
             readError(buffer);
         }
         this.messageEndPos = buffer.rpos();
-        return this;
     }
 
     protected void readError(SMBBuffer buffer) throws Buffer.BufferException {
