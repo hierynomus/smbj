@@ -156,8 +156,12 @@ public class File extends DiskEntry {
      * @throws SMBApiException
      */
     public void setLength(long endOfFile) throws SMBApiException {
-        FileEndOfFileInformation endOfFileInfo = new FileEndOfFileInformation(endOfFile);
-        this.setFileInformation(endOfFileInfo);
+        try {
+            FileEndOfFileInformation endOfFileInfo = new FileEndOfFileInformation(endOfFile);
+            this.setFileInformation(endOfFileInfo);
+        } catch (IllegalArgumentException iae) {
+            logger.warn("setLength : " + iae);
+        }
     }
 
     public InputStream getInputStream() {
