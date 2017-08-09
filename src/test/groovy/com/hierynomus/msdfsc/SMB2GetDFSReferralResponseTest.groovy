@@ -16,11 +16,10 @@
 package com.hierynomus.msdfsc
 
 import com.hierynomus.msdfsc.messages.DFSReferral
-import com.hierynomus.msdfsc.messages.DFSReferralV34
 import com.hierynomus.msdfsc.messages.SMB2GetDFSReferralResponse
+import com.hierynomus.smb.SMBBuffer
 import spock.lang.Specification
-import com.hierynomus.smbj.common.SMBBuffer
-import spock.lang.Unroll;
+import spock.lang.Unroll
 
 class SMB2GetDFSReferralResponseTest extends Specification {
 

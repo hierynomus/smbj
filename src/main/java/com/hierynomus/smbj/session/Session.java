@@ -15,7 +15,6 @@
  */
 package com.hierynomus.smbj.session;
 
-import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.SMBApiException;
@@ -24,6 +23,7 @@ import com.hierynomus.mssmb2.messages.SMB2Logoff;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
+import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.SMBRuntimeException;
@@ -33,7 +33,6 @@ import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.event.TreeDisconnected;
 import com.hierynomus.smbj.share.*;
-import com.hierynomus.smbj.transport.TransportException;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -142,20 +141,23 @@ public class Session implements AutoCloseable {
     }
 
     public void logoff() throws TransportException {
-        logger.info("Logging off session {} from host {}", sessionId, connection.getRemoteHostname());
-        for (Share share : treeConnectTable.getOpenTreeConnects()) {
-            try {
-                share.close();
-            } catch (IOException e) {
-                logger.error("Caught exception while closing TreeConnect with id: {}", share.getTreeConnect().getTreeId(), e);
+        try {
+            logger.info("Logging off session {} from host {}", sessionId, connection.getRemoteHostname());
+            for (Share share : treeConnectTable.getOpenTreeConnects()) {
+                try {
+                    share.close();
+                } catch (IOException e) {
+                    logger.error("Caught exception while closing TreeConnect with id: {}", share.getTreeConnect().getTreeId(), e);
+                }
             }
+            SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
+            SMB2Logoff response = Futures.get(this.<SMB2Logoff>send(logoff), connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
+            if (!response.getHeader().getStatus().isSuccess()) {
+                throw new SMBApiException(response.getHeader(), "Could not logoff session <<" + sessionId + ">>");
+            }
+        } finally {
+            bus.publish(new SessionLoggedOff(sessionId));
         }
-        SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
-        SMB2Logoff response = Futures.get(this.<SMB2Logoff>send(logoff), connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
-        if (!response.getHeader().getStatus().isSuccess()) {
-            throw new SMBApiException(response.getHeader(), "Could not logoff session <<" + sessionId + ">>");
-        }
-        bus.publish(new SessionLoggedOff(sessionId));
     }
 
     public boolean isSigningRequired() {

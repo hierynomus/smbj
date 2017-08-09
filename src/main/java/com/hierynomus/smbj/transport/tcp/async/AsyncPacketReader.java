@@ -17,10 +17,9 @@ package com.hierynomus.smbj.transport.tcp.async;
 
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
-import com.hierynomus.smbj.transport.PacketFactory;
+import com.hierynomus.protocol.transport.PacketFactory;
+import com.hierynomus.protocol.transport.PacketReceiver;
 import com.hierynomus.smbj.transport.PacketReader;
-import com.hierynomus.smbj.transport.PacketReceiver;
-import com.hierynomus.smbj.transport.TransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +31,7 @@ import java.nio.channels.CompletionHandler;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class AsyncPacketReader<P extends Packet<P, ?>> {
+public class AsyncPacketReader<P extends Packet<?>> {
     private static final Logger logger = LoggerFactory.getLogger(PacketReader.class);
 
     private final PacketFactory<P> packetFactory;
@@ -110,7 +109,7 @@ public class AsyncPacketReader<P extends Packet<P, ?>> {
             P packet = packetFactory.read(packetBytes);
             logger.trace("Received packet << {} >>", packet);
             handler.handle(packet);
-        } catch (BufferException | TransportException e) {
+        } catch (BufferException | IOException e) {
             handleAsyncFailure(e);
         }
     }

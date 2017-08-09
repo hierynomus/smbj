@@ -19,8 +19,7 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
-import com.hierynomus.smbj.connection.ConnectionInfo;
+import com.hierynomus.smb.SMBBuffer;
 
 import java.util.Set;
 

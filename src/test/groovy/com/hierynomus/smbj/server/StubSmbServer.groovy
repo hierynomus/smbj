@@ -18,7 +18,7 @@ package com.hierynomus.smbj.server
 import com.hierynomus.mssmb2.SMB2Packet
 import com.hierynomus.protocol.commons.buffer.Buffer
 import com.hierynomus.protocol.commons.buffer.Endian
-import com.hierynomus.smbj.common.SMBBuffer
+import com.hierynomus.smb.SMBBuffer
 import org.apache.commons.io.IOUtils
 
 import java.util.concurrent.atomic.AtomicBoolean

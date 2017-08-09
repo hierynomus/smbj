@@ -132,6 +132,19 @@ public class FileInformationFactory {
             }
         });
 
+        FileInformation.Encoder<FileEndOfFileInformation> endOfFileCodec = new FileInformation.Encoder<FileEndOfFileInformation>() {
+            @Override
+            public FileInformationClass getInformationClass() {
+                return FileInformationClass.FileEndOfFileInformation;
+            }
+
+            @Override
+            public void write(FileEndOfFileInformation info, Buffer outputBuffer) {
+                writeFileEndOfFileInformation(info, outputBuffer);
+            }
+        };
+        encoders.put(FileEndOfFileInformation.class, endOfFileCodec);
+
         decoders.put(FileInternalInformation.class, new FileInformation.Decoder<FileInternalInformation>() {
             @Override
             public FileInformationClass getInformationClass() {
@@ -460,6 +473,13 @@ public class FileInformationFactory {
     private static FileEaInformation parseFileEaInformation(Buffer<?> buffer) throws Buffer.BufferException {
         long eaSize = buffer.readUInt32();
         return new FileEaInformation(eaSize);
+    }
+
+    /**
+     * [MS-FSCC] 2.4.13 FileEndOfFileInformation
+     */
+    private static void writeFileEndOfFileInformation(FileEndOfFileInformation information, Buffer<?> buffer) {
+        buffer.putLong(information.getEndOfFile());
     }
 
     private static FileAccessInformation parseFileAccessInformation(Buffer<?> buffer) throws Buffer.BufferException {

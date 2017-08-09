@@ -21,14 +21,14 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.Futures;
+import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.io.BufferByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.PathResolveException;
 import com.hierynomus.smbj.share.Share;
-import com.hierynomus.smbj.transport.TransportException;
 
 import java.io.IOException;
 import java.util.concurrent.Future;

@@ -17,7 +17,7 @@ package com.hierynomus.msdfsc.messages;
 
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 import java.util.ArrayList;
 import java.util.EnumSet;

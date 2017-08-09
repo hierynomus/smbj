@@ -17,7 +17,7 @@ package com.hierynomus.mssmb2;
 
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -99,6 +99,7 @@ public class SMB2Error {
             int endOfResponse = buffer.rpos() + symLinkLength;
             buffer.skip(4); // SymLinkErrorTag (4 bytes) (always 0x4C4D5953)
             buffer.skip(4); // ReparseTag (4 bytes) (always 0xA000000C)
+            buffer.skip(2); // ReparseDataLength (2 bytes)
             unparsedPathLength = buffer.readUInt16(); // UnparsedPathLength (2 bytes)
             int substituteNameOffset = buffer.readUInt16(); // SubstituteNameOffset (2 bytes)
             int substituteNameLength = buffer.readUInt16(); // SubstituteNameLength (2 bytes)
@@ -116,7 +117,7 @@ public class SMB2Error {
             String s = null;
             if (length > 0) {
                 buffer.rpos(curpos + offset);
-                s = buffer.readString(StandardCharsets.UTF_16, length);
+                s = buffer.readString(StandardCharsets.UTF_16, length / 2);
             }
             buffer.rpos(curpos);
             return s;

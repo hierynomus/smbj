@@ -18,16 +18,16 @@ package com.hierynomus.smbj.transport.tcp.direct;
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
-import com.hierynomus.smbj.transport.PacketFactory;
+import com.hierynomus.protocol.transport.PacketFactory;
 import com.hierynomus.smbj.transport.PacketReader;
-import com.hierynomus.smbj.transport.PacketReceiver;
-import com.hierynomus.smbj.transport.TransportException;
+import com.hierynomus.protocol.transport.PacketReceiver;
+import com.hierynomus.protocol.transport.TransportException;
 
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class DirectTcpPacketReader<P extends Packet<P, ?>> extends PacketReader<P> {
+public class DirectTcpPacketReader<P extends Packet<?>> extends PacketReader<P> {
 
     private final PacketFactory<P> packetFactory;
 
@@ -36,25 +36,17 @@ public class DirectTcpPacketReader<P extends Packet<P, ?>> extends PacketReader<
         this.packetFactory = packetFactory;
     }
 
-    private P _readSMB2Packet(int packetLength) throws IOException, Buffer.BufferException {
+    private P readPacket(int packetLength) throws IOException, Buffer.BufferException {
         byte[] buf = new byte[packetLength];
-        int count = 0;
-        int read = 0;
-        while (count < packetLength && ((read = in.read(buf, count, packetLength - count)) != -1)) {
-            count += read;
-        }
-        if (read == -1) {
-            throw new TransportException(new EOFException("EOF while reading packet"));
-        }
-
+        readFully(buf);
         return packetFactory.read(buf);
     }
 
     @Override
     protected P doRead() throws TransportException {
         try {
-            int smb2PacketLength = _readTcpHeader();
-            return _readSMB2Packet(smb2PacketLength);
+            int packetLength = readTcpHeader();
+            return readPacket(packetLength);
         } catch (TransportException e) {
             throw e;
         } catch (IOException | Buffer.BufferException e) {
@@ -62,7 +54,7 @@ public class DirectTcpPacketReader<P extends Packet<P, ?>> extends PacketReader<
         }
     }
 
-    private int _readTcpHeader() throws IOException, Buffer.BufferException {
+    private int readTcpHeader() throws IOException, Buffer.BufferException {
         byte[] tcpHeader = new byte[4];
         readFully(tcpHeader);
         Buffer.PlainBuffer plainBuffer = new Buffer.PlainBuffer(tcpHeader, Endian.BE);

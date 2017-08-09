@@ -27,6 +27,7 @@ import com.hierynomus.protocol.commons.ByteArrayUtils
 import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.auth.AuthenticationContext
+import com.hierynomus.smbj.common.Check
 import com.hierynomus.smbj.connection.BasicPacketProcessor
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.connection.StubTransportLayerFactory
@@ -37,12 +38,13 @@ import java.security.MessageDigest
 
 class FileReadSpec extends Specification {
   private byte[] expectedDigest
+  private byte[] fileData
   private MessageDigest digest
   private File file
   private Connection connection
 
   def setup() {
-    def fileData = randomData(42, 12345)
+    fileData = randomData(42, 12345)
 
     def responder = new BasicPacketProcessor({ req ->
       if (req instanceof SMB2CreateRequest)
@@ -53,7 +55,11 @@ class FileReadSpec extends Specification {
       null
     })
 
-    def config = SmbConfig.builder().withDfsEnabled(false).withTransportLayerFactory(new StubTransportLayerFactory(responder.&processPacket)).build()
+    def config = SmbConfig.builder()
+      .withReadBufferSize(1024)
+      .withDfsEnabled(false)
+      .withTransportLayerFactory(new StubTransportLayerFactory(responder.&processPacket))
+      .build()
     def client = new SMBClient(config)
 
     connection = client.connect("127.0.0.1")
@@ -114,13 +120,11 @@ class FileReadSpec extends Specification {
     when:
     def out = new DigestOutputStream(new ByteArrayOutputStream(), digest)
     def buffer = new byte[10]
-    def fileOffset = 0 as long
 
     def input = file.getInputStream(null)
     def bytesRead
     while((bytesRead = input.read(buffer)) != -1) {
       out.write(buffer, 0, bytesRead)
-      fileOffset += bytesRead
     }
 
     then:
@@ -133,17 +137,53 @@ class FileReadSpec extends Specification {
     def buffer = new byte[256]
     def bufferOffset = 10
     def chunkSize = 100
-    def fileOffset = 0 as long
 
     def input = file.getInputStream(null)
     def bytesRead
     while((bytesRead = input.read(buffer, bufferOffset, chunkSize)) != -1) {
       out.write(buffer, bufferOffset, bytesRead)
-      fileOffset += bytesRead
     }
 
     then:
     ByteArrayUtils.printHex(digest.digest()) == ByteArrayUtils.printHex(expectedDigest)
+  }
+
+  def "should skip bytes at start of inputstream"() {
+    given:
+    def out = new ByteArrayOutputStream()
+    def buffer = new byte[256]
+    def input = file.getInputStream(null)
+    def bytesRead
+
+    when:
+    input.skip(10000)
+
+    while((bytesRead = input.read(buffer)) != -1) {
+      out.write(buffer, 0, bytesRead)
+    }
+
+    then:
+    out.toByteArray() == fileData[10000..-1]
+  }
+
+  def "should skip bytes when started reading inputstream"() {
+    given:
+    def out = new ByteArrayOutputStream()
+    def buffer = new byte[256]
+    def input = file.getInputStream(null)
+    def bytesRead
+
+    when:
+    out.write(input.read())
+    input.skip(10000)
+
+    while((bytesRead = input.read(buffer)) != -1) {
+      out.write(buffer, 0, bytesRead)
+    }
+
+    then:
+    out.toByteArray()[0] == fileData[0]
+    out.toByteArray()[1..-1] == fileData[10001..-1]
   }
 
   byte[] randomData(int seed, int length) {

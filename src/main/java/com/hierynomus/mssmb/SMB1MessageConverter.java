@@ -13,12 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.transport;
+package com.hierynomus.mssmb;
 
-import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.transport.PacketFactory;
 
-public interface PacketReceiver<P extends Packet<P, ?>> {
-    void handle(P packet) throws TransportException;
+import java.io.IOException;
 
-    void handleError(Throwable t);
+public class SMB1MessageConverter implements PacketFactory<SMB1Packet> {
+    @Override
+    public SMB1Packet read(byte[] data) throws Buffer.BufferException, IOException {
+        throw new SMB1NotSupportedException();
+    }
+
+    @Override
+    public boolean canHandle(byte[] data) {
+        return data[0] == (byte) 0xFF && data[1] == 'S' && data[2] == 'M' && data[3] == 'B';
+    }
 }

@@ -15,7 +15,7 @@
  */
 package com.hierynomus.msdfsc.messages;
 
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 public class SMB2GetDFSReferralExRequest {
     private int maxReferralLevel;

@@ -22,7 +22,7 @@ import com.hierynomus.msfscc.fsctl.FsCtlPipeWaitRequest;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.SMB2CreateResponse;
 import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.io.ArrayByteChunkProvider;
 

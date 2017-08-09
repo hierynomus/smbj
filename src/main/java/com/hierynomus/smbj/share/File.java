@@ -16,7 +16,9 @@
 package com.hierynomus.smbj.share;
 
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.msfscc.fileinformation.FileEndOfFileInformation;
 import com.hierynomus.mssmb2.SMB2FileId;
+import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
 import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
 import com.hierynomus.smbj.ProgressListener;
@@ -146,6 +148,16 @@ public class File extends DiskEntry {
             destStream.write(buf, 0, numRead);
         }
         is.close();
+    }
+
+    /***
+     * The function for truncate or set file length for a file
+     * @param endOfFile 64-bit signed integer in bytes, MUST be greater than or equal to 0
+     * @throws SMBApiException
+     */
+    public void setLength(long endOfFile) throws SMBApiException {
+        FileEndOfFileInformation endOfFileInfo = new FileEndOfFileInformation(endOfFile);
+        this.setFileInformation(endOfFileInfo);
     }
 
     public InputStream getInputStream() {

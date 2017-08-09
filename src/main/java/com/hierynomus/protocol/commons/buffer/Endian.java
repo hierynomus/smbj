@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
  */
 public abstract class Endian {
     private static final byte[] NULL_TERMINATOR = new byte[]{0, 0};
+
     public static final Endian LE = new Little();
     public static final Endian BE = new Big();
 
@@ -317,5 +318,4 @@ public abstract class Endian {
     public abstract <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException;
 
     public abstract <T extends Buffer<T>> String readNullTerminatedUtf16String(Buffer<T> buffer) throws Buffer.BufferException;
-
 }

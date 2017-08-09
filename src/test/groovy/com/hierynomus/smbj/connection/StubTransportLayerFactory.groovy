@@ -17,10 +17,10 @@ package com.hierynomus.smbj.connection
 
 import com.hierynomus.mssmb2.SMB2Packet
 import com.hierynomus.smbj.SmbConfig
-import com.hierynomus.smbj.transport.PacketHandlers
-import com.hierynomus.smbj.transport.PacketReceiver
-import com.hierynomus.smbj.transport.TransportException
-import com.hierynomus.smbj.transport.TransportLayer
+import com.hierynomus.protocol.transport.PacketHandlers
+import com.hierynomus.protocol.transport.PacketReceiver
+import com.hierynomus.protocol.transport.TransportException
+import com.hierynomus.protocol.transport.TransportLayer
 import com.hierynomus.smbj.transport.TransportLayerFactory
 
 class StubTransportLayerFactory implements TransportLayerFactory<SMB2Packet> {

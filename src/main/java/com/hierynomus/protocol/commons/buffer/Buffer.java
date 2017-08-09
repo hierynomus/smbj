@@ -28,8 +28,7 @@ import java.nio.charset.UnsupportedCharsetException;
 public class Buffer<T extends Buffer<T>> {
     private static final Logger logger = LoggerFactory.getLogger(Buffer.class);
 
-    public static class BufferException
-        extends Exception {
+    public static class BufferException extends Exception {
 
         public BufferException(String message) {
             super(message);
@@ -685,6 +684,16 @@ public class Buffer<T extends Buffer<T>> {
         return this;
     }
 
+    /**
+     * Write the string with an additional null-terminator in the specified charset.
+     * <p/>
+     * If the charset is UTF-16, the buffer's endianness is used to determine the correct byte order.
+     *
+     * @param string  The string to write
+     * @param charset The charset to use
+     * @return this
+     * @throws UnsupportedCharsetException If the charset specified is not supported by the buffer.
+     */
     public Buffer<T> putNullTerminatedString(String string, Charset charset) {
         return putNullTerminatedString(string, charset, endianness);
     }
@@ -710,6 +719,7 @@ public class Buffer<T extends Buffer<T>> {
         }
         return this;
     }
+
 
     /**
      * Skip the specified number of bytes.

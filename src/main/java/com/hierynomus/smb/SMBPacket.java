@@ -13,17 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.transport;
+package com.hierynomus.smb;
 
 import com.hierynomus.protocol.Packet;
-import com.hierynomus.protocol.commons.buffer.Buffer;
 
-public interface PacketFactory<P extends Packet<P, ?>> {
+public abstract class SMBPacket<H extends SMBHeader> implements Packet<SMBBuffer> {
+    protected final H header;
 
-    /**
-     * Construct a packet out of the raw byte data.
-     * @param data the byte array containing the full packet data
-     * @return A newly constructed packet.
-     */
-    P read(byte[] data) throws Buffer.BufferException;
+    public SMBPacket(H header) {
+        this.header = header;
+    }
+
+    public H getHeader() {
+        return header;
+    }
 }

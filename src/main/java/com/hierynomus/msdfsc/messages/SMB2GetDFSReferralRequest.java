@@ -15,7 +15,7 @@
  */
 package com.hierynomus.msdfsc.messages;
 
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 import java.nio.charset.StandardCharsets;
 
