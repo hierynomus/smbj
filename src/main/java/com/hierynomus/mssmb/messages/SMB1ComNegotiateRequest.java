@@ -64,4 +64,9 @@ public class SMB1ComNegotiateRequest extends SMB1Packet {
     public void read(SMBBuffer buffer) throws Buffer.BufferException {
         throw new IllegalStateException("SMBv1 not implemented in SMBJ");
     }
+
+    @Override
+    public String toString() {
+        return "SMB_COM_NEGOTIATE";
+    }
 }

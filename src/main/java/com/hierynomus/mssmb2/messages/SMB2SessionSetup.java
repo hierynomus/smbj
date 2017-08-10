@@ -104,6 +104,10 @@ public class SMB2SessionSetup extends SMB2Packet {
         }
     }
 
+    public Set<SMB2SessionFlags> getSessionFlags() {
+        return sessionFlags;
+    }
+
     public void setPreviousSessionId(long previousSessionId) {
         this.previousSessionId = previousSessionId;
     }

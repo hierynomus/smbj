@@ -126,4 +126,12 @@ public class SMB2NegotiateResponse extends SMB2Packet {
     public int getMaxWriteSize() {
         return maxWriteSize;
     }
+
+    public FileTime getSystemTime() {
+        return systemTime;
+    }
+
+    public FileTime getServerStartTime() {
+        return serverStartTime;
+    }
 }
