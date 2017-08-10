@@ -28,11 +28,6 @@ public class SMB2ReadResponse extends SMB2Packet {
     private int dataLength;
     private byte[] data;
 
-    public SMB2ReadResponse() {
-        super();
-    }
-
-
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.skip(2); // StructureSize (2 bytes)

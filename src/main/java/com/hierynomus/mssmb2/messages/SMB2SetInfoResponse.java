@@ -24,10 +24,6 @@ import com.hierynomus.smb.SMBBuffer;
  */
 public class SMB2SetInfoResponse extends SMB2Packet {
 
-    public SMB2SetInfoResponse() {
-        super();
-    }
-
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.skip(2); // StructureSize (2 bytes)

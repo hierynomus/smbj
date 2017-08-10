@@ -35,10 +35,6 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
 
     List<FileNotifyInfo> fileNotifyInfoList = new ArrayList<>();
 
-    public SMB2ChangeNotifyResponse() {
-        super();
-    }
-
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.skip(2); // StructureSize (2 bytes)

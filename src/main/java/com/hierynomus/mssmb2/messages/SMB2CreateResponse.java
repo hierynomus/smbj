@@ -39,10 +39,6 @@ public class SMB2CreateResponse extends SMB2Packet {
     private Set<FileAttributes> fileAttributes;
     private SMB2FileId fileId;
 
-    public SMB2CreateResponse() {
-        super();
-    }
-
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.readUInt16(); // StructureSize (2 bytes)

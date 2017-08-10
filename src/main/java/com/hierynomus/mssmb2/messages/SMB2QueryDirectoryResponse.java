@@ -26,10 +26,6 @@ public class SMB2QueryDirectoryResponse extends SMB2Packet {
 
     private byte[] outputBuffer;
 
-    public SMB2QueryDirectoryResponse() {
-        super();
-    }
-
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.skip(2); // StructureSize (2 bytes)
