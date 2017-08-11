@@ -13,16 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.spnego;
+package com.hierynomus.msdfsc.messages;
 
-import java.io.IOException;
+import com.hierynomus.smb.SMBBuffer;
 
-public class SpnegoException extends Exception {
-    public SpnegoException(String message) {
-        super(message);
+import java.nio.charset.StandardCharsets;
+
+/**
+ * [MS-DFSC].pdf 2.2.2 REQ_GET_DFS_REFERRAL
+ */
+public class SMB2GetDFSReferralRequest {
+
+    private String requestFileName;
+    
+    public SMB2GetDFSReferralRequest(String path) {
+        requestFileName = path;
     }
-
-    public SpnegoException(String message, IOException e) {
-        super(message, e);
+    
+    public void writeTo(SMBBuffer buffer) {
+        buffer.putUInt16(4); // MaxReferralLevel (2 bytes)
+        buffer.putNullTerminatedString(requestFileName, StandardCharsets.UTF_16); // RequestFileName (variable)
     }
 }

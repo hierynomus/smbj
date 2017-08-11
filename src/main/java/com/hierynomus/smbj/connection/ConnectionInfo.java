@@ -50,7 +50,6 @@ class ConnectionInfo {
     private byte[] preauthIntegrityHashValue;
     private String cipherId;
 
-
     ConnectionInfo(UUID clientGuid, String serverName) {
         // new SessionTable
         // new OutstandingRequests
@@ -58,6 +57,7 @@ class ConnectionInfo {
         this.sequenceWindow = new SequenceWindow();
         this.gssNegotiateToken = new byte[0];
         this.serverName = serverName;
+        this.clientCapabilities = EnumSet.of(SMB2GlobalCapability.SMB2_GLOBAL_CAP_DFS);
     }
 
     void negotiated(SMB2NegotiateResponse response) {
@@ -110,6 +110,10 @@ class ConnectionInfo {
 
     public boolean supports(SMB2GlobalCapability capability) {
         return serverCapabilities.contains(capability);
+    }
+
+    public EnumSet<SMB2GlobalCapability> getClientCapabilities() {
+        return clientCapabilities;
     }
 
     @Override

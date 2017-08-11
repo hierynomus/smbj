@@ -75,7 +75,15 @@ public class SMB2IoctlResponse extends SMB2Packet {
         return outputBuffer;
     }
 
+    public void setOutputBuffer(byte[] outputBuffer) {
+        this.outputBuffer = outputBuffer;
+    }
+    
     public byte[] getInputBuffer() {
         return inputBuffer;
+    }
+    
+    public void setInputBuffer(byte[] inputBuffer) {
+        this.inputBuffer = inputBuffer;
     }
 }

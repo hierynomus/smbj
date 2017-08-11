@@ -44,7 +44,7 @@ abstract class SpnegoToken {
         buffer.putRawBytes(gssApiHeader.getEncoded());
     }
 
-    protected void parseSpnegoToken(ASN1Encodable spnegoToken) throws IOException {
+    protected void parseSpnegoToken(ASN1Encodable spnegoToken) throws IOException, SpnegoException {
         if (!(spnegoToken instanceof ASN1TaggedObject) || ((ASN1TaggedObject) spnegoToken).getTagNo() != tokenTagNo) {
             throw new SpnegoException("Expected to find the " + tokenName + " (CHOICE [" + tokenTagNo + "]) header, not: " + spnegoToken);
         }

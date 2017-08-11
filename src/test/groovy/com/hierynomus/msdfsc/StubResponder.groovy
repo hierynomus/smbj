@@ -13,16 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.spnego;
+package com.hierynomus.msdfsc
 
-import java.io.IOException;
+import com.hierynomus.mssmb2.SMB2Packet
 
-public class SpnegoException extends Exception {
-    public SpnegoException(String message) {
-        super(message);
+class StubResponder {
+
+  Map<Class, Queue<SMB2Packet>> responses = [:]
+
+  def register(Class c, SMB2Packet response) {
+    def queue = responses.get(c)
+    if (!queue) {
+      queue = new ArrayDeque<SMB2Packet>()
+      responses.put(c, queue)
     }
+    queue.add(response)
+  }
 
-    public SpnegoException(String message, IOException e) {
-        super(message, e);
+  SMB2Packet respond(Object o) {
+    def clazz = o.getClass()
+    if (responses.containsKey(clazz)) {
+      return responses.get(clazz).poll()
     }
+    throw new IllegalArgumentException("$clazz has no registered response")
+  }
 }

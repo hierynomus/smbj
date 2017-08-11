@@ -25,7 +25,6 @@ import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.*;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.SmbConfig;
-import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
@@ -132,8 +131,11 @@ public class Share implements AutoCloseable {
             createOptions,
             path
         );
+        return sendReceive(cr, "Create", path, getCreateSuccessStatus(), transactTimeout);
+    }
 
-        return sendReceive(cr, "Create", path, SUCCESS, transactTimeout);
+    protected EnumSet<NtStatus> getCreateSuccessStatus() {
+        return SUCCESS;
     }
 
     void flush(SMB2FileId fileId) throws SMBApiException {
@@ -224,11 +226,24 @@ public class Share implements AutoCloseable {
      * @param ctlCode  the control code
      * @param isFsCtl  true if the control code is an FSCTL; false if it is an IOCTL
      * @param inData   the control code dependent input data
+     * @return the response data or <code>null</code> if the control code did not produce a response
+     */
+    public byte[] ioctl(long ctlCode, boolean isFsCtl, byte[] inData) {
+        return ioctl(ROOT_ID, ctlCode, isFsCtl, inData, 0, inData.length);
+    }
+
+    /**
+     * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
+     * corresponding operation.
+     *
+     * @param ctlCode  the control code
+     * @param isFsCtl  true if the control code is an FSCTL; false if it is an IOCTL
+     * @param inData   the control code dependent input data
      * @param inOffset the offset in <code>inData</code> where the input data starts
      * @param inLength the number of bytes from <code>inData</code> to send, starting at <code>offset</code>
      * @return the response data or <code>null</code> if the control code did not produce a response
      */
-    public byte[] ioctl(int ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength) {
+    public byte[] ioctl(long ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength) {
         return ioctl(ROOT_ID, ctlCode, isFsCtl, inData, inOffset, inLength);
     }
 
@@ -246,20 +261,20 @@ public class Share implements AutoCloseable {
      * @param outLength the maximum amount of data to write in <code>outData</code>, starting at <code>outOffset</code>
      * @return the number of bytes written to <code>outData</code>
      */
-    public int ioctl(int ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength, byte[] outData, int outOffset, int outLength) {
+    public int ioctl(long ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength, byte[] outData, int outOffset, int outLength) {
         return ioctl(ROOT_ID, ctlCode, isFsCtl, inData, inOffset, inLength, outData, outOffset, outLength);
     }
 
-    byte[] ioctl(SMB2FileId fileId, int ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength) {
+    byte[] ioctl(SMB2FileId fileId, long ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength) {
         return ioctl(fileId, ctlCode, isFsCtl, inData, inOffset, inLength, -1);
     }
 
-    byte[] ioctl(SMB2FileId fileId, int ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength, int maxOutputResponse) {
+    byte[] ioctl(SMB2FileId fileId, long ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength, int maxOutputResponse) {
         SMB2IoctlResponse response = ioctl(fileId, ctlCode, isFsCtl, new ArrayByteChunkProvider(inData, inOffset, inLength, 0), maxOutputResponse);
         return response.getOutputBuffer();
     }
 
-    int ioctl(SMB2FileId fileId, int ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength, byte[] outData, int outOffset, int outLength) {
+    int ioctl(SMB2FileId fileId, long ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength, byte[] outData, int outOffset, int outLength) {
         SMB2IoctlResponse response = ioctl(fileId, ctlCode, isFsCtl, new ArrayByteChunkProvider(inData, inOffset, inLength, 0), outLength);
         int length = 0;
         if (outData != null) {
@@ -270,16 +285,16 @@ public class Share implements AutoCloseable {
         return length;
     }
 
-    private SMB2IoctlResponse ioctl(SMB2FileId fileId, int ctlCode, boolean isFsCtl, ByteChunkProvider inputData, int maxOutputResponse) {
+    SMB2IoctlResponse ioctl(SMB2FileId fileId, long ctlCode, boolean isFsCtl, ByteChunkProvider inputData, int maxOutputResponse) {
         Future<SMB2IoctlResponse> fut = ioctlAsync(fileId, ctlCode, isFsCtl, inputData, maxOutputResponse);
         return receive(fut, "IOCTL", fileId, SUCCESS, transactTimeout);
     }
 
-    Future<SMB2IoctlResponse> ioctlAsync(int ctlCode, boolean isFsCtl, ByteChunkProvider inputData) {
+    public Future<SMB2IoctlResponse> ioctlAsync(long ctlCode, boolean isFsCtl, ByteChunkProvider inputData) {
         return ioctlAsync(ROOT_ID, ctlCode, isFsCtl, inputData, -1);
     }
 
-    private Future<SMB2IoctlResponse> ioctlAsync(SMB2FileId fileId, int ctlCode, boolean isFsCtl, ByteChunkProvider inputData, int maxOutputResponse) {
+    private Future<SMB2IoctlResponse> ioctlAsync(SMB2FileId fileId, long ctlCode, boolean isFsCtl, ByteChunkProvider inputData, int maxOutputResponse) {
         ByteChunkProvider inData = inputData == null ? EMPTY : inputData;
 
         if (inData.bytesLeft() > transactBufferSize) {
@@ -295,15 +310,7 @@ public class Share implements AutoCloseable {
             maxResponse = maxOutputResponse;
         }
 
-        SMB2IoctlRequest ioreq = new SMB2IoctlRequest(
-            dialect,
-            sessionId, treeId,
-            ctlCode,
-            fileId,
-            inData,
-            isFsCtl,
-            maxResponse
-        );
+        SMB2IoctlRequest ioreq = new SMB2IoctlRequest(dialect, sessionId, treeId, ctlCode, fileId, inData, isFsCtl, maxResponse);
         return send(ioreq);
     }
 
