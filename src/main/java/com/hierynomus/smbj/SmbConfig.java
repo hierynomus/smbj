@@ -73,7 +73,7 @@ public final class SmbConfig {
             .withSecurityProvider(new JceSecurityProvider())
             .withSocketFactory(new ProxySocketFactory())
             .withSigningRequired(false)
-            .withDfsEnabled(true)
+            .withDfsEnabled(false)
             .withMultiProtocolNegotiate(false)
             .withBufferSize(DEFAULT_BUFFER_SIZE)
             .withTransportLayerFactory(DEFAULT_TRANSPORT_LAYER_FACTORY)
