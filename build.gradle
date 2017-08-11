@@ -2,6 +2,7 @@ import java.text.SimpleDateFormat
 
 plugins {
   id "java"
+  id "idea"
   id "groovy"
   id "jacoco"
   id "jdepend"
@@ -108,6 +109,21 @@ tasks.withType(Test) {
   }
 }
 
+idea {
+  module {
+    testSourceDirs += file("src/it/groovy")
+    // Ugly hack, the it/resources needs to be marked as testSourceDir before it can be picked up by the iml.withXml
+    testSourceDirs += file('src/it/resources')
+  }
+  module.iml.withXml {
+    def node = it.asNode()
+    def content = node.component.find { it.'@name' == 'NewModuleRootManager' }.content[0]
+    content.sourceFolder.findAll { it.@url?.contains('it/resources') }.each {
+      it.@type = 'java-test-resource'
+    }
+  }
+}
+
 project.tasks.compileGroovy.onlyIf { false }
 
 github {
@@ -181,16 +197,16 @@ if (project.hasProperty("bintrayUsername") && project.hasProperty("bintrayApiKey
 }
 
 jdepend {
-   toolVersion = "2.9.1"
-   sourceSets = [sourceSets.main]
-   ignoreFailures = true
+  toolVersion = "2.9.1"
+  sourceSets = [sourceSets.main]
+  ignoreFailures = true
 }
 
 jdependMain {
-   reports {
-      xml.enabled true
-      text.enabled false
-   }
+  reports {
+    xml.enabled true
+    text.enabled false
+  }
 }
 
 task jdependReport(dependsOn: jdependMain, group: 'verification', description: 'Generates a HTML report after executing jdepend checks.')
@@ -198,15 +214,15 @@ jdependReport.doLast {
   ant.xslt(
     in: "$reporting.baseDir/jdepend/main.xml",
     style: "$rootDir/conf/jdepend/jdepend-report.xslt",
-    out:"$reporting.baseDir/jdepend/main.html")
+    out: "$reporting.baseDir/jdepend/main.html")
 }
 
 tasks.withType(FindBugs) {
-    reports {
-        xml.enabled false
-        html.enabled true
-        // html.stylesheet resources.text.fromFile('config/xsl/color.xsl')
-    }
+  reports {
+    xml.enabled false
+    html.enabled true
+    // html.stylesheet resources.text.fromFile('config/xsl/color.xsl')
+  }
 }
 
 findbugs {
@@ -215,7 +231,7 @@ findbugs {
 }
 
 check {
-   dependsOn += ['jdependReport']
+  dependsOn += ['jdependReport']
 }
 
 

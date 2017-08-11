@@ -108,6 +108,8 @@ public class NtlmAuthenticator implements Authenticator {
                     session.setSigningKey(sessionkey);
                 }
 
+                completed = true;
+
                 // If NTLM v2 is used, KeyExchangeKey MUST be set to the given 128-bit SessionBaseKey value.
 
                 // MIC (16 bytes) provided if in AvPairType is key MsvAvFlags with value & 0x00000002 is true
