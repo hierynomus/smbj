@@ -59,7 +59,7 @@ public class SMB2Header implements SMBHeader {
         buffer.putUInt32(nextCommandOffset); // NextCommand (4 bytes)
         buffer.putUInt64(messageId); // MessageId (8 bytes)
         if (isSet(flags, SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
-            throw new UnsupportedOperationException("ASYNC not yet implemented");
+            buffer.putUInt64(asyncId);
         } else {
             buffer.putReserved4(); // Reserved (4 bytes)
             buffer.putUInt32(treeId); // TreeId (4 bytes)
@@ -149,6 +149,10 @@ public class SMB2Header implements SMBHeader {
 
     public int getCreditResponse() {
         return creditResponse;
+    }
+
+    public void setAsyncId(long asyncId) {
+        this.asyncId = asyncId;
     }
 
     public long getAsyncId() {
