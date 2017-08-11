@@ -24,7 +24,7 @@ import com.hierynomus.smbj.io.ByteChunkProvider;
  */
 public class SMB2IoctlRequest extends SMB2MultiCreditPacket {
 
-    private final int controlCode;
+    private final long controlCode;
     private final SMB2FileId fileId;
     private final ByteChunkProvider inputData;
     private final boolean fsctl;
@@ -32,7 +32,7 @@ public class SMB2IoctlRequest extends SMB2MultiCreditPacket {
 
     public SMB2IoctlRequest(
         SMB2Dialect negotiatedDialect, long sessionId, long treeId,
-        int controlCode, SMB2FileId fileId,
+        long controlCode, SMB2FileId fileId,
         ByteChunkProvider inputData, boolean fsctl, int maxOutputResponse
     ) {
         super(57, negotiatedDialect, SMB2MessageCommandCode.SMB2_IOCTL, sessionId, treeId, Math.max(inputData.bytesLeft(), maxOutputResponse));

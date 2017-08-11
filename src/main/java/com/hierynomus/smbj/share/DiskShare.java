@@ -22,10 +22,7 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.FileSystemInformationClass;
 import com.hierynomus.msfscc.fileinformation.*;
-import com.hierynomus.mssmb2.SMB2CreateDisposition;
-import com.hierynomus.mssmb2.SMB2CreateOptions;
-import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.SMB2ShareAccess;
+import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.SMB2CreateResponse;
 import com.hierynomus.mssmb2.messages.SMB2QueryInfoRequest;
 import com.hierynomus.mssmb2.messages.SMB2SetInfoRequest;
@@ -34,7 +31,6 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smb.SMBBuffer;
-import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 
@@ -57,6 +53,10 @@ public class DiskShare extends Share {
 
     public DiskEntry open(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         SMB2CreateResponse response = createFile(path, null, accessMask, attributes, shareAccesses, createDisposition, createOptions);
+        return getDiskEntry(path, response);
+    }
+
+    protected DiskEntry getDiskEntry(String path, SMB2CreateResponse response) {
         if (response.getFileAttributes().contains(FILE_ATTRIBUTE_DIRECTORY)) {
             return new Directory(response.getFileId(), this, path);
         } else {
@@ -381,5 +381,10 @@ public class DiskShare extends Share {
             null,
             buffer.getCompactData()
         );
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" + getSmbPath() + "]";
     }
 }

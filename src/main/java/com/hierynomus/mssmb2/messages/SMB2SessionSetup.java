@@ -16,10 +16,7 @@
 package com.hierynomus.mssmb2.messages;
 
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.mssmb2.SMB2Dialect;
-import com.hierynomus.mssmb2.SMB2Header;
-import com.hierynomus.mssmb2.SMB2MessageCommandCode;
-import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.*;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
@@ -29,7 +26,7 @@ import java.util.Set;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
 /**
- * [MS-SMB2].pdf 2.2.5 SMB2_SESSTION_SETUP Request / 2.2.6 SMB2_SESSION_SETUP Response
+ * [MS-SMB2].pdf 2.2.5 SMB2_SESSION_SETUP Request / 2.2.6 SMB2_SESSION_SETUP Response
  */
 public class SMB2SessionSetup extends SMB2Packet {
 
@@ -44,10 +41,12 @@ public class SMB2SessionSetup extends SMB2Packet {
     public SMB2SessionSetup() {
     }
 
-    public SMB2SessionSetup(SMB2Dialect negotiatedDialect, Set<SMB2SecurityMode> securityMode) {
+    public SMB2SessionSetup(SMB2Dialect negotiatedDialect, Set<SMB2SecurityMode> securityMode,
+            Set<SMB2GlobalCapability> capabilities) {
         super(25, negotiatedDialect, SMB2MessageCommandCode.SMB2_SESSION_SETUP);
         this.negotiatedDialect = negotiatedDialect;
         this.securityMode = (byte) EnumWithValue.EnumUtils.toLong(securityMode);
+        this.clientCapabilities = EnumWithValue.EnumUtils.toLong(capabilities);
     }
 
     @Override

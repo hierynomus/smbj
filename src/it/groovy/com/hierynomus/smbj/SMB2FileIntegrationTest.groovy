@@ -18,21 +18,17 @@ package com.hierynomus.smbj
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb2.SMB2CreateDisposition
-import com.hierynomus.mssmb2.SMB2CreateOptions
 import com.hierynomus.mssmb2.SMB2ShareAccess
+import com.hierynomus.mssmb2.SMBApiException
 import com.hierynomus.smbj.auth.AuthenticationContext
-import com.hierynomus.smbj.common.SMBApiException
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.io.ArrayByteChunkProvider
 import com.hierynomus.smbj.session.Session
-import com.hierynomus.smbj.share.Directory
 import com.hierynomus.smbj.share.DiskShare
-import com.hierynomus.smbj.share.File
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import spock.lang.Specification
+import spock.lang.Unroll
 
 import java.nio.charset.StandardCharsets
-import java.security.Security
 
 import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_CREATE
 import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_OPEN
@@ -44,16 +40,19 @@ class SMB2FileIntegrationTest extends Specification {
   Connection connection
   SMBClient client
 
-  def setupSpec() {
-    if (!Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)) {
-      Security.addProvider(new BouncyCastleProvider())
-    }
-  }
+//  def setupSpec() {
+//    if (!Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)) {
+//      Security.addProvider(new BouncyCastleProvider())
+//    }
+//  }
 
   def setup() {
-    def config = SmbConfig.builder().withMultiProtocolNegotiate(true).build()
+    def config = SmbConfig
+      .builder()
+      .withMultiProtocolNegotiate(true)
+      .withSigningRequired(true).build()
     client = new SMBClient(config)
-    connection = client.connect("172.16.93.209")
+    connection = client.connect("172.16.93.221")
     session = connection.authenticate(new AuthenticationContext("jeroen", "jeroen".toCharArray(), null))
     share = session.connectShare("NewShare") as DiskShare
   }
@@ -72,16 +71,20 @@ class SMB2FileIntegrationTest extends Specification {
     list.get(1).fileName == ".."
   }
 
+  @Unroll
   def "should create file and list contents of share"() {
     given:
     def f = share.openFile("test", EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, FILE_CREATE, null)
     f.close()
 
     expect:
-    share.list("").collect { it.fileName } contains "test"
+    share.list(path).collect { it.fileName } contains "test"
 
     cleanup:
     share.rm("test")
+
+    where:
+    path << ["", null]
   }
 
   def "should create directory and list contents"() {

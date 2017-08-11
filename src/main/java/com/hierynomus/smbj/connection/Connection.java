@@ -28,16 +28,17 @@ import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.*;
 import com.hierynomus.smb.SMBPacket;
+import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
-import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.spnego.NegTokenInit;
+import com.hierynomus.spnego.SpnegoException;
 import net.engio.mbassy.listener.Handler;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.slf4j.Logger;
@@ -67,16 +68,31 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
     private ConnectionInfo connectionInfo;
     private String remoteName;
 
+    private SMBClient client;
+
+    public SMBClient getClient() {
+        return client;
+    }
+
     private SmbConfig config;
     private TransportLayer<SMBPacket<?>> transport;
     private final SMBEventBus bus;
     private final ReentrantLock lock = new ReentrantLock();
     private int remotePort;
 
-    public Connection(SmbConfig config, SMBEventBus bus) {
+    public Connection(SmbConfig config, SMBClient client, SMBEventBus bus) {
         this.config = config;
+        this.client = client;
         this.transport = config.getTransportLayerFactory().createTransportLayer(new PacketHandlers<>(new SMBPacketSerializer(), this, converter), config);
         this.bus = bus;
+        bus.subscribe(this);
+    }
+
+    public Connection(Connection connection) {
+        this.client = connection.client;
+        this.config = connection.config;
+        this.transport = connection.transport;
+        this.bus = connection.bus;
         bus.subscribe(this);
     }
 
@@ -135,7 +151,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
         try {
             Authenticator authenticator = getAuthenticator(authContext);
             authenticator.init(config.getSecurityProvider(), config.getRandomProvider());
-            Session session = new Session(0, this, bus, connectionInfo.isServerRequiresSigning(), config.getSecurityProvider());
+            Session session = getSession(authContext);
             SMB2SessionSetup receive = authenticationRound(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
             long sessionId = receive.getHeader().getSessionId();
             session.setSessionId(sessionId);
@@ -160,20 +176,26 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
             } finally {
                 connectionInfo.getPreauthSessionTable().sessionClosed(sessionId);
             }
-        } catch (IOException e) {
+        } catch (SpnegoException | IOException e) {
             throw new SMBRuntimeException(e);
         }
     }
 
+    private Session getSession(AuthenticationContext authContext) {
+        return new Session(0, this, authContext, bus, connectionInfo.isServerRequiresSigning(), config.isDfsEnabled(), config.getSecurityProvider());
+    }
+
     private SMB2SessionSetup authenticationRound(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {
         byte[] securityContext = authenticator.authenticate(authContext, inputToken, session);
-        SMB2SessionSetup req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED));
+
+        SMB2SessionSetup req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED), 
+                connectionInfo.getClientCapabilities());
         req.setSecurityBuffer(securityContext);
         req.getHeader().setSessionId(session.getSessionId());
         return Futures.get(this.<SMB2SessionSetup>send(req), getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
     }
 
-    private Authenticator getAuthenticator(AuthenticationContext context) throws IOException {
+    private Authenticator getAuthenticator(AuthenticationContext context) throws IOException, SpnegoException {
         List<Factory.Named<Authenticator>> supportedAuthenticators = new ArrayList<>(config.getSupportedAuthenticators());
         List<ASN1ObjectIdentifier> mechTypes = new ArrayList<>();
         if (connectionInfo.getGssNegotiateToken().length > 0) {
@@ -198,7 +220,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
      *
      * @param packet SMBPacket to send
      * @return a Future to be used to retrieve the response packet
-     * @throws TransportException
+     * @throws TransportException When a transport level error occurred
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
         lock.lock();
@@ -287,7 +309,6 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
         }
         return negotiateResponse;
     }
-
 
     /**
      * [MS-SMB2].pdf 3.1.5.2 Calculating the CreditCharge

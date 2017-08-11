@@ -16,10 +16,10 @@
 package com.hierynomus.smbj.share;
 
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.ProgressListener;
-import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.protocol.transport.TransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

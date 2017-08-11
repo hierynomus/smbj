@@ -112,4 +112,4 @@ The implementation is based on the following specifications:
 - https://msdn.microsoft.com/en-us/library/cc230273.aspx[[MS-DTYP\]: Windows Data Types]
 - https://msdn.microsoft.com/en-us/library/cc231196.aspx[[MS-ERREF\]: Windows Error Codes]
 - https://msdn.microsoft.com/en-us/library/cc231987.aspx[[MS-FSCC\]: File System Control Codes]
-
+- https://msdn.microsoft.com/en-us/library/cc226982.aspx[[MS-DFSC\]: Distributed File System (DFS): Referral Protocol]

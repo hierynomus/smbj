@@ -36,4 +36,8 @@ public class SMBRuntimeException extends RuntimeException {
     public SMBRuntimeException(String msg) {
         super(msg);
     }
+
+    public SMBRuntimeException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

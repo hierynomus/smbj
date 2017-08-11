@@ -13,16 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.spnego;
+package com.hierynomus.smbj.share;
 
-import java.io.IOException;
+import com.hierynomus.mserref.NtStatus;
 
-public class SpnegoException extends Exception {
-    public SpnegoException(String message) {
+public class PathResolveException extends Exception {
+    private final NtStatus status;
+
+    public PathResolveException(NtStatus status) {
+        this.status = status;
+    }
+    public PathResolveException(NtStatus status, String message) {
         super(message);
+        this.status = status;
+    }
+    public PathResolveException(Throwable cause) {
+        super(cause);
+        this.status = NtStatus.UNKNOWN;
     }
 
-    public SpnegoException(String message, IOException e) {
-        super(message, e);
+    public NtStatus getStatus() {
+        return status;
     }
 }

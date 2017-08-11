@@ -148,9 +148,7 @@ public abstract class Endian {
 
         @Override
         public <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException {
-            byte[] stringBytes = new byte[length * 2];
-            buffer.readRawBytes(stringBytes);
-            return new String(stringBytes, StandardCharsets.UTF_16BE);
+            return readUtf16String(buffer, length, StandardCharsets.UTF_16BE);
         }
 
         @Override
@@ -275,9 +273,7 @@ public abstract class Endian {
 
         @Override
         public <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException {
-            byte[] stringBytes = new byte[length * 2];
-            buffer.readRawBytes(stringBytes);
-            return new String(stringBytes, StandardCharsets.UTF_16LE);
+            return readUtf16String(buffer, length, StandardCharsets.UTF_16LE);
         }
 
         @Override

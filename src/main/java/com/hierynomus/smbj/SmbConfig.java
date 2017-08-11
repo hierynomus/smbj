@@ -49,6 +49,7 @@ public final class SmbConfig {
     private Random random;
     private UUID clientGuid;
     private boolean signingRequired;
+    private boolean dfsEnabled;
     private boolean useMultiProtocolNegotiate;
     private SecurityProvider securityProvider;
     private int readBufferSize;
@@ -72,6 +73,7 @@ public final class SmbConfig {
             .withSecurityProvider(new JceSecurityProvider())
             .withSocketFactory(new ProxySocketFactory())
             .withSigningRequired(false)
+            .withDfsEnabled(false)
             .withMultiProtocolNegotiate(false)
             .withBufferSize(DEFAULT_BUFFER_SIZE)
             .withTransportLayerFactory(DEFAULT_TRANSPORT_LAYER_FACTORY)
@@ -95,6 +97,7 @@ public final class SmbConfig {
         random = other.random;
         clientGuid = other.clientGuid;
         signingRequired = other.signingRequired;
+        dfsEnabled = other.dfsEnabled;
         securityProvider = other.securityProvider;
         readBufferSize = other.readBufferSize;
         readTimeout = other.readTimeout;
@@ -127,8 +130,16 @@ public final class SmbConfig {
         return new ArrayList<>(authenticators);
     }
 
+    /**
+     * Whether the client requires that messages from the server are signed.  When message signing is enforced a received message that is not signed properly
+     * will result in an exception.
+     */
     public boolean isSigningRequired() {
         return signingRequired;
+    }
+
+    public boolean isDfsEnabled() {
+        return dfsEnabled;
     }
 
     public boolean isUseMultiProtocolNegotiate() {
@@ -337,6 +348,11 @@ public final class SmbConfig {
                 throw new IllegalStateException("At least one SMB dialect should be specified");
             }
             return new SmbConfig(config);
+        }
+
+        public Builder withDfsEnabled(boolean dfsEnabled) {
+            config.dfsEnabled = dfsEnabled;
+            return this;
         }
 
         public Builder withMultiProtocolNegotiate(boolean useMultiProtocolNegotiate) {

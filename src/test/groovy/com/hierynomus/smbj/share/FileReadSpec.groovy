@@ -55,7 +55,11 @@ class FileReadSpec extends Specification {
       null
     })
 
-    def config = SmbConfig.builder().withReadBufferSize(1024).withTransportLayerFactory(new StubTransportLayerFactory(responder.&processPacket)).build()
+    def config = SmbConfig.builder()
+      .withReadBufferSize(1024)
+      .withDfsEnabled(false)
+      .withTransportLayerFactory(new StubTransportLayerFactory(responder.&processPacket))
+      .build()
     def client = new SMBClient(config)
 
     connection = client.connect("127.0.0.1")

@@ -13,16 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.spnego;
+package com.hierynomus.msdfsc;
 
-import java.io.IOException;
+import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.smbj.share.PathResolveException;
 
-public class SpnegoException extends Exception {
-    public SpnegoException(String message) {
-        super(message);
+public class DFSException extends PathResolveException {
+    public DFSException(NtStatus status, String message) {
+        super(status, message);
     }
 
-    public SpnegoException(String message, IOException e) {
-        super(message, e);
+    public DFSException(NtStatus status) {
+        super(status);
+    }
+
+    public DFSException(Throwable cause) {
+        super(cause);
     }
 }

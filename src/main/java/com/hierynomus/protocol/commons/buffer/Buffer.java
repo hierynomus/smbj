@@ -19,6 +19,7 @@ import com.hierynomus.protocol.commons.ByteArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -609,6 +610,40 @@ public class Buffer<T extends Buffer<T>> {
                 return Endian.BE.readUtf16String(this, length);
             case "UTF-8":
                 return new String(readRawBytes(length), charset);
+            default:
+                throw new UnsupportedCharsetException(charset.name());
+        }
+    }
+
+    /**
+     * Read a null-terminated string in the specified encoding.
+     * <p/>
+     * If the charset is UTF-16, the buffer's endianness is used to determine the correct byte order.
+     *
+     * @param charset The charset to use.
+     * @throws BufferException             If reading this string would cause an underflow
+     * @throws UnsupportedCharsetException If the charset specified is not supported by the buffer.
+     */
+    public String readNullTerminatedString(Charset charset) throws BufferException {
+        return readNullTerminatedString(charset, endianness);
+    }
+
+    private String readNullTerminatedString(Charset charset, Endian endianness) throws BufferException {
+        switch (charset.name()) {
+            case "UTF-16":
+                return endianness.readNullTerminatedUtf16String(this);
+            case "UTF-16LE":
+                return Endian.LE.readNullTerminatedUtf16String(this);
+            case "UTF-16BE":
+                return Endian.BE.readNullTerminatedUtf16String(this);
+            case "UTF-8":
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                byte b = readByte();
+                while (b != 0) {
+                    baos.write(b);
+                    b = readByte();
+                }
+                return new String(baos.toByteArray(), charset);
             default:
                 throw new UnsupportedCharsetException(charset.name());
         }

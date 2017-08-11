@@ -17,7 +17,6 @@ package com.hierynomus.spnego;
 
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
-import com.hierynomus.smbj.common.SMBRuntimeException;
 import org.bouncycastle.asn1.*;
 
 import java.io.IOException;
@@ -69,7 +68,7 @@ public class NegTokenTarg extends SpnegoToken {
         buffer.putRawBytes(negotiationToken.getEncoded());
     }
 
-    public void write(Buffer<?> buffer) {
+    public void write(Buffer<?> buffer) throws SpnegoException {
         try {
             ASN1EncodableVector negTokenTarg = new ASN1EncodableVector();
             if (negotiationResult != null) {
@@ -87,21 +86,21 @@ public class NegTokenTarg extends SpnegoToken {
 
             writeGss(buffer, negTokenTarg);
         } catch (IOException e) {
-            throw new SMBRuntimeException(e);
+            throw new SpnegoException("Could not write NegTokenTarg to buffer", e);
         }
     }
 
 
-    public NegTokenTarg read(byte[] bytes) throws IOException {
+    public NegTokenTarg read(byte[] bytes) throws SpnegoException {
         return read(new Buffer.PlainBuffer(bytes, Endian.LE));
     }
 
-    private NegTokenTarg read(Buffer<?> buffer) throws IOException {
+    private NegTokenTarg read(Buffer<?> buffer) throws SpnegoException {
         try (ASN1InputStream is = new ASN1InputStream(buffer.asInputStream())) {
             ASN1Primitive instance = is.readObject();
             parseSpnegoToken(instance);
-        } catch (SpnegoException e) {
-            throw new SMBRuntimeException(e);
+        } catch (IOException e) {
+            throw new SpnegoException("Could not read NegTokenTarg from buffer", e);
         }
         return this;
     }
