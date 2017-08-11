@@ -255,42 +255,7 @@ public class Promise<V, T extends Throwable> {
     }
 
 
-    public Future<V> future() {
-        return new Future<V>() {
-            @Override
-            public boolean cancel(boolean mayInterruptIfRunning) {
-                // TODO
-                return false;
-            }
-
-            @Override
-            public boolean isCancelled() {
-                // TODO
-                return false;
-            }
-
-            @Override
-            public boolean isDone() {
-                return Promise.this.isDelivered();
-            }
-
-            @Override
-            public V get() throws InterruptedException, ExecutionException {
-                try {
-                    return Promise.this.retrieve();
-                } catch (Throwable t) {
-                    throw new ExecutionException(t);
-                }
-            }
-
-            @Override
-            public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-                try {
-                    return Promise.this.retrieve(timeout, unit);
-                } catch (Throwable t) {
-                    throw new ExecutionException(t);
-                }
-            }
-        };
+    public AFuture<V> future() {
+        return new PromiseBackedFuture<>(this);
     }
 }

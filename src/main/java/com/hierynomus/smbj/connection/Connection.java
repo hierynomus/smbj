@@ -22,12 +22,10 @@ import com.hierynomus.mssmb.SMB1NotSupportedException;
 import com.hierynomus.mssmb.SMB1Packet;
 import com.hierynomus.mssmb.messages.SMB1ComNegotiateRequest;
 import com.hierynomus.mssmb2.*;
-import com.hierynomus.mssmb2.messages.SMB2MessageConverter;
-import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
-import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
-import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
+import com.hierynomus.mssmb2.messages.*;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.protocol.transport.*;
@@ -53,7 +51,9 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -68,6 +68,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
     private static final DelegatingSMBMessageConverter converter = new DelegatingSMBMessageConverter(new SMB2MessageConverter(), new SMB1MessageConverter());
 
+    private final ScheduledExecutorService cancelService;
     private ConnectionInfo connectionInfo;
     private String remoteName;
 
@@ -87,6 +88,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
         this.config = config;
         this.client = client;
         this.transport = config.getTransportLayerFactory().createTransportLayer(new PacketHandlers<>(new SMBPacketSerializer(), this, converter), config);
+        this.cancelService = Executors.newSingleThreadScheduledExecutor();
         this.bus = bus;
         bus.subscribe(this);
     }
@@ -244,7 +246,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
             Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID());
             connectionInfo.getOutstandingRequests().registerOutstanding(request);
             transport.write(packet);
-            return request.getFuture(null); // TODO cancel callback
+            return request.getFuture(new CancelRequest(request));
         } finally {
             lock.unlock();
         }
@@ -378,7 +380,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
                 }
             }
 
-            // check packet signature.  Drop the packet if it is not correct.
+            // check packet signature. Drop the packet if it is not correct.
             verifyPacketSignature(packet, session);
         }
 
@@ -395,7 +397,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
                 }
             }
         } else if (config.isSigningRequired()) {
-            logger.warn("Illegal request, client requires message signing, but the received message is not signed.");
+            logger.warn("Illegal request, client requires message signing, but packet {} is not signed.", packet);
             throw new TransportException("Client requires signing, but packet " + packet + " was not signed");
         }
     }
@@ -412,13 +414,13 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
     }
 
     public String getRemoteHostname() {
-    	return remoteName;
+        return remoteName;
     }
 
     public boolean isConnected() {
-    	return transport.isConnected();
+        return transport.isConnected();
     }
-    
+
     @Handler
     @SuppressWarnings("unused")
     private void sessionLogoff(SessionLoggedOff loggedOff) {
@@ -451,6 +453,29 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
                 }
             }
             return false;
+        }
+    }
+
+    private class CancelRequest implements CancellableFuture.CancelCallback {
+        private Request request;
+
+        public CancelRequest(Request request) {
+            this.request = request;
+        }
+
+        /**
+         * [MS-SMB2] 3.2.4.24 Application Requests Canceling an Operation
+         */
+        @Override
+        public void cancel() {
+            SMB2CancelRequest cancel = new SMB2CancelRequest(connectionInfo.getNegotiatedProtocol().getDialect(),
+                request.getMessageId(),
+                request.getAsyncId());
+            try {
+                transport.write(cancel);
+            } catch (TransportException e) {
+                logger.error("Failed to send {}", cancel);
+            }
         }
     }
 }
