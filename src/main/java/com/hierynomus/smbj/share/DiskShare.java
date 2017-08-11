@@ -32,11 +32,11 @@ import com.hierynomus.mssmb2.messages.SMB2SetInfoRequest;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
-import com.hierynomus.smbj.common.SMBApiException;
+import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smb.SMBBuffer;
+import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
-import com.hierynomus.protocol.transport.TransportException;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -174,7 +174,7 @@ public class DiskShare extends Share {
         Directory fileHandle = openDirectory(
             path,
             EnumSet.of(FILE_LIST_DIRECTORY, FILE_ADD_SUBDIRECTORY),
-            EnumSet.of(FileAttributes.FILE_ATTRIBUTE_DIRECTORY),
+            EnumSet.of(FILE_ATTRIBUTE_DIRECTORY),
             ALL,
             FILE_CREATE,
             EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE));
