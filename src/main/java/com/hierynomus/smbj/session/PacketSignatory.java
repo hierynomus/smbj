@@ -76,7 +76,7 @@ public class PacketSignatory {
             mac.update(EMPTY_SIGNATURE);
             mac.update(buffer.array(), STRUCTURE_SIZE, packet.getMessageEndPos() - STRUCTURE_SIZE);
             byte[] signature = mac.doFinal();
-            byte[] receivedSignature = Arrays.copyOfRange(buffer.array(), SIGNATURE_OFFSET, STRUCTURE_SIZE);
+            byte[] receivedSignature = packet.getHeader().getSignature();
             for (int i = 0; i < SIGNATURE_SIZE; i++) {
                 if (signature[i] != receivedSignature[i]) {
                     logger.error("Signatures for packet {} do not match (received: {}, calculated: {})", packet, Arrays.toString(receivedSignature), Arrays.toString(signature));

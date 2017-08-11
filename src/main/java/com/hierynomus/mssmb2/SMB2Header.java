@@ -47,9 +47,6 @@ public class SMB2Header implements SMBHeader {
     private long nextCommandOffset; // TODO Message Compounding
     private byte[] signature;
 
-    public SMB2Header() {
-    }
-
     @Override
     public void writeTo(SMBBuffer buffer) {
         buffer.putRawBytes(new byte[]{(byte) 0xFE, 'S', 'M', 'B'}); // ProtocolId (4 byte)
@@ -233,5 +230,9 @@ public class SMB2Header implements SMBHeader {
 
     public int getCreditCharge() {
         return creditCharge;
+    }
+
+    public byte[] getSignature() {
+        return signature;
     }
 }

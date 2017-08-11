@@ -40,13 +40,6 @@ public class SMB2NegotiateResponse extends SMB2Packet {
     private FileTime serverStartTime;
     private byte[] gssToken;
 
-    /**
-     * Response constructor
-     */
-    public SMB2NegotiateResponse() {
-        super();
-    }
-
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.skip(2); // StructureSize (2 bytes)
@@ -132,5 +125,13 @@ public class SMB2NegotiateResponse extends SMB2Packet {
 
     public int getMaxWriteSize() {
         return maxWriteSize;
+    }
+
+    public FileTime getSystemTime() {
+        return systemTime;
+    }
+
+    public FileTime getServerStartTime() {
+        return serverStartTime;
     }
 }

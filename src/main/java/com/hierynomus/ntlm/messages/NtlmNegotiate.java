@@ -41,10 +41,6 @@ public class NtlmNegotiate extends NtlmPacket {
 
     private long flags = DEFAULT_FLAGS;
 
-    public NtlmNegotiate() {
-        super();
-    }
-
     public void write(Buffer.PlainBuffer buffer) {
         buffer.putString("NTLMSSP\0", StandardCharsets.UTF_8); // Signature (8 bytes)
         buffer.putUInt32(0x01); // MessageType (4 bytes)

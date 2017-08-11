@@ -34,10 +34,6 @@ public class SMB2IoctlResponse extends SMB2Packet {
     byte[] inputBuffer;
     byte[] outputBuffer;
 
-    public SMB2IoctlResponse() {
-        super();
-    }
-
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.skip(2); // StructureSize (2 bytes)
