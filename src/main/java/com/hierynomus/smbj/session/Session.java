@@ -53,14 +53,16 @@ public class Session implements AutoCloseable {
 
     private Connection connection;
     private SMBEventBus bus;
+    private boolean dfsEnabled;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
     private AuthenticationContext auth;
 
-    public Session(long sessionId, Connection connection, AuthenticationContext auth, SMBEventBus bus, boolean signingRequired, SecurityProvider securityProvider) {
+    public Session(long sessionId, Connection connection, AuthenticationContext auth, SMBEventBus bus, boolean signingRequired, boolean dfsEnabled, SecurityProvider securityProvider) {
         this.sessionId = sessionId;
         this.connection = connection;
         this.auth = auth;
         this.bus = bus;
+        this.dfsEnabled = dfsEnabled;
         this.packetSignatory = new PacketSignatory(connection.getNegotiatedProtocol().getDialect(), securityProvider);
         this.serverSigningRequired = signingRequired;
         if (bus != null) {
@@ -114,7 +116,9 @@ public class Session implements AutoCloseable {
             TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), connection, bus);
 
             Share share;
-            if (response.isDiskShare()) {
+            if (response.isDiskShare() && dfsEnabled && response.getCapabilities().contains(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS)) {
+                share = new DFSDiskShare(smbPath, treeConnect);
+            } else if (response.isDiskShare()) {
                 share = new DiskShare(smbPath, treeConnect);
             } else if (response.isNamedPipe()) {
                 share = new PipeShare(smbPath, treeConnect);

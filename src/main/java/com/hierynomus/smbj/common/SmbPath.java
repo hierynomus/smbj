@@ -15,6 +15,8 @@
  */
 package com.hierynomus.smbj.common;
 
+import com.hierynomus.smb.SMBPacket;
+
 public class SmbPath {
     private final String hostname;
     private final String shareName;
@@ -32,6 +34,20 @@ public class SmbPath {
         this.shareName = shareName;
         this.hostname = hostname;
         this.path = path;
+    }
+
+    public SmbPath(SmbPath parent, String path) {
+        this.hostname = parent.hostname;
+        if (parent.shareName != null) {
+            this.shareName = parent.shareName;
+        } else {
+            throw new IllegalArgumentException("Can only make child SmbPath of fully specified SmbPath");
+        }
+        if (parent.path != null) {
+            this.path = parent.path + "\\" + path;
+        } else {
+            this.path = path;
+        }
     }
 
     public String toUncPath() {

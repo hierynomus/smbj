@@ -131,8 +131,11 @@ public class Share implements AutoCloseable {
             createOptions,
             path
         );
+        return sendReceive(cr, "Create", path, getCreateSuccessStatus(), transactTimeout);
+    }
 
-        return sendReceive(cr, "Create", path, SUCCESS, transactTimeout);
+    protected EnumSet<NtStatus> getCreateSuccessStatus() {
+        return SUCCESS;
     }
 
     void flush(SMB2FileId fileId) throws SMBApiException {

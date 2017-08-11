@@ -37,7 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DomainCache {
     private Map<String, DomainCacheEntry> cache = new ConcurrentHashMap<>();
 
-    static class DomainCacheEntry {
+    public static class DomainCacheEntry {
         String domainName;
         String DCHint;
         List<String> DCList;
@@ -57,7 +57,7 @@ public class DomainCache {
          * If the DomainCache entry's DCList is not empty, the client MUST replace it with the DC list from the referral response and set DCHint to the
          * first DC in the new DCList.
          */
-        DomainCacheEntry(SMB2GetDFSReferralResponse response) {
+        public DomainCacheEntry(SMB2GetDFSReferralResponse response) {
             if (response.getReferralEntries().size() != 1) {
                 throw new IllegalStateException("Expecting exactly 1 referral for a domain referral, found: " + response.getReferralEntries().size());
             }
@@ -69,6 +69,18 @@ public class DomainCache {
             domainName = dfsReferral.getSpecialName();
             DCHint = dfsReferral.getExpandedNames().get(0);
             DCList = dfsReferral.getExpandedNames();
+        }
+
+        public String getDomainName() {
+            return domainName;
+        }
+
+        public String getDCHint() {
+            return DCHint;
+        }
+
+        public List<String> getDCList() {
+            return DCList;
         }
 
         public String toString() {

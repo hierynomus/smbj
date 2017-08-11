@@ -15,7 +15,6 @@
  */
 package com.hierynomus.smbj.connection;
 
-import com.hierynomus.msdfsc.DFSSession;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb.SMB1MessageConverter;
 import com.hierynomus.mssmb.SMB1NotSupportedException;
@@ -27,9 +26,9 @@ import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
 import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.protocol.transport.*;
 import com.hierynomus.smb.SMBPacket;
+import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
@@ -183,10 +182,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
     }
 
     private Session getSession(AuthenticationContext authContext) {
-        if (config.isDfsEnabled()) {
-            return new DFSSession(0, this, authContext, bus, connectionInfo.isServerRequiresSigning(), config.getSecurityProvider());
-        }
-        return new Session(0, this, authContext, bus, connectionInfo.isServerRequiresSigning(), config.getSecurityProvider());
+        return new Session(0, this, authContext, bus, connectionInfo.isServerRequiresSigning(), config.isDfsEnabled(), config.getSecurityProvider());
     }
 
     private SMB2SessionSetup authenticationRound(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {

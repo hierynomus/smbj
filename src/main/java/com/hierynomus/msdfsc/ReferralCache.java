@@ -132,21 +132,34 @@ public class ReferralCache {
             this.targetHint = targetList.get(0);
         }
 
-        boolean isExpired() {
+        public boolean isExpired() {
             long now = System.currentTimeMillis();
             return (now < expires);
         }
 
-        boolean isLink() {
+        public boolean isLink() {
             return rootOrLink == DFSReferral.ServerType.LINK;
         }
 
-        boolean isRoot() {
+        public boolean isRoot() {
             return rootOrLink == DFSReferral.ServerType.ROOT;
         }
 
-        boolean isInterlink() {
+        public boolean isInterlink() {
             return isLink() && interlink;
+        }
+
+        public String getDfsPathPrefix() {
+            return dfsPathPrefix;
+        }
+
+
+        public TargetSetEntry getTargetHint() {
+            return targetHint;
+        }
+
+        public List<TargetSetEntry> getTargetList() {
+            return targetList;
         }
 
         @Override

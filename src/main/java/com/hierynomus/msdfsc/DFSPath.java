@@ -22,14 +22,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-class DFSPath {
+public class DFSPath {
     private final List<String> pathComponents;
 
-    DFSPath(String uncPath) {
+    public DFSPath(String uncPath) {
         this.pathComponents = splitPath(uncPath);
     }
 
-    DFSPath(List<String> pathComponents) {
+    public DFSPath(List<String> pathComponents) {
         this.pathComponents = pathComponents;
     }
 
@@ -45,11 +45,11 @@ class DFSPath {
         return prefixes;
     }
 
-    List<String> getPathComponents() {
+    public List<String> getPathComponents() {
         return pathComponents;
     }
 
-    DFSPath replacePrefix(String prefixToReplace, String target) {
+    public DFSPath replacePrefix(String prefixToReplace, String target) {
         List<String> componentsToReplace = splitPath(prefixToReplace);
         List<String> replacedComponents = new ArrayList<>();
         replacedComponents.addAll(splitPath(target));
@@ -59,11 +59,11 @@ class DFSPath {
         return new DFSPath(replacedComponents);
     }
 
-    boolean hasOnlyOnePathComponent() {
+    public boolean hasOnlyOnePathComponent() {
         return pathComponents.size() == 1;
     }
 
-    boolean isSysVolOrNetLogon() {
+    public boolean isSysVolOrNetLogon() {
         if (pathComponents.size() > 1) {
             String second = pathComponents.get(1);
             return "SYSVOL".equals(second) || "NETLOGON".equals(second);
@@ -71,7 +71,7 @@ class DFSPath {
         return false;
     }
 
-    boolean isIpc() {
+    public boolean isIpc() {
         if (pathComponents.size() > 1) {
             return "IPC$".equals(pathComponents.get(1));
         }
@@ -103,11 +103,16 @@ class DFSPath {
         return Arrays.asList(splitPath.split("\\\\"));
     }
 
-    String toPath() {
+    public String toPath() {
         StringBuilder sb = new StringBuilder();
         for (String pathComponent : pathComponents) {
             sb.append("\\").append(pathComponent);
         }
         return sb.toString();
+    }
+
+    @Override
+    public String toString() {
+        return "DFSPath{" + pathComponents + "}";
     }
 }
