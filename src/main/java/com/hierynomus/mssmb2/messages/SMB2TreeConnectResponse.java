@@ -18,7 +18,7 @@ package com.hierynomus.mssmb2.messages;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 import java.util.Set;
 
@@ -35,11 +35,6 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
     private long shareFlags;
     private Set<SMB2ShareCapabilities> capabilities;
     private long maximalAccess;
-
-    public SMB2TreeConnectResponse() {
-        super();
-    }
-
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {

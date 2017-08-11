@@ -15,7 +15,7 @@
  */
 package com.hierynomus.msdtyp
 
-import com.hierynomus.smbj.common.SMBBuffer
+import com.hierynomus.smb.SMBBuffer
 import spock.lang.Specification
 
 class MsDataTypesSpec extends Specification {

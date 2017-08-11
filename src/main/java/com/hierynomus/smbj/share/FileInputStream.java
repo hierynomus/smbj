@@ -20,7 +20,7 @@ import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.common.SMBApiException;
-import com.hierynomus.smbj.transport.TransportException;
+import com.hierynomus.protocol.transport.TransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,9 +55,10 @@ class FileInputStream extends InputStream {
         if (buf == null || curr >= buf.length) {
             loadBuffer();
         }
-        if (isClosed) return -1;
-        ++curr;
-        return buf[curr - 1] & 0xFF;
+        if (isClosed) {
+            return -1;
+        }
+        return buf[curr++] & 0xFF;
     }
 
     @Override
@@ -70,10 +71,14 @@ class FileInputStream extends InputStream {
         if (buf == null || curr >= buf.length) {
             loadBuffer();
         }
-        if (isClosed) return -1;
+
+        if (isClosed) {
+            return -1;
+        }
+
         int l = buf.length - curr > len ? len : buf.length - curr;
         System.arraycopy(buf, curr, b, off, l);
-        curr = curr + l;
+        curr += l;
         return l;
     }
 
@@ -89,26 +94,46 @@ class FileInputStream extends InputStream {
         return 0;
     }
 
+    @Override
+    public long skip(long n) throws IOException {
+        if (buf == null) {
+            offset += n;
+        } else if (curr + n < buf.length) {
+            curr += n;
+        } else {
+            offset += (curr + n) - buf.length;
+            buf = null;
+            nextResponse = null;
+        }
+        return n;
+    }
+
     private void loadBuffer() throws IOException {
 
-        if (nextResponse == null)
+        if (nextResponse == null) {
             nextResponse = sendRequest();
+        }
 
         SMB2ReadResponse res = Futures.get(nextResponse, readTimeout, TimeUnit.MILLISECONDS, TransportException.Wrapper);
         if (res.getHeader().getStatus() == NtStatus.STATUS_SUCCESS) {
             buf = res.getData();
             curr = 0;
             offset += res.getDataLength();
-            if (progressListener != null) progressListener.onProgressChanged(offset, -1);
+            if (progressListener != null) {
+                progressListener.onProgressChanged(offset, -1);
+            }
         }
+
         if (res.getHeader().getStatus() == NtStatus.STATUS_END_OF_FILE) {
             logger.debug("EOF, {} bytes read", offset);
             isClosed = true;
             return;
         }
+
         if (res.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
             throw new SMBApiException(res.getHeader(), "Read failed for " + this);
         }
+
         nextResponse = sendRequest();
     }
 

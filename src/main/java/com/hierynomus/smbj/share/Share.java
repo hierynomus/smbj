@@ -34,7 +34,7 @@ import com.hierynomus.smbj.io.ArrayByteChunkProvider;
 import com.hierynomus.smbj.io.ByteChunkProvider;
 import com.hierynomus.smbj.io.EmptyByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.transport.TransportException;
+import com.hierynomus.protocol.transport.TransportException;
 
 import java.io.IOException;
 import java.util.EnumSet;

@@ -19,7 +19,7 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 /**
  * [MS-SMB2].pdf 2.2.32 SMB2 IOCTL Response
@@ -33,10 +33,6 @@ public class SMB2IoctlResponse extends SMB2Packet {
 
     byte[] inputBuffer;
     byte[] outputBuffer;
-
-    public SMB2IoctlResponse() {
-        super();
-    }
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {

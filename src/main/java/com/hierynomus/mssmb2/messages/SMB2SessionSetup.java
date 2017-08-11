@@ -22,7 +22,7 @@ import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 import java.util.Set;
 
@@ -102,6 +102,10 @@ public class SMB2SessionSetup extends SMB2Packet {
         } else {
             buffer.putByte((byte) 0);
         }
+    }
+
+    public Set<SMB2SessionFlags> getSessionFlags() {
+        return sessionFlags;
     }
 
     public void setPreviousSessionId(long previousSessionId) {

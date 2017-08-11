@@ -18,7 +18,7 @@ package com.hierynomus.msdtyp
 import com.hierynomus.msdtyp.ace.AceFlags
 import com.hierynomus.msdtyp.ace.AceType
 import com.hierynomus.msdtyp.ace.AceTypes
-import com.hierynomus.smbj.common.SMBBuffer
+import com.hierynomus.smb.SMBBuffer
 import spock.lang.Specification
 
 import javax.xml.bind.DatatypeConverter

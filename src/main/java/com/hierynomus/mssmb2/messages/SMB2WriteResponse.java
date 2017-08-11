@@ -17,7 +17,7 @@ package com.hierynomus.mssmb2.messages;
 
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 /**
  * [MS-SMB2].pdf 2.2.22 SMB2 Write Response
@@ -25,11 +25,6 @@ import com.hierynomus.smbj.common.SMBBuffer;
 public class SMB2WriteResponse extends SMB2Packet {
 
     private long bytesWritten;
-
-    public SMB2WriteResponse() {
-        super();
-    }
-
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {

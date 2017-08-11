@@ -32,11 +32,11 @@ import com.hierynomus.mssmb2.messages.SMB2SetInfoRequest;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
+import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smbj.common.SMBApiException;
-import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
-import com.hierynomus.smbj.transport.TransportException;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -118,7 +118,7 @@ public class DiskShare extends Share {
     }
 
     private boolean exists(String path, EnumSet<SMB2CreateOptions> createOptions) throws SMBApiException {
-        try (DiskEntry ignored = open(path, EnumSet.of(FILE_READ_ATTRIBUTES), EnumSet.of(FILE_ATTRIBUTE_NORMAL), ALL, FILE_OPEN, createOptions)){
+        try (DiskEntry ignored = open(path, EnumSet.of(FILE_READ_ATTRIBUTES), EnumSet.of(FILE_ATTRIBUTE_NORMAL), ALL, FILE_OPEN, createOptions)) {
             return true;
         } catch (SMBApiException sae) {
             if (sae.getStatus() == NtStatus.STATUS_OBJECT_NAME_NOT_FOUND || sae.getStatus() == NtStatus.STATUS_OBJECT_PATH_NOT_FOUND) {
@@ -174,7 +174,7 @@ public class DiskShare extends Share {
         Directory fileHandle = openDirectory(
             path,
             EnumSet.of(FILE_LIST_DIRECTORY, FILE_ADD_SUBDIRECTORY),
-            EnumSet.of(FileAttributes.FILE_ATTRIBUTE_DIRECTORY),
+            EnumSet.of(FILE_ATTRIBUTE_DIRECTORY),
             ALL,
             FILE_CREATE,
             EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE));
@@ -275,9 +275,9 @@ public class DiskShare extends Share {
         if (recursive) {
             List<FileIdBothDirectoryInformation> list = list(path);
             for (FileIdBothDirectoryInformation fi : list) {
-	            if (fi.getFileName().equals(".") || fi.getFileName().equals("..")) {
-		            continue;
-	            }
+                if (fi.getFileName().equals(".") || fi.getFileName().equals("..")) {
+                    continue;
+                }
                 String childPath = path + "\\" + fi.getFileName();
                 if (!EnumWithValue.EnumUtils.isSet(fi.getFileAttributes(), FILE_ATTRIBUTE_DIRECTORY)) {
                     rm(childPath);
@@ -294,7 +294,7 @@ public class DiskShare extends Share {
                 EnumSet.of(FILE_SHARE_DELETE, FILE_SHARE_WRITE, FILE_SHARE_READ),
                 FILE_OPEN,
                 EnumSet.of(SMB2CreateOptions.FILE_DIRECTORY_FILE)
-                )) {
+            )) {
                 e.deleteOnClose();
             }
         }

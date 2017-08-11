@@ -20,7 +20,7 @@ import com.hierynomus.msfscc.FileNotifyAction;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -34,10 +34,6 @@ import java.util.List;
 public class SMB2ChangeNotifyResponse extends SMB2Packet {
 
     List<FileNotifyInfo> fileNotifyInfoList = new ArrayList<>();
-
-    public SMB2ChangeNotifyResponse() {
-        super();
-    }
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {

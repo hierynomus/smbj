@@ -17,7 +17,7 @@ package com.hierynomus.smbj.share;
 
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.io.ByteChunkProvider;
-import com.hierynomus.smbj.transport.TransportException;
+import com.hierynomus.protocol.transport.TransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,21 +60,23 @@ class FileOutputStream extends OutputStream {
     @Override
     public void write(byte b[], int off, int len) throws IOException {
         verifyConnectionNotClosed();
+        int offset = off;
+        int length = len;
         do {
-            int writeLen = Math.min(len, provider.maxSize());
+            int writeLen = Math.min(length, provider.maxSize());
 
             while (provider.isBufferFull(writeLen)) {
                 flush();
             }
 
             if (!provider.isBufferFull()) {
-                provider.writeBytes(b, off, writeLen);
+                provider.writeBytes(b, offset, writeLen);
             }
             
-            off += writeLen;
-            len -= writeLen;
+            offset += writeLen;
+            length -= writeLen;
             
-        } while (len > 0);
+        } while (length > 0);
     }
 
     @Override

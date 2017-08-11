@@ -18,7 +18,7 @@ package com.hierynomus.mssmb2.messages;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 /**
  * [MS-SMB2].pdf 2.2.20 SMB2 READ Response
@@ -27,11 +27,6 @@ public class SMB2ReadResponse extends SMB2Packet {
 
     private int dataLength;
     private byte[] data;
-
-    public SMB2ReadResponse() {
-        super();
-    }
-
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {

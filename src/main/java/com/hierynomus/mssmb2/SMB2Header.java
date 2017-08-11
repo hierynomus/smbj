@@ -17,7 +17,8 @@ package com.hierynomus.mssmb2;
 
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
+import com.hierynomus.smb.SMBHeader;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
@@ -25,7 +26,7 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 /**
  * [MS-SMB2].pdf 2.2.1 SMB2 Packet Header
  */
-public class SMB2Header {
+public class SMB2Header implements SMBHeader {
     public static final byte[] EMPTY_SIGNATURE = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
     public static final int STRUCTURE_SIZE = 64;
     public static final int SIGNATURE_OFFSET = 48;
@@ -46,9 +47,7 @@ public class SMB2Header {
     private long nextCommandOffset; // TODO Message Compounding
     private byte[] signature;
 
-    public SMB2Header() {
-    }
-
+    @Override
     public void writeTo(SMBBuffer buffer) {
         buffer.putRawBytes(new byte[]{(byte) 0xFE, 'S', 'M', 'B'}); // ProtocolId (4 byte)
         buffer.putUInt16(STRUCTURE_SIZE); // StructureSize (2 byte)
@@ -156,6 +155,7 @@ public class SMB2Header {
         return asyncId;
     }
 
+    @Override
     public void readFrom(Buffer<?> buffer) throws Buffer.BufferException {
         buffer.skip(4); // ProtocolId (4 bytes) (already verified)
         buffer.skip(2); // StructureSize (2 bytes)
@@ -226,5 +226,9 @@ public class SMB2Header {
 
     public int getCreditCharge() {
         return creditCharge;
+    }
+
+    public byte[] getSignature() {
+        return signature;
     }
 }

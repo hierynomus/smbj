@@ -21,7 +21,7 @@ import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 import java.util.Set;
 
@@ -38,10 +38,6 @@ public class SMB2CreateResponse extends SMB2Packet {
     private FileTime changeTime;
     private Set<FileAttributes> fileAttributes;
     private SMB2FileId fileId;
-
-    public SMB2CreateResponse() {
-        super();
-    }
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {

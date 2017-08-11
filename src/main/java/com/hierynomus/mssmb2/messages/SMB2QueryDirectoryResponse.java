@@ -17,7 +17,7 @@ package com.hierynomus.mssmb2.messages;
 
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 /**
  * [MS-SMB2].pdf 2.2.34 SMB2 QUERY_DIRECTORY Response
@@ -25,10 +25,6 @@ import com.hierynomus.smbj.common.SMBBuffer;
 public class SMB2QueryDirectoryResponse extends SMB2Packet {
 
     private byte[] outputBuffer;
-
-    public SMB2QueryDirectoryResponse() {
-        super();
-    }
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {

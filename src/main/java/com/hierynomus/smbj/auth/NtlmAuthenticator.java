@@ -36,6 +36,8 @@ import java.math.BigInteger;
 import java.util.EnumSet;
 import java.util.Random;
 
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
+
 public class NtlmAuthenticator implements Authenticator {
     private static final Logger logger = LoggerFactory.getLogger(NtlmAuthenticator.class);
 
@@ -73,9 +75,9 @@ public class NtlmAuthenticator implements Authenticator {
             NtlmFunctions ntlmFunctions = new NtlmFunctions(random, securityProvider);
             NegTokenTarg negTokenTarg = new NegTokenTarg().read(gssToken);
             BigInteger negotiationResult = negTokenTarg.getNegotiationResult();
-            NtlmChallenge challenge;
+            NtlmChallenge challenge = new NtlmChallenge();
             try {
-                challenge = (NtlmChallenge) new NtlmChallenge().read(new Buffer.PlainBuffer(negTokenTarg.getResponseToken(), Endian.LE));
+                challenge.read(new Buffer.PlainBuffer(negTokenTarg.getResponseToken(), Endian.LE));
             } catch (Buffer.BufferException e) {
                 throw new IOException(e);
             }
@@ -89,10 +91,10 @@ public class NtlmAuthenticator implements Authenticator {
 
             byte[] userSessionKey = ntlmFunctions.hmac_md5(responseKeyNT, Arrays.copyOfRange(ntlmv2Response, 0, 16)); // first 16 bytes of ntlmv2Response is ntProofStr
             EnumSet<NtlmNegotiateFlag> negotiateFlags = challenge.getNegotiateFlags();
-            if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH)
-                && (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SIGN)
-                || negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SEAL)
-                || negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_ALWAYS_SIGN))
+            if (negotiateFlags.contains(NTLMSSP_NEGOTIATE_KEY_EXCH)
+                && (negotiateFlags.contains(NTLMSSP_NEGOTIATE_SIGN)
+                || negotiateFlags.contains(NTLMSSP_NEGOTIATE_SEAL)
+                || negotiateFlags.contains(NTLMSSP_NEGOTIATE_ALWAYS_SIGN))
                 ) {
                 byte[] masterKey = new byte[16];
                 random.nextBytes(masterKey);

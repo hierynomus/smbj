@@ -17,7 +17,7 @@ package com.hierynomus.mssmb2;
 
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -117,7 +117,7 @@ public class SMB2Error {
             String s = null;
             if (length > 0) {
                 buffer.rpos(curpos + offset);
-                s = buffer.readString(StandardCharsets.UTF_16, length);
+                s = buffer.readString(StandardCharsets.UTF_16, length / 2);
             }
             buffer.rpos(curpos);
             return s;

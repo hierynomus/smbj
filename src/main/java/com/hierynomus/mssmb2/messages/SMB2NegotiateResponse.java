@@ -20,7 +20,7 @@ import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBBuffer;
+import com.hierynomus.smb.SMBBuffer;
 
 import java.util.UUID;
 
@@ -39,13 +39,6 @@ public class SMB2NegotiateResponse extends SMB2Packet {
     private FileTime systemTime;
     private FileTime serverStartTime;
     private byte[] gssToken;
-
-    /**
-     * Response constructor
-     */
-    public SMB2NegotiateResponse() {
-        super();
-    }
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
@@ -132,5 +125,13 @@ public class SMB2NegotiateResponse extends SMB2Packet {
 
     public int getMaxWriteSize() {
         return maxWriteSize;
+    }
+
+    public FileTime getSystemTime() {
+        return systemTime;
+    }
+
+    public FileTime getServerStartTime() {
+        return serverStartTime;
     }
 }

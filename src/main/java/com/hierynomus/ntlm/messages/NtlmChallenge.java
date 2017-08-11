@@ -45,7 +45,7 @@ public class NtlmChallenge extends NtlmPacket {
     private byte[] rawTargetInfo; // TODO remove duplicate byte array
 
     @Override
-    public NtlmPacket read(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+    public void read(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
         buffer.readString(StandardCharsets.UTF_8, 8); // Signature (8 bytes) (NTLMSSP\0)
         buffer.readUInt32(); // MessageType (4 bytes)
         readTargetNameFields(buffer); // TargetNameFields (8 bytes)
@@ -56,7 +56,6 @@ public class NtlmChallenge extends NtlmPacket {
         readVersion(buffer);
         readTargetName(buffer);
         readTargetInfo(buffer);
-        return this;
     }
 
     private void readTargetInfo(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
