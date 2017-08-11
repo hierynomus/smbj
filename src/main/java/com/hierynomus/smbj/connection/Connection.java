@@ -51,9 +51,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -68,7 +66,6 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
     private static final DelegatingSMBMessageConverter converter = new DelegatingSMBMessageConverter(new SMB2MessageConverter(), new SMB1MessageConverter());
 
-    private final ScheduledExecutorService cancelService;
     private ConnectionInfo connectionInfo;
     private String remoteName;
 
@@ -88,7 +85,6 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
         this.config = config;
         this.client = client;
         this.transport = config.getTransportLayerFactory().createTransportLayer(new PacketHandlers<>(new SMBPacketSerializer(), this, converter), config);
-        this.cancelService = Executors.newSingleThreadScheduledExecutor();
         this.bus = bus;
         bus.subscribe(this);
     }
