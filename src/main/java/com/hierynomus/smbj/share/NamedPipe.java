@@ -104,16 +104,6 @@ public class NamedPipe implements Closeable {
     }
 
     /**
-     * Read data from this pipe and return the response of that read.
-     *
-     * @param length the maximum number of bytes to read
-     * @return the read response
-     */
-    public SMB2ReadResponse read(int length) {
-        return share.read(fileId, 0, length);
-    }
-
-    /**
      * Performs a transaction on this pipe. This combines the writing a message to and reading a message from this
      * pipe into a single network operation.
      *
