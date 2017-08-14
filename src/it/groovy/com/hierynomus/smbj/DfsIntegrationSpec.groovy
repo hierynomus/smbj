@@ -29,18 +29,13 @@ class DfsIntegrationSpec extends Specification {
   Connection connection
   SMBClient client
 
-//  def setupSpec() {
-//    if (!Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)) {
-//      Security.addProvider(new BouncyCastleProvider())
-//    }
-//  }
-
   def setup() {
     def config = SmbConfig
       .builder()
       .withMultiProtocolNegotiate(true)
       .withSigningRequired(true)
-      .withDfsEnabled(true).build()
+      .withDfsEnabled(true)
+      .build()
     client = new SMBClient(config)
     connection = client.connect("172.16.93.221")
     session = connection.authenticate(new AuthenticationContext("jeroen", "jeroen".toCharArray(), null))

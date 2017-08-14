@@ -84,7 +84,7 @@ public class SMB2Header implements SMBHeader {
      * We should at least request the number of credits this request consumes, but we can request more (by calling {@link #setCreditRequest(int)}).
      */
     private void writeCreditRequest(SMBBuffer buffer) {
-       buffer.putUInt16(creditRequest + creditCharge); // Ask for the credit buffer wanted + what we use
+        buffer.putUInt16(creditRequest + creditCharge); // Ask for the credit buffer wanted + what we use
     }
 
     private void writeCreditCharge(SMBBuffer buffer) {
@@ -184,7 +184,7 @@ public class SMB2Header implements SMBHeader {
     public void setStatus(NtStatus status) {
         this.status = status;
     }
-    
+
     public NtStatus getStatus() {
         return status;
     }

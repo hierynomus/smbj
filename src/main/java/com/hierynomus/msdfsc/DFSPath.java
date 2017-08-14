@@ -54,7 +54,7 @@ public class DFSPath {
         List<String> replacedComponents = new ArrayList<>();
         replacedComponents.addAll(splitPath(target));
         for (int i = componentsToReplace.size(); i < pathComponents.size(); i++) {
-             replacedComponents.add(pathComponents.get(i));
+            replacedComponents.add(pathComponents.get(i));
         }
         return new DFSPath(replacedComponents);
     }
