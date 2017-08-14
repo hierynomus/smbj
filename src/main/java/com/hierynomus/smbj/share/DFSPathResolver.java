@@ -229,6 +229,7 @@ public class DFSPathResolver {
      * 3. If the I/O operation is successful, the process is as specified in section 3.1.5.3. Complete the I/O operation and
      * user/application-initiated I/O request with success.
      */
+    @SuppressWarnings("PMD.UnusedFormalParameter")
     private DFSPath step8(Session session, ResolveState state, ReferralCache.ReferralCacheEntry lookup) {
         logger.trace("DFS[8]: {}", state);
         // TODO This is now in DFSSession, try to get it here...
@@ -247,6 +248,7 @@ public class DFSPathResolver {
      * 1. If the RootOrLink of the refreshed ReferralCache entry indicates DFS root targets, go to step 3.
      * 2. If the RootOrLink of the refreshed ReferralCache entry indicates DFS link targets, go to step 4.
      */
+    @SuppressWarnings("PMD.UnusedFormalParameter")
     private DFSPath step9(Session session, ResolveState state, ReferralCache.ReferralCacheEntry lookup) throws DFSException {
         logger.trace("DFS[9]: {}", state);
         DFSPath rootPath = new DFSPath(state.path.getPathComponents().subList(0, 2));
@@ -312,6 +314,7 @@ public class DFSPathResolver {
      * Fail the I/O operation and user/application-initiated I/O request with the last
      * error code that occurred before the jump to this step.
      */
+    @SuppressWarnings("PMD.UnusedFormalParameter")
     private DFSPath step13(Session session, ResolveState state, ReferralResult result) throws DFSException {
         logger.trace("DFS[13]: {}", state);
         throw new DFSException(result.status, "Cannot get DC for domain '" + state.path.getPathComponents().get(0) + "'");
@@ -322,6 +325,7 @@ public class DFSPathResolver {
      * request or DFS Link referral request has failed. Complete the user/application-initiated
      * I/O request with the error code that occurred before the jump to this step.
      */
+    @SuppressWarnings("PMD.UnusedFormalParameter")
     private DFSPath step14(Session session, ResolveState state, ReferralResult result) throws DFSException {
         logger.trace("DFS[14]: {}", state);
         throw new DFSException(result.status, "DFS request failed for path " + state.path);

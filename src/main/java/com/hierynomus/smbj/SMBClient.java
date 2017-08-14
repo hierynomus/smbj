@@ -81,7 +81,6 @@ public class SMBClient {
     }
 
     private Connection getEstablishedOrConnect(String hostname, int port) throws IOException {
-        String socketAddress = hostname + ":" + port;
         synchronized (this) {
             String hostPort = hostname + ":" + port;
             if (!connectionTable.containsKey(hostPort)) {

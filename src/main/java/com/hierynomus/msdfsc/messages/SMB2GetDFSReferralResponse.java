@@ -28,7 +28,6 @@ public class SMB2GetDFSReferralResponse {
     private int pathConsumed;
     private EnumSet<ReferralHeaderFlags> referralHeaderFlags;
     private List<DFSReferral> referralEntries = new ArrayList<>();
-    private String stringBuffer;
 
     public SMB2GetDFSReferralResponse(String originalPath) {
         this.originalPath = originalPath;
