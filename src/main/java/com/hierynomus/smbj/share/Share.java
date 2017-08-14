@@ -50,8 +50,10 @@ public class Share implements AutoCloseable {
     );
 
     private static final EnumSet<NtStatus> SUCCESS = EnumSet.of(NtStatus.STATUS_SUCCESS);
+    private static final EnumSet<NtStatus> SUCCESS_OR_BUFFER_OVERFLOW = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_BUFFER_OVERFLOW);
     private static final EnumSet<NtStatus> SUCCESS_OR_NO_MORE_FILES = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_NO_MORE_FILES);
     private static final EnumSet<NtStatus> SUCCESS_OR_EOF = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_END_OF_FILE);
+    private static final EnumSet<NtStatus> SUCCESS_OR_EOF_BUFFER_OVERFLOW = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_END_OF_FILE, NtStatus.STATUS_BUFFER_OVERFLOW);
 
     private final SmbPath smbPath;
     private final TreeConnect treeConnect;
@@ -260,12 +262,55 @@ public class Share implements AutoCloseable {
     }
 
     int ioctl(SMB2FileId fileId, int ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength, byte[] outData, int outOffset, int outLength) {
-        SMB2IoctlResponse response = ioctl(fileId, ctlCode, isFsCtl, new ArrayByteChunkProvider(inData, inOffset, inLength, 0), outLength);
+        // IOCTL will return BUFFER_OVERFLOW if the provided out buffer is not large enough to store the result.
+        // The named pipe must be flushed before it is reused after a BUFFER_OVERFLOW status is received.
+        // The below code attempts to salvage the failure using a READ call to populate the out buffer if the out length exceeded the maximum transaction buffer size.
+        // The below code will flush the pipe if the provided out buffer is not large enough to store the result and throw a buffer overflow exception when it is done.
+        // NOTE: It has been observed on Windows 2008 R2 that the transaction buffer size is wrong, and Windows 2008 R2 will return INVALID_PARAMETERS when the wrong
+        // transaction buffer size is used.  This code makes no attempt to work around that issue.  If you experience this issue, reduce the maximum transaction size
+        // in the SMB config class (Example: SmbConfig.builder().withTransactBufferSize(65536).build()).
+        final SMB2IoctlResponse ioctlResponse = receive(
+            ioctlAsync(
+                fileId,
+                ctlCode,
+                isFsCtl,
+                new ArrayByteChunkProvider(inData, inOffset, inLength, 0),
+                Math.min(outLength, transactBufferSize)
+            ),
+            "IOCTL",
+            fileId,
+            SUCCESS_OR_BUFFER_OVERFLOW,
+            transactTimeout);
+        boolean bufferOverflow = false;
         int length = 0;
         if (outData != null) {
-            byte[] outputBuffer = response.getOutputBuffer();
-            length = Math.min(outLength, outputBuffer.length);
-            System.arraycopy(outputBuffer, 0, outData, outOffset, length);
+            NtStatus status = ioctlResponse.getHeader().getStatus();
+            byte[] outputBuffer = ioctlResponse.getOutputBuffer();
+            for (;;) {
+                if (outLength < outputBuffer.length) {
+                    bufferOverflow = true;
+                }
+                final int copyLength = Math.min(outLength, outputBuffer.length);
+                length += copyLength;
+                System.arraycopy(outputBuffer, 0, outData, outOffset, copyLength);
+                if (!status.equals(NtStatus.STATUS_BUFFER_OVERFLOW)) {
+                    break;
+                }
+                outOffset += copyLength;
+                outLength -= copyLength;
+                final SMB2ReadResponse readResponse = receive(
+                    readAsync(fileId, 0, readBufferSize),
+                    "Read",
+                    fileId,
+                    SUCCESS_OR_EOF_BUFFER_OVERFLOW,
+                    readTimeout
+                );
+                status = readResponse.getHeader().getStatus();
+                outputBuffer = readResponse.getData();
+            }
+        }
+        if (bufferOverflow) {
+            throw new SMBApiException(ioctlResponse.getHeader(), "IOCTL failed for " + fileId);
         }
         return length;
     }
