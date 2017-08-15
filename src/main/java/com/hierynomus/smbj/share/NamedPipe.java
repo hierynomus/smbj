@@ -15,22 +15,31 @@
  */
 package com.hierynomus.smbj.share;
 
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.fsctl.FsCtlPipePeekResponse;
 import com.hierynomus.mssmb2.SMB2FileId;
+import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
 import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.io.ArrayByteChunkProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
+import java.io.IOException;
+import java.nio.BufferOverflowException;
+import java.util.EnumSet;
 
 public class NamedPipe implements Closeable {
     private static final int FSCTL_PIPE_PEEK = 0x0011400c;
     private static final int FSCTL_PIPE_TRANSCEIVE = 0x0011c017;
+    private static final EnumSet<NtStatus> SUCCESS_OR_BUFFER_OVERFLOW = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_BUFFER_OVERFLOW);
+    private static final EnumSet<NtStatus> SUCCESS_OR_EOF_OR_BUFFER_OVERFLOW = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_END_OF_FILE, NtStatus.STATUS_BUFFER_OVERFLOW);
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -111,7 +120,48 @@ public class NamedPipe implements Closeable {
      * @return the output message
      */
     public byte[] transact(byte[] inBuffer) {
-        return ioctl(FSCTL_PIPE_TRANSCEIVE, true, inBuffer, 0, inBuffer.length);
+        final SMB2IoctlResponse ioctlResponse = share.ioctl(
+            fileId,
+            FSCTL_PIPE_TRANSCEIVE,
+            true,
+            new ArrayByteChunkProvider(inBuffer, 0, inBuffer.length, 0),
+            -1,
+            SUCCESS_OR_BUFFER_OVERFLOW
+        );
+
+        final ByteArrayOutputStream outBuffer = new ByteArrayOutputStream(4096);
+        final byte[] ioctlOutputBuffer = ioctlResponse.getOutputBuffer();
+        try {
+            outBuffer.write(ioctlOutputBuffer);
+        } catch (final IOException exception) {
+            throw new SMBRuntimeException(exception);
+        }
+
+        final NtStatus ioctlStatus = ioctlResponse.getHeader().getStatus();
+        if (ioctlStatus.equals(NtStatus.STATUS_BUFFER_OVERFLOW)) {
+            for (;;) {
+                final SMB2ReadResponse readResponse = share.read(
+                    fileId,
+                    0,
+                    share.getReadBufferSize(),
+                    SUCCESS_OR_EOF_OR_BUFFER_OVERFLOW
+                );
+
+                final byte[] readData = readResponse.getData();
+                try {
+                    outBuffer.write(readData);
+                } catch (final IOException exception) {
+                    throw new SMBRuntimeException(exception);
+                }
+
+                final NtStatus readStatus = readResponse.getHeader().getStatus();
+                if (!readStatus.equals(NtStatus.STATUS_BUFFER_OVERFLOW)) {
+                    break;
+                }
+            }
+        }
+
+        return outBuffer.toByteArray();
     }
 
     /**
@@ -125,14 +175,19 @@ public class NamedPipe implements Closeable {
      * @return the number of bytes written to <code>outBuffer</code>
      */
     public int transact(byte[] inBuffer, byte[] outBuffer) {
-        return transact(inBuffer, 0, inBuffer.length, outBuffer, 0, outBuffer.length);
+        final byte[] transactOutBuffer = transact(inBuffer);
+        if (transactOutBuffer.length > outBuffer.length) {
+            throw new BufferOverflowException();
+        }
+        System.arraycopy(transactOutBuffer, 0, outBuffer, 0, transactOutBuffer.length);
+        return transactOutBuffer.length;
     }
 
     /**
      * Performs a transaction on this pipe. This combines the writing a message to and reading a message from this
      * pipe into a single network operation.
      *
-     * @param inBuffer  the input message
+     * @param inBuffer the input message
      * @param inOffset the offset in <code>inBuffer</code> at which the input message start
      * @param inLength the length of the input message in <code>inBuffer</code> starting at <code>inOffset</code>
      * @param outBuffer the buffer in which to write the output message
@@ -141,7 +196,15 @@ public class NamedPipe implements Closeable {
      * @return the number of bytes written to <code>outBuffer</code>
      */
     public int transact(byte[] inBuffer, int inOffset, int inLength, byte[] outBuffer, int outOffset, int outLength) {
-        return ioctl(FSCTL_PIPE_TRANSCEIVE, true, inBuffer, inOffset, inLength, outBuffer, outOffset, outLength);
+        if (outBuffer.length - outOffset < outLength) {
+            throw new IllegalArgumentException();
+        }
+        final byte[] transactOutBuffer = transact(inBuffer);
+        if (transactOutBuffer.length > outLength) {
+            throw new BufferOverflowException();
+        }
+        System.arraycopy(transactOutBuffer, 0, outBuffer, outOffset, transactOutBuffer.length);
+        return transactOutBuffer.length;
     }
 
     /**
