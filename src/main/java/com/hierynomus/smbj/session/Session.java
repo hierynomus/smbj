@@ -20,6 +20,7 @@ import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
 import com.hierynomus.mssmb2.messages.SMB2Logoff;
+import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
@@ -38,6 +39,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -50,6 +53,7 @@ public class Session implements AutoCloseable {
 
     private PacketSignatory packetSignatory;
     private boolean serverSigningRequired;
+    private Set<SMB2SessionSetup.SMB2SessionFlags> sessionFlags;
 
     private Connection connection;
     private SMBEventBus bus;
@@ -68,6 +72,7 @@ public class Session implements AutoCloseable {
         if (bus != null) {
             bus.subscribe(this);
         }
+        this.sessionFlags = Collections.emptySet();
     }
 
     public long getSessionId() {
@@ -210,5 +215,13 @@ public class Session implements AutoCloseable {
 
     public PacketSignatory getPacketSignatory() {
         return packetSignatory;
+    }
+
+    public Set<SMB2SessionSetup.SMB2SessionFlags> getSessionFlags() {
+        return sessionFlags;
+    }
+
+    public void setSessionFlags(Set<SMB2SessionSetup.SMB2SessionFlags> sessionFlags) {
+        this.sessionFlags = sessionFlags;
     }
 }

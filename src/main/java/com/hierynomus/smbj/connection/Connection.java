@@ -155,6 +155,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
             SMB2SessionSetup receive = authenticationRound(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
             long sessionId = receive.getHeader().getSessionId();
             session.setSessionId(sessionId);
+            session.setSessionFlags(receive.getSessionFlags());
             connectionInfo.getPreauthSessionTable().registerSession(sessionId, session);
             try {
                 while (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
