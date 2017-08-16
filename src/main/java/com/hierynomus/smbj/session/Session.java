@@ -69,10 +69,10 @@ public class Session implements AutoCloseable {
         this.dfsEnabled = dfsEnabled;
         this.packetSignatory = new PacketSignatory(connection.getNegotiatedProtocol().getDialect(), securityProvider);
         this.serverSigningRequired = signingRequired;
+        this.sessionFlags = Collections.emptySet();
         if (bus != null) {
             bus.subscribe(this);
         }
-        this.sessionFlags = Collections.emptySet();
     }
 
     public long getSessionId() {
