@@ -170,6 +170,8 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
                     // process the last received buffer
                     authenticator.authenticate(authContext, receive.getSecurityBuffer(), session);
                 }
+                session.setSessionFlags(receive.getSessionFlags());
+
                 logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), remoteName, session.getSessionId());
                 connectionInfo.getSessionTable().registerSession(session.getSessionId(), session);
                 return session;
