@@ -22,7 +22,6 @@ import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
 import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.common.SMBBuffer;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.io.ArrayByteChunkProvider;
@@ -175,12 +174,7 @@ public class NamedPipe implements Closeable {
      * @return the number of bytes written to <code>outBuffer</code>
      */
     public int transact(byte[] inBuffer, byte[] outBuffer) {
-        final byte[] transactOutBuffer = transact(inBuffer);
-        if (transactOutBuffer.length > outBuffer.length) {
-            throw new BufferOverflowException();
-        }
-        System.arraycopy(transactOutBuffer, 0, outBuffer, 0, transactOutBuffer.length);
-        return transactOutBuffer.length;
+        return transact(inBuffer, 0, inBuffer.length, outBuffer, 0, outBuffer.length);
     }
 
     /**
