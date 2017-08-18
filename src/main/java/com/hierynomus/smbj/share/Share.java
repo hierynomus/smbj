@@ -49,7 +49,7 @@ public class Share implements AutoCloseable {
     );
 
     private static final EnumSet<NtStatus> SUCCESS = EnumSet.of(NtStatus.STATUS_SUCCESS);
-    private static final EnumSet<NtStatus> SUCCESS_OR_NO_MORE_FILES = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_NO_MORE_FILES);
+    private static final EnumSet<NtStatus> SUCCESS_OR_NO_MORE_FILES_OR_NO_SUCH_FILE = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_NO_MORE_FILES, NtStatus.STATUS_NO_SUCH_FILE);
     private static final EnumSet<NtStatus> SUCCESS_OR_EOF = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_END_OF_FILE);
 
     private final SmbPath smbPath;
@@ -182,7 +182,7 @@ public class Share implements AutoCloseable {
             transactBufferSize
         );
 
-        return sendReceive(qdr, "Query directory", fileId, SUCCESS_OR_NO_MORE_FILES, transactTimeout);
+        return sendReceive(qdr, "Query directory", fileId, SUCCESS_OR_NO_MORE_FILES_OR_NO_SUCH_FILE, transactTimeout);
     }
 
     SMB2WriteResponse write(SMB2FileId fileId, ByteChunkProvider provider) {

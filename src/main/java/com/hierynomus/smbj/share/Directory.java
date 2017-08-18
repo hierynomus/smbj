@@ -178,7 +178,8 @@ public class Directory extends DiskEntry implements Iterable<FileIdBothDirectory
             // The macOS SMB server doesn't always send a STATUS_NO_MORE_FILES response. Instead it keeps on sending
             // an identical response back. Detect if the response is identical to the previous one and abort the loop
             // if that's the case.
-            if (status == NtStatus.STATUS_NO_MORE_FILES || (currentBuffer != null && Arrays.equals(currentBuffer, buffer))) {
+            // Additionally, STATUS_NO_SUCH_FILE is being returned when searchPattern does not match any files
+            if (status == NtStatus.STATUS_NO_MORE_FILES || status == NtStatus.STATUS_NO_SUCH_FILE || (currentBuffer != null && Arrays.equals(currentBuffer, buffer))) {
                 currentIterator = null;
                 currentBuffer = null;
             } else {
