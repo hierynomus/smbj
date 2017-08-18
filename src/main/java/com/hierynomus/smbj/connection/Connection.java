@@ -278,6 +278,9 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
             throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + resp);
         }
         SMB2NegotiateResponse negotiateResponse = (SMB2NegotiateResponse) resp;
+        if (!negotiateResponse.getHeader().getStatus().isSuccess()) {
+            throw new SMBApiException(negotiateResponse.getHeader(), "Failure during dialect negotiation");
+        }
         connectionInfo.negotiated(negotiateResponse);
         logger.debug("Negotiated the following connection settings: {}", connectionInfo);
     }

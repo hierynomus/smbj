@@ -29,18 +29,21 @@ class BasicPacketProcessor {
   }
 
   SMB2Packet processPacket(SMB2Packet req) {
-    if (req instanceof SMB2NegotiateRequest)
-      return negotiateResponse()
-    if (req instanceof SMB2SessionSetup)
-      return sessionSetupResponse()
-    if (req instanceof SMB2Logoff)
-      return logoffResponse()
-    if (req instanceof SMB2TreeConnectRequest)
-      return connectResponse()
-    if (req instanceof SMB2TreeDisconnect)
-      return disconnectResponse()
-
-    processPacket.call(req)
+    def resp = processPacket.call(req)
+    if (resp == null) {
+      if (req instanceof SMB2NegotiateRequest)
+        resp = negotiateResponse()
+      if (req instanceof SMB2SessionSetup)
+        resp = sessionSetupResponse()
+      if (req instanceof SMB2Logoff)
+        resp = logoffResponse()
+      if (req instanceof SMB2TreeConnectRequest)
+        resp = connectResponse()
+      if (req instanceof SMB2TreeDisconnect)
+        resp = disconnectResponse()
+    }
+    resp.header.message = req.header.message
+    return resp
   }
 
   private static SMB2Packet negotiateResponse() {
