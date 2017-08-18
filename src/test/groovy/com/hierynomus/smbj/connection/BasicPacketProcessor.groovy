@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.connection
 
 import com.hierynomus.mserref.NtStatus
+import com.hierynomus.mssmb2.SMB2MessageCommandCode
 import com.hierynomus.mssmb2.SMB2Packet
 import com.hierynomus.mssmb2.SMB2ShareCapabilities
 import com.hierynomus.mssmb2.messages.*
@@ -44,18 +45,24 @@ class BasicPacketProcessor {
 
   private static SMB2Packet negotiateResponse() {
     def response = new SMB2NegotiateResponse()
+    response.header.message = SMB2MessageCommandCode.SMB2_NEGOTIATE
     response.header.status = NtStatus.STATUS_SUCCESS
     response
   }
 
   private static SMB2Packet sessionSetupResponse() {
     def response = new SMB2SessionSetup()
+    response.header.message = SMB2MessageCommandCode.SMB2_SESSION_SETUP
+    response.header.sessionId = 1
+    response.securityBuffer = new byte[16]
     response.header.status = NtStatus.STATUS_SUCCESS
+    response.sessionFlags = EnumSet.noneOf(SMB2SessionSetup.SMB2SessionFlags)
     response
   }
 
   private static SMB2Packet logoffResponse() {
     def response = new SMB2Logoff()
+    response.header.message = SMB2MessageCommandCode.SMB2_LOGOFF
     response.header.status = NtStatus.STATUS_SUCCESS
     response
   }

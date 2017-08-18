@@ -28,7 +28,10 @@ import spock.lang.Specification
 class ConnectionSpec extends Specification {
 
   def bus = new SMBEventBus()
-  def config = SmbConfig.builder().withTransportLayerFactory(new StubTransportLayerFactory(new BasicPacketProcessor({ req -> null}).&processPacket)).build()
+  def config = SmbConfig.builder()
+    .withTransportLayerFactory(new StubTransportLayerFactory(new BasicPacketProcessor({ req -> null}).&processPacket))
+    .withAuthenticators(new StubAuthenticator.Factory())
+    .build()
   def client = new SMBClient(config, bus)
 
   def "should not close Sessions if force-closed"() {
