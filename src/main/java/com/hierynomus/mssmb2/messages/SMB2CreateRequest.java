@@ -39,6 +39,7 @@ public class SMB2CreateRequest extends SMB2Packet {
     private final Set<AccessMask> accessMask;
     private final SMB2ImpersonationLevel impersonationLevel;
 
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     public SMB2CreateRequest(SMB2Dialect smbDialect,
                              long sessionId, long treeId,
                              SMB2ImpersonationLevel impersonationLevel,

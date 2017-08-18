@@ -71,29 +71,30 @@ public class DFSReferralV34 extends DFSReferral {
     }
 
     @Override
-    int writeReferral(SMBBuffer buffer, int entryStartPos, int bufferDataOffset) {
+    int writeReferral(SMBBuffer buffer, final int entryStartPos, final int bufferDataOffset) {
+        int offset = bufferDataOffset;
         buffer.putUInt32(ttl); // TimeToLive (4 bytes)
         if (!isSet(referralEntryFlags, ReferralEntryFlags.NameListReferral)) {
-            buffer.putUInt16(bufferDataOffset - entryStartPos); // DFSPathOffset (2 bytes)
-            bufferDataOffset += (dfsPath.length() + 1) * 2;
-            buffer.putUInt16(bufferDataOffset - entryStartPos); // DFSAlternatePathOffset (2 bytes)
-            bufferDataOffset += (dfsAlternatePath.length() + 1) * 2;
-            buffer.putUInt16(bufferDataOffset - entryStartPos); // NetworkAddressOffset (2 bytes)
-            bufferDataOffset += (path.length() + 1) * 2;
+            buffer.putUInt16(offset - entryStartPos); // DFSPathOffset (2 bytes)
+            offset += (dfsPath.length() + 1) * 2;
+            buffer.putUInt16(offset - entryStartPos); // DFSAlternatePathOffset (2 bytes)
+            offset += (dfsAlternatePath.length() + 1) * 2;
+            buffer.putUInt16(offset - entryStartPos); // NetworkAddressOffset (2 bytes)
+            offset += (path.length() + 1) * 2;
             buffer.putReserved4();
             buffer.putReserved4();
             buffer.putReserved4();
             buffer.putReserved4(); // ServiceSiteGuid (16 bytes)
-            return bufferDataOffset;
+            return offset;
         } else {
-            buffer.putUInt16(bufferDataOffset - entryStartPos); // SpecialNameOffset (2 bytes)
-            bufferDataOffset += (specialName.length() + 1) * 2;
+            buffer.putUInt16(offset - entryStartPos); // SpecialNameOffset (2 bytes)
+            offset += (specialName.length() + 1) * 2;
             buffer.putUInt16(expandedNames.size()); // NumberOfExpandedNames (2 bytes)
-            buffer.putUInt16(bufferDataOffset - entryStartPos); // ExpandedNameOffset (2 bytes)
+            buffer.putUInt16(offset - entryStartPos); // ExpandedNameOffset (2 bytes)
             for (String expandedName : expandedNames) {
-                bufferDataOffset += (expandedName.length() + 1) * 2;
+                offset += (expandedName.length() + 1) * 2;
             }
-            return bufferDataOffset;
+            return offset;
         }
     }
 
