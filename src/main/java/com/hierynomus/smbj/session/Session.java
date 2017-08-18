@@ -58,7 +58,6 @@ public class Session implements AutoCloseable {
     private boolean anonymous;
 
     public Session(Connection connection, AuthenticationContext auth, SMBEventBus bus, boolean signingRequired, boolean dfsEnabled, SecurityProvider securityProvider) {
-        this.sessionId = sessionId;
         this.connection = connection;
         this.auth = auth;
         this.bus = bus;
