@@ -386,6 +386,8 @@ public class DFSPathResolver {
                 case LINK:
                     handleRootOrLinkReferralResponse(result, resp);
                     break;
+                default:
+                    throw new IllegalStateException("Encountered unhandled DFS RequestType: " + type);
             }
         }
         return result;

@@ -44,7 +44,9 @@ public class DFSReferralV1 extends DFSReferral {
     }
 
     @Override
-    void writeOffsettedData(SMBBuffer buffer) {}
+    void writeOffsettedData(SMBBuffer buffer) {
+        // No offsetted data for referral v1
+    }
 
     @Override
     protected int determineSize() {

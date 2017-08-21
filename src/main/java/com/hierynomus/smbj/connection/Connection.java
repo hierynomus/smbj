@@ -154,7 +154,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
             Session session = getSession(authContext);
             SMB2SessionSetup receive = authenticationRound(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
             long sessionId = receive.getHeader().getSessionId();
-            session.setSessionId(sessionId);
+            session.init(receive);
             connectionInfo.getPreauthSessionTable().registerSession(sessionId, session);
             try {
                 while (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
@@ -182,7 +182,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
     }
 
     private Session getSession(AuthenticationContext authContext) {
-        return new Session(0, this, authContext, bus, connectionInfo.isServerRequiresSigning(), config.isDfsEnabled(), config.getSecurityProvider());
+        return new Session(this, authContext, bus, connectionInfo.isServerRequiresSigning(), config.isDfsEnabled(), config.getSecurityProvider());
     }
 
     private SMB2SessionSetup authenticationRound(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {
@@ -278,6 +278,9 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
             throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + resp);
         }
         SMB2NegotiateResponse negotiateResponse = (SMB2NegotiateResponse) resp;
+        if (!negotiateResponse.getHeader().getStatus().isSuccess()) {
+            throw new SMBApiException(negotiateResponse.getHeader(), "Failure during dialect negotiation");
+        }
         connectionInfo.negotiated(negotiateResponse);
         logger.debug("Negotiated the following connection settings: {}", connectionInfo);
     }

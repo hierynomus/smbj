@@ -92,6 +92,8 @@ public class NtlmChallenge extends NtlmPacket {
                         break;
                     case MsvChannelBindings:
                         break;
+                    default:
+                        throw new IllegalStateException("Encountered unhandled AvId: " + avId);
                 }
 
             }

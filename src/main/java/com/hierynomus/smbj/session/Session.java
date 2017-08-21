@@ -18,10 +18,7 @@ package com.hierynomus.smbj.session;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.SMBApiException;
-import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
-import com.hierynomus.mssmb2.messages.SMB2Logoff;
-import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
-import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
+import com.hierynomus.mssmb2.messages.*;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.security.SecurityProvider;
@@ -57,8 +54,10 @@ public class Session implements AutoCloseable {
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
     private AuthenticationContext auth;
 
-    public Session(long sessionId, Connection connection, AuthenticationContext auth, SMBEventBus bus, boolean signingRequired, boolean dfsEnabled, SecurityProvider securityProvider) {
-        this.sessionId = sessionId;
+    private boolean guest;
+    private boolean anonymous;
+
+    public Session(Connection connection, AuthenticationContext auth, SMBEventBus bus, boolean signingRequired, boolean dfsEnabled, SecurityProvider securityProvider) {
         this.connection = connection;
         this.auth = auth;
         this.bus = bus;
@@ -68,6 +67,12 @@ public class Session implements AutoCloseable {
         if (bus != null) {
             bus.subscribe(this);
         }
+    }
+
+    public void init(SMB2SessionSetup setup) {
+        this.sessionId = setup.getHeader().getSessionId();
+        this.guest = setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_GUEST);
+        this.anonymous = setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_NULL);
     }
 
     public long getSessionId() {
@@ -168,6 +173,14 @@ public class Session implements AutoCloseable {
         return serverSigningRequired;
     }
 
+    public boolean isGuest() {
+        return guest;
+    }
+
+    public boolean isAnonymous() {
+        return anonymous;
+    }
+
     public void setSigningKey(byte[] signingKeyBytes) {
         packetSignatory.init(signingKeyBytes);
     }
@@ -202,10 +215,6 @@ public class Session implements AutoCloseable {
 
     public AuthenticationContext getAuthenticationContext() {
         return auth;
-    }
-
-    public void setSessionId(long sessionId) {
-        this.sessionId = sessionId;
     }
 
     public PacketSignatory getPacketSignatory() {
