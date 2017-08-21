@@ -28,10 +28,10 @@ import com.hierynomus.smbj.io.ArrayByteChunkProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
-import java.nio.BufferOverflowException;
+import java.io.InputStream;
 import java.util.EnumSet;
 
 public class NamedPipe implements Closeable {
@@ -119,48 +119,7 @@ public class NamedPipe implements Closeable {
      * @return the output message
      */
     public byte[] transact(byte[] inBuffer) {
-        final SMB2IoctlResponse ioctlResponse = share.ioctl(
-            fileId,
-            FSCTL_PIPE_TRANSCEIVE,
-            true,
-            new ArrayByteChunkProvider(inBuffer, 0, inBuffer.length, 0),
-            -1,
-            SUCCESS_OR_BUFFER_OVERFLOW
-        );
-
-        final ByteArrayOutputStream outBuffer = new ByteArrayOutputStream(4096);
-        final byte[] ioctlOutputBuffer = ioctlResponse.getOutputBuffer();
-        try {
-            outBuffer.write(ioctlOutputBuffer);
-        } catch (final IOException exception) {
-            throw new SMBRuntimeException(exception);
-        }
-
-        final NtStatus ioctlStatus = ioctlResponse.getHeader().getStatus();
-        if (ioctlStatus.equals(NtStatus.STATUS_BUFFER_OVERFLOW)) {
-            for (;;) {
-                final SMB2ReadResponse readResponse = share.read(
-                    fileId,
-                    0,
-                    share.getReadBufferSize(),
-                    SUCCESS_OR_EOF_OR_BUFFER_OVERFLOW
-                );
-
-                final byte[] readData = readResponse.getData();
-                try {
-                    outBuffer.write(readData);
-                } catch (final IOException exception) {
-                    throw new SMBRuntimeException(exception);
-                }
-
-                final NtStatus readStatus = readResponse.getHeader().getStatus();
-                if (!readStatus.equals(NtStatus.STATUS_BUFFER_OVERFLOW)) {
-                    break;
-                }
-            }
-        }
-
-        return outBuffer.toByteArray();
+        return ioctl(FSCTL_PIPE_TRANSCEIVE, true, inBuffer, 0, inBuffer.length);
     }
 
     /**
@@ -181,7 +140,7 @@ public class NamedPipe implements Closeable {
      * Performs a transaction on this pipe. This combines the writing a message to and reading a message from this
      * pipe into a single network operation.
      *
-     * @param inBuffer the input message
+     * @param inBuffer  the input message
      * @param inOffset the offset in <code>inBuffer</code> at which the input message start
      * @param inLength the length of the input message in <code>inBuffer</code> starting at <code>inOffset</code>
      * @param outBuffer the buffer in which to write the output message
@@ -190,15 +149,54 @@ public class NamedPipe implements Closeable {
      * @return the number of bytes written to <code>outBuffer</code>
      */
     public int transact(byte[] inBuffer, int inOffset, int inLength, byte[] outBuffer, int outOffset, int outLength) {
-        if (outBuffer.length - outOffset < outLength) {
-            throw new IllegalArgumentException();
-        }
-        final byte[] transactOutBuffer = transact(inBuffer);
-        if (transactOutBuffer.length > outLength) {
-            throw new BufferOverflowException();
-        }
-        System.arraycopy(transactOutBuffer, 0, outBuffer, outOffset, transactOutBuffer.length);
-        return transactOutBuffer.length;
+        return ioctl(FSCTL_PIPE_TRANSCEIVE, true, inBuffer, inOffset, inLength, outBuffer, outOffset, outLength);
+    }
+
+    /**
+     * Performs a transaction on this pipe. This combines the writing a message to and reading a message from this
+     * pipe into a single network operation. If the transaction output exceeds the maximum size of the transaction
+     * output buffer this method will read the additional data from the named pipe on behalf of the caller.
+     *
+     * @param inBuffer the input message.
+     * @return the output message.
+     */
+    public InputStream transactFully(final byte[] inBuffer) {
+        final SMB2IoctlResponse ioctlResponse = share.ioctl(
+            fileId,
+            FSCTL_PIPE_TRANSCEIVE,
+            true,
+            new ArrayByteChunkProvider(inBuffer, 0, inBuffer.length, 0),
+            -1,
+            SUCCESS_OR_BUFFER_OVERFLOW
+        );
+
+        return new InputStream() {
+            ByteArrayInputStream buffer = new ByteArrayInputStream(ioctlResponse.getOutputBuffer());
+            NtStatus status = ioctlResponse.getHeader().getStatus();
+
+            @Override
+            public int read() throws IOException {
+                int result = buffer.read();
+                if (result == -1 && status.equals(NtStatus.STATUS_BUFFER_OVERFLOW)) {
+                    final SMB2ReadResponse readResponse = share.read(
+                        fileId,
+                        0,
+                        share.getReadBufferSize(),
+                        SUCCESS_OR_EOF_OR_BUFFER_OVERFLOW
+                    );
+                    buffer = new ByteArrayInputStream(readResponse.getData());
+                    status = readResponse.getHeader().getStatus();
+                    result = buffer.read();
+                }
+
+                return result;
+            }
+
+            @Override
+            public void close() throws IOException {
+                while (read() != -1);
+            }
+        };
     }
 
     /**

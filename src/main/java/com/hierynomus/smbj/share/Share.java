@@ -116,10 +116,6 @@ public class Share implements AutoCloseable {
         return writeBufferSize;
     }
 
-    int getTransactBufferSize() {
-        return transactBufferSize;
-    }
-
     SMB2FileId openFileId(String path, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         return createFile(path, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions).getFileId();
     }
