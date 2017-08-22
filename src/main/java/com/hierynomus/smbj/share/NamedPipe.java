@@ -160,7 +160,7 @@ public class NamedPipe implements Closeable {
      * @param inBuffer the input message.
      * @return the output message.
      */
-    public InputStream transactFully(final byte[] inBuffer) {
+    public synchronized InputStream transactFully(final byte[] inBuffer) {
         final SMB2IoctlResponse ioctlResponse = share.ioctl(
             fileId,
             FSCTL_PIPE_TRANSCEIVE,
