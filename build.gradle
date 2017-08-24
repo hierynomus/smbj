@@ -32,7 +32,7 @@ configurations.compile.transitive = false
 def bouncycastleVersion = "1.57"
 
 dependencies {
-  signature 'org.codehaus.mojo.signature:java17:1.0'
+  signature 'org.codehaus.mojo.signature:java17:1.0@signature'
 
   compile "org.slf4j:slf4j-api:1.7.25"
   compile "org.bouncycastle:bcprov-jdk15on:$bouncycastleVersion"
@@ -223,6 +223,11 @@ check {
   dependsOn += ['jdependReport']
 }
 
+// KRB5 depends on com.sun.security.jgss classes, but those should normally not be accessed,
+// so we ignore them from the sniffer
+animalsniffer {
+  ignore 'com.sun.security.jgss.*'
+}
 
 project.tasks.release.dependsOn(project.tasks.bintrayUpload)
 project.tasks.jacocoTestReport.dependsOn(project.tasks.test)
