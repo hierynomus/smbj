@@ -6,13 +6,13 @@ plugins {
   id "groovy"
   id "jacoco"
   id "jdepend"
-  id "findbugs"
   id "maven-publish"
   id "org.ajoberstar.release-opinion" version "1.4.2"
   id "com.github.hierynomus.license" version "0.12.1"
   id "com.jfrog.bintray" version "1.7"
   id 'ru.vyarus.pom' version '1.0.3'
   id 'ru.vyarus.github-info' version '1.1.0'
+  id 'ru.vyarus.animalsniffer' version '1.4.2'
 }
 
 group = "com.hierynomus"
@@ -32,6 +32,8 @@ configurations.compile.transitive = false
 def bouncycastleVersion = "1.57"
 
 dependencies {
+  signature 'org.codehaus.mojo.signature:java17:1.0'
+
   compile "org.slf4j:slf4j-api:1.7.25"
   compile "org.bouncycastle:bcprov-jdk15on:$bouncycastleVersion"
   compile "org.bouncycastle:bcpkix-jdk15on:$bouncycastleVersion"
@@ -215,19 +217,6 @@ jdependReport.doLast {
     in: "$reporting.baseDir/jdepend/main.xml",
     style: "$rootDir/conf/jdepend/jdepend-report.xslt",
     out: "$reporting.baseDir/jdepend/main.html")
-}
-
-tasks.withType(FindBugs) {
-  reports {
-    xml.enabled false
-    html.enabled true
-    // html.stylesheet resources.text.fromFile('config/xsl/color.xsl')
-  }
-}
-
-findbugs {
-  sourceSets = [sourceSets.main]
-  ignoreFailures = true
 }
 
 check {
