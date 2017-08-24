@@ -6,6 +6,9 @@ cache:
   - $HOME/.gradle/caches/
   - $HOME/.gradle/wrapper/
 jdk:
-  - oraclejdk7
+  - openjdk7
   - oraclejdk8
+  - openjdk8
+  - oraclejdk9
 sudo: false
+dist: trusty
