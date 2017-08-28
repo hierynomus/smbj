@@ -22,3 +22,5 @@ test-output/
 .DS_Store
 /smbj/
 *.pcap
+*.pdf
+
