@@ -88,6 +88,10 @@ class ConnectionInfo {
         return (serverSecurityMode & 0x02) > 0;
     }
 
+    public boolean isServerSigningEnabled() {
+        return (serverSecurityMode & 0x01) > 0;
+    }
+
     public NegotiatedProtocol getNegotiatedProtocol() {
         return negotiatedProtocol;
     }

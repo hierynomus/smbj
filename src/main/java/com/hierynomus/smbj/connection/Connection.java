@@ -39,13 +39,21 @@ import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.spnego.NegTokenInit;
 import com.hierynomus.spnego.SpnegoException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import net.engio.mbassy.listener.Handler;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.DEROctetString;
+import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.DERTaggedObject;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -147,12 +155,29 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
      *
      * @return a (new) Session that is authenticated for the user.
      */
+
     public Session authenticate(AuthenticationContext authContext) {
+        return authenticate(authContext, null);
+    }
+
+    /**
+     * Authenticate the user on this connection in order to start a (new) session.
+     *
+     * @param metadata an optional ConnectionMetadata that is set based on
+     *                 the NegotiateProtocolResponse and SMBSessionSetupResponse
+     * @return a (new) Session that is authenticated for the user.
+     */
+
+    public Session authenticate(AuthenticationContext authContext, ConnectionMetadata metadata) {
         try {
             Authenticator authenticator = getAuthenticator(authContext);
             authenticator.init(config.getSecurityProvider(), config.getRandomProvider());
             Session session = getSession(authContext);
             SMB2SessionSetup receive = authenticationRound(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
+            if (metadata != null) {
+                grabOSInfo(receive.getSecurityBuffer(), metadata);
+                grabConnectionInfo(metadata);
+            }
             long sessionId = receive.getHeader().getSessionId();
             session.init(receive);
             connectionInfo.getPreauthSessionTable().registerSession(sessionId, session);
@@ -472,5 +497,64 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
                 logger.error("Failed to send {}", cancel);
             }
         }
+    }
+
+    /**
+     * This function is based on the NTLM type 2 protocol described in
+     *  http://davenport.sourceforge.net/ntlm.html
+     * and Spnego handshake described at
+     * https://msdn.microsoft.com/en-us/library/ms995330.aspx
+     *
+     * @param gssBlob The security blob returned as a part of the SMB2SessionSetup Response
+     * @param md Connection Metadata object to be populated
+     */
+    private void grabOSInfo(byte[] gssBlob, ConnectionMetadata md) {
+        final int SPNEGO_RESPONSE_TOKEN_SEQ = 2;
+        final int NTLM_MESSAGE_TYPE_START = 8;
+        final int NTLM_MESSAGE_TYPE_END = 12;
+        final int NTLM2_TARGET_NAME_OFFSET_START = 16;
+        final int NTLM2_TARGET_NAME_OFFSET_END = 20;
+        final int NTLM2_OS_VERSION_STRUCT_START = 48;
+        final int NTLM2_OS_VERSION_STRUCT_END = 56;
+
+        final byte [] NTLM_VERSION_2 = {0x02, 0x00, 0x00, 0x00};
+
+
+
+        ASN1InputStream bin = new ASN1InputStream(gssBlob);
+        try {
+            DERTaggedObject spnegoBlob = (DERTaggedObject) bin.readObject();
+            DERSequence negTokenTarg = (DERSequence) spnegoBlob.getObject();
+            DERTaggedObject responseToken = (DERTaggedObject) negTokenTarg.getObjectAt(SPNEGO_RESPONSE_TOKEN_SEQ);
+            DEROctetString NTLM = (DEROctetString) responseToken.getObject();
+            byte[] NTLMOctects = NTLM.getOctets();
+            // Verify we're dealing with a full sized NTLM V2 message
+            if (NTLMOctects.length >= NTLM2_OS_VERSION_STRUCT_END) {
+                byte[] NTLMMessageType = Arrays.copyOfRange(NTLMOctects, NTLM_MESSAGE_TYPE_START, NTLM_MESSAGE_TYPE_END);
+                byte [] targetNameOffsetBytes = Arrays.copyOfRange(NTLMOctects,
+                   NTLM2_TARGET_NAME_OFFSET_START,
+                   NTLM2_TARGET_NAME_OFFSET_END);
+                int targetNameOffset = ByteBuffer.wrap(targetNameOffsetBytes).order(ByteOrder.LITTLE_ENDIAN).getInt();
+                // Verify NTLM V2 header and OS Version Information is not skipped
+                if (Arrays.equals(NTLMMessageType, NTLM_VERSION_2) && targetNameOffset >= NTLM2_OS_VERSION_STRUCT_END) {
+                    byte[] osVersion = Arrays.copyOfRange(NTLMOctects,
+                       NTLM2_OS_VERSION_STRUCT_START,
+                       NTLM2_OS_VERSION_STRUCT_END);
+                    md.setOSmajorVersion(osVersion[0]);
+                    md.setOSminorVersion(osVersion[1]);
+                    md.setOSbuildCode(osVersion[3] << 8 | osVersion[2] & 0xFF);
+                }
+            }
+        } catch (IOException e){
+            //Fingerprinting failed, invalid blob?
+        }
+    }
+
+    private void grabConnectionInfo(ConnectionMetadata md){
+        md.setSigningRequired(connectionInfo.isServerRequiresSigning());
+        md.setSigningEnabled(connectionInfo.isServerSigningEnabled());
+        md.setEncryptionSupported(connectionInfo.supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION));
+        md.setDialectVersion(connectionInfo.getNegotiatedProtocol().getDialect());
+        md.setServerGUID(connectionInfo.getServerGuid());
     }
 }
