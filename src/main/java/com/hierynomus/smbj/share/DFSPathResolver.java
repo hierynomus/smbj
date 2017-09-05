@@ -196,7 +196,7 @@ public class DFSPathResolver {
         if (state.resolvedDomainEntry) { // Came from 5.2.3
             return step13(session, state, result);
         }
-        if (state.isDFSPath) {
+        if (!state.isDFSPath) {
             return step14(session, state, result);
         }
 
