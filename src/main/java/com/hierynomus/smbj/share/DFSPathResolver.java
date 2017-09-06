@@ -345,7 +345,7 @@ public class DFSPathResolver {
             Connection oldConnection = session.getConnection();
             Connection connection;
             try {
-                connection = oldConnection.getClient().connect(hostName, 451); // TODO
+                connection = oldConnection.getClient().connect(hostName); // TODO
             } catch (IOException e) {
                 throw new DFSException(e);
             }
