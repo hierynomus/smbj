@@ -114,7 +114,7 @@ public class NtlmAuthenticator implements Authenticator {
 
                 // MIC (16 bytes) provided if in AvPairType is key MsvAvFlags with value & 0x00000002 is true
                 Object msvAvFlags = challenge.getAvPairObject(AvId.MsvAvFlags);
-                if (msvAvFlags != null && ((int) msvAvFlags & 0x00000002) > 0) {
+                if (msvAvFlags instanceof Long && ((long) msvAvFlags & 0x00000002) > 0) {
                     // MIC should be calculated
                     NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
                         context.getUsername(), context.getDomain(), null, sessionkey, EnumWithValue.EnumUtils.toLong(negotiateFlags),
