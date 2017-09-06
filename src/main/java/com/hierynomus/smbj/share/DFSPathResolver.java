@@ -295,7 +295,6 @@ public class DFSPathResolver {
     private DFSPath step11(Session session, ResolveState state, ReferralCache.ReferralCacheEntry lookup) throws DFSException {
         logger.trace("DFS[11]: {}", state);
         state.path = state.path.replacePrefix(lookup.getDfsPathPrefix(), lookup.getTargetHint().getTargetPath());
-        state.isDFSPath = true;
         return step2(session, state);
     }
 
