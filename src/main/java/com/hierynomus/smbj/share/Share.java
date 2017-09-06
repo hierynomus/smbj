@@ -320,6 +320,10 @@ public class Share implements AutoCloseable {
     }
 
     private <T extends SMB2Packet> Future<T> send(SMB2Packet request) {
+        if (!isConnected()) {
+            throw new SMBRuntimeException(getClass().getSimpleName() + " has already been closed");
+        }
+
         try {
             return session.send(request);
         } catch (TransportException e) {
