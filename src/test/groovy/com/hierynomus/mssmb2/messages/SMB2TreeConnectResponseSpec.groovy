@@ -16,10 +16,9 @@
 package com.hierynomus.mssmb2.messages
 
 import com.hierynomus.mssmb2.SMB2ShareCapabilities
+import com.hierynomus.protocol.commons.ByteArrayUtils
 import com.hierynomus.smb.SMBBuffer
 import spock.lang.Specification
-
-import javax.xml.bind.DatatypeConverter
 
 class SMB2TreeConnectResponseSpec extends Specification {
 
@@ -27,7 +26,7 @@ class SMB2TreeConnectResponseSpec extends Specification {
     given:
     String hexString1 = "fe534d42400000000000000003000100010000000000000003000000000000000000000001000000010400d40058000000000000000000000000000000000000100001000008000000000000ff011f00"
 
-    byte[] bytes1 = DatatypeConverter.parseHexBinary(hexString1)
+    byte[] bytes1 = ByteArrayUtils.parseHex(hexString1)
     SMB2TreeConnectResponse tcResponse = new SMB2TreeConnectResponse()
 
     when:

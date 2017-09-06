@@ -2,16 +2,17 @@ import java.text.SimpleDateFormat
 
 plugins {
   id "java"
+  id "idea"
   id "groovy"
   id "jacoco"
   id "jdepend"
-  id "findbugs"
   id "maven-publish"
   id "org.ajoberstar.release-opinion" version "1.4.2"
   id "com.github.hierynomus.license" version "0.12.1"
   id "com.jfrog.bintray" version "1.7"
   id 'ru.vyarus.pom' version '1.0.3'
   id 'ru.vyarus.github-info' version '1.1.0'
+  id 'ru.vyarus.animalsniffer' version '1.4.2'
 }
 
 group = "com.hierynomus"
@@ -31,10 +32,13 @@ configurations.compile.transitive = false
 def bouncycastleVersion = "1.57"
 
 dependencies {
+  signature 'org.codehaus.mojo.signature:java17:1.0@signature'
+
   compile "org.slf4j:slf4j-api:1.7.25"
   compile "org.bouncycastle:bcprov-jdk15on:$bouncycastleVersion"
-  compile "org.bouncycastle:bcpkix-jdk15on:$bouncycastleVersion"
   compile 'net.engio:mbassador:1.3.0'
+  testCompile 'org.codehaus.groovy:groovy-all:2.4.4'
+  testRuntime 'cglib:cglib-nodep:2.2'
   testCompile 'org.spockframework:spock-core:1.1-groovy-2.4'
   testCompile 'commons-io:commons-io:2.5'
   testRuntime 'ch.qos.logback:logback-classic:1.2.3'
@@ -103,6 +107,21 @@ tasks.withType(Test) {
       indicator = "\u001B[31m✘\u001b[0m"
     }
     logger.lifecycle("$indicator Test ${descriptor.name}; Executed: ${result.testCount}/\u001B[32m${result.successfulTestCount}\u001B[0m/\u001B[31m${result.failedTestCount}\u001B[0m")
+  }
+}
+
+idea {
+  module {
+    testSourceDirs += file("src/it/groovy")
+    // Ugly hack, the it/resources needs to be marked as testSourceDir before it can be picked up by the iml.withXml
+    testSourceDirs += file('src/it/resources')
+  }
+  module.iml.withXml {
+    def node = it.asNode()
+    def content = node.component.find { it.'@name' == 'NewModuleRootManager' }.content[0]
+    content.sourceFolder.findAll { it.@url?.contains('it/resources') }.each {
+      it.@type = 'java-test-resource'
+    }
   }
 }
 
@@ -179,16 +198,16 @@ if (project.hasProperty("bintrayUsername") && project.hasProperty("bintrayApiKey
 }
 
 jdepend {
-   toolVersion = "2.9.1"
-   sourceSets = [sourceSets.main]
-   ignoreFailures = true
+  toolVersion = "2.9.1"
+  sourceSets = [sourceSets.main]
+  ignoreFailures = true
 }
 
 jdependMain {
-   reports {
-      xml.enabled true
-      text.enabled false
-   }
+  reports {
+    xml.enabled true
+    text.enabled false
+  }
 }
 
 task jdependReport(dependsOn: jdependMain, group: 'verification', description: 'Generates a HTML report after executing jdepend checks.')
@@ -196,26 +215,18 @@ jdependReport.doLast {
   ant.xslt(
     in: "$reporting.baseDir/jdepend/main.xml",
     style: "$rootDir/conf/jdepend/jdepend-report.xslt",
-    out:"$reporting.baseDir/jdepend/main.html")
-}
-
-tasks.withType(FindBugs) {
-    reports {
-        xml.enabled false
-        html.enabled true
-        // html.stylesheet resources.text.fromFile('config/xsl/color.xsl')
-    }
-}
-
-findbugs {
-  sourceSets = [sourceSets.main]
-  ignoreFailures = true
+    out: "$reporting.baseDir/jdepend/main.html")
 }
 
 check {
-   dependsOn += ['jdependReport']
+  dependsOn += ['jdependReport']
 }
 
+// KRB5 depends on com.sun.security.jgss classes, but those should normally not be accessed,
+// so we ignore them from the sniffer
+animalsniffer {
+  ignore 'com.sun.security.jgss.*'
+}
 
 project.tasks.release.dependsOn(project.tasks.bintrayUpload)
 project.tasks.jacocoTestReport.dependsOn(project.tasks.test)

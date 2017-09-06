@@ -84,7 +84,7 @@ public class SMBClient {
         synchronized (this) {
             String hostPort = hostname + ":" + port;
             if (!connectionTable.containsKey(hostPort)) {
-                Connection connection = new Connection(config, bus);
+                Connection connection = new Connection(config, this, bus);
                 try {
                     connection.connect(hostname, port);
                 } catch (IOException e) {

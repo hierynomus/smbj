@@ -32,6 +32,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static java.lang.String.format;
+
 /**
  * A transport layer over Direct TCP/IP.
  */
@@ -61,18 +63,21 @@ public class DirectTcpTransport<P extends Packet<?>> implements TransportLayer<P
         logger.trace("Acquiring write lock to send packet << {} >>", packet);
         writeLock.lock();
         try {
+            if (!isConnected()) {
+                throw new TransportException(format("Cannot write %s as transport is disconnected", packet));
+            }
             try {
                 logger.debug("Writing packet {}", packet);
                 Buffer<?> packetData = handlers.getSerializer().write(packet);
                 writeDirectTcpPacketHeader(packetData.available());
                 writePacketData(packetData);
                 output.flush();
+                logger.trace("Packet {} sent, lock released.", packet);
             } catch (IOException ioe) {
                 throw new TransportException(ioe);
             }
         } finally {
             writeLock.unlock();
-            logger.trace("Packet {} sent, lock released.", packet);
         }
     }
 
@@ -93,21 +98,26 @@ public class DirectTcpTransport<P extends Packet<?>> implements TransportLayer<P
 
     @Override
     public void disconnect() throws IOException {
-        if (!isConnected()) {
-            return;
-        }
+        writeLock.lock();
+        try {
+            if (!isConnected()) {
+                return;
+            }
 
-        packetReaderThread.stop();
-        if (socket.getInputStream() != null) {
-            socket.getInputStream().close();
-        }
-        if (output != null) {
-            output.close();
-            output = null;
-        }
-        if (socket != null) {
-            socket.close();
-            socket = null;
+            packetReaderThread.stop();
+            if (socket.getInputStream() != null) {
+                socket.getInputStream().close();
+            }
+            if (output != null) {
+                output.close();
+                output = null;
+            }
+            if (socket != null) {
+                socket.close();
+                socket = null;
+            }
+        } finally {
+            writeLock.unlock();
         }
     }
 

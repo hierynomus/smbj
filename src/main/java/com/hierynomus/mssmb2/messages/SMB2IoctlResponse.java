@@ -78,4 +78,12 @@ public class SMB2IoctlResponse extends SMB2Packet {
     public byte[] getInputBuffer() {
         return inputBuffer;
     }
+
+    public int getControlCode() {
+        return controlCode;
+    }
+
+    public SMB2FileId getFileId() {
+        return fileId;
+    }
 }

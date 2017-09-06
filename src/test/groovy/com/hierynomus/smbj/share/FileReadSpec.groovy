@@ -30,6 +30,7 @@ import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.common.Check
 import com.hierynomus.smbj.connection.BasicPacketProcessor
 import com.hierynomus.smbj.connection.Connection
+import com.hierynomus.smbj.connection.StubAuthenticator
 import com.hierynomus.smbj.connection.StubTransportLayerFactory
 import spock.lang.Specification
 
@@ -55,7 +56,12 @@ class FileReadSpec extends Specification {
       null
     })
 
-    def config = SmbConfig.builder().withReadBufferSize(1024).withTransportLayerFactory(new StubTransportLayerFactory(responder.&processPacket)).build()
+    def config = SmbConfig.builder()
+      .withReadBufferSize(1024)
+      .withDfsEnabled(false)
+      .withTransportLayerFactory(new StubTransportLayerFactory(responder.&processPacket))
+      .withAuthenticators(new StubAuthenticator.Factory())
+      .build()
     def client = new SMBClient(config)
 
     connection = client.connect("127.0.0.1")

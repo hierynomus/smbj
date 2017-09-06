@@ -17,12 +17,12 @@ package com.hierynomus.smbj.session;
 
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
-import com.hierynomus.mssmb2.messages.SMB2Logoff;
-import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
-import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
+import com.hierynomus.mssmb2.SMBApiException;
+import com.hierynomus.mssmb2.messages.*;
 import com.hierynomus.protocol.commons.concurrent.Futures;
+import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.security.SecurityProvider;
-import com.hierynomus.smbj.common.SMBApiException;
+import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
@@ -30,7 +30,6 @@ import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.event.TreeDisconnected;
 import com.hierynomus.smbj.share.*;
-import com.hierynomus.protocol.transport.TransportException;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,17 +50,29 @@ public class Session implements AutoCloseable {
 
     private Connection connection;
     private SMBEventBus bus;
+    private boolean dfsEnabled;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
+    private AuthenticationContext auth;
 
-    public Session(long sessionId, Connection connection, SMBEventBus bus, boolean signingRequired, SecurityProvider securityProvider) {
-        this.sessionId = sessionId;
+    private boolean guest;
+    private boolean anonymous;
+
+    public Session(Connection connection, AuthenticationContext auth, SMBEventBus bus, boolean signingRequired, boolean dfsEnabled, SecurityProvider securityProvider) {
         this.connection = connection;
+        this.auth = auth;
         this.bus = bus;
+        this.dfsEnabled = dfsEnabled;
         this.packetSignatory = new PacketSignatory(connection.getNegotiatedProtocol().getDialect(), securityProvider);
         this.serverSigningRequired = signingRequired;
         if (bus != null) {
             bus.subscribe(this);
         }
+    }
+
+    public void init(SMB2SessionSetup setup) {
+        this.sessionId = setup.getHeader().getSessionId();
+        this.guest = setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_GUEST);
+        this.anonymous = setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_NULL);
     }
 
     public long getSessionId() {
@@ -110,7 +121,9 @@ public class Session implements AutoCloseable {
             TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), connection, bus);
 
             Share share;
-            if (response.isDiskShare()) {
+            if (response.isDiskShare() && dfsEnabled && response.getCapabilities().contains(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS)) {
+                share = new DFSDiskShare(smbPath, treeConnect);
+            } else if (response.isDiskShare()) {
                 share = new DiskShare(smbPath, treeConnect);
             } else if (response.isNamedPipe()) {
                 share = new PipeShare(smbPath, treeConnect);
@@ -160,6 +173,14 @@ public class Session implements AutoCloseable {
         return serverSigningRequired;
     }
 
+    public boolean isGuest() {
+        return guest;
+    }
+
+    public boolean isAnonymous() {
+        return anonymous;
+    }
+
     public void setSigningKey(byte[] signingKeyBytes) {
         packetSignatory.init(signingKeyBytes);
     }
@@ -187,17 +208,13 @@ public class Session implements AutoCloseable {
         return connection.send(packetSignatory.sign(packet));
     }
 
-    public void setBus(SMBEventBus bus) {
-        if (this.bus != null) {
-            this.bus.unsubscribe(this);
-            this.bus = null;
-        }
-        this.bus = bus;
-        bus.subscribe(this);
+    public <T extends SMB2Packet> T processSendResponse(SMB2CreateRequest packet) throws TransportException {
+        Future<T> responseFuture = send(packet);
+        return Futures.get(responseFuture, SMBRuntimeException.Wrapper);
     }
 
-    public void setSessionId(long sessionId) {
-        this.sessionId = sessionId;
+    public AuthenticationContext getAuthenticationContext() {
+        return auth;
     }
 
     public PacketSignatory getPacketSignatory() {

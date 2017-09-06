@@ -34,6 +34,7 @@ public enum NtStatus implements EnumWithValue<NtStatus> {
     STATUS_NOT_IMPLEMENTED(0xC0000002L),
     STATUS_INVALID_INFO_CLASS(0xC0000003L),
     STATUS_INFO_LENGTH_MISMATCH(0xC0000004L),
+    STATUS_NO_SUCH_FILE(0xC000000FL),
     STATUS_INVALID_PARAMETER(0xC000000DL),
     STATUS_END_OF_FILE(0xC0000011L),
     STATUS_MORE_PROCESSING_REQUIRED(0xC0000016L),
@@ -100,11 +101,35 @@ public enum NtStatus implements EnumWithValue<NtStatus> {
         return value;
     }
 
+    /**
+     * Check whether the 'Sev' bits are set to 0x0.
+     * @return
+     */
     public boolean isSuccess() {
         return (value >>> 30) == 0;
     }
 
+    /**
+     * Check whether the 'Sev' bits are set to 0x01.
+     * @return
+     */
+    public boolean isInformational() {
+        return (value >>> 30) == 0x01;
+    }
+
+    /**
+     * Check whether the 'Sev' bits are set to 0x02.
+     * @return
+     */
+    public boolean isWarning() {
+        return (value >>> 30) == 0x02;
+    }
+
+    /**
+     * Check whether the 'Sev' bits are set to 0x03.
+     * @return
+     */
     public boolean isError() {
-        return (value >>> 30) == 0x3;
+        return (value >>> 30) == 0x03;
     }
 }

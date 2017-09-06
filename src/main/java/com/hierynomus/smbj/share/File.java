@@ -16,11 +16,11 @@
 package com.hierynomus.smbj.share;
 
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.msfscc.fileinformation.FileEndOfFileInformation;
+import com.hierynomus.mssmb2.SMB2FileId;
+import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
 import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
-import com.hierynomus.smbj.common.SMBApiException;
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.io.ArrayByteChunkProvider;
 import com.hierynomus.smbj.io.ByteChunkProvider;
