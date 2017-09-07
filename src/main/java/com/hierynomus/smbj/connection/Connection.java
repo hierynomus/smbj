@@ -82,7 +82,6 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
     public Connection(SmbConfig config, SMBClient client, SMBEventBus bus) {
         this.config = config;
         this.client = client;
-        this.transport = config.getTransportLayerFactory().createTransportLayer(new PacketHandlers<>(new SMBPacketSerializer(), this, converter), config);
         this.bus = bus;
         bus.subscribe(this);
     }
@@ -101,6 +100,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
         }
         this.remoteName = hostname;
         this.remotePort = port;
+        this.transport = config.getTransportLayerFactory().createTransportLayer(new PacketHandlers<>(new SMBPacketSerializer(), this, converter), config);
         transport.connect(new InetSocketAddress(hostname, port));
         this.connectionInfo = new ConnectionInfo(config.getClientGuid(), hostname);
         negotiateDialect();
@@ -412,7 +412,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
     }
 
     public boolean isConnected() {
-        return transport.isConnected();
+        return transport != null && transport.isConnected();
     }
 
     @Handler

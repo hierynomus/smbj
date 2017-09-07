@@ -17,6 +17,7 @@ package com.hierynomus.smbj.transport.tcp.async;
 
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.transport.PacketHandlers;
+import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.protocol.transport.TransportLayer;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.common.SMBRuntimeException;
@@ -31,16 +32,16 @@ public class AsyncDirectTcpTransportFactory<P extends Packet<?>> implements Tran
     private final AsynchronousChannelGroup group;
 
     @Override
-    public TransportLayer<P> createTransportLayer(PacketHandlers<P> handlers, SmbConfig config) {
+    public TransportLayer<P> createTransportLayer(PacketHandlers<P> handlers, SmbConfig config) throws TransportException {
         try {
             return new AsyncDirectTcpTransport<>(config.getSoTimeout(), handlers, group);
         } catch (IOException e) {
-            throw new SMBRuntimeException(e);
+            throw TransportException.Wrapper.wrap(e);
         }
     }
 
     public AsyncDirectTcpTransportFactory() {
-        this((AsynchronousChannelGroup) DEFAULT_CHANNEL_GROUP);
+        this(DEFAULT_CHANNEL_GROUP);
     }
 
     public AsyncDirectTcpTransportFactory(ExecutorService executor) {

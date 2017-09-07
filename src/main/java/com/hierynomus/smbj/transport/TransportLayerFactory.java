@@ -17,11 +17,14 @@ package com.hierynomus.smbj.transport;
 
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.transport.PacketHandlers;
+import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.protocol.transport.TransportLayer;
 import com.hierynomus.smbj.SmbConfig;
 
+import java.io.IOException;
+
 public interface TransportLayerFactory<P extends Packet<?>> {
 
-    TransportLayer<P> createTransportLayer(PacketHandlers<P> handlers, SmbConfig config);
+    TransportLayer<P> createTransportLayer(PacketHandlers<P> handlers, SmbConfig config) throws TransportException;
 
 }

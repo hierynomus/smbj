@@ -17,6 +17,7 @@ package com.hierynomus.smbj.transport.tcp.tunnel;
 
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.transport.PacketHandlers;
+import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.protocol.transport.TransportLayer;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.transport.TransportLayerFactory;
@@ -33,7 +34,7 @@ public class TunnelTransportFactory<P extends Packet<?>> implements TransportLay
     }
 
     @Override
-    public TransportLayer<P> createTransportLayer(PacketHandlers<P> handlers, SmbConfig config) {
+    public TransportLayer<P> createTransportLayer(PacketHandlers<P> handlers, SmbConfig config) throws TransportException {
         return new TunnelTransport<>(tunnelFactory.createTransportLayer(handlers, config), tunnelHost, tunnelPort);
     }
 }
