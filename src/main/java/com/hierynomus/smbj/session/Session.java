@@ -18,7 +18,10 @@ package com.hierynomus.smbj.session;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.SMBApiException;
-import com.hierynomus.mssmb2.messages.*;
+import com.hierynomus.mssmb2.messages.SMB2Logoff;
+import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
+import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
+import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.security.SecurityProvider;
@@ -206,11 +209,6 @@ public class Session implements AutoCloseable {
             throw new TransportException("Message signing is required, but no signing key is negotiated");
         }
         return connection.send(packetSignatory.sign(packet));
-    }
-
-    public <T extends SMB2Packet> T processSendResponse(SMB2CreateRequest packet) throws TransportException {
-        Future<T> responseFuture = send(packet);
-        return Futures.get(responseFuture, SMBRuntimeException.Wrapper);
     }
 
     public AuthenticationContext getAuthenticationContext() {
