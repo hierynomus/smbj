@@ -15,27 +15,21 @@
  */
 package com.hierynomus.smbj.common;
 
-import com.hierynomus.protocol.commons.concurrent.ExceptionWrapper;
+import com.hierynomus.protocol.commons.exception.ExceptionWrapper;
 
-import java.io.IOException;
-
-public class SMBException extends IOException {
-    public static ExceptionWrapper<SMBException> Wrapper = new ExceptionWrapper<SMBException>() {
+public class SMBJException extends Exception {
+    public static final ExceptionWrapper<SMBJException> Wrapper = new ExceptionWrapper<SMBJException>() {
         @Override
-        public SMBException wrap(Throwable throwable) {
-            if (throwable instanceof SMBException) {
-                return (SMBException) throwable;
+        public SMBJException wrap(Throwable throwable) {
+            if (throwable instanceof SMBJException) {
+                return (SMBJException) throwable;
             } else {
-                return new SMBException(throwable);
+                return new SMBJException(throwable);
             }
         }
     };
 
-    public SMBException(String message) {
-        super(message);
-    }
-
-    public SMBException(Throwable t) {
-        super(t);
+    public SMBJException(Throwable throwable) {
+        super(throwable);
     }
 }

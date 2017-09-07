@@ -19,14 +19,14 @@ import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.concurrent.AFuture;
 import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
 import com.hierynomus.protocol.commons.concurrent.Promise;
-import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.common.SMBJException;
 
 import java.util.Date;
 import java.util.UUID;
 
 class Request {
 
-    private final Promise<SMB2Packet, SMBRuntimeException> promise;
+    private final Promise<SMB2Packet, SMBJException> promise;
     private final long messageId;
     private final UUID cancelId;
     private final Date timestamp;
@@ -44,10 +44,10 @@ class Request {
         this.messageId = messageId;
         this.cancelId = cancelId;
         timestamp = new Date();
-        this.promise = new Promise<>(String.valueOf(messageId), SMBRuntimeException.Wrapper);
+        this.promise = new Promise<>(String.valueOf(messageId), SMBJException.Wrapper);
     }
 
-    Promise<SMB2Packet, SMBRuntimeException> getPromise() {
+    Promise<SMB2Packet, SMBJException> getPromise() {
         return promise;
     }
 

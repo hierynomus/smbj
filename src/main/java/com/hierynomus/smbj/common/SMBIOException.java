@@ -13,28 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.protocol.transport;
+package com.hierynomus.smbj.common;
 
 import com.hierynomus.protocol.commons.exception.ExceptionWrapper;
 
 import java.io.IOException;
 
-public class TransportException extends IOException {
-    public static final ExceptionWrapper<TransportException> Wrapper = new ExceptionWrapper<TransportException>() {
+public class SMBIOException extends IOException {
+    public static ExceptionWrapper<SMBIOException> Wrapper = new ExceptionWrapper<SMBIOException>() {
         @Override
-        public TransportException wrap(Throwable throwable) {
-            if (throwable instanceof TransportException) {
-                return (TransportException) throwable;
+        public SMBIOException wrap(Throwable throwable) {
+            if (throwable instanceof SMBIOException) {
+                return (SMBIOException) throwable;
+            } else {
+                return new SMBIOException(throwable);
             }
-            return new TransportException(throwable);
         }
     };
 
-    public TransportException(Throwable ioe) {
-        super(ioe);
+    public SMBIOException(String message) {
+        super(message);
     }
 
-    public TransportException(String s) {
-        super(s);
+    public SMBIOException(Throwable t) {
+        super(t);
     }
 }

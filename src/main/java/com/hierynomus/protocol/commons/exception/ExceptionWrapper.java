@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.protocol.commons.concurrent;
+package com.hierynomus.protocol.commons.exception;
 
 public interface ExceptionWrapper<T extends Throwable> {
 

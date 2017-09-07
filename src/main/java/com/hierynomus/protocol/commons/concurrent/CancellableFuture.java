@@ -15,8 +15,6 @@
  */
 package com.hierynomus.protocol.commons.concurrent;
 
-import com.hierynomus.smbj.common.SMBRuntimeException;
-
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -46,9 +44,6 @@ public class CancellableFuture<V> extends AFuture<V> {
                 callback.cancel();
                 return true;
             }
-        } catch (Throwable t) {
-            cancelled.set(false);
-            throw SMBRuntimeException.Wrapper.wrap(t);
         } finally {
             lock.writeLock().unlock();
         }

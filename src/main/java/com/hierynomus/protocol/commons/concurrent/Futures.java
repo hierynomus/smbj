@@ -15,6 +15,8 @@
  */
 package com.hierynomus.protocol.commons.concurrent;
 
+import com.hierynomus.protocol.commons.exception.ExceptionWrapper;
+
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;

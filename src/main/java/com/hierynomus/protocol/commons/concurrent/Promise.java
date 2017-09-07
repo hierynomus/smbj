@@ -15,6 +15,7 @@
  */
 package com.hierynomus.protocol.commons.concurrent;
 
+import com.hierynomus.protocol.commons.exception.ExceptionWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
