@@ -24,7 +24,7 @@ import java.net.InetSocketAddress;
 
 /**
  * A Transport that translates the actual remote address to a connection on 'localhost' on the specified port.
- *
+ * <p>
  * This is useful for when using an SSH tunnel.
  *
  * @param <P>

@@ -48,6 +48,7 @@ public class JceMessageDigest implements MessageDigest {
 
     /**
      * Special case, MD4 is available on Oracle JDK, but not enabled by default.
+     *
      * @throws SecurityException If the MD4 digest could not be loaded
      */
     private void tryMd4() throws SecurityException {

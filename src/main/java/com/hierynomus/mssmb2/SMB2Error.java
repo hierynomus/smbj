@@ -30,7 +30,8 @@ public class SMB2Error {
 
     private List<SMB2ErrorData> errorData = new ArrayList<>();
 
-    SMB2Error() {}
+    SMB2Error() {
+    }
 
     SMB2Error read(SMB2Header header, SMBBuffer buffer) throws Buffer.BufferException {
         buffer.skip(2); // StructureSize (2 bytes)
@@ -51,6 +52,7 @@ public class SMB2Error {
 
     /**
      * [MS-SMB2] 2.2.2.1 SMB2 ERROR Context Response
+     *
      * @param header
      * @param buffer
      * @param errorContextCount
@@ -66,6 +68,7 @@ public class SMB2Error {
 
     /**
      * [MS-SMB2] 2.2.2.2 ErrorData format
+     *
      * @param header
      * @param buffer
      * @return
@@ -83,7 +86,8 @@ public class SMB2Error {
         return errorData;
     }
 
-    interface SMB2ErrorData {}
+    interface SMB2ErrorData {
+    }
 
     public static class SymbolicLinkError implements SMB2ErrorData {
         private boolean absolute;

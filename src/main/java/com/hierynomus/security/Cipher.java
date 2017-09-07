@@ -16,9 +16,15 @@
 package com.hierynomus.security;
 
 public interface Cipher {
-    enum CryptMode { ENCRYPT, DECRYPT };
+    enum CryptMode {ENCRYPT, DECRYPT}
+
+    ;
+
     void init(CryptMode cryptMode, byte[] bytes) throws SecurityException;
+
     int update(byte[] in, int inOff, int bytes, byte[] out, int outOff) throws SecurityException;
+
     int doFinal(byte[] out, int outOff) throws SecurityException;
+
     void reset();
 }

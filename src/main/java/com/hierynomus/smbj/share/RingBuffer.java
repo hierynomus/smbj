@@ -55,7 +55,7 @@ class RingBuffer {
 
     private void readBytes(byte[] chunk, int len) {
         if (readIndex + len <= buf.length) {
-            System.arraycopy(buf, readIndex, chunk, 0 , len);
+            System.arraycopy(buf, readIndex, chunk, 0, len);
         } else {
             int bytesToEnd = buf.length - readIndex;
             System.arraycopy(buf, readIndex, chunk, 0, bytesToEnd);

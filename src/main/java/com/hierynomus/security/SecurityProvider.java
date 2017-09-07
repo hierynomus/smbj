@@ -17,13 +17,13 @@ package com.hierynomus.security;
 
 /**
  * Abstraction layer over different Security Providers.
- *
+ * <p>
  * Using this you can easily choose to either use:
- *
+ * <p>
  * - Standard JCE
  * - BouncyCastle over JCE
  * - BouncyCastle direct
- *
+ * <p>
  * The advantage of using BouncyCastle directly is that you do not need to have the JCE
  * Unlimited Strength Cryptography policy files loaded in your JRE.
  */

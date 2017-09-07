@@ -107,6 +107,7 @@ public class ByteArrayUtils {
 
     /**
      * Parse a hexadecimal string representation to a byte array.
+     *
      * @param hex The hexadecimal string
      * @return the parsed byte array
      */

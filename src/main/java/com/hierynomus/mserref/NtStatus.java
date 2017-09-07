@@ -103,6 +103,7 @@ public enum NtStatus implements EnumWithValue<NtStatus> {
 
     /**
      * Check whether the 'Sev' bits are set to 0x0.
+     *
      * @return
      */
     public boolean isSuccess() {
@@ -111,6 +112,7 @@ public enum NtStatus implements EnumWithValue<NtStatus> {
 
     /**
      * Check whether the 'Sev' bits are set to 0x01.
+     *
      * @return
      */
     public boolean isInformational() {
@@ -119,6 +121,7 @@ public enum NtStatus implements EnumWithValue<NtStatus> {
 
     /**
      * Check whether the 'Sev' bits are set to 0x02.
+     *
      * @return
      */
     public boolean isWarning() {
@@ -127,6 +130,7 @@ public enum NtStatus implements EnumWithValue<NtStatus> {
 
     /**
      * Check whether the 'Sev' bits are set to 0x03.
+     *
      * @return
      */
     public boolean isError() {

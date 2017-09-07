@@ -22,6 +22,7 @@ import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
 import com.hierynomus.smbj.io.InputStreamByteChunkProvider;
 import com.hierynomus.smbj.share.DiskShare;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -33,9 +34,9 @@ public class SmbFiles {
     /**
      * Copies local file to a destination path on the share
      *
-     * @param share the share
-     * @param destPath the path to write to
-     * @param source the local File
+     * @param share     the share
+     * @param destPath  the path to write to
+     * @param source    the local File
      * @param overwrite true/false to overwrite existing file
      * @return the actual number of bytes that was written to the file
      * @throws java.io.FileNotFoundException
@@ -48,12 +49,12 @@ public class SmbFiles {
             try (InputStream is = new java.io.FileInputStream(source)) {
                 if (destPath != null && is != null) {
                     try (com.hierynomus.smbj.share.File f = share.openFile(
-                            destPath,
-                            EnumSet.of(AccessMask.GENERIC_WRITE),
-                            EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
-                            EnumSet.of(SMB2ShareAccess.FILE_SHARE_WRITE),
-                            (overwrite ? SMB2CreateDisposition.FILE_OVERWRITE_IF : SMB2CreateDisposition.FILE_CREATE),
-                            EnumSet.noneOf(SMB2CreateOptions.class)
+                        destPath,
+                        EnumSet.of(AccessMask.GENERIC_WRITE),
+                        EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
+                        EnumSet.of(SMB2ShareAccess.FILE_SHARE_WRITE),
+                        (overwrite ? SMB2CreateDisposition.FILE_OVERWRITE_IF : SMB2CreateDisposition.FILE_CREATE),
+                        EnumSet.noneOf(SMB2CreateOptions.class)
                     )) {
                         r = f.write(new InputStreamByteChunkProvider(is));
                     }

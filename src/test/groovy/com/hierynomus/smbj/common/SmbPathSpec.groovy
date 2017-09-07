@@ -31,11 +31,11 @@ class SmbPathSpec extends Specification {
     smbPath.path == path
 
     where:
-    stringPath | host | share | path
-    "localhost\\C\$\\My Documents\\Jeroen" | "localhost" | "C\$" | "My Documents\\Jeroen"
-    "\\localhost\\C\$\\My Documents\\Jeroen" | "localhost" | "C\$" | "My Documents\\Jeroen"
+    stringPath                                 | host        | share | path
+    "localhost\\C\$\\My Documents\\Jeroen"     | "localhost" | "C\$" | "My Documents\\Jeroen"
+    "\\localhost\\C\$\\My Documents\\Jeroen"   | "localhost" | "C\$" | "My Documents\\Jeroen"
     "\\\\localhost\\C\$\\My Documents\\Jeroen" | "localhost" | "C\$" | "My Documents\\Jeroen"
-    "\\\\localhost\\C\$" | "localhost" | "C\$" | null
+    "\\\\localhost\\C\$"                       | "localhost" | "C\$" | null
   }
 
   @Unroll
@@ -44,9 +44,9 @@ class SmbPathSpec extends Specification {
     new SmbPath(host, share, path).toUncPath() == uncPath
 
     where:
-    host | share | path | uncPath
-    "localhost" | "C\$" | "My Documents\\Jeroen" | "\\\\localhost\\C\$\\My Documents\\Jeroen"
-    "localhost" | "C\$" | null | "\\\\localhost\\C\$"
-    "localhost" | "\\C\$" | null | "\\\\localhost\\C\$"
+    host        | share   | path                   | uncPath
+    "localhost" | "C\$"   | "My Documents\\Jeroen" | "\\\\localhost\\C\$\\My Documents\\Jeroen"
+    "localhost" | "C\$"   | null                   | "\\\\localhost\\C\$"
+    "localhost" | "\\C\$" | null                   | "\\\\localhost\\C\$"
   }
 }

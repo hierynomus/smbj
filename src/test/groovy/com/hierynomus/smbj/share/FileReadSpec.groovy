@@ -91,7 +91,7 @@ class FileReadSpec extends Specification {
     def fileOffset = 0 as long
 
     def bytesRead
-    while((bytesRead = file.read(buffer, fileOffset)) != -1) {
+    while ((bytesRead = file.read(buffer, fileOffset)) != -1) {
       out.write(buffer, 0, bytesRead)
       fileOffset += bytesRead
     }
@@ -109,7 +109,7 @@ class FileReadSpec extends Specification {
     def fileOffset = 0 as long
 
     def bytesRead
-    while((bytesRead = file.read(buffer, fileOffset, bufferOffset, chunkSize)) != -1) {
+    while ((bytesRead = file.read(buffer, fileOffset, bufferOffset, chunkSize)) != -1) {
       out.write(buffer, bufferOffset, bytesRead)
       fileOffset += bytesRead
     }
@@ -125,7 +125,7 @@ class FileReadSpec extends Specification {
 
     def input = file.getInputStream(null)
     def bytesRead
-    while((bytesRead = input.read(buffer)) != -1) {
+    while ((bytesRead = input.read(buffer)) != -1) {
       out.write(buffer, 0, bytesRead)
     }
 
@@ -142,7 +142,7 @@ class FileReadSpec extends Specification {
 
     def input = file.getInputStream(null)
     def bytesRead
-    while((bytesRead = input.read(buffer, bufferOffset, chunkSize)) != -1) {
+    while ((bytesRead = input.read(buffer, bufferOffset, chunkSize)) != -1) {
       out.write(buffer, bufferOffset, bytesRead)
     }
 
@@ -160,7 +160,7 @@ class FileReadSpec extends Specification {
     when:
     input.skip(10000)
 
-    while((bytesRead = input.read(buffer)) != -1) {
+    while ((bytesRead = input.read(buffer)) != -1) {
       out.write(buffer, 0, bytesRead)
     }
 
@@ -179,7 +179,7 @@ class FileReadSpec extends Specification {
     out.write(input.read())
     input.skip(10000)
 
-    while((bytesRead = input.read(buffer)) != -1) {
+    while ((bytesRead = input.read(buffer)) != -1) {
       out.write(buffer, 0, bytesRead)
     }
 

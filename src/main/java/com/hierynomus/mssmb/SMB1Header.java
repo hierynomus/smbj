@@ -21,13 +21,13 @@ import com.hierynomus.smb.SMBHeader;
 
 /**
  * MS-CIFS 2.2.3.1 SMBv1 Message Header.
- *
+ * <p>
  * This class is currently hardcoded to SMB_COM_NEGOTIATE
  */
 public class SMB1Header implements SMBHeader {
     @Override
     public void writeTo(SMBBuffer buffer) {
-        buffer.putRawBytes(new byte[] {(byte) 0xFF, 'S', 'M', 'B'}); // Protocol (4 bytes)
+        buffer.putRawBytes(new byte[]{(byte) 0xFF, 'S', 'M', 'B'}); // Protocol (4 bytes)
         buffer.putByte((byte) 0x72); // Command (1 byte)
         buffer.putUInt32(0x0); // Status (4 bytes)
         buffer.putByte((byte) 0x18); // Flags (1 byte)

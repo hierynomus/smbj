@@ -133,8 +133,8 @@ public class NamedPipe implements Closeable {
      * pipe into a single network operation.
      *
      * @param inBuffer  the input message
-     * @param inOffset the offset in <code>inBuffer</code> at which the input message start
-     * @param inLength the length of the input message in <code>inBuffer</code> starting at <code>inOffset</code>
+     * @param inOffset  the offset in <code>inBuffer</code> at which the input message start
+     * @param inLength  the length of the input message in <code>inBuffer</code> starting at <code>inOffset</code>
      * @param outBuffer the buffer in which to write the output message
      * @param outOffset the offset in <code>outBuffer</code> at which the output message should be written
      * @param outLength the maximum number of bytes that may be written to <code>outBuffer</code> starting from <code>outOffset</code>

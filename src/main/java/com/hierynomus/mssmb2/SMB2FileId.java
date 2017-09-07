@@ -29,10 +29,10 @@ public class SMB2FileId {
     private byte[] volatileHandle;
 
     public SMB2FileId() {
-        this.persistentHandle = new byte[]{(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff};
-        this.volatileHandle = new byte[]{(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff};
+        this.persistentHandle = new byte[]{(byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff};
+        this.volatileHandle = new byte[]{(byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff};
     }
-    
+
     public SMB2FileId(byte[] persistentHandle, byte[] volatileHandle) {
         this.persistentHandle = persistentHandle;
         this.volatileHandle = volatileHandle;

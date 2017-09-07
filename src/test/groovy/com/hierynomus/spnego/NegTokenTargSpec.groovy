@@ -22,15 +22,15 @@ import spock.lang.Specification
 
 class NegTokenTargSpec extends Specification {
 
-    def "should parse negTokenTarg with ntlm challenge"() {
-        given:
-        def bytes = getClass().getClassLoader().getResourceAsStream("spnego/negTokenTarg_ntlmchallenge").bytes
-        def buffer = new Buffer.PlainBuffer(bytes, Endian.LE)
+  def "should parse negTokenTarg with ntlm challenge"() {
+    given:
+    def bytes = getClass().getClassLoader().getResourceAsStream("spnego/negTokenTarg_ntlmchallenge").bytes
+    def buffer = new Buffer.PlainBuffer(bytes, Endian.LE)
 
-        expect:
-        println(ByteArrayUtils.printHex(bytes))
-        def read = new NegTokenTarg().read(buffer)
-        read.negotiationResult == BigInteger.ONE
+    expect:
+    println(ByteArrayUtils.printHex(bytes))
+    def read = new NegTokenTarg().read(buffer)
+    read.negotiationResult == BigInteger.ONE
 
-    }
+  }
 }

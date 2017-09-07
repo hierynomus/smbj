@@ -21,11 +21,13 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 public interface FileInformation {
     interface Encoder<F extends FileInformation> {
         FileInformationClass getInformationClass();
+
         void write(F info, Buffer outputBuffer);
     }
 
     interface Decoder<F extends FileInformation> {
         FileInformationClass getInformationClass();
+
         F read(Buffer inputBuffer) throws Buffer.BufferException;
     }
 

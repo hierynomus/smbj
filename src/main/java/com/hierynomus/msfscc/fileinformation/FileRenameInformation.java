@@ -29,11 +29,19 @@ public class FileRenameInformation implements FileSettableInformation {
         this.fileName = fileName;
     }
 
-    public boolean isReplaceIfExists() { return replaceIfExists; }
+    public boolean isReplaceIfExists() {
+        return replaceIfExists;
+    }
 
-    public long getRootDirectory() { return rootDirectory; }
+    public long getRootDirectory() {
+        return rootDirectory;
+    }
 
-    public int getFileNameLength() { return fileNameLength; }
+    public int getFileNameLength() {
+        return fileNameLength;
+    }
 
-    public String getFileName() { return fileName; }
+    public String getFileName() {
+        return fileName;
+    }
 }
