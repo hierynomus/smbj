@@ -41,7 +41,7 @@ public class SMB2Echo extends SMB2Packet {
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) {
         buffer.skip(4);
     }
 }

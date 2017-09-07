@@ -36,7 +36,7 @@ public class DFSReferralV2 extends DFSReferral {
     }
 
     @Override
-    protected void readReferral(SMBBuffer buffer, int referralStartPos) throws Buffer.BufferException {
+    protected void readReferral(SMBBuffer buffer, int referralStartPos) {
         referralEntryFlags = 0; // Must be set to 0 for V2
         buffer.readUInt32AsInt(); // Proximity (4 bytes) should be ignored
         ttl = buffer.readUInt32AsInt(); // TimeToLive (4 bytes)

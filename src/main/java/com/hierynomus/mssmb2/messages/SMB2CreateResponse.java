@@ -40,7 +40,7 @@ public class SMB2CreateResponse extends SMB2Packet {
     private SMB2FileId fileId;
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) {
         buffer.readUInt16(); // StructureSize (2 bytes)
         buffer.readByte(); // OpLockLevel (1 byte) - Not used yet
         buffer.readByte(); // Flags (1 byte) - Only for 3.x else Reserved

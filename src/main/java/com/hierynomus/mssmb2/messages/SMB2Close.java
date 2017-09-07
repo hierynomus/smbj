@@ -55,7 +55,7 @@ public class SMB2Close extends SMB2Packet {
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) {
         buffer.readUInt16(); // StructureSize (2 bytes)
         // We set the Flags value 0x01 hardcoded, so the server should also echo that
         buffer.readUInt16(); // Flags (2 bytes)

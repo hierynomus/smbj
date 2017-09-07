@@ -32,7 +32,7 @@ public class DFSReferralV1 extends DFSReferral {
     }
 
     @Override
-    public void readReferral(SMBBuffer buffer, int referralStartPos) throws Buffer.BufferException {
+    public void readReferral(SMBBuffer buffer, int referralStartPos) {
         referralEntryFlags = 0; // Must be set to 0 for V1
         path = buffer.readNullTerminatedString(StandardCharsets.UTF_16);
     }

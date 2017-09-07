@@ -102,7 +102,7 @@ public class SMB2Packet extends SMBPacket<SMB2Header> {
         throw new UnsupportedOperationException("Should be implemented by specific message type");
     }
 
-    public final void read(SMBBuffer buffer) throws Buffer.BufferException {
+    public final void read(SMBBuffer buffer) {
         this.buffer = buffer; // remember the buffer we read it from
         this.messageStartPos = buffer.rpos();
         header.readFrom(buffer);
@@ -114,7 +114,7 @@ public class SMB2Packet extends SMBPacket<SMB2Header> {
         this.messageEndPos = buffer.rpos();
     }
 
-    protected void readError(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readError(SMBBuffer buffer) {
         this.error = new SMB2Error().read(header, buffer);
     }
 
@@ -122,9 +122,9 @@ public class SMB2Packet extends SMBPacket<SMB2Header> {
      * Read the message, this is only called in case the response is a success response according to {@link #isSuccess(NtStatus)}
      *
      * @param buffer
-     * @throws Buffer.BufferException
+     * @throws
      */
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) {
         throw new UnsupportedOperationException("Should be implemented by specific message type");
     }
 

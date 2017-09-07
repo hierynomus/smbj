@@ -105,7 +105,7 @@ public class SecurityDescriptor {
         buffer.wpos(endPos);
     }
 
-    public static SecurityDescriptor read(SMBBuffer buffer) throws Buffer.BufferException {
+    public static SecurityDescriptor read(SMBBuffer buffer) {
         int startPos = buffer.rpos();
 
         buffer.readByte(); // Revision

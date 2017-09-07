@@ -28,7 +28,7 @@ import java.nio.charset.UnsupportedCharsetException;
 public class Buffer<T extends Buffer<T>> {
     private static final Logger logger = LoggerFactory.getLogger(Buffer.class);
 
-    public static class BufferException extends Exception {
+    public static class BufferException extends RuntimeException {
 
         public BufferException(String message) {
             super(message);

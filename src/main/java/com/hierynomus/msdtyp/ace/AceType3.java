@@ -43,7 +43,7 @@ class AceType3 extends ACE {
         buffer.putRawBytes(applicationData);
     }
 
-    static AceType3 read(AceHeader header, SMBBuffer buffer, int aceStartPos) throws Buffer.BufferException {
+    static AceType3 read(AceHeader header, SMBBuffer buffer, int aceStartPos) {
         long accessMask = buffer.readUInt32();
         SID sid = SID.read(buffer);
         int applicationDataSize = header.getAceSize() - (buffer.rpos() - aceStartPos);

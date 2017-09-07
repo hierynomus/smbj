@@ -40,7 +40,7 @@ public class FileInformationFactory {
             }
 
             @Override
-            public FileAccessInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+            public FileAccessInformation read(Buffer inputBuffer) {
                 return parseFileAccessInformation(inputBuffer);
             }
         });
@@ -52,7 +52,7 @@ public class FileInformationFactory {
             }
 
             @Override
-            public FileAlignmentInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+            public FileAlignmentInformation read(Buffer inputBuffer) {
                 return parseFileAlignmentInformation(inputBuffer);
             }
         });
@@ -64,7 +64,7 @@ public class FileInformationFactory {
             }
 
             @Override
-            public FileAllInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+            public FileAllInformation read(Buffer inputBuffer) {
                 return parseFileAllInformation(inputBuffer);
             }
         });
@@ -76,7 +76,7 @@ public class FileInformationFactory {
             }
 
             @Override
-            public FileAllocationInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+            public FileAllocationInformation read(Buffer inputBuffer) {
                 return parseFileAllocationInformation(inputBuffer);
             }
 
@@ -95,7 +95,7 @@ public class FileInformationFactory {
             }
 
             @Override
-            public FileBasicInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+            public FileBasicInformation read(Buffer inputBuffer) {
                 return parseFileBasicInformation(inputBuffer);
             }
 
@@ -127,7 +127,7 @@ public class FileInformationFactory {
             }
 
             @Override
-            public FileEaInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+            public FileEaInformation read(Buffer inputBuffer) {
                 return parseFileEaInformation(inputBuffer);
             }
         });
@@ -152,7 +152,7 @@ public class FileInformationFactory {
             }
 
             @Override
-            public FileInternalInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+            public FileInternalInformation read(Buffer inputBuffer) {
                 return parseFileInternalInformation(inputBuffer);
             }
         });
@@ -164,7 +164,7 @@ public class FileInformationFactory {
             }
 
             @Override
-            public FileModeInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+            public FileModeInformation read(Buffer inputBuffer) {
                 return parseFileModeInformation(inputBuffer);
             }
 
@@ -183,7 +183,7 @@ public class FileInformationFactory {
             }
 
             @Override
-            public FilePositionInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+            public FilePositionInformation read(Buffer inputBuffer) {
                 return parseFilePositionInformation(inputBuffer);
             }
         });
@@ -195,7 +195,7 @@ public class FileInformationFactory {
             }
 
             @Override
-            public FileStandardInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+            public FileStandardInformation read(Buffer inputBuffer) {
                 return parseFileStandardInformation(inputBuffer);
             }
         });
@@ -207,7 +207,7 @@ public class FileInformationFactory {
             }
 
             @Override
-            public FileBothDirectoryInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+            public FileBothDirectoryInformation read(Buffer inputBuffer) {
                 return parseFileBothDirectoryInformation(inputBuffer);
             }
         });
@@ -219,7 +219,7 @@ public class FileInformationFactory {
             }
 
             @Override
-            public FileDirectoryInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+            public FileDirectoryInformation read(Buffer inputBuffer) {
                 return parseFileDirectoryInformation(inputBuffer);
             }
         });
@@ -231,7 +231,7 @@ public class FileInformationFactory {
             }
 
             @Override
-            public FileFullDirectoryInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+            public FileFullDirectoryInformation read(Buffer inputBuffer) {
                 return parseFileFullDirectoryInformation(inputBuffer);
             }
         });
@@ -243,7 +243,7 @@ public class FileInformationFactory {
             }
 
             @Override
-            public FileIdBothDirectoryInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+            public FileIdBothDirectoryInformation read(Buffer inputBuffer) {
                 return parseFileIdBothDirectoryInformation(inputBuffer);
             }
         });
@@ -255,7 +255,7 @@ public class FileInformationFactory {
             }
 
             @Override
-            public FileIdFullDirectoryInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+            public FileIdFullDirectoryInformation read(Buffer inputBuffer) {
                 return parseFileIdFullDirectoryInformation(inputBuffer);
             }
         });
@@ -267,7 +267,7 @@ public class FileInformationFactory {
             }
 
             @Override
-            public FileNamesInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+            public FileNamesInformation read(Buffer inputBuffer) {
                 return parseFileNamesInformation(inputBuffer);
             }
         });
@@ -318,11 +318,11 @@ public class FileInformationFactory {
      * @param data
      * @param decoder
      * @return
-     * @throws Buffer.BufferException
+     * @throws
      */
     public static <F extends FileDirectoryQueryableInformation> List<F> parseFileInformationList(
         byte[] data, FileInformation.Decoder<F> decoder)
-        throws Buffer.BufferException {
+        {
 
         List<F> _fileInfoList = new ArrayList<>();
         Iterator<F> iterator = createFileInformationIterator(data, decoder);
@@ -400,7 +400,7 @@ public class FileInformationFactory {
      * <p>
      * [MS-FSCC] 2.4.2 FileAllInformation
      */
-    public static FileAllInformation parseFileAllInformation(Buffer<?> buffer) throws Buffer.BufferException {
+    public static FileAllInformation parseFileAllInformation(Buffer<?> buffer) {
         FileBasicInformation basicInformation = parseFileBasicInformation(buffer);
         FileStandardInformation standardInformation = parseFileStandardInformation(buffer);
         FileInternalInformation internalInformation = parseFileInternalInformation(buffer);
@@ -425,13 +425,13 @@ public class FileInformationFactory {
         return fi;
     }
 
-    private static String parseFileNameInformation(Buffer<?> buffer) throws Buffer.BufferException {
+    private static String parseFileNameInformation(Buffer<?> buffer) {
         long fileNameLen = buffer.readUInt32(); // File name length
         String fileName = buffer.readString(StandardCharsets.UTF_16LE, (int) fileNameLen / 2);
         return fileName;
     }
 
-    private static FileBasicInformation parseFileBasicInformation(Buffer<?> buffer) throws Buffer.BufferException {
+    private static FileBasicInformation parseFileBasicInformation(Buffer<?> buffer) {
         FileTime creationTime = MsDataTypes.readFileTime(buffer);
         FileTime lastAccessTime = MsDataTypes.readFileTime(buffer);
         FileTime lastWriteTime = MsDataTypes.readFileTime(buffer);
@@ -455,7 +455,7 @@ public class FileInformationFactory {
         buffer.putBoolean(information.isDeleteOnClose());
     }
 
-    private static FileStandardInformation parseFileStandardInformation(Buffer<?> buffer) throws Buffer.BufferException {
+    private static FileStandardInformation parseFileStandardInformation(Buffer<?> buffer) {
         long allocationSize = buffer.readLong();
         long endOfFile = buffer.readUInt64();
         long numberOfLinks = buffer.readUInt32();
@@ -465,12 +465,12 @@ public class FileInformationFactory {
         return new FileStandardInformation(allocationSize, endOfFile, numberOfLinks, deletePending, directory);
     }
 
-    private static FileInternalInformation parseFileInternalInformation(Buffer<?> buffer) throws Buffer.BufferException {
+    private static FileInternalInformation parseFileInternalInformation(Buffer<?> buffer) {
         long indexNumber = buffer.readLong();
         return new FileInternalInformation(indexNumber);
     }
 
-    private static FileEaInformation parseFileEaInformation(Buffer<?> buffer) throws Buffer.BufferException {
+    private static FileEaInformation parseFileEaInformation(Buffer<?> buffer) {
         long eaSize = buffer.readUInt32();
         return new FileEaInformation(eaSize);
     }
@@ -482,12 +482,12 @@ public class FileInformationFactory {
         buffer.putLong(information.getEndOfFile());
     }
 
-    private static FileAccessInformation parseFileAccessInformation(Buffer<?> buffer) throws Buffer.BufferException {
+    private static FileAccessInformation parseFileAccessInformation(Buffer<?> buffer) {
         int accessFlags = (int) buffer.readUInt32();
         return new FileAccessInformation(accessFlags);
     }
 
-    private static FileAllocationInformation parseFileAllocationInformation(Buffer<?> buffer) throws Buffer.BufferException {
+    private static FileAllocationInformation parseFileAllocationInformation(Buffer<?> buffer) {
         long allocationSize = buffer.readLong();
         return new FileAllocationInformation(allocationSize);
     }
@@ -496,12 +496,12 @@ public class FileInformationFactory {
         outputBuffer.putLong(info.getAllocationSize());
     }
 
-    private static FilePositionInformation parseFilePositionInformation(Buffer<?> buffer) throws Buffer.BufferException {
+    private static FilePositionInformation parseFilePositionInformation(Buffer<?> buffer) {
         long currentByteOffset = buffer.readLong();
         return new FilePositionInformation(currentByteOffset);
     }
 
-    private static FileModeInformation parseFileModeInformation(Buffer<?> buffer) throws Buffer.BufferException {
+    private static FileModeInformation parseFileModeInformation(Buffer<?> buffer) {
         int mode = (int) buffer.readUInt32();
         return new FileModeInformation(mode);
     }
@@ -510,7 +510,7 @@ public class FileInformationFactory {
         outputBuffer.putUInt32(info.getMode() & 0xFFFFFFFFL);
     }
 
-    private static FileAlignmentInformation parseFileAlignmentInformation(Buffer<?> buffer) throws Buffer.BufferException {
+    private static FileAlignmentInformation parseFileAlignmentInformation(Buffer<?> buffer) {
         long alignmentReq = buffer.readUInt32();
         return new FileAlignmentInformation(alignmentReq);
     }
@@ -518,7 +518,7 @@ public class FileInformationFactory {
     /**
      * 2.4.8 FileBothDirectoryInformation
      */
-    public static FileBothDirectoryInformation parseFileBothDirectoryInformation(Buffer<?> buffer) throws Buffer.BufferException {
+    public static FileBothDirectoryInformation parseFileBothDirectoryInformation(Buffer<?> buffer) {
         long nextOffset = buffer.readUInt32();
         long fileIndex = buffer.readUInt32();
         FileTime creationTime = MsDataTypes.readFileTime(buffer);
@@ -550,7 +550,7 @@ public class FileInformationFactory {
     /**
      * 2.4.10 FileDirectoryInformation
      */
-    public static FileDirectoryInformation parseFileDirectoryInformation(Buffer<?> buffer) throws Buffer.BufferException {
+    public static FileDirectoryInformation parseFileDirectoryInformation(Buffer<?> buffer) {
         long nextOffset = buffer.readUInt32();
         long fileIndex = buffer.readUInt32();
         FileTime creationTime = MsDataTypes.readFileTime(buffer);
@@ -574,7 +574,7 @@ public class FileInformationFactory {
     /**
      * 2.4.14 FileFullDirectoryInformation
      */
-    public static FileFullDirectoryInformation parseFileFullDirectoryInformation(Buffer<?> buffer) throws Buffer.BufferException {
+    public static FileFullDirectoryInformation parseFileFullDirectoryInformation(Buffer<?> buffer) {
         long nextOffset = buffer.readUInt32();
         long fileIndex = buffer.readUInt32();
         FileTime creationTime = MsDataTypes.readFileTime(buffer);
@@ -600,7 +600,7 @@ public class FileInformationFactory {
     /**
      * 2.4.17 FileIdBothDirectoryInformation
      */
-    public static FileIdBothDirectoryInformation parseFileIdBothDirectoryInformation(Buffer<?> buffer) throws Buffer.BufferException {
+    public static FileIdBothDirectoryInformation parseFileIdBothDirectoryInformation(Buffer<?> buffer) {
         long nextOffset = buffer.readUInt32();
         long fileIndex = buffer.readUInt32();
         FileTime creationTime = MsDataTypes.readFileTime(buffer);
@@ -634,7 +634,7 @@ public class FileInformationFactory {
     /**
      * 2.4.18 FileIdFullDirectoryInformation
      */
-    public static FileIdFullDirectoryInformation parseFileIdFullDirectoryInformation(Buffer<?> buffer) throws Buffer.BufferException {
+    public static FileIdFullDirectoryInformation parseFileIdFullDirectoryInformation(Buffer<?> buffer) {
         long nextOffset = buffer.readUInt32();
         long fileIndex = buffer.readUInt32();
         FileTime creationTime = MsDataTypes.readFileTime(buffer);
@@ -663,7 +663,7 @@ public class FileInformationFactory {
     /**
      * 2.4.26 FileNamesInformation
      */
-    public static FileNamesInformation parseFileNamesInformation(Buffer<?> buffer) throws Buffer.BufferException {
+    public static FileNamesInformation parseFileNamesInformation(Buffer<?> buffer) {
         long nextOffset = buffer.readUInt32();
         long fileIndex = buffer.readUInt32();
         long fileNameLen = buffer.readUInt32();

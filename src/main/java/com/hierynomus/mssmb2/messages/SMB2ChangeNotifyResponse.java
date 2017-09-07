@@ -36,7 +36,7 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
     List<FileNotifyInfo> fileNotifyInfoList = new ArrayList<>();
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) {
         buffer.skip(2); // StructureSize (2 bytes)
         int outputBufferOffset = buffer.readUInt16(); // OutputBufferOffset (2 bytes)
         int length = buffer.readUInt32AsInt();// OutputBufferLength (4 bytes)
@@ -58,7 +58,7 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
     }
 
     private List<FileNotifyInfo> readFileNotifyInfo(SMBBuffer buffer, int outputBufferOffset)
-        throws Buffer.BufferException {
+        {
         List<FileNotifyInfo> notifyInfoList = new ArrayList<>();
         buffer.rpos(outputBufferOffset);
         int currentPos = buffer.rpos();

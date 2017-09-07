@@ -45,13 +45,13 @@ class AceType4 extends AceType2 {
     }
 
     @Override
-    protected void readBody(SMBBuffer buffer, int aceStartPos) throws Buffer.BufferException {
+    protected void readBody(SMBBuffer buffer, int aceStartPos) {
         super.readBody(buffer, aceStartPos);
         int applicationDataSize = aceHeader.getAceSize() - (buffer.rpos() - aceStartPos);
         applicationData = buffer.readRawBytes(applicationDataSize);
     }
 
-    static AceType4 read(AceHeader header, SMBBuffer buffer, int aceStartPos) throws Buffer.BufferException {
+    static AceType4 read(AceHeader header, SMBBuffer buffer, int aceStartPos) {
         AceType4 ace = new AceType4(header);
         ace.readBody(buffer, aceStartPos);
         return ace;

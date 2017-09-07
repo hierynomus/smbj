@@ -38,7 +38,7 @@ class AceType1 extends ACE {
         sid.write(buffer);
     }
 
-    static AceType1 read(AceHeader header, SMBBuffer buffer) throws Buffer.BufferException {
+    static AceType1 read(AceHeader header, SMBBuffer buffer) {
         long accessMask = buffer.readUInt32();
         SID sid = SID.read(buffer);
         return new AceType1(header, accessMask, sid);

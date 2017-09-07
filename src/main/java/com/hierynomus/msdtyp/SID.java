@@ -121,7 +121,7 @@ public class SID {
         }
     }
 
-    public static SID read(SMBBuffer buffer) throws Buffer.BufferException {
+    public static SID read(SMBBuffer buffer) {
         byte revision = buffer.readByte(); // Revision (1 byte)
         int subAuthorityCount = buffer.readByte(); // SubAuthorityCount (1 byte)
         byte[] sidIdentifierAuthority = buffer.readRawBytes(6); // IdentifierAuthority (6 bytes)

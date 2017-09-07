@@ -22,7 +22,7 @@ import java.io.IOException;
 
 public class SMB1MessageConverter implements PacketFactory<SMB1Packet> {
     @Override
-    public SMB1Packet read(byte[] data) throws Buffer.BufferException, IOException {
+    public SMB1Packet read(byte[] data) throws IOException {
         throw new SMB1NotSupportedException();
     }
 

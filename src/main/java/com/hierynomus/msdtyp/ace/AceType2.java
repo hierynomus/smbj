@@ -75,7 +75,7 @@ class AceType2 extends ACE {
         sid.write(buffer);
     }
 
-    void readBody(SMBBuffer buffer, int aceStartPos) throws Buffer.BufferException {
+    void readBody(SMBBuffer buffer, int aceStartPos) {
         accessMask = buffer.readUInt32();
 
         Set<AceObjectFlags> flags = toEnumSet(buffer.readUInt32(), AceObjectFlags.class);
@@ -97,7 +97,7 @@ class AceType2 extends ACE {
         sid = SID.read(buffer);
     }
 
-    static AceType2 read(AceHeader header, SMBBuffer buffer, int aceStartPos) throws Buffer.BufferException {
+    static AceType2 read(AceHeader header, SMBBuffer buffer, int aceStartPos) {
         AceType2 ace = new AceType2(header);
         ace.readBody(buffer, aceStartPos);
         return ace;

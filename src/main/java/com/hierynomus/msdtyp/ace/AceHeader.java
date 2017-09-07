@@ -51,7 +51,7 @@ public class AceHeader {
         buffer.putUInt16(aceSize);
     }
 
-    static AceHeader readFrom(SMBBuffer buffer) throws Buffer.BufferException {
+    static AceHeader readFrom(SMBBuffer buffer) {
         AceType aceType = valueOf(buffer.readByte(), AceType.class, null);
         Set<AceFlags> aceFlags = toEnumSet(buffer.readByte(), AceFlags.class);
         int aceSize = buffer.readUInt16();

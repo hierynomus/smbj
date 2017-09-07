@@ -41,7 +41,7 @@ public class SMB2NegotiateResponse extends SMB2Packet {
     private byte[] gssToken;
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) {
         buffer.skip(2); // StructureSize (2 bytes)
         securityMode = buffer.readUInt16(); // SecurityMode (2 bytes)
         dialect = SMB2Dialect.lookup(buffer.readUInt16()); // DialectRevision (2 bytes)
@@ -67,7 +67,7 @@ public class SMB2NegotiateResponse extends SMB2Packet {
         }
     }
 
-    private byte[] readSecurityBuffer(SMBBuffer buffer, int securityBufferOffset, int securityBufferLength) throws Buffer.BufferException {
+    private byte[] readSecurityBuffer(SMBBuffer buffer, int securityBufferOffset, int securityBufferLength) {
         if (securityBufferLength > 0) {
             // Set the read pos to the start of the security buffer offset.
             buffer.rpos(securityBufferOffset);
@@ -77,7 +77,7 @@ public class SMB2NegotiateResponse extends SMB2Packet {
         }
     }
 
-    private int readNegotiateContextOffset(SMBBuffer buffer) throws Buffer.BufferException {
+    private int readNegotiateContextOffset(SMBBuffer buffer) {
         if (dialect == SMB2Dialect.SMB_3_1_1) {
             return buffer.readUInt16();
         } else {
@@ -86,7 +86,7 @@ public class SMB2NegotiateResponse extends SMB2Packet {
         }
     }
 
-    private int readNegotiateContextCount(Buffer<?> buffer) throws Buffer.BufferException {
+    private int readNegotiateContextCount(Buffer<?> buffer) {
         if (dialect == SMB2Dialect.SMB_3_1_1) {
             return buffer.readUInt16();
         } else {

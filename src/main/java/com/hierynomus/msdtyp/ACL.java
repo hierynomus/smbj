@@ -58,7 +58,7 @@ public class ACL {
         buffer.wpos(endPos);
     }
 
-    public static ACL read(SMBBuffer buffer) throws Buffer.BufferException {
+    public static ACL read(SMBBuffer buffer) {
         byte revision = buffer.readByte(); // AclRevision (1 byte)
         buffer.skip(1); // Sbz1 (1 byte)
         buffer.readUInt16(); // AclSize (2 bytes)

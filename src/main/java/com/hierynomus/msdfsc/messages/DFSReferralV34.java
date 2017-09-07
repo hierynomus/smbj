@@ -48,7 +48,7 @@ public class DFSReferralV34 extends DFSReferral {
     }
 
     @Override
-    protected void readReferral(SMBBuffer buffer, int referralStartPos) throws Buffer.BufferException {
+    protected void readReferral(SMBBuffer buffer, int referralStartPos) {
         ttl = buffer.readUInt32AsInt(); // TimeToLive (4 bytes)
         if (!isSet(referralEntryFlags, ReferralEntryFlags.NameListReferral)) {
             dfsPath = readOffsettedString(buffer, referralStartPos, buffer.readUInt16()); // DFSPath(Offset) (2 bytes)

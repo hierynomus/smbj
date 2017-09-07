@@ -359,7 +359,7 @@ public class DFSPathResolver {
         }
     }
 
-    private ReferralResult getReferral(DfsRequestType type, Share share, DFSPath path) throws TransportException, Buffer.BufferException {
+    private ReferralResult getReferral(DfsRequestType type, Share share, DFSPath path) throws TransportException {
         SMB2GetDFSReferralRequest req = new SMB2GetDFSReferralRequest(path.toPath());
         SMBBuffer buffer = new SMBBuffer();
         req.writeTo(buffer);
@@ -369,7 +369,7 @@ public class DFSPathResolver {
 
     }
 
-    private ReferralResult handleReferralResponse(DfsRequestType type, SMB2IoctlResponse response, DFSPath originalPath) throws Buffer.BufferException {
+    private ReferralResult handleReferralResponse(DfsRequestType type, SMB2IoctlResponse response, DFSPath originalPath) {
         ReferralResult result = new ReferralResult(response.getHeader().getStatus());
         if (result.status == NtStatus.STATUS_SUCCESS) {
             SMB2GetDFSReferralResponse resp = new SMB2GetDFSReferralResponse(originalPath.toPath());

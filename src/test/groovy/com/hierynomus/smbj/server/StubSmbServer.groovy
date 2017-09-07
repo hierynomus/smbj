@@ -76,7 +76,7 @@ class StubSmbServer {
         }
       }
 
-    } catch (IOException | Buffer.BufferException e) {
+    } catch (IOException e ) {
       serverException.set(new RuntimeException(e))
       throw serverException.get()
     } finally {
@@ -84,7 +84,7 @@ class StubSmbServer {
     }
   }
 
-  private static int readTcpHeader(InputStream inputStream) throws IOException, Buffer.BufferException {
+  private static int readTcpHeader(InputStream inputStream) throws IOException {
     byte[] b = new byte[4]
     IOUtils.read(inputStream, b)
     Buffer.PlainBuffer plainBuffer = new Buffer.PlainBuffer(b, Endian.BE)

@@ -20,5 +20,5 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 public interface SMBHeader {
     void writeTo(SMBBuffer buffer);
 
-    void readFrom(Buffer<?> buffer) throws Buffer.BufferException;
+    void readFrom(Buffer<?> buffer);
 }

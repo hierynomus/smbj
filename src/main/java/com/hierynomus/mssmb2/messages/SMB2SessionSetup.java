@@ -65,7 +65,7 @@ public class SMB2SessionSetup extends SMB2Packet {
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) {
         buffer.readUInt16(); // StructureSize (2 bytes) (always 9)
         sessionFlags = toEnumSet(buffer.readUInt16(), SMB2SessionFlags.class); // SessionFlags (2 bytes)
         int securityBufferOffset = buffer.readUInt16(); // SecurityBufferOffset (2 bytes)
@@ -85,7 +85,7 @@ public class SMB2SessionSetup extends SMB2Packet {
         return super.isSuccess(status) || status == NtStatus.STATUS_MORE_PROCESSING_REQUIRED;
     }
 
-    private byte[] readSecurityBuffer(SMBBuffer buffer, int securityBufferOffset, int securityBufferLength) throws Buffer.BufferException {
+    private byte[] readSecurityBuffer(SMBBuffer buffer, int securityBufferOffset, int securityBufferLength) {
         if (securityBufferLength > 0) {
             // Just to be sure, we should already be there.
             buffer.rpos(securityBufferOffset);

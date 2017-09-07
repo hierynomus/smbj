@@ -41,7 +41,7 @@ public class SMB2Logoff extends SMB2Packet {
     }
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) {
         buffer.readUInt16(); // StructureSize (2 bytes)
         buffer.skip(2); // Reserved (2 bytes)
     }

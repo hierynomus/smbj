@@ -36,7 +36,7 @@ public class DirectTcpPacketReader<P extends Packet<?>> extends PacketReader<P> 
         this.packetFactory = packetFactory;
     }
 
-    private P readPacket(int packetLength) throws IOException, Buffer.BufferException {
+    private P readPacket(int packetLength) throws IOException {
         byte[] buf = new byte[packetLength];
         readFully(buf);
         return packetFactory.read(buf);
@@ -49,12 +49,12 @@ public class DirectTcpPacketReader<P extends Packet<?>> extends PacketReader<P> 
             return readPacket(packetLength);
         } catch (TransportException e) {
             throw e;
-        } catch (IOException | Buffer.BufferException e) {
+        } catch (IOException e) {
             throw new TransportException(e);
         }
     }
 
-    private int readTcpHeader() throws IOException, Buffer.BufferException {
+    private int readTcpHeader() throws IOException {
         byte[] tcpHeader = new byte[4];
         readFully(tcpHeader);
         Buffer.PlainBuffer plainBuffer = new Buffer.PlainBuffer(tcpHeader, Endian.BE);

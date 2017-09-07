@@ -28,7 +28,7 @@ public abstract class Endian {
     public static final Endian LE = new Little();
     public static final Endian BE = new Big();
 
-    protected <T extends Buffer<T>> String readNullTerminatedUtf16String(Buffer<T> buffer, Charset charset) throws Buffer.BufferException {
+    protected <T extends Buffer<T>> String readNullTerminatedUtf16String(Buffer<T> buffer, Charset charset) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         byte[] bytes = new byte[2];
         buffer.readRawBytes(bytes);
@@ -39,7 +39,7 @@ public abstract class Endian {
         return new String(baos.toByteArray(), charset);
     }
 
-    protected <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length, Charset charset) throws Buffer.BufferException {
+    protected <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length, Charset charset) {
         byte[] stringBytes = new byte[length * 2];
         buffer.readRawBytes(stringBytes);
         return new String(stringBytes, charset);
@@ -62,7 +62,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> int readUInt16(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends Buffer<T>> int readUInt16(Buffer<T> buffer) {
             byte[] b = buffer.readRawBytes(2);
             return b[0] << 8 & 0xFF00 | b[1] & 0x00FF;
         }
@@ -76,7 +76,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> int readUInt24(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends Buffer<T>> int readUInt24(Buffer<T> buffer) {
             byte[] b = buffer.readRawBytes(3);
             return b[0] << 16 & 0xFF0000 |
                 b[1] << 8 & 0x00FF00 |
@@ -97,7 +97,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> long readUInt32(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends Buffer<T>> long readUInt32(Buffer<T> buffer) {
             byte[] b = buffer.readRawBytes(4);
             return b[0] << 24 & 0xFF000000L |
                 b[1] << 16 & 0x00FF0000L |
@@ -114,7 +114,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> long readUInt64(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends Buffer<T>> long readUInt64(Buffer<T> buffer) {
             long uint64 = (readUInt32(buffer) << 32) + (readUInt32(buffer) & 0xFFFFFFFFL);
             if (uint64 < 0) {
                 throw new Buffer.BufferException("Cannot handle values > " + Long.MAX_VALUE);
@@ -136,7 +136,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> long readLong(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends Buffer<T>> long readLong(Buffer<T> buffer) {
             long result = 0;
             byte[] b = buffer.readRawBytes(8);
             for (int i = 0; i < 8; i++) {
@@ -147,12 +147,12 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException {
+        public <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) {
             return readUtf16String(buffer, length, StandardCharsets.UTF_16BE);
         }
 
         @Override
-        public <T extends Buffer<T>> String readNullTerminatedUtf16String(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends Buffer<T>> String readNullTerminatedUtf16String(Buffer<T> buffer) {
             return readNullTerminatedUtf16String(buffer, StandardCharsets.UTF_16BE);
         }
 
@@ -181,7 +181,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> int readUInt16(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends Buffer<T>> int readUInt16(Buffer<T> buffer) {
             byte[] b = buffer.readRawBytes(2);
             return b[0] & 0x00FF |
                 b[1] << 8 & 0xFF00;
@@ -200,7 +200,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> int readUInt24(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends Buffer<T>> int readUInt24(Buffer<T> buffer) {
             byte[] b = buffer.readRawBytes(3);
             return b[0] & 0x0000FF |
                 b[1] << 8 & 0x00FF00 |
@@ -221,7 +221,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> long readUInt32(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends Buffer<T>> long readUInt32(Buffer<T> buffer) {
             byte[] b = buffer.readRawBytes(4);
             return b[0] & 0x000000FFL |
                 b[1] << 8 & 0x0000FF00L |
@@ -238,7 +238,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> long readUInt64(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends Buffer<T>> long readUInt64(Buffer<T> buffer) {
             long uint64 = (readUInt32(buffer) & 0xFFFFFFFFL) + (readUInt32(buffer) << 32);
             if (uint64 < 0) {
                 throw new Buffer.BufferException("Cannot handle values > " + Long.MAX_VALUE);
@@ -260,7 +260,7 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> long readLong(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends Buffer<T>> long readLong(Buffer<T> buffer) {
             long result = 0;
             byte[] bytes = buffer.readRawBytes(8);
             for (int i = 7; i >= 0; i--) {
@@ -272,12 +272,12 @@ public abstract class Endian {
         }
 
         @Override
-        public <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException {
+        public <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) {
             return readUtf16String(buffer, length, StandardCharsets.UTF_16LE);
         }
 
         @Override
-        public <T extends Buffer<T>> String readNullTerminatedUtf16String(Buffer<T> buffer) throws Buffer.BufferException {
+        public <T extends Buffer<T>> String readNullTerminatedUtf16String(Buffer<T> buffer) {
             return readNullTerminatedUtf16String(buffer, StandardCharsets.UTF_16LE);
         }
 
@@ -295,27 +295,27 @@ public abstract class Endian {
 
     public abstract <T extends Buffer<T>> void writeUInt16(Buffer<T> buffer, int uint16);
 
-    public abstract <T extends Buffer<T>> int readUInt16(Buffer<T> buffer) throws Buffer.BufferException;
+    public abstract <T extends Buffer<T>> int readUInt16(Buffer<T> buffer);
 
     public abstract <T extends Buffer<T>> void writeUInt24(Buffer<T> buffer, int uint24);
 
-    public abstract <T extends Buffer<T>> int readUInt24(Buffer<T> buffer) throws Buffer.BufferException;
+    public abstract <T extends Buffer<T>> int readUInt24(Buffer<T> buffer);
 
     public abstract <T extends Buffer<T>> void writeUInt32(Buffer<T> buffer, long uint32);
 
-    public abstract <T extends Buffer<T>> long readUInt32(Buffer<T> buffer) throws Buffer.BufferException;
+    public abstract <T extends Buffer<T>> long readUInt32(Buffer<T> buffer);
 
     public abstract <T extends Buffer<T>> void writeUInt64(Buffer<T> buffer, long uint64);
 
-    public abstract <T extends Buffer<T>> long readUInt64(Buffer<T> buffer) throws Buffer.BufferException;
+    public abstract <T extends Buffer<T>> long readUInt64(Buffer<T> buffer);
 
     public abstract <T extends Buffer<T>> void writeLong(Buffer<T> buffer, long longVal);
 
-    public abstract <T extends Buffer<T>> long readLong(Buffer<T> buffer) throws Buffer.BufferException;
+    public abstract <T extends Buffer<T>> long readLong(Buffer<T> buffer);
 
     public abstract <T extends Buffer<T>> void writeUtf16String(Buffer<T> buffer, String string);
 
-    public abstract <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException;
+    public abstract <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length);
 
-    public abstract <T extends Buffer<T>> String readNullTerminatedUtf16String(Buffer<T> buffer) throws Buffer.BufferException;
+    public abstract <T extends Buffer<T>> String readNullTerminatedUtf16String(Buffer<T> buffer);
 }

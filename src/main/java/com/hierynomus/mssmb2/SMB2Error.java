@@ -33,7 +33,7 @@ public class SMB2Error {
     SMB2Error() {
     }
 
-    SMB2Error read(SMB2Header header, SMBBuffer buffer) throws Buffer.BufferException {
+    SMB2Error read(SMB2Header header, SMBBuffer buffer) {
         buffer.skip(2); // StructureSize (2 bytes)
         int errorContextCount = buffer.readByte(); // ErrorContextCount (1 byte)
         buffer.skip(1); // Reserved (1 byte)
@@ -56,9 +56,9 @@ public class SMB2Error {
      * @param header
      * @param buffer
      * @param errorContextCount
-     * @throws Buffer.BufferException
+     * @throws
      */
-    private void readErrorContext(SMB2Header header, SMBBuffer buffer, int errorContextCount) throws Buffer.BufferException {
+    private void readErrorContext(SMB2Header header, SMBBuffer buffer, int errorContextCount) {
         for (int i = 0; i < errorContextCount; i++) {
             buffer.readUInt32AsInt(); // ErrorDataLength (4 bytes)
             buffer.skip(4); // ErrorId (always SMB2_ERROR_ID_DEFAULT (0x0)) (4 bytes)
@@ -72,9 +72,9 @@ public class SMB2Error {
      * @param header
      * @param buffer
      * @return
-     * @throws Buffer.BufferException
+     * @throws
      */
-    private void readErrorData(SMB2Header header, SMBBuffer buffer) throws Buffer.BufferException {
+    private void readErrorData(SMB2Header header, SMBBuffer buffer) {
         if (header.getStatus() == NtStatus.STATUS_BUFFER_TOO_SMALL) {
             this.errorData.add(new BufferTooSmallError().read(buffer));
         } else if (header.getStatus() == NtStatus.STATUS_STOPPED_ON_SYMLINK) {
@@ -98,7 +98,7 @@ public class SMB2Error {
         private SymbolicLinkError() {
         }
 
-        private SymbolicLinkError read(SMBBuffer buffer) throws Buffer.BufferException {
+        private SymbolicLinkError read(SMBBuffer buffer) {
             int symLinkLength = buffer.readUInt32AsInt();// SymLinkLength (4 bytes)
             int endOfResponse = buffer.rpos() + symLinkLength;
             buffer.skip(4); // SymLinkErrorTag (4 bytes) (always 0x4C4D5953)
@@ -116,7 +116,7 @@ public class SMB2Error {
             return this;
         }
 
-        private String readOffsettedString(SMBBuffer buffer, int offset, int length) throws Buffer.BufferException {
+        private String readOffsettedString(SMBBuffer buffer, int offset, int length) {
             int curpos = buffer.rpos();
             String s = null;
             if (length > 0) {
@@ -150,7 +150,7 @@ public class SMB2Error {
         private BufferTooSmallError() {
         }
 
-        public BufferTooSmallError read(SMBBuffer buffer) throws Buffer.BufferException {
+        public BufferTooSmallError read(SMBBuffer buffer) {
             this.requiredBufferLength = buffer.readUInt32(); // minimum required buffer size
             return this;
         }

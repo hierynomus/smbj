@@ -49,7 +49,7 @@ public abstract class ACE {
 
     abstract void writeBody(SMBBuffer buffer);
 
-    public static ACE read(SMBBuffer buffer) throws Buffer.BufferException {
+    public static ACE read(SMBBuffer buffer) {
         int startPos = buffer.rpos();
         AceHeader header = AceHeader.readFrom(buffer);
         ACE ace;

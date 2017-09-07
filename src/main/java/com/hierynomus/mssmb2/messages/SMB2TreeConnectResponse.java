@@ -37,7 +37,7 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
     private long maximalAccess;
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) {
         buffer.skip(2); // StructureSize (2 bytes)
         shareType = buffer.readByte(); // ShareType (1 byte)
         buffer.readByte(); // Reserved (1 byte)

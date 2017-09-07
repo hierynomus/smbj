@@ -25,7 +25,7 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 
 public class SMB2MessageConverter implements PacketFactory<SMB2Packet> {
 
-    private SMB2Packet read(SMBBuffer buffer) throws Buffer.BufferException {
+    private SMB2Packet read(SMBBuffer buffer) {
         // Check we see a valid header start
         Check.ensureEquals(buffer.readRawBytes(4), new byte[]{(byte) 0xFE, 'S', 'M', 'B'}, "Could not find SMB2 Packet header");
         // Skip until Command
@@ -75,13 +75,13 @@ public class SMB2MessageConverter implements PacketFactory<SMB2Packet> {
         }
     }
 
-    private SMB2Packet read(SMB2Packet packet, SMBBuffer buffer) throws Buffer.BufferException {
+    private SMB2Packet read(SMB2Packet packet, SMBBuffer buffer) {
         packet.read(buffer);
         return packet;
     }
 
     @Override
-    public SMB2Packet read(byte[] data) throws Buffer.BufferException {
+    public SMB2Packet read(byte[] data) {
         return read(new SMBBuffer(data));
     }
 

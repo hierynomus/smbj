@@ -28,7 +28,7 @@ public interface FileInformation {
     interface Decoder<F extends FileInformation> {
         FileInformationClass getInformationClass();
 
-        F read(Buffer inputBuffer) throws Buffer.BufferException;
+        F read(Buffer inputBuffer);
     }
 
     interface Codec<F extends FileInformation> extends Encoder<F>, Decoder<F> {

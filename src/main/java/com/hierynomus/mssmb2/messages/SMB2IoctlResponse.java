@@ -35,7 +35,7 @@ public class SMB2IoctlResponse extends SMB2Packet {
     byte[] outputBuffer;
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) {
         buffer.skip(2); // StructureSize (2 bytes)
         buffer.skip(2); // Reserved (2 bytes)
         controlCode = buffer.readUInt32AsInt(); // CtlCode (4 bytes)

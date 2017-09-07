@@ -27,7 +27,7 @@ public class SMB2WriteResponse extends SMB2Packet {
     private long bytesWritten;
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) {
         buffer.skip(2); // StructureSize (2 bytes)
         buffer.skip(2); // Reserved (2 bytes)
         bytesWritten = buffer.readUInt32(); // Count (4 bytes)

@@ -29,7 +29,7 @@ public class SMB2ReadResponse extends SMB2Packet {
     private byte[] data;
 
     @Override
-    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+    protected void readMessage(SMBBuffer buffer) {
         buffer.skip(2); // StructureSize (2 bytes)
         byte dataOffset = buffer.readByte(); // DataOffset (1 byte)
         buffer.skip(1); // Reserved (1 byte)

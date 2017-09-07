@@ -431,7 +431,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
         }
 
         @Override
-        public SMBPacket<?> read(byte[] data) throws Buffer.BufferException, IOException {
+        public SMBPacket<?> read(byte[] data) throws IOException {
             for (PacketFactory<?> packetFactory : packetFactories) {
                 if (packetFactory.canHandle(data)) {
                     return (SMBPacket<?>) packetFactory.read(data);

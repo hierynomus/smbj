@@ -28,7 +28,7 @@ public interface PacketFactory<P extends Packet<?>> {
      * @param data the byte array containing the full packet data
      * @return A newly constructed packet.
      */
-    P read(byte[] data) throws Buffer.BufferException, IOException;
+    P read(byte[] data) throws IOException;
 
     /**
      * Checks whether this PacketFactory is able to handle the incoming raw byte data.

@@ -160,7 +160,7 @@ public class SMB2Header implements SMBHeader {
     }
 
     @Override
-    public void readFrom(Buffer<?> buffer) throws Buffer.BufferException {
+    public void readFrom(Buffer<?> buffer) {
         buffer.skip(4); // ProtocolId (4 bytes) (already verified)
         buffer.skip(2); // StructureSize (2 bytes)
         buffer.readUInt16(); // CreditCharge (2 bytes)

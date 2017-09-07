@@ -80,7 +80,7 @@ public class WindowsVersion {
     WindowsVersion() {
     }
 
-    WindowsVersion readFrom(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+    WindowsVersion readFrom(Buffer.PlainBuffer buffer) {
         this.majorVersion = EnumWithValue.EnumUtils.valueOf(buffer.readByte(), ProductMajorVersion.class, null); // ProductMajorVersion (1 byte)
         this.minorVersion = EnumWithValue.EnumUtils.valueOf(buffer.readByte(), ProductMinorVersion.class, null); // ProductMinorVersion (1 byte)
         this.productBuild = buffer.readUInt16(); // ProductBuild (2 bytes)
