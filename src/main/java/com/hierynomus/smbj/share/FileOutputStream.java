@@ -15,9 +15,9 @@
  */
 package com.hierynomus.smbj.share;
 
+import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.io.ByteChunkProvider;
-import com.hierynomus.protocol.transport.TransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

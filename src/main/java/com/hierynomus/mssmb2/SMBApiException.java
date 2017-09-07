@@ -16,8 +16,6 @@
 package com.hierynomus.mssmb2;
 
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.mssmb2.SMB2Header;
-import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 
 public class SMBApiException extends SMBRuntimeException {

@@ -17,7 +17,6 @@ package com.hierynomus.mssmb.messages;
 
 import com.hierynomus.mssmb.SMB1Packet;
 import com.hierynomus.mssmb2.SMB2Dialect;
-import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 
 import java.nio.charset.StandardCharsets;

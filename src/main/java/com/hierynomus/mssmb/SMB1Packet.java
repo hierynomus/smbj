@@ -15,7 +15,6 @@
  */
 package com.hierynomus.mssmb;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smb.SMBPacket;
 

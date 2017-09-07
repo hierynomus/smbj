@@ -16,7 +16,6 @@
 package com.hierynomus.mssmb2;
 
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 
 import java.nio.charset.StandardCharsets;

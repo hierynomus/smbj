@@ -27,7 +27,6 @@ import com.hierynomus.protocol.commons.ByteArrayUtils
 import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.auth.AuthenticationContext
-import com.hierynomus.smbj.common.Check
 import com.hierynomus.smbj.connection.BasicPacketProcessor
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.connection.StubAuthenticator

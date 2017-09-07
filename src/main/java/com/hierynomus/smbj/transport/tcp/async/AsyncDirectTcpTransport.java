@@ -18,10 +18,10 @@ package com.hierynomus.smbj.transport.tcp.async;
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
-import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.protocol.transport.PacketHandlers;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.protocol.transport.TransportLayer;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

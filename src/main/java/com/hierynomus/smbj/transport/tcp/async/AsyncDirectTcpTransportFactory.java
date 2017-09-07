@@ -16,10 +16,10 @@
 package com.hierynomus.smbj.transport.tcp.async;
 
 import com.hierynomus.protocol.Packet;
-import com.hierynomus.smbj.SmbConfig;
-import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.protocol.transport.PacketHandlers;
 import com.hierynomus.protocol.transport.TransportLayer;
+import com.hierynomus.smbj.SmbConfig;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.transport.TransportLayerFactory;
 
 import java.io.IOException;
