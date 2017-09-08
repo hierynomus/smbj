@@ -154,7 +154,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
             Session session = getSession(authContext);
             SMB2SessionSetup receive = authenticationRound(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
             long sessionId = receive.getHeader().getSessionId();
-            session.init(receive);
+            session.setSessionId(sessionId);
             connectionInfo.getPreauthSessionTable().registerSession(sessionId, session);
             try {
                 while (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
@@ -170,6 +170,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
                     // process the last received buffer
                     authenticator.authenticate(authContext, receive.getSecurityBuffer(), session);
                 }
+                session.init(receive);
                 logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), remoteName, session.getSessionId());
                 connectionInfo.getSessionTable().registerSession(session.getSessionId(), session);
                 return session;

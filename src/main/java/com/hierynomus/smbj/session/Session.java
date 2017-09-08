@@ -70,13 +70,16 @@ public class Session implements AutoCloseable {
     }
 
     public void init(SMB2SessionSetup setup) {
-        this.sessionId = setup.getHeader().getSessionId();
         this.guest = setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_GUEST);
         this.anonymous = setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_NULL);
     }
 
     public long getSessionId() {
         return sessionId;
+    }
+
+    public void setSessionId(long sessionId) {
+        this.sessionId = sessionId;
     }
 
     /**
