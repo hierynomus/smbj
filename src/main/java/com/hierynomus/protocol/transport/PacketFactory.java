@@ -24,6 +24,7 @@ public interface PacketFactory<P extends Packet<?>> {
 
     /**
      * Construct a packet out of the raw byte data.
+     *
      * @param data the byte array containing the full packet data
      * @return A newly constructed packet.
      */
@@ -31,6 +32,7 @@ public interface PacketFactory<P extends Packet<?>> {
 
     /**
      * Checks whether this PacketFactory is able to handle the incoming raw byte data.
+     *
      * @param data the byte array containing the full packet data
      * @return true if the {@link #read(byte[])} will result in a packet, false otherwise.
      */

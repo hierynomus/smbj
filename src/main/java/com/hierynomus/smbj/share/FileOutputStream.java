@@ -72,10 +72,10 @@ class FileOutputStream extends OutputStream {
             if (!provider.isBufferFull()) {
                 provider.writeBytes(b, offset, writeLen);
             }
-            
+
             offset += writeLen;
             length -= writeLen;
-            
+
         } while (length > 0);
     }
 

@@ -234,7 +234,7 @@ class RingBufferSpec extends Specification {
     def b1 = [1, 2, 3, 4, 5] as byte[]
     def r1 = new byte[2];
     def r2 = new byte[3];
-    
+
     when:
     cBuf.write(b1, 0, 2);
     cBuf.read(r1);

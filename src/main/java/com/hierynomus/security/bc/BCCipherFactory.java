@@ -32,6 +32,7 @@ import java.util.Map;
 
 public class BCCipherFactory {
     private static final Map<String, Factory<Cipher>> lookup = new HashMap<>();
+
     static {
         lookup.put("DES/ECB/NoPadding", new Factory<Cipher>() {
             @Override

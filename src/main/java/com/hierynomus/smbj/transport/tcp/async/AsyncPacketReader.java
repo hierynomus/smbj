@@ -43,7 +43,7 @@ public class AsyncPacketReader<P extends Packet<?>> {
     private AtomicBoolean stopped = new AtomicBoolean(false);
 
     public AsyncPacketReader(AsynchronousSocketChannel channel, PacketFactory<P> packetFactory,
-            PacketReceiver<P> handler) {
+                             PacketReceiver<P> handler) {
         this.channel = channel;
         this.packetFactory = packetFactory;
         this.handler = handler;
@@ -66,42 +66,42 @@ public class AsyncPacketReader<P extends Packet<?>> {
         }
         logger.trace("Initiating next read");
         channel.read(bufferReader.getBuffer(), this.soTimeout, TimeUnit.MILLISECONDS, bufferReader,
-                new CompletionHandler<Integer, PacketBufferReader>() {
+            new CompletionHandler<Integer, PacketBufferReader>() {
 
-                    @Override
-                    public void completed(Integer bytesRead, PacketBufferReader reader) {
-                        logger.trace("Received {} bytes", bytesRead);
-                        if (bytesRead < 0) {
-                            handleClosedReader();
-                            return; // stop the read cycle
-                        }
-                        try {
-                            processPackets(reader);
-                            initiateNextRead(reader);
-                        } catch (RuntimeException e) {
-                            handleAsyncFailure(e);
-                        }
+                @Override
+                public void completed(Integer bytesRead, PacketBufferReader reader) {
+                    logger.trace("Received {} bytes", bytesRead);
+                    if (bytesRead < 0) {
+                        handleClosedReader();
+                        return; // stop the read cycle
                     }
-
-                    @Override
-                    public void failed(Throwable exc, PacketBufferReader attachment) {
-                        handleAsyncFailure(exc);
+                    try {
+                        processPackets(reader);
+                        initiateNextRead(reader);
+                    } catch (RuntimeException e) {
+                        handleAsyncFailure(e);
                     }
+                }
 
-                    private void processPackets(PacketBufferReader reader) {
-                        for (byte[] packetBytes = reader.readNext(); packetBytes != null; packetBytes = reader
-                                .readNext()) {
-                            readAndHandlePacket(packetBytes);
-                        }
+                @Override
+                public void failed(Throwable exc, PacketBufferReader attachment) {
+                    handleAsyncFailure(exc);
+                }
+
+                private void processPackets(PacketBufferReader reader) {
+                    for (byte[] packetBytes = reader.readNext(); packetBytes != null; packetBytes = reader
+                        .readNext()) {
+                        readAndHandlePacket(packetBytes);
                     }
+                }
 
-                    private void handleClosedReader() {
-                        if (!stopped.get()) {
-                            handleAsyncFailure(new EOFException("Connection closed by server"));
-                        }
+                private void handleClosedReader() {
+                    if (!stopped.get()) {
+                        handleAsyncFailure(new EOFException("Connection closed by server"));
                     }
+                }
 
-                });
+            });
     }
 
     private void readAndHandlePacket(byte[] packetBytes) {

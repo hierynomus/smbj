@@ -76,7 +76,7 @@ class StubSmbServer {
         }
       }
 
-    } catch (IOException | Buffer.BufferException e ) {
+    } catch (IOException | Buffer.BufferException e) {
       serverException.set(new RuntimeException(e))
       throw serverException.get()
     } finally {

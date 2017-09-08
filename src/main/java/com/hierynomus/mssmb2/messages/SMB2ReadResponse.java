@@ -43,6 +43,7 @@ public class SMB2ReadResponse extends SMB2Packet {
     /**
      * [MS-SMB2].pdf 3.3.4.4
      * STATUS_BUFFER_OVERFLOW should be treated as a success code.
+     *
      * @param status The status to verify
      * @return
      */

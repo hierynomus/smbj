@@ -28,6 +28,6 @@
     </root>
 
     <logger name="com.hierynomus" level="trace"/>
-    <logger name="com.hierynomus.smbj.transport" level="trace" />
+    <logger name="com.hierynomus.smbj.transport" level="trace"/>
 
 </configuration>
