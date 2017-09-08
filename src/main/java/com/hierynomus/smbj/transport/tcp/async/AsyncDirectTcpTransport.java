@@ -53,12 +53,12 @@ public class AsyncDirectTcpTransport<P extends Packet<?>> implements TransportLa
     private boolean writingNow = false;
 
     public AsyncDirectTcpTransport(int soTimeout, PacketHandlers<P> handlers, AsynchronousChannelGroup group)
-            throws IOException {
+        throws IOException {
         this.soTimeout = soTimeout;
         this.handlers = handlers;
         this.socketChannel = AsynchronousSocketChannel.open(group);
         this.packetReader = new AsyncPacketReader<>(this.socketChannel, handlers.getPacketFactory(),
-                handlers.getReceiver());
+            handlers.getReceiver());
         this.writeQueue = new LinkedBlockingQueue<>();
     }
 

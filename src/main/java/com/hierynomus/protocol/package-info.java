@@ -15,7 +15,7 @@
  */
 /**
  * Generic protocol layer, unaware of the protocol implemented.
- *
+ * <p>
  * Can later be split off as a library to implement different protocols on.
  */
 package com.hierynomus.protocol;

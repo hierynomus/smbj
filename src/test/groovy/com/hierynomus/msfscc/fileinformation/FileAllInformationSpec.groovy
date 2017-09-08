@@ -16,17 +16,16 @@
 package com.hierynomus.msfscc.fileinformation
 
 import com.hierynomus.msdtyp.FileTime
+import com.hierynomus.protocol.commons.ByteArrayUtils
 import com.hierynomus.protocol.commons.buffer.Buffer
 import com.hierynomus.protocol.commons.buffer.Endian
 import spock.lang.Specification
 
-import javax.xml.bind.DatatypeConverter
-
 class FileAllInformationSpec extends Specification {
   def "should parse information"() {
     given:
-    String hex = "80a79df99105d0013291af48c52dd2013291af48c52dd20136a3af48c52dd201800000000000000000001000000000003e46000000000000010000000000000087006f00010000000000000089001200000000000000000000000000000000002e0000005c006900660073005c006900730069005f006700610074006800650072005f0070006500720066002e0070007900";
-    byte[] bytes = DatatypeConverter.parseHexBinary(hex);
+    String hex = "80a79df99105d0013291af48c52dd2013291af48c52dd20136a3af48c52dd201800000000000000000001000000000003e46000000000000010000000000000087006f00010000000000000089001200000000000000000000000000000000002e0000005c006900660073005c006900730069005f006700610074006800650072005f0070006500720066002e0070007900"
+    byte[] bytes = ByteArrayUtils.parseHex(hex)
 
     when:
     def info = FileInformationFactory.getDecoder(FileAllInformation.class).read(new Buffer.PlainBuffer(bytes, Endian.LE))

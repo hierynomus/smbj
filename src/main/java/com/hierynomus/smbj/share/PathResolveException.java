@@ -23,10 +23,12 @@ public class PathResolveException extends Exception {
     public PathResolveException(NtStatus status) {
         this.status = status;
     }
+
     public PathResolveException(NtStatus status, String message) {
         super(message);
         this.status = status;
     }
+
     public PathResolveException(Throwable cause) {
         super(cause);
         this.status = NtStatus.UNKNOWN;

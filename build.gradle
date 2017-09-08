@@ -6,13 +6,13 @@ plugins {
   id "groovy"
   id "jacoco"
   id "jdepend"
-  id "findbugs"
   id "maven-publish"
   id "org.ajoberstar.release-opinion" version "1.4.2"
   id "com.github.hierynomus.license" version "0.12.1"
   id "com.jfrog.bintray" version "1.7"
   id 'ru.vyarus.pom' version '1.0.3'
   id 'ru.vyarus.github-info' version '1.1.0'
+  id 'ru.vyarus.animalsniffer' version '1.4.2'
 }
 
 group = "com.hierynomus"
@@ -32,9 +32,10 @@ configurations.compile.transitive = false
 def bouncycastleVersion = "1.57"
 
 dependencies {
+  signature 'org.codehaus.mojo.signature:java17:1.0@signature'
+
   compile "org.slf4j:slf4j-api:1.7.25"
   compile "org.bouncycastle:bcprov-jdk15on:$bouncycastleVersion"
-  compile "org.bouncycastle:bcpkix-jdk15on:$bouncycastleVersion"
   compile 'net.engio:mbassador:1.3.0'
   testCompile 'org.codehaus.groovy:groovy-all:2.4.4'
   testRuntime 'cglib:cglib-nodep:2.2'
@@ -217,23 +218,15 @@ jdependReport.doLast {
     out: "$reporting.baseDir/jdepend/main.html")
 }
 
-tasks.withType(FindBugs) {
-  reports {
-    xml.enabled false
-    html.enabled true
-    // html.stylesheet resources.text.fromFile('config/xsl/color.xsl')
-  }
-}
-
-findbugs {
-  sourceSets = [sourceSets.main]
-  ignoreFailures = true
-}
-
 check {
   dependsOn += ['jdependReport']
 }
 
+// KRB5 depends on com.sun.security.jgss classes, but those should normally not be accessed,
+// so we ignore them from the sniffer
+animalsniffer {
+  ignore 'com.sun.security.jgss.*'
+}
 
 project.tasks.release.dependsOn(project.tasks.bintrayUpload)
 project.tasks.jacocoTestReport.dependsOn(project.tasks.test)

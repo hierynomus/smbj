@@ -22,10 +22,10 @@ public class SMB2GetDFSReferralExRequest {
     private int requestFlags;
     private String requestFileName;
     private String siteName;
-    
+
     enum RequestFlags {
         FLAGS_SITENAMEPRESENT(0x1);
-        
+
         private int value;
 
         RequestFlags(int value) {
@@ -36,7 +36,7 @@ public class SMB2GetDFSReferralExRequest {
             return value;
         }
     }
-    
+
     public SMB2GetDFSReferralExRequest(String path) {
         maxReferralLevel = 0;
         requestFlags = 0;
@@ -50,21 +50,21 @@ public class SMB2GetDFSReferralExRequest {
         requestFileName = path;
         siteName = site;
     }
-    
+
     public void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(maxReferralLevel);
         buffer.putUInt16(requestFlags);
-        
-        if ((requestFlags & RequestFlags.FLAGS_SITENAMEPRESENT.getValue()) != 0) { 
-            buffer.putUInt32(requestFileName.length()+2+siteName.length()+2);
+
+        if ((requestFlags & RequestFlags.FLAGS_SITENAMEPRESENT.getValue()) != 0) {
+            buffer.putUInt32(requestFileName.length() + 2 + siteName.length() + 2);
         } else {
-            buffer.putUInt32(requestFileName.length()+2);
+            buffer.putUInt32(requestFileName.length() + 2);
         }
-        
+
         buffer.putStringLengthUInt16(requestFileName);
         buffer.putString(requestFileName);
-        
-        if ((requestFlags & RequestFlags.FLAGS_SITENAMEPRESENT.getValue()) != 0) { 
+
+        if ((requestFlags & RequestFlags.FLAGS_SITENAMEPRESENT.getValue()) != 0) {
             buffer.putStringLengthUInt16(requestFileName);
             buffer.putString(requestFileName);
         }

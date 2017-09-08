@@ -38,6 +38,7 @@ class IntegrationTest extends Specification {
   def config = SmbConfig.builder().withSigningRequired(true).withSecurityProvider(new BCSecurityProvider()).build()
   def client = new SMBClient(config)
   def connection = _
+
   def setup() {
     connection = client.connect(IP)
   }

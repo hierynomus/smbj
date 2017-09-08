@@ -57,6 +57,7 @@ public class SMB2TreeConnectRequest extends SMB2Packet {
 
     /**
      * Needed for DFS resolution
+     *
      * @return
      */
     public SmbPath getSmbPath() {
@@ -65,6 +66,7 @@ public class SMB2TreeConnectRequest extends SMB2Packet {
 
     /**
      * Needed for DFS resolution
+     *
      * @param smbPath The resolved SMB Path
      */
     public void setSmbPath(SmbPath smbPath) {

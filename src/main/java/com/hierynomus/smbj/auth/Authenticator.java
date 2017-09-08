@@ -26,6 +26,6 @@ public interface Authenticator {
     void init(SecurityProvider securityProvider, Random random);
 
     boolean supports(AuthenticationContext context);
-    
+
     byte[] authenticate(AuthenticationContext context, byte[] gssToken, Session session) throws IOException;
 }

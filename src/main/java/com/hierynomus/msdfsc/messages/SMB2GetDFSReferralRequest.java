@@ -25,11 +25,11 @@ import java.nio.charset.StandardCharsets;
 public class SMB2GetDFSReferralRequest {
 
     private String requestFileName;
-    
+
     public SMB2GetDFSReferralRequest(String path) {
         requestFileName = path;
     }
-    
+
     public void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(4); // MaxReferralLevel (2 bytes)
         buffer.putNullTerminatedString(requestFileName, StandardCharsets.UTF_16); // RequestFileName (variable)

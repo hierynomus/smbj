@@ -40,6 +40,7 @@ public abstract class DFSReferral {
         }
 
     }
+
     public enum ReferralEntryFlags implements EnumWithValue<ReferralEntryFlags> {
         NameListReferral(0x02),
         TargetSetBoundary(0x04);

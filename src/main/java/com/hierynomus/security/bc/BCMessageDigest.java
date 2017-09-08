@@ -26,6 +26,7 @@ import java.util.Map;
 
 public class BCMessageDigest implements MessageDigest {
     private static Map<String, Factory<Digest>> lookup = new HashMap<>();
+
     static {
         lookup.put("SHA256", new Factory<Digest>() {
             @Override

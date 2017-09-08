@@ -125,11 +125,11 @@ public abstract class DiskEntry implements Closeable {
      * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
      * corresponding operation.
      *
-     * @param ctlCode  the control code
-     * @param isFsCtl  true if the control code is an FSCTL; false if it is an IOCTL
-     * @param inData   the control code dependent input data
-     * @param inOffset the offset in <code>inData</code> where the input data starts
-     * @param inLength the number of bytes from <code>inData</code> to send, starting at <code>inOffset</code>
+     * @param ctlCode   the control code
+     * @param isFsCtl   true if the control code is an FSCTL; false if it is an IOCTL
+     * @param inData    the control code dependent input data
+     * @param inOffset  the offset in <code>inData</code> where the input data starts
+     * @param inLength  the number of bytes from <code>inData</code> to send, starting at <code>inOffset</code>
      * @param outData   the buffer where the response data should be written
      * @param outOffset the offset in <code>outData</code> where the output data should be written
      * @param outLength the maximum amount of data to write in <code>outData</code>, starting at <code>outOffset</code>

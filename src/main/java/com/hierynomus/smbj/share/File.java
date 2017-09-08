@@ -42,7 +42,8 @@ public class File extends DiskEntry {
 
     /**
      * Write the data in buffer to this file at position fileOffset.
-     * @param buffer the data to write
+     *
+     * @param buffer     the data to write
      * @param fileOffset The offset, in bytes, into the file to which the data should be written
      * @return the actual number of bytes that was written to the file
      */
@@ -52,10 +53,11 @@ public class File extends DiskEntry {
 
     /**
      * Write the data in buffer to this file at position fileOffset.
-     * @param buffer the data to write
+     *
+     * @param buffer     the data to write
      * @param fileOffset The offset, in bytes, into the file to which the data should be written
-     * @param offset the start offset in the data
-     * @param length the number of bytes that are written
+     * @param offset     the start offset in the data
+     * @param length     the number of bytes that are written
      * @return the actual number of bytes that was written to the file
      */
     public int write(byte[] buffer, long fileOffset, int offset, int length) {
@@ -65,6 +67,7 @@ public class File extends DiskEntry {
     /**
      * Write all available data from the byte chunk provider to this file.
      * The offset in the file to which data is written is determined by {@link ByteChunkProvider#getOffset()}.
+     *
      * @param provider the byte chunk provider
      * @return the actual number of bytes that was written to the file
      */
@@ -75,7 +78,8 @@ public class File extends DiskEntry {
     /**
      * Write all available data from the byte chunk provider to this file.
      * The offset in the file to which data is written is determined by {@link ByteChunkProvider#getOffset()}.
-     * @param provider the byte chunk provider
+     *
+     * @param provider         the byte chunk provider
      * @param progressListener an optional callback that will be invoked when data has been written to the file
      * @return the actual number of bytes that was written to the file
      */
@@ -85,7 +89,8 @@ public class File extends DiskEntry {
             logger.debug("Writing to {} from offset {}", this.fileName, provider.getOffset());
             SMB2WriteResponse wresp = share.write(fileId, provider);
             bytesWritten += wresp.getBytesWritten();
-            if (progressListener != null) progressListener.onProgressChanged(wresp.getBytesWritten(), provider.getOffset());
+            if (progressListener != null)
+                progressListener.onProgressChanged(wresp.getBytesWritten(), provider.getOffset());
         }
         return bytesWritten;
     }
@@ -104,7 +109,8 @@ public class File extends DiskEntry {
 
     /**
      * Read data from this file starting at position fileOffset into the given buffer.
-     * @param buffer the buffer to write into
+     *
+     * @param buffer     the buffer to write into
      * @param fileOffset The offset, in bytes, into the file from which the data should be read
      * @return the actual number of bytes that were read; or -1 if the end of the file was reached
      */
@@ -114,10 +120,11 @@ public class File extends DiskEntry {
 
     /**
      * Read data from this file starting at position fileOffset into the given buffer.
-     * @param buffer the buffer to write into
+     *
+     * @param buffer     the buffer to write into
      * @param fileOffset The offset, in bytes, into the file from which the data should be read
-     * @param offset the start offset in the buffer at which to write data
-     * @param length the maximum number of bytes to read
+     * @param offset     the start offset in the buffer at which to write data
+     * @param length     the maximum number of bytes to read
      * @return the actual number of bytes that were read; or -1 if the end of the file was reached
      */
     public int read(byte[] buffer, long fileOffset, int offset, int length) {
