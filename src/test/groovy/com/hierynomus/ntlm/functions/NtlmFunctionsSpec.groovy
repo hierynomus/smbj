@@ -26,7 +26,8 @@ import java.security.SecureRandom
 class NtlmFunctionsSpec extends Specification {
 
   static SecureRandom random = new SecureRandom()
-  static def providers = [new JceSecurityProvider(), new JceSecurityProvider(new BouncyCastleProvider()), new BCSecurityProvider()]
+  static
+  def providers = [new JceSecurityProvider(), new JceSecurityProvider(new BouncyCastleProvider()), new BCSecurityProvider()]
 
   @Unroll
   def "should correctly determine LMOWFv1 LM hash"() {

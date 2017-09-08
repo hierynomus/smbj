@@ -22,14 +22,17 @@ import javax.security.auth.Subject;
 public class GSSAuthenticationContext extends AuthenticationContext {
     Subject subject;
     GSSCredential creds;
+
     public GSSAuthenticationContext(String username, String domain, Subject subject, GSSCredential creds) {
         super(username, "".toCharArray(), domain);
         this.subject = subject;
         this.creds = creds;
     }
+
     public Subject getSubject() {
         return subject;
     }
+
     public GSSCredential getCreds() {
         return creds;
     }

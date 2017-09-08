@@ -42,7 +42,7 @@ public class SMB2SessionSetup extends SMB2Packet {
     }
 
     public SMB2SessionSetup(SMB2Dialect negotiatedDialect, Set<SMB2SecurityMode> securityMode,
-            Set<SMB2GlobalCapability> capabilities) {
+                            Set<SMB2GlobalCapability> capabilities) {
         super(25, negotiatedDialect, SMB2MessageCommandCode.SMB2_SESSION_SETUP);
         this.negotiatedDialect = negotiatedDialect;
         this.securityMode = (byte) EnumWithValue.EnumUtils.toLong(securityMode);
@@ -76,6 +76,7 @@ public class SMB2SessionSetup extends SMB2Packet {
     /**
      * [MS-SMB2].pdf 3.3.4.4
      * STATUS_MORE_PROCESSING_REQUIRED should be treated as a success code.
+     *
      * @param status The status to verify
      * @return
      */

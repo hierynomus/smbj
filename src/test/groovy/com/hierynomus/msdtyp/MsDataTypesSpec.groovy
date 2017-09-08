@@ -20,16 +20,16 @@ import spock.lang.Specification
 
 class MsDataTypesSpec extends Specification {
 
-    def "should read/write UUID correctly"() {
-        given:
-        def buffer = new SMBBuffer()
-        def uuid = UUID.fromString("fbbd1895-af40-48a4-a183-8dabeb1e901a")
+  def "should read/write UUID correctly"() {
+    given:
+    def buffer = new SMBBuffer()
+    def uuid = UUID.fromString("fbbd1895-af40-48a4-a183-8dabeb1e901a")
 
-        when:
-        MsDataTypes.putGuid(uuid, buffer)
+    when:
+    MsDataTypes.putGuid(uuid, buffer)
 
-        then:
-        buffer.printHex() == "95 18 bd fb 40 af a4 48 a1 83 8d ab eb 1e 90 1a"
-        MsDataTypes.readGuid(buffer) == uuid
-    }
+    then:
+    buffer.printHex() == "95 18 bd fb 40 af a4 48 a1 83 8d ab eb 1e 90 1a"
+    MsDataTypes.readGuid(buffer) == uuid
+  }
 }

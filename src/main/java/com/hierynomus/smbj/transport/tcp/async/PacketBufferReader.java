@@ -31,7 +31,7 @@ public class PacketBufferReader {
         this.readBuffer = ByteBuffer.allocate(READ_BUFFER_CAPACITY);
         this.readBuffer.order(ByteOrder.BIG_ENDIAN);
     }
-    
+
     public byte[] readNext() {
         readBuffer.flip(); // prepare to process received data
         byte[] result;

@@ -87,11 +87,11 @@ public class Directory extends DiskEntry implements Iterable<FileIdBothDirectory
 
     /**
      * Returns an iterator of the contents of this directory.
-     *
+     * <p>
      * The optional searchPattern parameter can contain the name of a file (or multiple files, if wildcards are used)
      * within this directory. When it is not <code>null</code> only files whose names match the search pattern string
      * are included in the resulting iterator. When it is <code>null</code> all files are included.
-     *
+     * <p>
      * Two wild card characters are supported in the search pattern. The "?" (question mark) character matches a single
      * character. If a search pattern contains one or more "?" characters, then exactly that number of characters is
      * matched by the wildcards. For example, the criterion "??x" matches "abx" but not "abcx" or "ax", because the two
@@ -186,6 +186,7 @@ public class Directory extends DiskEntry implements Iterable<FileIdBothDirectory
                 currentIterator = FileInformationFactory.createFileInformationIterator(currentBuffer, decoder);
             }
         }
+
         @Override
         public void remove() {
             throw new UnsupportedOperationException();

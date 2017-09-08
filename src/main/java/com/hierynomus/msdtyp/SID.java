@@ -93,12 +93,12 @@ public class SID {
         }
 
         byte[] identifierAuthority = new byte[6];
-        identifierAuthority[0] = (byte)((identifierAuthorityValue >> 40) & 0xFF);
-        identifierAuthority[1] = (byte)((identifierAuthorityValue >> 32) & 0xFF);
-        identifierAuthority[2] = (byte)((identifierAuthorityValue >> 24) & 0xFF);
-        identifierAuthority[3] = (byte)((identifierAuthorityValue >> 16) & 0xFF);
-        identifierAuthority[4] = (byte)((identifierAuthorityValue >> 8) & 0xFF);
-        identifierAuthority[5] = (byte)(identifierAuthorityValue & 0xFF);
+        identifierAuthority[0] = (byte) ((identifierAuthorityValue >> 40) & 0xFF);
+        identifierAuthority[1] = (byte) ((identifierAuthorityValue >> 32) & 0xFF);
+        identifierAuthority[2] = (byte) ((identifierAuthorityValue >> 24) & 0xFF);
+        identifierAuthority[3] = (byte) ((identifierAuthorityValue >> 16) & 0xFF);
+        identifierAuthority[4] = (byte) ((identifierAuthorityValue >> 8) & 0xFF);
+        identifierAuthority[5] = (byte) (identifierAuthorityValue & 0xFF);
 
         String[] subAuthorityStrings = sidString.substring(matcher.end(2)).split("-");
         long[] subAuthorities = new long[subAuthorityStrings.length - 1];
@@ -106,7 +106,7 @@ public class SID {
             subAuthorities[i] = Long.parseLong(subAuthorityStrings[i + 1]);
         }
 
-        return new SID((byte)revision, identifierAuthority, subAuthorities);
+        return new SID((byte) revision, identifierAuthority, subAuthorities);
     }
 
     public void write(SMBBuffer buffer) {

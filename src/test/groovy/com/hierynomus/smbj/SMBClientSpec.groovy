@@ -21,7 +21,7 @@ import spock.lang.Specification
 
 class SMBClientSpec extends Specification {
 
-  def processor = new BasicPacketProcessor({req -> null})
+  def processor = new BasicPacketProcessor({ req -> null })
   def config = SmbConfig.builder().withTransportLayerFactory(new StubTransportLayerFactory(processor.&processPacket)).build()
   def client = new SMBClient(config)
 

@@ -48,6 +48,7 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
     /**
      * [MS-SMB2].pdf 3.3.4.4
      * STATUS_NOTIFY_ENUM_DIR should be treated as a success code.
+     *
      * @param status The status to verify
      * @return
      */

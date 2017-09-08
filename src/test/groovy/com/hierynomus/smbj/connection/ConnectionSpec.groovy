@@ -31,7 +31,7 @@ import spock.lang.Specification
 class ConnectionSpec extends Specification {
 
   def bus = new SMBEventBus()
-  def packetProcessor = { req -> null}
+  def packetProcessor = { req -> null }
   def config = smbConfig(packetProcessor)
 
   private SmbConfig smbConfig(packetProcessor) {

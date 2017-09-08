@@ -61,6 +61,7 @@ public class SMB2Packet extends SMBPacket<SMB2Header> {
 
     /**
      * The buffer from which this packet is read if it was a received packet
+     *
      * @return The buffer
      */
     public SMBBuffer getBuffer() {
@@ -70,6 +71,7 @@ public class SMB2Packet extends SMBPacket<SMB2Header> {
     /**
      * The start position of this packet in the {@link #getBuffer()}. Normally this is 0, except
      * when this packet was compounded.
+     *
      * @return The start position of this received packet in the buffer
      */
     public int getMessageStartPos() {
@@ -79,6 +81,7 @@ public class SMB2Packet extends SMBPacket<SMB2Header> {
     /**
      * THe end position of this packet in the {@link #getBuffer()}. Normally this is the last written position,
      * except when this packet was compounded.
+     *
      * @return The end position of this received packet in the buffer
      */
     public int getMessageEndPos() {
@@ -127,6 +130,7 @@ public class SMB2Packet extends SMBPacket<SMB2Header> {
 
     /**
      * Callback to verify whether the status is a success status. Some responses have error codes that should be treated as success responses.
+     *
      * @param status The status to verify
      * @return {@code true} is {@link NtStatus#isSuccess()}
      */
@@ -154,6 +158,7 @@ public class SMB2Packet extends SMBPacket<SMB2Header> {
     public int getCreditsAssigned() {
         return getHeader().getCreditCharge();
     }
+
     public void setCreditsAssigned(int creditsAssigned) {
         getHeader().setCreditCharge(creditsAssigned);
     }
