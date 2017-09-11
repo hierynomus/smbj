@@ -46,6 +46,7 @@ public class NtlmAuthenticator implements Authenticator {
     private static final ASN1ObjectIdentifier NTLMSSP = MicrosoftObjectIdentifiers.microsoft.branch("2.2.10");
     private SecurityProvider securityProvider;
     private Random random;
+    private WindowsVersion version;
 
     public static class Factory implements com.hierynomus.protocol.commons.Factory.Named<Authenticator> {
         @Override
@@ -85,6 +86,7 @@ public class NtlmAuthenticator implements Authenticator {
                     throw new IOException(e);
                 }
                 logger.debug("Received NTLM challenge from: {}", challenge.getTargetName());
+                version = challenge.getVersion();
 
                 byte[] serverChallenge = challenge.getServerChallenge();
                 byte[] responseKeyNT = ntlmFunctions.NTOWFv2(String.valueOf(context.getPassword()), context.getUsername(), context.getDomain());
@@ -177,4 +179,5 @@ public class NtlmAuthenticator implements Authenticator {
         return context.getClass().equals(AuthenticationContext.class);
     }
 
+    public WindowsVersion getVersion() { return version; }
 }
