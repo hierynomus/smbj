@@ -22,6 +22,7 @@ import com.hierynomus.mssmb.SMB1Packet;
 import com.hierynomus.mssmb.messages.SMB1ComNegotiateRequest;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.*;
+import com.hierynomus.ntlm.messages.WindowsVersion;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
@@ -32,6 +33,7 @@ import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
+import com.hierynomus.smbj.auth.NtlmAuthenticator;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
@@ -79,6 +81,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
     private final SMBEventBus bus;
     private final ReentrantLock lock = new ReentrantLock();
     private int remotePort;
+    private WindowsVersion version;
 
     public Connection(SmbConfig config, SMBClient client, SMBEventBus bus) {
         this.config = config;
@@ -156,10 +159,14 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
             long sessionId = receive.getHeader().getSessionId();
             session.setSessionId(sessionId);
             connectionInfo.getPreauthSessionTable().registerSession(sessionId, session);
+
             try {
                 while (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
                     logger.debug("More processing required for authentication of {} using {}", authContext.getUsername(), authenticator);
                     receive = authenticationRound(authenticator, authContext, receive.getSecurityBuffer(), session);
+                }
+                if (authenticator instanceof NtlmAuthenticator){
+                    version = ((NtlmAuthenticator) authenticator).getVersion();
                 }
 
                 if (receive.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
@@ -328,6 +335,30 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
      */
     public NegotiatedProtocol getNegotiatedProtocol() {
         return connectionInfo.getNegotiatedProtocol();
+    }
+
+    public WindowsVersion getWindowsVersion(){
+        return version;
+    }
+
+    public boolean getSigningRequired(){
+        return connectionInfo.isServerRequiresSigning();
+    }
+
+    public boolean getSigningEnabled(){
+        return connectionInfo.isServerSigningEnabled();
+    }
+
+    public boolean getEncryptionSupported(){
+        return connectionInfo.supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION);
+    }
+
+    public SMB2Dialect getDialectVersion(){
+        return connectionInfo.getNegotiatedProtocol().getDialect();
+    }
+
+    public UUID getServerGUID(){
+        return connectionInfo.getServerGuid();
     }
 
     @Override
