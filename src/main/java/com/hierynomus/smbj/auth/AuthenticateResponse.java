@@ -15,17 +15,38 @@
  */
 package com.hierynomus.smbj.auth;
 
-import com.hierynomus.security.SecurityProvider;
-import com.hierynomus.smbj.session.Session;
+import com.hierynomus.ntlm.messages.WindowsVersion;
 
-import java.io.IOException;
-import java.util.Random;
+public class AuthenticateResponse
+{
+   private byte[] negToken;
+   private WindowsVersion winVer;
 
-public interface Authenticator {
+   public AuthenticateResponse(){
 
-    void init(SecurityProvider securityProvider, Random random);
+   }
 
-    boolean supports(AuthenticationContext context);
+   public AuthenticateResponse(byte [] negToken){
+      this.negToken = negToken;
+   }
 
-    AuthenticateResponse authenticate(AuthenticationContext context, byte[] gssToken, Session session) throws IOException;
+   public WindowsVersion getWinVer()
+   {
+      return winVer;
+   }
+
+   public void setWinVer(WindowsVersion winVer)
+   {
+      this.winVer = winVer;
+   }
+
+   public byte[] getNegToken()
+   {
+      return negToken;
+   }
+
+   public void setNegToken(byte[] negToken)
+   {
+      this.negToken = negToken;
+   }
 }

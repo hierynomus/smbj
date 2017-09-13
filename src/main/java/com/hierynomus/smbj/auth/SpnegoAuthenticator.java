@@ -55,11 +55,11 @@ public class SpnegoAuthenticator implements Authenticator {
     private GSSContext gssContext;
 
     @Override
-    public byte[] authenticate(final AuthenticationContext context, final byte[] gssToken, final Session session) throws IOException {
+    public AuthenticateResponse authenticate(final AuthenticationContext context, final byte[] gssToken, final Session session) throws IOException {
         final GSSAuthenticationContext gssAuthenticationContext = (GSSAuthenticationContext) context;
         try {
-            return Subject.doAs(gssAuthenticationContext.getSubject(), new PrivilegedExceptionAction<byte[]>() {
-                public byte[] run() throws Exception {
+            return Subject.doAs(gssAuthenticationContext.getSubject(), new PrivilegedExceptionAction<AuthenticateResponse>() {
+                public AuthenticateResponse run() throws Exception {
                     return authenticateSession(gssAuthenticationContext, gssToken, session);
                 }
             });
@@ -68,7 +68,7 @@ public class SpnegoAuthenticator implements Authenticator {
         }
     }
 
-    private byte[] authenticateSession(GSSAuthenticationContext context, byte[] gssToken, Session session) throws TransportException {
+    private AuthenticateResponse authenticateSession(GSSAuthenticationContext context, byte[] gssToken, Session session) throws TransportException {
         try {
             logger.debug("Authenticating {} on {} using SPNEGO", context.getUsername(), session.getConnection().getRemoteHostname());
             if (gssContext == null) {
@@ -97,7 +97,8 @@ public class SpnegoAuthenticator implements Authenticator {
                     session.setSigningKey(adjustSessionKeyLength(key.getEncoded()));
                 }
             }
-            return newToken;
+            AuthenticateResponse response = new AuthenticateResponse(newToken);
+            return response;
         } catch (GSSException e) {
             throw new TransportException(e);
         }
