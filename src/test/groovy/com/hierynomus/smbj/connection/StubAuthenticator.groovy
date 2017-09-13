@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.connection
 
 import com.hierynomus.security.SecurityProvider
+import com.hierynomus.smbj.auth.AuthenticateResponse
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.auth.Authenticator
 import com.hierynomus.smbj.session.Session
@@ -45,7 +46,7 @@ class StubAuthenticator implements Authenticator {
   }
 
   @Override
-  byte[] authenticate(AuthenticationContext context, byte[] gssToken, Session session) throws IOException {
-    return new byte[0]
+  AuthenticateResponse authenticate(AuthenticationContext context, byte[] gssToken, Session session) throws IOException {
+    return new AuthenticateResponse(new byte[0])
   }
 }
