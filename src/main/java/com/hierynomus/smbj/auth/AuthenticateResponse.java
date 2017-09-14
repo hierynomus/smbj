@@ -26,22 +26,22 @@ public class AuthenticateResponse
     }
 
     public AuthenticateResponse(byte [] negToken) {
-       this.negToken = negToken;
+        this.negToken = negToken;
     }
 
     public WindowsVersion getWinVer() {
-       return winVer;
+        return winVer;
     }
 
     public void setWinVer(WindowsVersion winVer) {
-       this.winVer = winVer;
+        this.winVer = winVer;
     }
 
     public byte[] getNegToken() {
-       return negToken;
+        return negToken;
     }
 
     public void setNegToken(byte[] negToken) {
-       this.negToken = negToken;
+        this.negToken = negToken;
     }
 }
