@@ -37,7 +37,7 @@ public class NtlmChallenge extends NtlmPacket {
     private int targetNameBufferOffset;
     private EnumSet<NtlmNegotiateFlag> negotiateFlags;
     private byte[] serverChallenge;
-    private WindowsVersion version;
+    public WindowsVersion version;
     private int targetInfoLen;
     private int targetInfoBufferOffset;
     private String targetName;
