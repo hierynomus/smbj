@@ -22,7 +22,6 @@ import com.hierynomus.mssmb.SMB1Packet;
 import com.hierynomus.mssmb.messages.SMB1ComNegotiateRequest;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.*;
-import com.hierynomus.ntlm.messages.WindowsVersion;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
