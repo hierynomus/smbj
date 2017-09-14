@@ -67,7 +67,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
     private static final DelegatingSMBMessageConverter converter = new DelegatingSMBMessageConverter(new SMB2MessageConverter(), new SMB1MessageConverter());
 
-    public ConnectionInfo connectionInfo;
+    private ConnectionInfo connectionInfo;
     private SessionTable sessionTable = new SessionTable();
     private SessionTable preauthSessionTable = new SessionTable();
     private OutstandingRequests outstandingRequests = new OutstandingRequests();
@@ -176,8 +176,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
 
                 if (receive.getSecurityBuffer() != null) {
                     // process the last received buffer
-                    AuthenticateResponse response = authenticator.authenticate(authContext, receive.getSecurityBuffer(), session);
-                    connectionInfo.setWinVer(response.getWinVer());
+                    authenticator.authenticate(authContext, receive.getSecurityBuffer(), session);
                 }
                 session.init(receive);
                 logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), remoteName, session.getSessionId());
@@ -197,6 +196,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
 
     private SMB2SessionSetup authenticationRound(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {
         AuthenticateResponse resp = authenticator.authenticate(authContext, inputToken, session);
+        connectionInfo.setWinVer(resp.getWinVer());
         byte[] securityContext = resp.getNegToken();
 
         SMB2SessionSetup req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED),
@@ -425,6 +425,11 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
 
     public boolean isConnected() {
         return transport.isConnected();
+    }
+
+    public ConnectionInfo getConnectionInfo()
+    {
+        return connectionInfo;
     }
 
     @Handler

@@ -25,7 +25,7 @@ import java.util.UUID;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
-class ConnectionInfo {
+public class ConnectionInfo {
 
     private WindowsVersion winVer;
     // All SMB2 Dialect
