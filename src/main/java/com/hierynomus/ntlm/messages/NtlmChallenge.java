@@ -152,4 +152,8 @@ public class NtlmChallenge extends NtlmPacket {
     public Object getAvPairObject(AvId key) {
         return this.targetInfo.get(key);
     }
+
+    public WindowsVersion getVersion() {
+        return version;
+    }
 }

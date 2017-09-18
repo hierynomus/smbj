@@ -27,5 +27,5 @@ public interface Authenticator {
 
     boolean supports(AuthenticationContext context);
 
-    byte[] authenticate(AuthenticationContext context, byte[] gssToken, Session session) throws IOException;
+    AuthenticateResponse authenticate(AuthenticationContext context, byte[] gssToken, Session session) throws IOException;
 }
