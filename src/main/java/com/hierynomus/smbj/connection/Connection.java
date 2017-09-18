@@ -195,7 +195,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
 
     private SMB2SessionSetup authenticationRound(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {
         AuthenticateResponse resp = authenticator.authenticate(authContext, inputToken, session);
-        connectionInfo.setWinVer(resp.getWinVer());
+        connectionInfo.setWindowsVersion(resp.getWindowsVersion());
         byte[] securityContext = resp.getNegToken();
 
         SMB2SessionSetup req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED),
@@ -426,8 +426,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
         return transport.isConnected();
     }
 
-    public ConnectionInfo getConnectionInfo()
-    {
+    public ConnectionInfo getConnectionInfo() {
         return connectionInfo;
     }
 

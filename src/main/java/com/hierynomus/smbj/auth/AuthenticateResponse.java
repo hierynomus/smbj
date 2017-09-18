@@ -17,10 +17,9 @@ package com.hierynomus.smbj.auth;
 
 import com.hierynomus.ntlm.messages.WindowsVersion;
 
-public class AuthenticateResponse
-{
+public class AuthenticateResponse {
     private byte[] negToken;
-    private WindowsVersion winVer;
+    private WindowsVersion windowsVersion;
 
     public AuthenticateResponse() {
     }
@@ -29,12 +28,12 @@ public class AuthenticateResponse
         this.negToken = negToken;
     }
 
-    public WindowsVersion getWinVer() {
-        return winVer;
+    public WindowsVersion getWindowsVersion() {
+        return windowsVersion;
     }
 
-    public void setWinVer(WindowsVersion winVer) {
-        this.winVer = winVer;
+    public void setWindowsVersion(WindowsVersion windowsVersion) {
+        this.windowsVersion = windowsVersion;
     }
 
     public byte[] getNegToken() {

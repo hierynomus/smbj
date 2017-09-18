@@ -27,7 +27,7 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
 public class ConnectionInfo {
 
-    private WindowsVersion winVer;
+    private WindowsVersion windowsVersion;
     // All SMB2 Dialect
     private byte[] gssNegotiateToken;
     private UUID serverGuid;
@@ -101,14 +101,12 @@ public class ConnectionInfo {
         return clientCapabilities;
     }
 
-    public WindowsVersion getWinVer()
-    {
-        return winVer;
+    public WindowsVersion getWindowsVersion() {
+        return windowsVersion;
     }
 
-    public void setWinVer(WindowsVersion winVer)
-    {
-        this.winVer = winVer;
+    public void setWindowsVersion(WindowsVersion windowsVersion) {
+        this.windowsVersion = windowsVersion;
     }
 
     @Override

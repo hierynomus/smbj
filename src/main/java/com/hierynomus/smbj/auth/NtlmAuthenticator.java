@@ -88,7 +88,7 @@ public class NtlmAuthenticator implements Authenticator {
                 }
                 logger.debug("Received NTLM challenge from: {}", challenge.getTargetName());
 
-                response.setWinVer(challenge.getVersion());
+                response.setWindowsVersion(challenge.getVersion());
                 byte[] serverChallenge = challenge.getServerChallenge();
                 byte[] responseKeyNT = ntlmFunctions.NTOWFv2(String.valueOf(context.getPassword()), context.getUsername(), context.getDomain());
                 byte[] ntlmv2ClientChallenge = ntlmFunctions.getNTLMv2ClientChallenge(challenge.getTargetInfo());
