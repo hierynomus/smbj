@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.connection
 
 import com.hierynomus.mserref.NtStatus
+import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2MessageCommandCode
 import com.hierynomus.mssmb2.SMB2Packet
 import com.hierynomus.mssmb2.SMB2ShareCapabilities
@@ -50,6 +51,7 @@ class BasicPacketProcessor {
     def response = new SMB2NegotiateResponse()
     response.header.message = SMB2MessageCommandCode.SMB2_NEGOTIATE
     response.header.status = NtStatus.STATUS_SUCCESS
+    response.dialect = SMB2Dialect.SMB_2_1
     response
   }
 

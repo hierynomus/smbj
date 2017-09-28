@@ -27,5 +27,6 @@ public interface Authenticator {
 
     boolean supports(AuthenticationContext context);
 
+    // TODO remove session parameter.
     AuthenticateResponse authenticate(AuthenticationContext context, byte[] gssToken, Session session) throws IOException;
 }
