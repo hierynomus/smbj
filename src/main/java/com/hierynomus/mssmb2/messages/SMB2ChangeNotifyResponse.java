@@ -75,8 +75,6 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
             if (nextEntryOffset != 0) {
                 currentPos += nextEntryOffset;
                 buffer.rpos(currentPos);
-            } else {
-                buffer.rpos(currentPos + 12 + (int) fileNameLen);
             }
         } while (nextEntryOffset != 0);
 
