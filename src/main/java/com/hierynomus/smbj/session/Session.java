@@ -73,6 +73,9 @@ public class Session implements AutoCloseable {
         this.guest = setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_GUEST);
         this.anonymous = setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_NULL);
         validateAndSetSigning(setup);
+        if (guest || anonymous) {
+            packetSignatory.init(null); // De-initialize the signatory if it was initialized with a bogus key during the auth
+        }
     }
 
     /**
