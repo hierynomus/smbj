@@ -72,8 +72,10 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
             fileNameLen = buffer.readUInt32();
             fileName = buffer.readString(StandardCharsets.UTF_16LE, (int) fileNameLen / 2);
             notifyInfoList.add(new FileNotifyInfo(action, fileName));
-            currentPos += nextEntryOffset;
-            buffer.rpos(currentPos);
+            if (nextEntryOffset != 0) {
+                currentPos += nextEntryOffset;
+                buffer.rpos(currentPos);
+            }
         } while (nextEntryOffset != 0);
 
         return notifyInfoList;
