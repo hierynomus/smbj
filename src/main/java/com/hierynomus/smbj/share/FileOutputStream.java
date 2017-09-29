@@ -26,15 +26,15 @@ import java.io.OutputStream;
 
 class FileOutputStream extends OutputStream {
 
-    private File file;
+    private SMB2Writer writer;
     private ProgressListener progressListener;
     private boolean isClosed = false;
     private ByteArrayProvider provider;
 
     private static final Logger logger = LoggerFactory.getLogger(FileOutputStream.class);
 
-    FileOutputStream(File file, int bufferSize, ProgressListener progressListener) {
-        this.file = file;
+    FileOutputStream(SMB2Writer writer, int bufferSize, ProgressListener progressListener) {
+        this.writer = writer;
         this.progressListener = progressListener;
         this.provider = new ByteArrayProvider(bufferSize);
     }
@@ -88,7 +88,7 @@ class FileOutputStream extends OutputStream {
     }
 
     private void sendWriteRequest() throws TransportException {
-        file.write(provider, progressListener);
+        writer.write(provider, progressListener);
     }
 
     @Override
@@ -101,7 +101,7 @@ class FileOutputStream extends OutputStream {
         provider.reset();
 
         isClosed = true;
-        file = null;
+        writer = null;
         logger.debug("EOF, {} bytes written", provider.getOffset());
     }
 

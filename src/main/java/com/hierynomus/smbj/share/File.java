@@ -20,9 +20,7 @@ import com.hierynomus.msfscc.fileinformation.FileEndOfFileInformation;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
-import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
 import com.hierynomus.smbj.ProgressListener;
-import com.hierynomus.smbj.io.ArrayByteChunkProvider;
 import com.hierynomus.smbj.io.ByteChunkProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,9 +33,11 @@ import java.util.concurrent.Future;
 public class File extends DiskEntry {
 
     private static final Logger logger = LoggerFactory.getLogger(File.class);
+    private final SMB2Writer writer;
 
     File(SMB2FileId fileId, DiskShare diskShare, String fileName) {
         super(fileId, diskShare, fileName);
+        this.writer = new SMB2Writer(diskShare, fileId, fileName);
     }
 
     /**
@@ -48,7 +48,7 @@ public class File extends DiskEntry {
      * @return the actual number of bytes that was written to the file
      */
     public int write(byte[] buffer, long fileOffset) {
-        return write(buffer, fileOffset, 0, buffer.length);
+        return writer.write(buffer, fileOffset);
     }
 
     /**
@@ -61,7 +61,7 @@ public class File extends DiskEntry {
      * @return the actual number of bytes that was written to the file
      */
     public int write(byte[] buffer, long fileOffset, int offset, int length) {
-        return write(new ArrayByteChunkProvider(buffer, offset, length, fileOffset), null);
+        return writer.write(buffer, fileOffset, offset, length);
     }
 
     /**
@@ -72,7 +72,7 @@ public class File extends DiskEntry {
      * @return the actual number of bytes that was written to the file
      */
     public int write(ByteChunkProvider provider) {
-        return write(provider, null);
+        return writer.write(provider);
     }
 
     /**
@@ -84,27 +84,15 @@ public class File extends DiskEntry {
      * @return the actual number of bytes that was written to the file
      */
     public int write(ByteChunkProvider provider, ProgressListener progressListener) {
-        int bytesWritten = 0;
-        while (provider.isAvailable()) {
-            logger.debug("Writing to {} from offset {}", this.fileName, provider.getOffset());
-            SMB2WriteResponse wresp = share.write(fileId, provider);
-            bytesWritten += wresp.getBytesWritten();
-            if (progressListener != null)
-                progressListener.onProgressChanged(wresp.getBytesWritten(), provider.getOffset());
-        }
-        return bytesWritten;
+        return writer.write(provider, progressListener);
     }
 
     public OutputStream getOutputStream() {
-        return getOutputStream(null);
+        return writer.getOutputStream();
     }
 
     public OutputStream getOutputStream(ProgressListener listener) {
-        return new FileOutputStream(
-            this,
-            share.getWriteBufferSize(),
-            listener
-        );
+        return writer.getOutputStream(listener);
     }
 
     /**
