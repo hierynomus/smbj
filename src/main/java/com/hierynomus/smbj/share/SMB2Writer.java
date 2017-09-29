@@ -38,6 +38,7 @@ public class SMB2Writer {
     public SMB2Writer(Share share, SMB2FileId fileId, String entryName) {
         this.share = share;
         this.fileId = fileId;
+        this.entryName = entryName;
     }
 
     /**
