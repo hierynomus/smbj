@@ -15,11 +15,71 @@
  */
 package com.hierynomus.smbj.share;
 
+import com.hierynomus.msdtyp.AccessMask;
+import com.hierynomus.msfscc.FileAttributes;
+import com.hierynomus.mssmb2.SMB2CreateDisposition;
+import com.hierynomus.mssmb2.SMB2CreateOptions;
+import com.hierynomus.mssmb2.SMB2FileId;
+import com.hierynomus.mssmb2.SMB2ShareAccess;
+import com.hierynomus.mssmb2.messages.SMB2CreateResponse;
+import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
+import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.common.SmbPath;
+import com.hierynomus.smbj.io.ByteChunkProvider;
+import com.hierynomus.smbj.io.InputStreamByteChunkProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.InputStream;
+import java.util.EnumSet;
+import java.util.Set;
+
+import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_DIRECTORY;
 
 public class PrinterShare extends Share {
+    private static final Logger logger = LoggerFactory.getLogger(PrinterShare.class);
 
     public PrinterShare(SmbPath smbPath, TreeConnect treeConnect) {
         super(smbPath, treeConnect);
+    }
+
+    public void print(InputStream inputStream) {
+        print(inputStream, null);
+    }
+
+    public void print(InputStream inputStream, ProgressListener progressListener) {
+        print(new InputStreamByteChunkProvider(inputStream), progressListener);
+    }
+
+    public void print(ByteChunkProvider provider) {
+        print(provider, null);
+    }
+
+    public void print(ByteChunkProvider provider, ProgressListener progressListener) {
+        SMB2FileId fileId = openPrinterFile();
+        try {
+            while (provider.isAvailable()) {
+                logger.debug("Writing to {} from offset {}", this.getSmbPath(), provider.getOffset());
+                SMB2WriteResponse wresp = write(fileId, provider);
+                if (progressListener != null)
+                    progressListener.onProgressChanged(wresp.getBytesWritten(), provider.getOffset());
+            }
+        } finally {
+            closeFileId(fileId);
+        }
+    }
+
+    private SMB2FileId openPrinterFile() {
+        SMB2CreateResponse response = createFile(
+            null,
+            null,
+            EnumSet.of(AccessMask.FILE_WRITE_DATA),
+            EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
+            EnumSet.of(SMB2ShareAccess.FILE_SHARE_WRITE),
+            SMB2CreateDisposition.FILE_CREATE,
+            EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE, SMB2CreateOptions.FILE_WRITE_THROUGH)
+        );
+
+        return response.getFileId();
     }
 }
