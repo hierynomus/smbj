@@ -83,7 +83,8 @@ public class SMBClient {
     private Connection getEstablishedOrConnect(String hostname, int port) throws IOException {
         synchronized (this) {
             String hostPort = hostname + ":" + port;
-            if (!connectionTable.containsKey(hostPort)) {
+            Connection cachedConnection = connectionTable.get(hostPort);
+            if (cachedConnection == null || !cachedConnection.isConnected()) {
                 Connection connection = new Connection(config, this, bus);
                 try {
                     connection.connect(hostname, port);
