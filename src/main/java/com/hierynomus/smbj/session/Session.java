@@ -95,7 +95,7 @@ public class Session implements AutoCloseable {
             signingRequired = false;
         }
         if (guest && connection.getConfig().isSigningRequired()) {
-            throw new SMBRuntimeException("Cannot require message signing when authenticating with a guest account");
+            throw new SMB2GuestSigningRequiredException();
         } else if (guest) {
             signingRequired = false;
         }
