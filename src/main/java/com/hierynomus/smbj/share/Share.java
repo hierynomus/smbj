@@ -148,7 +148,7 @@ public class Share implements AutoCloseable {
 
     void closeFileId(SMB2FileId fileId) throws SMBApiException {
         SMB2Close closeReq = new SMB2Close(dialect, sessionId, treeId, fileId);
-        sendReceive(closeReq, "Close", fileId, SUCCESS, transactTimeout);
+        sendReceive(closeReq, "Close", fileId, EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_FILE_CLOSED), transactTimeout);
     }
 
     SMB2QueryInfoResponse queryInfo(SMB2FileId fileId, SMB2QueryInfoRequest.SMB2QueryInfoType infoType, Set<SecurityInformation> securityInfo, FileInformationClass fileInformationClass, FileSystemInformationClass fileSystemInformationClass) {
