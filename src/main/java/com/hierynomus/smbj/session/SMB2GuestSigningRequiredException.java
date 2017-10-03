@@ -13,20 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.auth;
+package com.hierynomus.smbj.session;
 
-import com.hierynomus.security.SecurityProvider;
-import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 
-import java.io.IOException;
-import java.util.Random;
-
-public interface Authenticator {
-
-    void init(SecurityProvider securityProvider, Random random);
-
-    boolean supports(AuthenticationContext context);
-
-    // TODO remove session parameter.
-    AuthenticateResponse authenticate(AuthenticationContext context, byte[] gssToken, Session session) throws IOException;
+public class SMB2GuestSigningRequiredException extends SMBRuntimeException {
+    public SMB2GuestSigningRequiredException() {
+        super("Cannot require message signing when authenticating with a guest account");
+    }
 }

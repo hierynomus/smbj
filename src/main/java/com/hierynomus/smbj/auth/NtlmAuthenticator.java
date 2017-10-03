@@ -105,10 +105,10 @@ public class NtlmAuthenticator implements Authenticator {
                     byte[] masterKey = new byte[16];
                     random.nextBytes(masterKey);
                     sessionkey = ntlmFunctions.encryptRc4(userSessionKey, masterKey);
-                    session.setSigningKey(masterKey);
+                    response.setSigningKey(masterKey);
                 } else {
                     sessionkey = userSessionKey;
-                    session.setSigningKey(sessionkey);
+                    response.setSigningKey(sessionkey);
                 }
 
                 completed = true;

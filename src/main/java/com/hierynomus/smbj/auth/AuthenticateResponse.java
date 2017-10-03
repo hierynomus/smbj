@@ -19,6 +19,7 @@ import com.hierynomus.ntlm.messages.WindowsVersion;
 
 public class AuthenticateResponse {
     private byte[] negToken;
+    private byte[] signingKey;
     private WindowsVersion windowsVersion;
 
     public AuthenticateResponse() {
@@ -42,5 +43,13 @@ public class AuthenticateResponse {
 
     public void setNegToken(byte[] negToken) {
         this.negToken = negToken;
+    }
+
+    public byte[] getSigningKey() {
+        return signingKey;
+    }
+
+    public void setSigningKey(byte[] signingKey) {
+        this.signingKey = signingKey;
     }
 }

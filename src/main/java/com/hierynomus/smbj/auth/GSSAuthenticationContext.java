@@ -24,7 +24,7 @@ public class GSSAuthenticationContext extends AuthenticationContext {
     GSSCredential creds;
 
     public GSSAuthenticationContext(String username, String domain, Subject subject, GSSCredential creds) {
-        super(username, "".toCharArray(), domain);
+        super(username, new char[0], domain);
         this.subject = subject;
         this.creds = creds;
     }

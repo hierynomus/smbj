@@ -190,14 +190,16 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
     }
 
     private Session getSession(AuthenticationContext authContext) {
-        return new Session(this, authContext, bus, connectionInfo.isServerRequiresSigning(), config.isDfsEnabled(), config.getSecurityProvider());
+        return new Session(this, authContext, bus, config.isDfsEnabled(), config.getSecurityProvider());
     }
 
     private SMB2SessionSetup authenticationRound(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {
         AuthenticateResponse resp = authenticator.authenticate(authContext, inputToken, session);
         connectionInfo.setWindowsVersion(resp.getWindowsVersion());
         byte[] securityContext = resp.getNegToken();
-
+        if (resp.getSigningKey() != null) {
+            session.setSigningKey(resp.getSigningKey());
+        }
         SMB2SessionSetup req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED),
             connectionInfo.getClientCapabilities());
         req.setSecurityBuffer(securityContext);
@@ -397,13 +399,13 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
         if (packet.getHeader().isFlagSet(SMB2MessageFlag.SMB2_FLAGS_SIGNED)) {
             if (!session.getPacketSignatory().verify(packet)) {
                 logger.warn("Invalid packet signature for packet {}", packet);
-                if (config.isSigningRequired()) {
+                if (session.isSigningRequired()) {
                     throw new TransportException("Packet signature for packet " + packet + " was not correct");
                 }
             }
-        } else if (config.isSigningRequired()) {
-            logger.warn("Illegal request, client requires message signing, but packet {} is not signed.", packet);
-            throw new TransportException("Client requires signing, but packet " + packet + " was not signed");
+        } else if (session.isSigningRequired()) {
+            logger.warn("Illegal request, session requires message signing, but packet {} is not signed.", packet);
+            throw new TransportException("Session requires signing, but packet " + packet + " was not signed");
         }
     }
 
