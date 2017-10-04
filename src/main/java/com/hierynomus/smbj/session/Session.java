@@ -46,24 +46,24 @@ public class Session implements AutoCloseable {
     private long sessionId;
 
     private PacketSignatory packetSignatory;
-    private boolean serverSigningRequired;
+    private boolean signingRequired;
+    private boolean encryptData; // SMB3.x
 
     private Connection connection;
     private SMBEventBus bus;
     private boolean dfsEnabled;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
-    private AuthenticationContext auth;
+    private AuthenticationContext userCredentials;
 
     private boolean guest;
     private boolean anonymous;
 
-    public Session(Connection connection, AuthenticationContext auth, SMBEventBus bus, boolean signingRequired, boolean dfsEnabled, SecurityProvider securityProvider) {
+    public Session(Connection connection, AuthenticationContext userCredentials, SMBEventBus bus, boolean dfsEnabled, SecurityProvider securityProvider) {
         this.connection = connection;
-        this.auth = auth;
+        this.userCredentials = userCredentials;
         this.bus = bus;
         this.dfsEnabled = dfsEnabled;
         this.packetSignatory = new PacketSignatory(connection.getNegotiatedProtocol().getDialect(), securityProvider);
-        this.serverSigningRequired = signingRequired;
         if (bus != null) {
             bus.subscribe(this);
         }
@@ -72,6 +72,37 @@ public class Session implements AutoCloseable {
     public void init(SMB2SessionSetup setup) {
         this.guest = setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_GUEST);
         this.anonymous = setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_NULL);
+        validateAndSetSigning(setup);
+        if (guest || anonymous) {
+            packetSignatory.init(null); // De-initialize the signatory if it was initialized with a bogus key during the auth
+        }
+    }
+
+    /**
+     * [MS-SMB2] 3.2.5.3.1 Handling a New Authentication
+     * @param setup
+     */
+    private void validateAndSetSigning(SMB2SessionSetup setup) {
+        boolean requireMessageSigning = connection.getConfig().isSigningRequired();
+        boolean connectionSigningRequired = connection.getConnectionInfo().isServerRequiresSigning();
+
+        if (requireMessageSigning || connectionSigningRequired) {
+            signingRequired = true;
+        }
+
+        if (anonymous) {
+            // If the security subsystem indicates that the session was established by an anonymous user, Session.SigningRequired MUST be set to FALSE.
+            signingRequired = false;
+        }
+        if (guest && connection.getConfig().isSigningRequired()) {
+            throw new SMB2GuestSigningRequiredException();
+        } else if (guest) {
+            signingRequired = false;
+        }
+        if (connection.getNegotiatedProtocol().getDialect().isSmb3x() && setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_ENCRYPT_DATA)) {
+            encryptData = true;
+            signingRequired = false;
+        }
     }
 
     public long getSessionId() {
@@ -173,7 +204,7 @@ public class Session implements AutoCloseable {
     }
 
     public boolean isSigningRequired() {
-        return serverSigningRequired;
+        return signingRequired;
     }
 
     public boolean isGuest() {
@@ -205,7 +236,7 @@ public class Session implements AutoCloseable {
      * @throws TransportException
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
-        if (serverSigningRequired && !packetSignatory.isInitialized()) {
+        if (signingRequired && !packetSignatory.isInitialized()) {
             throw new TransportException("Message signing is required, but no signing key is negotiated");
         }
         return connection.send(packetSignatory.sign(packet));
@@ -217,7 +248,7 @@ public class Session implements AutoCloseable {
     }
 
     public AuthenticationContext getAuthenticationContext() {
-        return auth;
+        return userCredentials;
     }
 
     public PacketSignatory getPacketSignatory() {

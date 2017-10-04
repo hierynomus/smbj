@@ -89,15 +89,15 @@ public class SpnegoAuthenticator implements Authenticator {
                 logger.trace("Received token: {}", ByteArrayUtils.printHex(newToken));
             }
 
+            AuthenticateResponse response = new AuthenticateResponse(newToken);
             if (gssContext.isEstablished()) {
                 ExtendedGSSContext e = (ExtendedGSSContext) gssContext;
                 Key key = (Key) e.inquireSecContext(InquireType.KRB5_GET_SESSION_KEY);
                 if (key != null) {
                     // if a session key was negotiated, save it.
-                    session.setSigningKey(adjustSessionKeyLength(key.getEncoded()));
+                    response.setSigningKey(adjustSessionKeyLength(key.getEncoded()));
                 }
             }
-            AuthenticateResponse response = new AuthenticateResponse(newToken);
             return response;
         } catch (GSSException e) {
             throw new TransportException(e);
