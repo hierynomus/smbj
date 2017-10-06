@@ -86,7 +86,7 @@ public class SMB2Error {
         return errorData;
     }
 
-    interface SMB2ErrorData {
+    public interface SMB2ErrorData {
     }
 
     public static class SymbolicLinkError implements SMB2ErrorData {

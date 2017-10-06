@@ -36,7 +36,9 @@ import com.hierynomus.smbj.session.Session;
 import com.hierynomus.protocol.transport.TransportException;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -49,6 +51,7 @@ public class Share implements AutoCloseable {
     );
 
     private static final EnumSet<NtStatus> SUCCESS = EnumSet.of(NtStatus.STATUS_SUCCESS);
+    private static final EnumSet<NtStatus> SUCCESS_OR_SYMLINK = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_STOPPED_ON_SYMLINK);
     private static final EnumSet<NtStatus> SUCCESS_OR_NO_MORE_FILES_OR_NO_SUCH_FILE = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_NO_MORE_FILES, NtStatus.STATUS_NO_SUCH_FILE);
     private static final EnumSet<NtStatus> SUCCESS_OR_EOF = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_END_OF_FILE);
 
@@ -131,11 +134,49 @@ public class Share implements AutoCloseable {
             createOptions,
             path
         );
-        return sendReceive(cr, "Create", path, getCreateSuccessStatus(), transactTimeout);
+        SMB2CreateResponse resp = sendReceive(cr, "Create", path, getCreateSuccessStatus(), transactTimeout);
+
+        if (resp.getHeader().getStatus() == NtStatus.STATUS_STOPPED_ON_SYMLINK) {
+            SMB2Error.SymbolicLinkError symlinkData = getSymlinkErrorData(resp.getError());
+            if (symlinkData == null) {
+                throw new SMBApiException(resp.getHeader(), "Create failed for " + path + ": missing symlink data");
+            }
+            String target = SMB2Functions.resolveSymlinkTarget(cr.getFileName(), symlinkData);
+            return createFile(target, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
+        }
+
+        return resp;
+    }
+
+    private String normalizePath(String target) {
+        return null;
+    }
+
+    private static SMB2Error.SymbolicLinkError getSymlinkErrorData(SMB2Error error) {
+        if (error != null) {
+            List<SMB2Error.SMB2ErrorData> errorData = error.getErrorData();
+            for (int i = 0; i < errorData.size(); i++) {
+                SMB2Error.SMB2ErrorData data = errorData.get(i);
+                if (data instanceof SMB2Error.SymbolicLinkError) {
+                    return ((SMB2Error.SymbolicLinkError) data);
+                }
+            }
+        }
+        return null;
+    }
+
+    private static String getSymlinkParsedPath(String fileName, int unparsedPathLength) {
+        byte[] fileNameBytes = SMB2Functions.unicode(fileName);
+        return new String(fileNameBytes, 0, fileNameBytes.length - unparsedPathLength, StandardCharsets.UTF_16LE);
+    }
+
+    private static String getSymlinkUnparsedPath(String fileName, int unparsedPathLength) {
+        byte[] fileNameBytes = SMB2Functions.unicode(fileName);
+        return new String(fileNameBytes, fileNameBytes.length - unparsedPathLength, unparsedPathLength, StandardCharsets.UTF_16LE);
     }
 
     protected EnumSet<NtStatus> getCreateSuccessStatus() {
-        return SUCCESS;
+        return SUCCESS_OR_SYMLINK;
     }
 
     void flush(SMB2FileId fileId) throws SMBApiException {
