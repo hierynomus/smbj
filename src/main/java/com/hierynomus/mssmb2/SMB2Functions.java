@@ -15,21 +15,13 @@
  */
 package com.hierynomus.mssmb2;
 
-import com.hierynomus.msdtyp.AccessMask;
-import com.hierynomus.msfscc.FileAttributes;
-import com.hierynomus.smbj.SMBClient;
-import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.share.DiskShare;
-import com.hierynomus.smbj.share.File;
-import com.hierynomus.smbj.share.Share;
-
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.List;
+
+import static com.hierynomus.utils.Strings.join;
+import static com.hierynomus.utils.Strings.split;
 
 public class SMB2Functions {
     private static final byte[] EMPTY_BYTES = new byte[0];
@@ -42,6 +34,7 @@ public class SMB2Functions {
         }
     }
 
+    // TODO shouldn't this be moved into com.hierynomus.smbj.common.SmbPath?
     public static String resolveSymlinkTarget(String originalFileName, SMB2Error.SymbolicLinkError symlinkData) {
         int unparsedPathLength = symlinkData.getUnparsedPathLength();
         String unparsedPath = getSymlinkUnparsedPath(originalFileName, unparsedPathLength);
@@ -76,41 +69,23 @@ public class SMB2Functions {
         return new String(fileNameBytes, fileNameBytes.length - unparsedPathLength, unparsedPathLength, StandardCharsets.UTF_16LE);
     }
 
-    public static String normalizePath(String path) {
-        List<String> parts = new ArrayList<>();
-        int start = 0;
-        while (start < path.length()) {
-            int next = path.indexOf('\\', start);
-            if (next == -1) {
-                parts.add(path.substring(start));
-                start = path.length();
-            } else {
-                parts.add(path.substring(start, next));
-                start = next + 1;
-            }
-        }
+    private static String normalizePath(String path) {
+        List<String> parts = split(path, '\\');
 
         for (int i = 0; i < parts.size(); ) {
             String s = parts.get(i);
             if (".".equals(s)) {
                 parts.remove(i);
             } else if ("..".equals(s)) {
-                parts.remove(i--);
-                if (i >= 0) {
-                    parts.remove(i);
+                if (i > 0) {
+                    parts.remove(i--);
                 }
+                parts.remove(i);
             } else {
                 i++;
             }
         }
 
-        StringBuilder normalized = new StringBuilder();
-        for (int i = 0; i < parts.size(); i++) {
-            if (i > 0) {
-                normalized.append('\\');
-            }
-            normalized.append(parts.get(i));
-        }
-        return normalized.toString();
+        return join(parts, '\\');
     }
 }

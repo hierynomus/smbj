@@ -73,7 +73,7 @@ public class DFSDiskShare extends DiskShare {
 
     @Override
     protected EnumSet<NtStatus> getCreateSuccessStatus() {
-        EnumSet<NtStatus> status = super.getCreateSuccessStatus();
+        EnumSet<NtStatus> status = EnumSet.copyOf(super.getCreateSuccessStatus());
         status.add(NtStatus.STATUS_PATH_NOT_COVERED);
         return status;
     }

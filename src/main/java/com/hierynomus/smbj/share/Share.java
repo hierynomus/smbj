@@ -24,6 +24,7 @@ import com.hierynomus.msfscc.FileSystemInformationClass;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.*;
 import com.hierynomus.protocol.commons.concurrent.Futures;
+import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
@@ -33,10 +34,8 @@ import com.hierynomus.smbj.io.ArrayByteChunkProvider;
 import com.hierynomus.smbj.io.ByteChunkProvider;
 import com.hierynomus.smbj.io.EmptyByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.protocol.transport.TransportException;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -148,31 +147,16 @@ public class Share implements AutoCloseable {
         return resp;
     }
 
-    private String normalizePath(String target) {
-        return null;
-    }
-
     private static SMB2Error.SymbolicLinkError getSymlinkErrorData(SMB2Error error) {
         if (error != null) {
             List<SMB2Error.SMB2ErrorData> errorData = error.getErrorData();
-            for (int i = 0; i < errorData.size(); i++) {
-                SMB2Error.SMB2ErrorData data = errorData.get(i);
-                if (data instanceof SMB2Error.SymbolicLinkError) {
-                    return ((SMB2Error.SymbolicLinkError) data);
+            for (SMB2Error.SMB2ErrorData errorDatum : errorData) {
+                if (errorDatum instanceof SMB2Error.SymbolicLinkError) {
+                    return ((SMB2Error.SymbolicLinkError) errorDatum);
                 }
             }
         }
         return null;
-    }
-
-    private static String getSymlinkParsedPath(String fileName, int unparsedPathLength) {
-        byte[] fileNameBytes = SMB2Functions.unicode(fileName);
-        return new String(fileNameBytes, 0, fileNameBytes.length - unparsedPathLength, StandardCharsets.UTF_16LE);
-    }
-
-    private static String getSymlinkUnparsedPath(String fileName, int unparsedPathLength) {
-        byte[] fileNameBytes = SMB2Functions.unicode(fileName);
-        return new String(fileNameBytes, fileNameBytes.length - unparsedPathLength, unparsedPathLength, StandardCharsets.UTF_16LE);
     }
 
     protected EnumSet<NtStatus> getCreateSuccessStatus() {
@@ -202,14 +186,14 @@ public class Share implements AutoCloseable {
         return sendReceive(qreq, "QueryInfo", fileId, SUCCESS, transactTimeout);
     }
 
-    SMB2SetInfoResponse setInfo(SMB2FileId fileId, SMB2SetInfoRequest.SMB2InfoType infoType, Set<SecurityInformation> securityInfo, FileInformationClass fileInformationClass, byte[] buffer) {
+    void setInfo(SMB2FileId fileId, SMB2SetInfoRequest.SMB2InfoType infoType, Set<SecurityInformation> securityInfo, FileInformationClass fileInformationClass, byte[] buffer) {
         SMB2SetInfoRequest qreq = new SMB2SetInfoRequest(
             dialect,
             sessionId, treeId,
             infoType, fileId,
             fileInformationClass, securityInfo, buffer
         );
-        return sendReceive(qreq, "SetInfo", fileId, SUCCESS, transactTimeout);
+        sendReceive(qreq, "SetInfo", fileId, SUCCESS, transactTimeout);
     }
 
     SMB2QueryDirectoryResponse queryDirectory(SMB2FileId fileId, Set<SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags> flags, FileInformationClass informationClass, String searchPattern) {

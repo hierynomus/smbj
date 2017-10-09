@@ -20,6 +20,7 @@ import spock.lang.Specification
 import spock.lang.Unroll
 
 class SMB2FunctionsSpec extends Specification {
+
   def "should resolve absolute symlinks correctly"() {
     given:
     def original = "Public\\ProtocolDocs\\DailyDocs\\[MS-SMB].doc"
