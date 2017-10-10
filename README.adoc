@@ -1,4 +1,4 @@
-= smbj - SMB2/SMB3 library for Java
+= smbj - SMB2/SMB3 client library for Java
 Jeroen van Erp
 :smbj_groupid: com.hierynomus
 :smbj_version: 0.3.0
