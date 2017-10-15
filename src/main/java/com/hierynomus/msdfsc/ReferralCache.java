@@ -72,7 +72,7 @@ public class ReferralCache {
     }
 
     public ReferralCacheEntry lookup(DFSPath dfsPath) {
-        return null; // TODO
+        return cache.get(dfsPath.toPath());
     }
 
     public void put(ReferralCacheEntry referralCacheEntry) {
@@ -94,7 +94,7 @@ public class ReferralCache {
         TargetSetEntry targetHint;
         List<TargetSetEntry> targetList;
 
-        public ReferralCacheEntry(SMB2GetDFSReferralResponse response) {
+        public ReferralCacheEntry(SMB2GetDFSReferralResponse response, DomainCache domainCache) {
             List<DFSReferral> referralEntries = response.getReferralEntries();
             for (int i = 0; i < referralEntries.size(); i++) {
                 if (referralEntries.get(i).getPath() == null) {
@@ -117,9 +117,8 @@ public class ReferralCache {
             this.interlink = response.getReferralHeaderFlags().contains(ReferralHeaderFlags.ReferralServers)
                 && !response.getReferralHeaderFlags().contains(ReferralHeaderFlags.StorageServers);
             if (!this.interlink && referralEntries.size() == 1) {
-//                String[] pathEntries = new DFSPath(firstReferral.getPath()).getPathComponents();
-//                TODO this.interlink = (dfs.domainCache.lookup(pathEntries[0]) != null);
-                this.interlink = true; // TODO Lookup in domain cache
+                List<String> pathEntries = new DFSPath(firstReferral.getPath()).getPathComponents();
+                this.interlink = (domainCache.lookup(pathEntries.get(0)) != null);
             }
             this.ttl = firstReferral.getTtl();
             this.expires = System.currentTimeMillis() + this.ttl * 1000L;
@@ -135,7 +134,7 @@ public class ReferralCache {
 
         public boolean isExpired() {
             long now = System.currentTimeMillis();
-            return (now < expires);
+            return (now > expires);
         }
 
         public boolean isLink() {
