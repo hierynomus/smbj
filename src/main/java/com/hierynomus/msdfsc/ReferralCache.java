@@ -21,6 +21,7 @@ import com.hierynomus.msdfsc.messages.SMB2GetDFSReferralResponse.ReferralHeaderF
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -72,7 +73,20 @@ public class ReferralCache {
     }
 
     public ReferralCacheEntry lookup(DFSPath dfsPath) {
-        return cache.get(dfsPath.toPath());
+        String bestPrefix = null;
+        ReferralCacheEntry bestEntry = null;
+
+        // TODO a trie with a path component in each node would be much more efficient here
+        String path = dfsPath.toPath();
+        for (Map.Entry<String, ReferralCacheEntry> entry : cache.entrySet()) {
+            String prefix = entry.getKey();
+            if (path.startsWith(prefix) && (bestPrefix == null || prefix.length() > bestPrefix.length())) {
+                bestPrefix = prefix;
+                bestEntry = entry.getValue();
+            }
+        }
+
+        return bestEntry;
     }
 
     public void put(ReferralCacheEntry referralCacheEntry) {
