@@ -204,7 +204,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
             connectionInfo.getClientCapabilities());
         req.setSecurityBuffer(securityContext);
         req.getHeader().setSessionId(session.getSessionId());
-        return Futures.get(this.<SMB2SessionSetup>send(req), getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
+        return sendAndReceive(req);
     }
 
     private Authenticator getAuthenticator(AuthenticationContext context) throws IOException, SpnegoException {
@@ -299,8 +299,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
 
     private SMB2Packet smb2OnlyNegotiate() throws TransportException {
         SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid(), config.isSigningRequired());
-        Future<SMB2Packet> send = send(negotiatePacket);
-        return Futures.get(send, getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
+        return sendAndReceive(negotiatePacket);
     }
 
     private SMB2Packet multiProtocolNegotiate() throws TransportException {
