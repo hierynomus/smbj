@@ -19,10 +19,7 @@ import com.hierynomus.msdfsc.messages.DFSReferral;
 import com.hierynomus.msdfsc.messages.SMB2GetDFSReferralResponse;
 import com.hierynomus.msdfsc.messages.SMB2GetDFSReferralResponse.ReferralHeaderFlags;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 
 /**
  * [MS-DFSC].pdf: 3.1.1 Abstract Data Model
@@ -61,7 +58,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ReferralCache {
 
-    private ConcurrentHashMap<String, ReferralCacheEntry> cache = new ConcurrentHashMap<>();
+    private ReferralCacheNode cacheRoot = new ReferralCacheNode("<root>");
 
     public static class TargetSetEntry {
         String targetPath;
@@ -73,28 +70,18 @@ public class ReferralCache {
     }
 
     public ReferralCacheEntry lookup(DFSPath dfsPath) {
-        String bestPrefix = null;
-        ReferralCacheEntry bestEntry = null;
-
-        // TODO a trie with a path component in each node would be much more efficient here
-        String path = dfsPath.toPath();
-        for (Map.Entry<String, ReferralCacheEntry> entry : cache.entrySet()) {
-            String prefix = entry.getKey();
-            if (path.startsWith(prefix) && (bestPrefix == null || prefix.length() > bestPrefix.length())) {
-                bestPrefix = prefix;
-                bestEntry = entry.getValue();
-            }
-        }
-
-        return bestEntry;
+        List<String> pathComponents = dfsPath.getPathComponents();
+        ReferralCacheEntry referralEntry = cacheRoot.getReferralEntry(pathComponents.iterator());
+        return referralEntry;
     }
 
     public void put(ReferralCacheEntry referralCacheEntry) {
-        cache.put(referralCacheEntry.dfsPathPrefix, referralCacheEntry);
+        List<String> pathComponents = new DFSPath(referralCacheEntry.dfsPathPrefix).getPathComponents();
+        cacheRoot.addReferralEntry(pathComponents.iterator(), referralCacheEntry);
     }
 
     public void clear() {
-        cache.clear();
+        cacheRoot.clear();
     }
 
 
@@ -183,4 +170,46 @@ public class ReferralCache {
 
     }
 
+
+    static class ReferralCacheNode {
+        String pathComponent;
+        Map<String, ReferralCacheNode> childNodes = new HashMap<>();
+        ReferralCacheEntry entry;
+
+        ReferralCacheNode(String pathComponent) {
+            this.pathComponent = pathComponent;
+        }
+
+        ReferralCacheNode(String pathComponent, ReferralCacheEntry entry) {
+            this.pathComponent = pathComponent;
+            this.entry = entry;
+        }
+
+        void addReferralEntry(Iterator<String> pathComponents, ReferralCacheEntry entry) {
+            if (pathComponents.hasNext()) {
+                String component = pathComponents.next();
+                if (!childNodes.containsKey(component)) {
+                    childNodes.put(component, new ReferralCacheNode(component));
+                }
+                childNodes.get(component).addReferralEntry(pathComponents, entry);
+            } else {
+                this.entry = entry;
+            }
+        }
+
+        ReferralCacheEntry getReferralEntry(Iterator<String> pathComponents) {
+            if (pathComponents.hasNext()) {
+                String component = pathComponents.next();
+                if (childNodes.containsKey(component)) {
+                    return childNodes.get(component).getReferralEntry(pathComponents);
+                }
+            }
+            return entry;
+        }
+
+        void clear() {
+            this.childNodes = new HashMap<>();
+            this.entry = null;
+        }
+    }
 }
