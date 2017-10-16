@@ -20,6 +20,7 @@ import com.hierynomus.msdfsc.messages.SMB2GetDFSReferralResponse;
 import com.hierynomus.msdfsc.messages.SMB2GetDFSReferralResponse.ReferralHeaderFlags;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * [MS-DFSC].pdf: 3.1.1 Abstract Data Model
@@ -173,25 +174,21 @@ public class ReferralCache {
 
     static class ReferralCacheNode {
         String pathComponent;
-        Map<String, ReferralCacheNode> childNodes = new HashMap<>();
+        Map<String, ReferralCacheNode> childNodes = new ConcurrentHashMap<>();
         ReferralCacheEntry entry;
 
         ReferralCacheNode(String pathComponent) {
             this.pathComponent = pathComponent;
         }
 
-        ReferralCacheNode(String pathComponent, ReferralCacheEntry entry) {
-            this.pathComponent = pathComponent;
-            this.entry = entry;
-        }
-
         void addReferralEntry(Iterator<String> pathComponents, ReferralCacheEntry entry) {
             if (pathComponents.hasNext()) {
                 String component = pathComponents.next();
-                if (!childNodes.containsKey(component)) {
-                    childNodes.put(component, new ReferralCacheNode(component));
+                ReferralCacheNode referralCacheNode = childNodes.get(component);
+                if (referralCacheNode == null) {
+                    childNodes.put(component, (referralCacheNode = new ReferralCacheNode(component)));
                 }
-                childNodes.get(component).addReferralEntry(pathComponents, entry);
+                referralCacheNode.addReferralEntry(pathComponents, entry);
             } else {
                 this.entry = entry;
             }
@@ -200,8 +197,9 @@ public class ReferralCache {
         ReferralCacheEntry getReferralEntry(Iterator<String> pathComponents) {
             if (pathComponents.hasNext()) {
                 String component = pathComponents.next();
-                if (childNodes.containsKey(component)) {
-                    return childNodes.get(component).getReferralEntry(pathComponents);
+                ReferralCacheNode referralCacheNode = childNodes.get(component);
+                if (referralCacheNode != null) {
+                    return referralCacheNode.getReferralEntry(pathComponents);
                 }
             }
             return entry;
