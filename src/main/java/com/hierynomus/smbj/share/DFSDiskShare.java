@@ -38,9 +38,9 @@ public class DFSDiskShare extends DiskShare {
     private static final Logger logger = LoggerFactory.getLogger(DFSDiskShare.class);
     private final DFSPathResolver dfsPathResolver;
 
-    public DFSDiskShare(SmbPath smbPath, TreeConnect treeConnect) {
+    public DFSDiskShare(SmbPath smbPath, TreeConnect treeConnect, DFSPathResolver dfsPathResolver) {
         super(smbPath, treeConnect);
-        dfsPathResolver = new DFSPathResolver();
+        this.dfsPathResolver = dfsPathResolver;
     }
 
     @Override
