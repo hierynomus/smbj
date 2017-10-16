@@ -64,4 +64,16 @@ class ReferralCacheNodeTest extends Specification {
     root.getReferralEntry(["left", "right"].iterator()) == entry
     root.getReferralEntry(["left", "right", "left"].iterator()) == entry2
   }
+
+  def "should ignore path case"() {
+    given:
+    def root = new ReferralCache.ReferralCacheNode("<root>")
+    def entry = Mock(ReferralCache.ReferralCacheEntry)
+
+    when:
+    root.addReferralEntry(["left", "right"].iterator(), entry)
+
+    then:
+    root.getReferralEntry(["LEFt", "rIgHt"].iterator()) == entry
+  }
 }

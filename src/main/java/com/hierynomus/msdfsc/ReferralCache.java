@@ -183,7 +183,7 @@ public class ReferralCache {
 
         void addReferralEntry(Iterator<String> pathComponents, ReferralCacheEntry entry) {
             if (pathComponents.hasNext()) {
-                String component = pathComponents.next();
+                String component = pathComponents.next().toLowerCase();
                 ReferralCacheNode referralCacheNode = childNodes.get(component);
                 if (referralCacheNode == null) {
                     childNodes.put(component, (referralCacheNode = new ReferralCacheNode(component)));
@@ -196,7 +196,7 @@ public class ReferralCache {
 
         ReferralCacheEntry getReferralEntry(Iterator<String> pathComponents) {
             if (pathComponents.hasNext()) {
-                String component = pathComponents.next();
+                String component = pathComponents.next().toLowerCase();
                 ReferralCacheNode referralCacheNode = childNodes.get(component);
                 if (referralCacheNode != null) {
                     return referralCacheNode.getReferralEntry(pathComponents);
