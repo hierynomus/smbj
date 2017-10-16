@@ -19,7 +19,6 @@ import com.hierynomus.smbj.common.SmbPath;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 public class DFSPath {
@@ -31,18 +30,6 @@ public class DFSPath {
 
     public DFSPath(List<String> pathComponents) {
         this.pathComponents = pathComponents;
-    }
-
-    private List<String> buildPrefixList() {
-        List<String> prefixes = new ArrayList<>();
-        String prefix = "\\" + pathComponents.get(0);
-        prefixes.add(prefix);
-        for (int i = 1; i < pathComponents.size(); i++) {
-            prefix += "\\" + pathComponents.get(i);
-            prefixes.add(prefix);
-        }
-        Collections.reverse(prefixes);
-        return prefixes;
     }
 
     public List<String> getPathComponents() {
