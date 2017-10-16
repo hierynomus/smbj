@@ -16,8 +16,6 @@
 package com.hierynomus.mssmb2;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import static com.hierynomus.utils.Strings.join;
