@@ -7,7 +7,7 @@ plugins {
   id "jacoco"
   id "jdepend"
   id "maven-publish"
-  id 'pl.allegro.tech.build.axion-release' version '1.8.1'
+  id "org.ajoberstar.release-opinion" version "1.4.2"
   id "com.github.hierynomus.license" version "0.12.1"
   id "com.jfrog.bintray" version "1.7"
   id 'ru.vyarus.pom' version '1.0.3'
@@ -54,18 +54,9 @@ license {
   excludes(['com/hierynomus/protocol/commons/Base64.java', '**/*.txt', '**/*.properties'])
 }
 
-scmVersion {
-  tag {
-    prefix = 'v'
-    versionSeparator = ''
-  }
-  hooks {
-    pre 'fileUpdate', [file: 'README.adoc', pattern: { v, c -> /:smbj_version: .*/}, replacement: { v, c -> ":smbj_version: $v" }]
-    pre 'commit'
-  }
+release {
+  grgit = org.ajoberstar.grgit.Grgit.open(project.projectDir)
 }
-
-project.version = scmVersion.version
 
 // This disables the pedantic doclint feature of JDK8
 if (JavaVersion.current().isJava8Compatible()) {
