@@ -119,7 +119,7 @@ class FileOutputStream extends OutputStream {
 
         @Override
         public boolean isAvailable() {
-            return !buf.isEmpty();
+            return buf != null && !buf.isEmpty();
         }
 
         @Override
