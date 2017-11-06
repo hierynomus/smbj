@@ -39,9 +39,7 @@ import java.util.List;
 import java.util.Set;
 
 import static com.hierynomus.msdtyp.AccessMask.*;
-import static com.hierynomus.mserref.NtStatus.STATUS_NOT_A_DIRECTORY;
-import static com.hierynomus.mserref.NtStatus.STATUS_OBJECT_NAME_NOT_FOUND;
-import static com.hierynomus.mserref.NtStatus.STATUS_OBJECT_PATH_NOT_FOUND;
+import static com.hierynomus.mserref.NtStatus.*;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_DIRECTORY;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_NORMAL;
 import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_CREATE;
@@ -113,7 +111,7 @@ public class DiskShare extends Share {
      * File in the given path exists or not
      */
     public boolean fileExists(String path) throws SMBApiException {
-        return exists(path, of(FILE_NON_DIRECTORY_FILE), of(STATUS_OBJECT_NAME_NOT_FOUND, STATUS_OBJECT_PATH_NOT_FOUND));
+        return exists(path, of(FILE_NON_DIRECTORY_FILE), of(STATUS_OBJECT_NAME_NOT_FOUND, STATUS_OBJECT_PATH_NOT_FOUND, STATUS_FILE_IS_A_DIRECTORY));
     }
 
     /**
