@@ -28,7 +28,7 @@ public abstract class Endian {
     public static final Endian LE = new Little();
     public static final Endian BE = new Big();
 
-    protected <T extends Buffer<T>> String readNullTerminatedUtf16String(Buffer<T> buffer, Charset charset) throws Buffer.BufferException {
+    <T extends Buffer<T>> String readNullTerminatedUtf16String(Buffer<T> buffer, Charset charset) throws Buffer.BufferException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         byte[] bytes = new byte[2];
         buffer.readRawBytes(bytes);
@@ -39,13 +39,13 @@ public abstract class Endian {
         return new String(baos.toByteArray(), charset);
     }
 
-    protected <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length, Charset charset) throws Buffer.BufferException {
+    <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length, Charset charset) throws Buffer.BufferException {
         byte[] stringBytes = new byte[length * 2];
         buffer.readRawBytes(stringBytes);
         return new String(stringBytes, charset);
     }
 
-    public <T extends Buffer<T>> void writeNullTerminatedUtf16String(Buffer<T> buffer, String string) {
+    <T extends Buffer<T>> void writeNullTerminatedUtf16String(Buffer<T> buffer, String string) {
         writeUtf16String(buffer, string);
         buffer.putRawBytes(NULL_TERMINATOR);
     }
