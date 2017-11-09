@@ -7,7 +7,7 @@ plugins {
   id "jacoco"
   id "jdepend"
   id "maven-publish"
-  id "org.ajoberstar.release-opinion" version "1.4.2"
+  id 'pl.allegro.tech.build.axion-release' version '1.8.1'
   id "com.github.hierynomus.license" version "0.12.1"
   id "com.jfrog.bintray" version "1.7"
   id 'ru.vyarus.pom' version '1.0.3'
@@ -39,6 +39,7 @@ dependencies {
   compile 'net.engio:mbassador:1.3.0'
   testCompile 'org.codehaus.groovy:groovy-all:2.4.4'
   testRuntime 'cglib:cglib-nodep:2.2'
+  testRuntime 'org.objenesis:objenesis:2.6'
   testCompile 'org.spockframework:spock-core:1.1-groovy-2.4'
   testCompile 'commons-io:commons-io:2.5'
   testRuntime 'ch.qos.logback:logback-classic:1.2.3'
@@ -53,9 +54,18 @@ license {
   excludes(['com/hierynomus/protocol/commons/Base64.java', '**/*.txt', '**/*.properties'])
 }
 
-release {
-  grgit = org.ajoberstar.grgit.Grgit.open(project.projectDir)
+scmVersion {
+  tag {
+    prefix = 'v'
+    versionSeparator = ''
+  }
+  hooks {
+    pre 'fileUpdate', [file: 'README.adoc', pattern: { v, c -> /:smbj_version: .*/}, replacement: { v, c -> ":smbj_version: $v" }]
+    pre 'commit'
+  }
 }
+
+project.version = scmVersion.version
 
 // This disables the pedantic doclint feature of JDK8
 if (JavaVersion.current().isJava8Compatible()) {
@@ -228,5 +238,6 @@ animalsniffer {
   ignore 'com.sun.security.jgss.*'
 }
 
-project.tasks.release.dependsOn(project.tasks.bintrayUpload)
+project.tasks.release.dependsOn(project.tasks.build)
+project.tasks.release.finalizedBy(project.tasks.bintrayUpload)
 project.tasks.jacocoTestReport.dependsOn(project.tasks.test)

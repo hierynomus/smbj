@@ -16,6 +16,10 @@
 package com.hierynomus.mssmb2;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import static com.hierynomus.utils.Strings.join;
+import static com.hierynomus.utils.Strings.split;
 
 public class SMB2Functions {
     private static final byte[] EMPTY_BYTES = new byte[0];
@@ -26,5 +30,60 @@ public class SMB2Functions {
         } else {
             return s.getBytes(StandardCharsets.UTF_16LE);
         }
+    }
+
+    // TODO shouldn't this be moved into com.hierynomus.smbj.common.SmbPath?
+    public static String resolveSymlinkTarget(String originalFileName, SMB2Error.SymbolicLinkError symlinkData) {
+        int unparsedPathLength = symlinkData.getUnparsedPathLength();
+        String unparsedPath = getSymlinkUnparsedPath(originalFileName, unparsedPathLength);
+        String substituteName = symlinkData.getSubstituteName();
+
+        String target;
+        if (symlinkData.isAbsolute()) {
+            target = substituteName + unparsedPath;
+        } else {
+            String parsedPath = getSymlinkParsedPath(originalFileName, unparsedPathLength);
+            StringBuilder b = new StringBuilder();
+            int startIndex = parsedPath.lastIndexOf("\\");
+            if (startIndex != -1) {
+                b.append(parsedPath, 0, startIndex);
+                b.append('\\');
+            }
+            b.append(substituteName);
+            b.append(unparsedPath);
+            target = b.toString();
+        }
+
+        return normalizePath(target);
+    }
+
+    private static String getSymlinkParsedPath(String fileName, int unparsedPathLength) {
+        byte[] fileNameBytes = SMB2Functions.unicode(fileName);
+        return new String(fileNameBytes, 0, fileNameBytes.length - unparsedPathLength, StandardCharsets.UTF_16LE);
+    }
+
+    private static String getSymlinkUnparsedPath(String fileName, int unparsedPathLength) {
+        byte[] fileNameBytes = SMB2Functions.unicode(fileName);
+        return new String(fileNameBytes, fileNameBytes.length - unparsedPathLength, unparsedPathLength, StandardCharsets.UTF_16LE);
+    }
+
+    private static String normalizePath(String path) {
+        List<String> parts = split(path, '\\');
+
+        for (int i = 0; i < parts.size(); ) {
+            String s = parts.get(i);
+            if (".".equals(s)) {
+                parts.remove(i);
+            } else if ("..".equals(s)) {
+                if (i > 0) {
+                    parts.remove(i--);
+                }
+                parts.remove(i);
+            } else {
+                i++;
+            }
+        }
+
+        return join(parts, '\\');
     }
 }

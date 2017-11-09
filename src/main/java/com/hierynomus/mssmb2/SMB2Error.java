@@ -44,7 +44,10 @@ public class SMB2Error {
         } else if (byteCount > 0) {
             readErrorData(header, buffer);
         } else if (byteCount == 0) {
-            buffer.skip(1); // ErrorData (1 byte)
+            // Win10 1709 does not provide ErrorData
+            if (buffer.available() > 0) {
+                buffer.skip(1); // ErrorData (1 byte)
+            }
         }
 
         return this;
@@ -86,7 +89,7 @@ public class SMB2Error {
         return errorData;
     }
 
-    interface SMB2ErrorData {
+    public interface SMB2ErrorData {
     }
 
     public static class SymbolicLinkError implements SMB2ErrorData {
@@ -116,6 +119,16 @@ public class SMB2Error {
             return this;
         }
 
+        /**
+         * Read a string at an offset from the current position in the buffer.
+         *
+         * After reading the string the position of the buffer is reset to the position where we started.
+         *
+         * @param offset The offset to read from
+         * @param length The length of the String to read
+         * @return The read String
+         * @throws Buffer.BufferException If the buffer underflows.
+         */
         private String readOffsettedString(SMBBuffer buffer, int offset, int length) throws Buffer.BufferException {
             int curpos = buffer.rpos();
             String s = null;

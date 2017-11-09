@@ -28,8 +28,7 @@ import java.util.List;
 
 /**
  * [MS-SMB2].pdf 2.2.36 SMB2 CHANGE_NOTIFY Response
- * <p>
- * \
+ *
  */
 public class SMB2ChangeNotifyResponse extends SMB2Packet {
 

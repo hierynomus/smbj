@@ -397,7 +397,7 @@ public class DFSPathResolver {
         if (response.getReferralEntries().isEmpty()) {
             result.status = NtStatus.STATUS_OBJECT_PATH_NOT_FOUND;
         }
-        ReferralCache.ReferralCacheEntry referralCacheEntry = new ReferralCache.ReferralCacheEntry(response);
+        ReferralCache.ReferralCacheEntry referralCacheEntry = new ReferralCache.ReferralCacheEntry(response, domainCache);
         referralCache.put(referralCacheEntry);
         result.referralCacheEntry = referralCacheEntry;
     }

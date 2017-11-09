@@ -29,12 +29,12 @@ import com.hierynomus.spnego.NegTokenTarg;
 import com.hierynomus.spnego.SpnegoException;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.microsoft.MicrosoftObjectIdentifiers;
-import org.bouncycastle.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Random;
 
@@ -105,10 +105,10 @@ public class NtlmAuthenticator implements Authenticator {
                     byte[] masterKey = new byte[16];
                     random.nextBytes(masterKey);
                     sessionkey = ntlmFunctions.encryptRc4(userSessionKey, masterKey);
-                    session.setSigningKey(masterKey);
+                    response.setSigningKey(masterKey);
                 } else {
                     sessionkey = userSessionKey;
-                    session.setSigningKey(sessionkey);
+                    response.setSigningKey(sessionkey);
                 }
 
                 completed = true;
