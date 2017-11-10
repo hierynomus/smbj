@@ -116,7 +116,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() throws IOException {
         close(false);
     }
 
@@ -125,9 +125,9 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
      * calls the {@link TransportLayer#disconnect()}.
      *
      * @param force if set, does not nicely terminate the open sessions.
-     * @throws Exception If any error occurred during close-ing.
+     * @throws IOException If any error occurred during close-ing.
      */
-    public void close(boolean force) throws Exception {
+    public void close(boolean force) throws IOException {
         try {
             if (!force) {
                 for (Session session : sessionTable.activeSessions()) {
