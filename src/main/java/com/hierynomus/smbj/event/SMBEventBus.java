@@ -17,6 +17,7 @@ package com.hierynomus.smbj.event;
 
 import net.engio.mbassy.bus.SyncMessageBus;
 import net.engio.mbassy.bus.common.PubSubSupport;
+import net.engio.mbassy.bus.error.IPublicationErrorHandler;
 
 /**
  * Our own delegating class to wrap the MBassador event bus. This ensures that we only need to use their annotations
@@ -27,7 +28,7 @@ public class SMBEventBus {
     private PubSubSupport<SMBEvent> wrappedBus;
 
     public SMBEventBus() {
-        this(new SyncMessageBus<SMBEvent>());
+        this(new SyncMessageBus<SMBEvent>(new IPublicationErrorHandler.ConsoleLogger()));
     }
 
     public SMBEventBus(PubSubSupport<SMBEvent> wrappedBus) {
