@@ -34,6 +34,7 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.Queue;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A transport layer over Direct TCP/IP that uses asynchronous I/O.
@@ -46,6 +47,7 @@ public class AsyncDirectTcpTransport<P extends Packet<?>> implements TransportLa
     private final PacketHandlers<P> handlers;
     private final AsynchronousSocketChannel socketChannel;
     private final AsyncPacketReader<P> packetReader;
+    private final AtomicBoolean connected;
     private int soTimeout = 0;
 
     // AsynchronousSocketChannel doesn't support concurrent writes, so queue pending writes for later
@@ -60,6 +62,7 @@ public class AsyncDirectTcpTransport<P extends Packet<?>> implements TransportLa
         this.packetReader = new AsyncPacketReader<>(this.socketChannel, handlers.getPacketFactory(),
             handlers.getReceiver());
         this.writeQueue = new LinkedBlockingQueue<>();
+        this.connected = new AtomicBoolean(false);
     }
 
     @Override
@@ -87,9 +90,10 @@ public class AsyncDirectTcpTransport<P extends Packet<?>> implements TransportLa
     @Override
     public void connect(InetSocketAddress remoteAddress) throws IOException {
         String remoteHostname = remoteAddress.getHostString();
-        Future<Void> connectFuture = socketChannel.connect(remoteAddress);
         try {
+            Future<Void> connectFuture = socketChannel.connect(remoteAddress);
             connectFuture.get(DEFAULT_CONNECT_TIMEOUT, TimeUnit.MILLISECONDS);
+            connected.set(true);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             throw TransportException.Wrapper.wrap(e);
         }
@@ -98,12 +102,14 @@ public class AsyncDirectTcpTransport<P extends Packet<?>> implements TransportLa
 
     @Override
     public void disconnect() throws IOException {
+        // Mark disconnected first
+        connected.set(false);
         socketChannel.close();
     }
 
     @Override
     public boolean isConnected() {
-        return socketChannel.isOpen();
+        return connected.get();
     }
 
     public void setSoTimeout(int soTimeout) {
@@ -111,6 +117,9 @@ public class AsyncDirectTcpTransport<P extends Packet<?>> implements TransportLa
     }
 
     private void startAsyncWrite(ByteBuffer toSend) {
+        if (!isConnected()) {
+            throw new IllegalStateException("Transport is not connected");
+        }
         socketChannel.write(toSend, soTimeout, TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer, Object>() {
 
             @Override
