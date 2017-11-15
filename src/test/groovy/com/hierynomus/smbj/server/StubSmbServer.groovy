@@ -20,12 +20,16 @@ import com.hierynomus.protocol.commons.buffer.Buffer
 import com.hierynomus.protocol.commons.buffer.Endian
 import com.hierynomus.smb.SMBBuffer
 import org.apache.commons.io.IOUtils
+import org.codehaus.groovy.runtime.IOGroovyMethods
+import org.slf4j.LoggerFactory
 
+import javax.net.ssl.SSLServerSocket
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
+import java.util.logging.Logger
 
 class StubSmbServer {
-
+  private static final def logger = LoggerFactory.getLogger(StubSmbServer.class)
   private int port = 0
   private ServerSocket socket
 
@@ -48,9 +52,11 @@ class StubSmbServer {
       thread = new Thread(new Runnable() {
         @Override
         void run() {
+          logger.info("Stub server started")
           runServer()
         }
-      })
+      }, "Stub-Server-" + socket.getLocalPort())
+      thread.start()
     } catch (IOException e) {
       throw new RuntimeException(e)
     }
@@ -61,15 +67,18 @@ class StubSmbServer {
     try {
       InputStream inputStream = accept.getInputStream()
       OutputStream outputStream = accept.getOutputStream()
-      while (!stop.get()) {
+      while (!stop.get() && !socket.isClosed()) {// && inputStream.available() > 4) {
         int packetLength = readTcpHeader(inputStream)
+        if (packetLength < 0) {
+          break
+        }
+        logger.debug("Read header of {} bytes", packetLength)
         // Read the SMB packet
         IOUtils.read(inputStream, new byte[packetLength])
+        logger.debug("Read packet")
         if (stubbedResponses.size() > 0) {
           Response response = stubbedResponses.remove(0)
-          byte[] b = IOUtils.toByteArray(response.getBytes())
-          outputStream.write(new Buffer.PlainBuffer(Endian.BE).putByte((byte) 0).putUInt24(b.length).array())
-          outputStream.write(b)
+          response.write(outputStream)
           outputStream.flush()
         } else {
           throw new NoSuchElementException("The response list is empty!")
@@ -86,7 +95,10 @@ class StubSmbServer {
 
   private static int readTcpHeader(InputStream inputStream) throws IOException, Buffer.BufferException {
     byte[] b = new byte[4]
-    IOUtils.read(inputStream, b)
+    int read = IOUtils.read(inputStream, b)
+    if (read < b.length) {
+      return -1;
+    }
     Buffer.PlainBuffer plainBuffer = new Buffer.PlainBuffer(b, Endian.BE)
     plainBuffer.readByte() // Ignore first byte
     return plainBuffer.readUInt24()
@@ -94,6 +106,7 @@ class StubSmbServer {
 
   void shutdown() {
     stop.set(true)
+    thread.interrupt()
     try {
       thread.join()
     } catch (InterruptedException e) {
@@ -126,7 +139,7 @@ class StubSmbServer {
   }
 
   private interface Response {
-    InputStream getBytes()
+    void write(OutputStream outputStream)
   }
 
   private static class FileResponse implements Response {
@@ -137,11 +150,9 @@ class StubSmbServer {
     }
 
     @Override
-    InputStream getBytes() {
-      try {
-        return new FileInputStream(file)
-      } catch (FileNotFoundException e) {
-        throw new RuntimeException(e)
+    void write(OutputStream outputStream) {
+      new FileInputStream(file).withCloseable { fis ->
+        IOUtils.copy(fis, outputStream)
       }
     }
   }
@@ -150,13 +161,15 @@ class StubSmbServer {
 
     private String resource
 
-    private ResourseResponse(String resource) {
+    private ResourceResponse(String resource) {
       this.resource = resource
     }
 
     @Override
-    InputStream getBytes() {
-      return Thread.currentThread().getContextClassLoader().getResourceAsStream(resource)
+    void write(OutputStream outputStream) {
+      Thread.currentThread().getContextClassLoader().getResourceAsStream(resource).withCloseable { is ->
+        IOUtils.copy(is, outputStream)
+      }
     }
   }
 
@@ -168,8 +181,8 @@ class StubSmbServer {
     }
 
     @Override
-    InputStream getBytes() {
-      return new ByteArrayInputStream(bytes)
+    void write(OutputStream outputStream) {
+      outputStream.write(bytes)
     }
   }
 
@@ -182,10 +195,11 @@ class StubSmbServer {
     }
 
     @Override
-    InputStream getBytes() {
-      SMBBuffer buffer = new SMBBuffer()
+    void write(OutputStream outputStream) {
+      def buffer = new SMBBuffer()
       packet.write(buffer)
-      return buffer.asInputStream()
+      outputStream.write(new Buffer.PlainBuffer(Endian.BE).putByte((byte) 0).putUInt24(buffer.available()).array())
+      outputStream.write(buffer.getCompactData())
     }
   }
 }
