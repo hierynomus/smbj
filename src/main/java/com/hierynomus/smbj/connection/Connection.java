@@ -45,6 +45,7 @@ import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -62,7 +63,7 @@ import static java.lang.String.format;
 /**
  * A connection to a server.
  */
-public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
+public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
     private static final DelegatingSMBMessageConverter converter = new DelegatingSMBMessageConverter(new SMB2MessageConverter(), new SMB1MessageConverter());
 
@@ -116,7 +117,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() throws IOException {
         close(false);
     }
 
@@ -125,9 +126,9 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
      * calls the {@link TransportLayer#disconnect()}.
      *
      * @param force if set, does not nicely terminate the open sessions.
-     * @throws Exception If any error occurred during close-ing.
+     * @throws IOException If any error occurred during close-ing.
      */
-    public void close(boolean force) throws Exception {
+    public void close(boolean force) throws IOException {
         try {
             if (!force) {
                 for (Session session : sessionTable.activeSessions()) {
