@@ -159,14 +159,16 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
             Authenticator authenticator = getAuthenticator(authContext);
             authenticator.init(config.getSecurityProvider(), config.getRandomProvider());
             Session session = getSession(authContext);
-            SMB2SessionSetup receive = authenticationRound(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
+            byte[] securityContext = processAuthenticationToken(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
+            SMB2SessionSetup receive = initiateSessionSetup(securityContext, session);
             long sessionId = receive.getHeader().getSessionId();
             session.setSessionId(sessionId);
             preauthSessionTable.registerSession(sessionId, session);
             try {
                 while (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
                     logger.debug("More processing required for authentication of {} using {}", authContext.getUsername(), authenticator);
-                    receive = authenticationRound(authenticator, authContext, receive.getSecurityBuffer(), session);
+                    securityContext = processAuthenticationToken(authenticator, authContext, receive.getSecurityBuffer(), session);
+                    receive = initiateSessionSetup(securityContext, session);
                 }
 
                 if (receive.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
@@ -175,7 +177,7 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
 
                 if (receive.getSecurityBuffer() != null) {
                     // process the last received buffer
-                    authenticator.authenticate(authContext, receive.getSecurityBuffer(), session);
+                    processAuthenticationToken(authenticator, authContext, receive.getSecurityBuffer(), session);
                 }
                 session.init(receive);
                 logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), remoteName, session.getSessionId());
@@ -193,14 +195,23 @@ public class Connection implements AutoCloseable, PacketReceiver<SMBPacket<?>> {
         return new Session(this, authContext, bus, config.isDfsEnabled(), config.getSecurityProvider());
     }
 
-    private SMB2SessionSetup authenticationRound(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {
+    private byte[] processAuthenticationToken(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {
         AuthenticateResponse resp = authenticator.authenticate(authContext, inputToken, session);
+        if (resp == null) {
+            return null;
+        }
         connectionInfo.setWindowsVersion(resp.getWindowsVersion());
         byte[] securityContext = resp.getNegToken();
         if (resp.getSigningKey() != null) {
             session.setSigningKey(resp.getSigningKey());
         }
-        SMB2SessionSetup req = new SMB2SessionSetup(connectionInfo.getNegotiatedProtocol().getDialect(), EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED),
+        return securityContext;
+    }
+
+    private SMB2SessionSetup initiateSessionSetup(byte[] securityContext, Session session) throws TransportException {
+        SMB2SessionSetup req = new SMB2SessionSetup(
+            connectionInfo.getNegotiatedProtocol().getDialect(),
+            EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED),
             connectionInfo.getClientCapabilities());
         req.setSecurityBuffer(securityContext);
         req.getHeader().setSessionId(session.getSessionId());
