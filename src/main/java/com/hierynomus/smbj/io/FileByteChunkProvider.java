@@ -19,7 +19,7 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 
 import java.io.*;
 
-public class FileByteChunkProvider extends ByteChunkProvider {
+public class FileByteChunkProvider extends ByteChunkProvider implements Closeable {
 
     private File file;
     private BufferedInputStream fis;
@@ -69,5 +69,16 @@ public class FileByteChunkProvider extends ByteChunkProvider {
     @Override
     public boolean isAvailable() {
         return bytesLeft() > 0;
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (fis != null) {
+            try {
+                fis.close();
+            } finally {
+                fis = null;
+            }
+        }
     }
 }
