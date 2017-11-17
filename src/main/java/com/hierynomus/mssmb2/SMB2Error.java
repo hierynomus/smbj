@@ -44,7 +44,10 @@ public class SMB2Error {
         } else if (byteCount > 0) {
             readErrorData(header, buffer);
         } else if (byteCount == 0) {
-            buffer.skip(1); // ErrorData (1 byte)
+            // Win10 1709 does not provide ErrorData
+            if (buffer.available() > 0) {
+                buffer.skip(1); // ErrorData (1 byte)
+            }
         }
 
         return this;

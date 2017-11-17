@@ -57,9 +57,9 @@ public class SMB2Header implements SMBHeader {
         writeCreditRequest(buffer); // CreditRequest (2 bytes)
         buffer.putUInt32(flags); // Flags (4 bytes)
         buffer.putUInt32(nextCommandOffset); // NextCommand (4 bytes)
-        buffer.putUInt64(messageId); // MessageId (8 bytes)
+        buffer.putLong(messageId); // MessageId (8 bytes)
         if (isSet(flags, SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
-            buffer.putUInt64(asyncId);
+            buffer.putLong(asyncId);
         } else {
             buffer.putReserved4(); // Reserved (4 bytes)
             buffer.putUInt32(treeId); // TreeId (4 bytes)
@@ -170,9 +170,9 @@ public class SMB2Header implements SMBHeader {
         creditResponse = buffer.readUInt16(); // CreditRequest/CreditResponse (2 bytes)
         flags = buffer.readUInt32(); // Flags (4 bytes)
         nextCommandOffset = buffer.readUInt32(); // NextCommand (4 bytes)
-        messageId = buffer.readUInt64(); // MessageId (4 bytes)
+        messageId = buffer.readLong(); // MessageId (4 bytes)
         if (isSet(flags, SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
-            asyncId = buffer.readUInt64();
+            asyncId = buffer.readLong();
         } else {
             buffer.skip(4); // Reserved (4 bytes)
             treeId = buffer.readUInt32(); // TreeId (4 bytes)

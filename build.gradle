@@ -238,5 +238,6 @@ animalsniffer {
   ignore 'com.sun.security.jgss.*'
 }
 
-project.tasks.release.dependsOn(project.tasks.bintrayUpload)
+project.tasks.release.dependsOn(project.tasks.build)
+project.tasks.release.finalizedBy(project.tasks.bintrayUpload)
 project.tasks.jacocoTestReport.dependsOn(project.tasks.test)

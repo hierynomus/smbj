@@ -49,7 +49,7 @@ public abstract class PacketReader<P extends Packet<?>> implements Runnable {
                 if (stopped.get()) {
                     break;
                 }
-                logger.info("PacketReader error.");
+                logger.info("PacketReader error, got exception.", e);
                 handler.handleError(e);
                 return;
             }
