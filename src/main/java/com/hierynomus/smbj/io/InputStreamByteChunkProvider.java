@@ -34,8 +34,11 @@ public class InputStreamByteChunkProvider extends ByteChunkProvider {
 
     @Override
     protected int getChunk(byte[] chunk) throws IOException {
+        if (is == null) {
+            return -1;
+        }
         int count = 0;
-        int read = 0;
+        int read;
         while (count < CHUNK_SIZE && ((read = is.read(chunk, count, CHUNK_SIZE - count)) != -1)) {
             count += read;
         }
@@ -45,7 +48,11 @@ public class InputStreamByteChunkProvider extends ByteChunkProvider {
     @Override
     public int bytesLeft() {
         try {
-            return is.available();
+            if (is != null) {
+                return is.available();
+            } else {
+                return -1;
+            }
         } catch (IOException e) {
             throw new SMBRuntimeException(e);
         }
@@ -54,5 +61,16 @@ public class InputStreamByteChunkProvider extends ByteChunkProvider {
     @Override
     public boolean isAvailable() {
         return bytesLeft() > 0;
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (is != null) {
+            try {
+                is.close();
+            } finally {
+                is = null;
+            }
+        }
     }
 }
