@@ -17,26 +17,28 @@ package com.hierynomus.smbj.io;
 
 import com.hierynomus.smbj.common.SMBRuntimeException;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 
-public class FileByteChunkProvider extends ByteChunkProvider implements Closeable {
+public class FileByteChunkProvider extends ByteChunkProvider {
 
     private File file;
-    private BufferedInputStream fis;
+    private InputStreamByteChunkProvider underlyingProvider;
 
-    public FileByteChunkProvider(File file) throws FileNotFoundException {
-        this.file = file;
-        fis = new BufferedInputStream(new FileInputStream(file), CHUNK_SIZE);
+    public FileByteChunkProvider(File file) throws IOException {
+        this(file, 0);
     }
 
     public FileByteChunkProvider(File file, long offset) throws IOException {
         this.file = file;
-        fis = new BufferedInputStream(new FileInputStream(file), CHUNK_SIZE);
+        FileInputStream fis = new FileInputStream(file);
+        underlyingProvider = new InputStreamByteChunkProvider(fis);
         ensureSkipped(fis, offset);
         this.offset = offset;
     }
 
-    private void ensureSkipped(final BufferedInputStream fis, final long offset) throws IOException {
+    private void ensureSkipped(final FileInputStream fis, final long offset) throws IOException {
         long skipped = 0;
         while (skipped < offset && fis.available() > 0) {
             skipped += fis.skip(offset);
@@ -49,36 +51,21 @@ public class FileByteChunkProvider extends ByteChunkProvider implements Closeabl
 
     @Override
     protected int getChunk(byte[] chunk) throws IOException {
-        int count = 0;
-        int read = 0;
-        while (count < CHUNK_SIZE && ((read = fis.read(chunk, count, CHUNK_SIZE - count)) != -1)) {
-            count += read;
-        }
-        return count;
+        return underlyingProvider.getChunk(chunk);
     }
 
     @Override
     public int bytesLeft() {
-        try {
-            return fis.available();
-        } catch (IOException e) {
-            throw new SMBRuntimeException(e);
-        }
+        return underlyingProvider.bytesLeft();
     }
 
     @Override
     public boolean isAvailable() {
-        return bytesLeft() > 0;
+        return underlyingProvider.isAvailable();
     }
 
     @Override
     public void close() throws IOException {
-        if (fis != null) {
-            try {
-                fis.close();
-            } finally {
-                fis = null;
-            }
-        }
+        underlyingProvider.close();
     }
 }
