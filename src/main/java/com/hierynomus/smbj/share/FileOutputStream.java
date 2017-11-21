@@ -33,7 +33,7 @@ class FileOutputStream extends OutputStream {
 
     private static final Logger logger = LoggerFactory.getLogger(FileOutputStream.class);
 
-    FileOutputStream(SMB2Writer writer, int bufferSize, ProgressListener progressListener) {
+    FileOutputStream(SMB2Writer writer, int bufferSize, boolean append, ProgressListener progressListener) {
         this.writer = writer;
         this.progressListener = progressListener;
         this.provider = new ByteArrayProvider(bufferSize);

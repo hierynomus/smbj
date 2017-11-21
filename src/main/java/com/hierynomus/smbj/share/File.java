@@ -87,12 +87,68 @@ public class File extends DiskEntry {
         return writer.write(provider, progressListener);
     }
 
+    /**
+     * Gets an {@link OutputStream} to write to the file.
+     * <p>
+     * Equivalent to calling {@link #getOutputStream(boolean, ProgressListener) getOutputStream(false, null)}.
+     *
+     * @return An {@link OutputStream} in overwrite mode.
+     */
     public OutputStream getOutputStream() {
         return writer.getOutputStream();
     }
 
+    /**
+     * Gets an {@link OutputStream} to append or overwrite the file.
+     * <p>
+     * If this method is called with <code>true</code> for the 'append' parameter, the data written to the {@link OutputStream}
+     * will be appended to the end of the file. Else the data written to the {@link OutputStream} will overwrite the contents
+     * of the file.
+     * <p>
+     * Equivalent to calling {@link #getOutputStream(boolean, ProgressListener) getOutputStream(append, null)}.
+     *
+     * @param append Whether or not data should be appended to the end of the remote file.
+     * @return An {@link OutputStream} in append mode iff the 'append' parameter is set to <code>true</code>, else the
+     * {@link OutputStream} will be in overwrite mode.
+     */
+    public OutputStream getOutputStream(boolean append) {
+        return writer.getOutputStream(append);
+    }
+
+    /**
+     * Gets an {@link OutputStream} to write to the file.
+     * <p/>
+     * For every write operation to the {@link OutputStream} the {@link ProgressListener} will be updated with the amount
+     * of data written.
+     * <p>
+     * Equivalent to calling {@link #getOutputStream(boolean, ProgressListener) getOutputStream(false, listener)}.
+     *
+     * @param listener A {@link ProgressListener} that will be updated on every write operation to the returned {@link OutputStream}.
+     * @return An {@link OutputStream} in overwrite mode.
+     */
     public OutputStream getOutputStream(ProgressListener listener) {
         return writer.getOutputStream(listener);
+    }
+
+    /**
+     * Gets an {@link OutputStream} to append or overwrite the file.
+     * <p>
+     * If this method is called with <code>true</code> for the 'append' parameter, the data written to the {@link OutputStream}
+     * will be appended to the end of the file. Else the data written to the {@link OutputStream} will overwrite the contents
+     * of the file.
+     * <p>
+     * For every write operation to the {@link OutputStream} the {@link ProgressListener} will be updated with the amount
+     * of data written.
+     * <p>
+     * Equivalent to calling {@link #getOutputStream(boolean, ProgressListener) getOutputStream(append, listener)}.
+     *
+     * @param append   Whether or not data should be appended to the end of the remote file.
+     * @param listener A {@link ProgressListener} that will be updated on every write operation to the returned {@link OutputStream}.
+     * @return An {@link OutputStream} in append mode iff the 'append' parameter is set to <code>true</code>, else the
+     * {@link OutputStream} will be in overwrite mode.
+     */
+    public OutputStream getOutputStream(boolean append, ProgressListener listener) {
+        return writer.getOutputStream(append, listener);
     }
 
     /**
