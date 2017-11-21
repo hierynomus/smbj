@@ -15,6 +15,8 @@
  */
 package com.hierynomus.smbj.transport.tcp.async;
 
+import com.hierynomus.protocol.Packet;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -24,24 +26,41 @@ public class PacketBufferReader {
     private static final int READ_BUFFER_CAPACITY = 9000; // Size of a Jumbo frame
 
     private final ByteBuffer readBuffer;
-
+    private byte[] currentPacketBytes;
     private int currentPacketLength = NO_PACKET_LENGTH;
+    private int currentPacketOffset = 0;
 
-    public PacketBufferReader() {
+    public <P extends Packet<?>> PacketBufferReader() {
         this.readBuffer = ByteBuffer.allocate(READ_BUFFER_CAPACITY);
         this.readBuffer.order(ByteOrder.BIG_ENDIAN);
     }
 
+
     public byte[] readNext() {
         readBuffer.flip(); // prepare to process received data
-        byte[] result;
-        if (isAwaitingHeader()) {
-            result = readPacketHeaderAndBody();
-        } else {
-            result = readPacketBody();
+        byte[] bytes = null;
+        if (isAwaitingHeader() && isHeaderAvailable()) {
+            currentPacketLength = readPacketHeader();
+            currentPacketBytes = new byte[currentPacketLength];
+            bytes = readPacketBody();
+        } else if (!isAwaitingHeader()) {
+            bytes = readPacketBody();
         }
         readBuffer.compact(); // prepare to receive more data
-        return result;
+        if (bytes != null) {
+            currentPacketBytes = null;
+            currentPacketOffset = 0;
+            currentPacketLength = NO_PACKET_LENGTH;
+        }
+        return bytes;
+    }
+
+    private int readPacketHeader() {
+        return readBuffer.getInt() & 0xffffff;
+    }
+
+    private boolean isHeaderAvailable() {
+        return readBuffer.remaining() >= HEADER_SIZE;
     }
 
     public ByteBuffer getBuffer() {
@@ -52,26 +71,17 @@ public class PacketBufferReader {
         return currentPacketLength == NO_PACKET_LENGTH;
     }
 
-    private byte[] readPacketHeaderAndBody() {
-        if (!ensureBytesAvailable(HEADER_SIZE)) {
-            return null; // can't read header yet
-        }
-        this.currentPacketLength = readBuffer.getInt() & 0xffffff;
-        return readPacketBody();
-    }
-
     private byte[] readPacketBody() {
-        if (!ensureBytesAvailable(this.currentPacketLength)) {
-            return null; // can't read body yet
+        int length = currentPacketLength - currentPacketOffset;
+        if (length > readBuffer.remaining()) {
+            length = readBuffer.remaining();
         }
-        byte[] buf = new byte[this.currentPacketLength];
-        readBuffer.get(buf);
-        this.currentPacketLength = NO_PACKET_LENGTH; // prepare to read next packet
-        return buf;
-    }
+        readBuffer.get(currentPacketBytes, currentPacketOffset, length);
+        currentPacketOffset += length;
 
-    private boolean ensureBytesAvailable(int bytesNeeded) {
-        return readBuffer.remaining() >= bytesNeeded;
+        if (currentPacketOffset == currentPacketLength) {
+            return currentPacketBytes;
+        }
+        return null;
     }
-
 }
