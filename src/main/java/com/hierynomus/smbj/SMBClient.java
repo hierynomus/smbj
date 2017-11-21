@@ -18,6 +18,7 @@ package com.hierynomus.smbj;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
+import com.hierynomus.smbj.share.DFSPathResolver;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,7 @@ public class SMBClient {
     private SmbConfig config;
 
     private SMBEventBus bus;
+    private DFSPathResolver dfsPathResolver;
 
     public SMBClient() {
         this(SmbConfig.createDefaultConfig());
@@ -55,6 +57,7 @@ public class SMBClient {
         this.config = config;
         this.bus = bus;
         bus.subscribe(this);
+        this.dfsPathResolver = config.isDfsEnabled() ? new DFSPathResolver() : null;
     }
 
     /**
@@ -78,6 +81,10 @@ public class SMBClient {
      */
     public Connection connect(String hostname, int port) throws IOException {
         return getEstablishedOrConnect(hostname, port);
+    }
+
+    public DFSPathResolver getDfsPathResolver() {
+        return dfsPathResolver;
     }
 
     private Connection getEstablishedOrConnect(String hostname, int port) throws IOException {
