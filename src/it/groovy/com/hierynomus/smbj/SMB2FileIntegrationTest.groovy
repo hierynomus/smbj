@@ -145,16 +145,21 @@ class SMB2FileIntegrationTest extends Specification {
 
     when:
     def ostream = file.getOutputStream()
-    byte[] buffer = new byte[4096];
-    int len;
-    while ((len = istream.read(buffer)) != -1) {
-      ostream.write(buffer, 0, len);
+    try {
+      byte[] buffer = new byte[4096];
+      int len;
+      while ((len = istream.read(buffer)) != -1) {
+        ostream.write(buffer, 0, len);
+      }
+    } finally {
+      ostream.close()
+      file.close()
     }
-    ostream.close()
-    file.close()
 
     then:
     share.fileExists("bigfile")
+
+    cleanup:
     share.rm("bigfile")
   }
 }

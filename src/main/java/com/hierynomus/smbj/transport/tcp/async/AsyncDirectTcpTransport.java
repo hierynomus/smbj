@@ -18,10 +18,10 @@ package com.hierynomus.smbj.transport.tcp.async;
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
-import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.protocol.transport.PacketHandlers;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.protocol.transport.TransportLayer;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * A transport layer over Direct TCP/IP that uses asynchronous I/O.
  */
 public class AsyncDirectTcpTransport<P extends Packet<?>> implements TransportLayer<P> {
-    public static final int DEFAULT_CONNECT_TIMEOUT = 5000;
+    private static final int DEFAULT_CONNECT_TIMEOUT = 5000;
     private static final int DIRECT_HEADER_SIZE = 4;
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -52,7 +52,7 @@ public class AsyncDirectTcpTransport<P extends Packet<?>> implements TransportLa
 
     // AsynchronousSocketChannel doesn't support concurrent writes, so queue pending writes for later
     private final Queue<ByteBuffer> writeQueue;
-    private boolean writingNow = false;
+    private AtomicBoolean writingNow;
 
     public AsyncDirectTcpTransport(int soTimeout, PacketHandlers<P> handlers, AsynchronousChannelGroup group)
         throws IOException {
@@ -63,6 +63,7 @@ public class AsyncDirectTcpTransport<P extends Packet<?>> implements TransportLa
             handlers.getReceiver());
         this.writeQueue = new LinkedBlockingQueue<>();
         this.connected = new AtomicBoolean(false);
+        this.writingNow = new AtomicBoolean(false);
     }
 
     @Override
@@ -78,11 +79,9 @@ public class AsyncDirectTcpTransport<P extends Packet<?>> implements TransportLa
 
     private void writeOrEnqueue(ByteBuffer buffer) throws IOException {
         synchronized (this) {
-            if (!writingNow) {
-                writingNow = true;
-                startAsyncWrite(buffer);
-            } else {
-                writeQueue.add(buffer);
+            writeQueue.add(buffer);
+            if (!writingNow.getAndSet(true)) {
+                startAsyncWrite();
             }
         }
     }
@@ -116,14 +115,16 @@ public class AsyncDirectTcpTransport<P extends Packet<?>> implements TransportLa
         this.soTimeout = soTimeout;
     }
 
-    private void startAsyncWrite(ByteBuffer toSend) {
+    private void startAsyncWrite() {
         if (!isConnected()) {
             throw new IllegalStateException("Transport is not connected");
         }
+        ByteBuffer toSend = writeQueue.peek();
         socketChannel.write(toSend, soTimeout, TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer, Object>() {
 
             @Override
             public void completed(Integer result, Object attachment) {
+                logger.trace("Written {} bytes to async transport", result);
                 startNextWriteIfWaiting();
             }
 
@@ -135,17 +136,21 @@ public class AsyncDirectTcpTransport<P extends Packet<?>> implements TransportLa
 
             private void startNextWriteIfWaiting() {
                 synchronized (AsyncDirectTcpTransport.this) {
-                    ByteBuffer nextBufferToWrite = writeQueue.poll();
-                    if (nextBufferToWrite != null) {
-                        startAsyncWrite(nextBufferToWrite);
+                    ByteBuffer head = writeQueue.peek();
+                    if (head != null && head.hasRemaining()) {
+                        startAsyncWrite();
+                    } else if (head != null) {
+                        writeQueue.remove();
+                        startNextWriteIfWaiting();
                     } else {
-                        writingNow = false;
+                        writingNow.set(false);
                     }
                 }
             }
         });
     }
 
+    @SuppressWarnings("unchecked")
     private ByteBuffer prepareBufferToSend(P packet) {
         Buffer<?> packetData = handlers.getSerializer().write(packet);
         int dataSize = packetData.available();
