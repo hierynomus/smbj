@@ -38,6 +38,8 @@ import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import static java.lang.String.format;
+
 /**
  * A Session
  */
@@ -124,6 +126,9 @@ public class Session implements AutoCloseable {
      * @return the handle to the connected share.
      */
     public Share connectShare(String shareName) {
+        if (shareName.contains("\\")) {
+            throw new IllegalArgumentException(format("Share name (%s) cannot contain '\\' characters.", shareName));
+        }
         Share connectedShare = treeConnectTable.getTreeConnect(shareName);
         if (connectedShare != null) {
             logger.debug("Returning cached Share {} for {}", connectedShare, shareName);

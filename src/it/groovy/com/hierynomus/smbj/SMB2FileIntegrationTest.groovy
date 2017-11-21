@@ -20,11 +20,13 @@ import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb2.SMB2CreateDisposition
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.mssmb2.SMBApiException
+import com.hierynomus.smb.SMBPacket
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.io.ArrayByteChunkProvider
 import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.share.DiskShare
+import com.hierynomus.smbj.transport.tcp.async.AsyncDirectTcpTransportFactory
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -50,9 +52,10 @@ class SMB2FileIntegrationTest extends Specification {
     def config = SmbConfig
       .builder()
       .withMultiProtocolNegotiate(true)
+    .withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>())
       .withSigningRequired(true).build()
     client = new SMBClient(config)
-    connection = client.connect("172.16.93.221")
+    connection = client.connect("172.16.93.241")
     session = connection.authenticate(new AuthenticationContext("jeroen", "jeroen".toCharArray(), null))
     share = session.connectShare("NewShare") as DiskShare
   }
@@ -144,17 +147,48 @@ class SMB2FileIntegrationTest extends Specification {
     def istream = new ByteArrayInputStream(bytes)
 
     when:
-    def ostream = file.getOutputStream()
-    byte[] buffer = new byte[4096];
-    int len;
-    while ((len = istream.read(buffer)) != -1) {
-      ostream.write(buffer, 0, len);
+    def ostream = file.getOutputStream(new LoggingProgressListener())
+    try {
+      byte[] buffer = new byte[4096];
+      int len;
+      while ((len = istream.read(buffer)) != -1) {
+        ostream.write(buffer, 0, len);
+      }
+    } finally {
+      istream.close()
+      ostream.close()
+      file.close()
     }
-    ostream.close()
-    file.close()
 
     then:
     share.fileExists("bigfile")
+
+    when:
+    def readBytes = new byte[32 * 1024 * 1024 + 10]
+    def readFile = share.openFile("bigfile", EnumSet.of(AccessMask.FILE_READ_DATA), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    try {
+      def remoteIs = readFile.getInputStream(new LoggingProgressListener())
+      try {
+        def offset = 0
+        while (offset < readBytes.length) {
+          def read = remoteIs.read(readBytes, offset, readBytes.length - offset)
+          if (read > 0) {
+            offset += read
+          } else {
+            break
+          }
+        }
+      } finally {
+        remoteIs.close()
+      }
+    } finally {
+      readFile.close()
+    }
+
+    then:
+    readBytes == bytes
+
+    cleanup:
     share.rm("bigfile")
   }
 }

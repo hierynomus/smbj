@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.EnumSet;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -71,10 +72,10 @@ class FileInputStream extends InputStream {
         if (buf == null || curr >= buf.length) {
             loadBuffer();
         }
-
         if (isClosed) {
             return -1;
         }
+
 
         int l = buf.length - curr > len ? len : buf.length - curr;
         System.arraycopy(buf, curr, b, off, l);
@@ -109,6 +110,9 @@ class FileInputStream extends InputStream {
     }
 
     private void loadBuffer() throws IOException {
+        if (isClosed) {
+            return;
+        }
 
         if (nextResponse == null) {
             nextResponse = sendRequest();
@@ -120,7 +124,7 @@ class FileInputStream extends InputStream {
             curr = 0;
             offset += res.getDataLength();
             if (progressListener != null) {
-                progressListener.onProgressChanged(offset, -1);
+                progressListener.onProgressChanged(res.getDataLength(), offset);
             }
         }
 
