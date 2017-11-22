@@ -57,6 +57,7 @@ public class DFSPathResolver implements PathResolver {
         ROOT,
         LINK;
     }
+
     private ReferralCache referralCache = new ReferralCache();
 
     private DomainCache domainCache = new DomainCache();
@@ -74,11 +75,9 @@ public class DFSPathResolver implements PathResolver {
             SmbPath target = SmbPath.parse(resolve(session, smbPath.toUncPath()));
             logger.info("DFS resolved {} -> {}", smbPath, target);
             return target;
-        } else if (smbPath.getPath() == null) {
-            if (responsePacket.getHeader().getStatus().isError()) {
-                logger.info("Attempting to resolve {} through DFS", smbPath);
-                return SmbPath.parse(resolve(session, smbPath.toUncPath()));
-            }
+        } else if (smbPath.getPath() == null && responsePacket.getHeader().getStatus().isError()) {
+            logger.info("Attempting to resolve {} through DFS", smbPath);
+            return SmbPath.parse(resolve(session, smbPath.toUncPath()));
         }
         return wrapped.resolve(session, responsePacket, smbPath);
     }
