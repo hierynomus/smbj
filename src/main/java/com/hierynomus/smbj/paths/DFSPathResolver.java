@@ -80,10 +80,10 @@ public class DFSPathResolver implements PathResolver {
 
     @Override
     public Set<NtStatus> handledStates() {
-        return this.states;
+        return EnumSet.copyOf(this.states);
     }
 
-    public String resolve(Session session, String uncPath) throws PathResolveException {
+    private String resolve(Session session, String uncPath) throws PathResolveException {
         logger.info("Starting DFS resolution for {}", uncPath);
         DFSPath dfsPath = new DFSPath(uncPath);
         ResolveState state = new ResolveState(dfsPath);

@@ -56,7 +56,7 @@ public class SymlinkPathResolver implements PathResolver {
 
     @Override
     public Set<NtStatus> handledStates() {
-        return states;
+        return EnumSet.copyOf(states);
     }
 
     private static SMB2Error.SymbolicLinkError getSymlinkErrorData(SMB2Error error) {
