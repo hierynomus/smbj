@@ -29,7 +29,6 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.event.TreeDisconnected;
-import com.hierynomus.smbj.paths.DFSPathResolver;
 import com.hierynomus.smbj.paths.PathResolveException;
 import com.hierynomus.smbj.paths.PathResolver;
 import com.hierynomus.smbj.share.*;
@@ -182,9 +181,7 @@ public class Session implements AutoCloseable {
             TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), connection, bus);
 
             Share share;
-/*            if (response.isDiskShare() && pathResolver != null && response.getCapabilities().contains(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS)) {
-                share = null;//new DFSDiskShare(smbPath, treeConnect, pathResolver);
-            } else */if (response.isDiskShare()) {
+            if (response.isDiskShare()) {
                 share = new DiskShare(smbPath, treeConnect, pathResolver);
             } else if (response.isNamedPipe()) {
                 share = new PipeShare(smbPath, treeConnect);
