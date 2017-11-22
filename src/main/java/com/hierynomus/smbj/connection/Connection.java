@@ -193,7 +193,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
     }
 
     private Session getSession(AuthenticationContext authContext) {
-        return new Session(this, authContext, bus, client.getDfsPathResolver(), config.getSecurityProvider());
+        return new Session(this, authContext, bus, client.getPathResolver(), config.getSecurityProvider());
     }
 
     private byte[] processAuthenticationToken(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {

@@ -29,6 +29,9 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.event.TreeDisconnected;
+import com.hierynomus.smbj.paths.DFSPathResolver;
+import com.hierynomus.smbj.paths.PathResolveException;
+import com.hierynomus.smbj.paths.PathResolver;
 import com.hierynomus.smbj.share.*;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
@@ -53,18 +56,18 @@ public class Session implements AutoCloseable {
 
     private Connection connection;
     private SMBEventBus bus;
-    private final DFSPathResolver dfsPathResolver;
+    private final PathResolver pathResolver;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
     private AuthenticationContext userCredentials;
 
     private boolean guest;
     private boolean anonymous;
 
-    public Session(Connection connection, AuthenticationContext userCredentials, SMBEventBus bus, DFSPathResolver dfsPathResolver, SecurityProvider securityProvider) {
+    public Session(Connection connection, AuthenticationContext userCredentials, SMBEventBus bus, PathResolver pathResolver, SecurityProvider securityProvider) {
         this.connection = connection;
         this.userCredentials = userCredentials;
         this.bus = bus;
-        this.dfsPathResolver = dfsPathResolver;
+        this.pathResolver = pathResolver;
         this.packetSignatory = new PacketSignatory(connection.getNegotiatedProtocol().getDialect(), securityProvider);
         if (bus != null) {
             bus.subscribe(this);
@@ -148,10 +151,10 @@ public class Session implements AutoCloseable {
             Future<SMB2TreeConnectResponse> send = this.send(smb2TreeConnectRequest);
             SMB2TreeConnectResponse response = Futures.get(send, connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
             if (response.getHeader().getStatus().isError()) {
-                if (dfsPathResolver != null) {
+                if (pathResolver != null) {
                     SmbPath resolvedSharePath;
                     try {
-                        resolvedSharePath = SmbPath.parse(dfsPathResolver.resolve(this, smbPath.toUncPath()));
+                        resolvedSharePath = pathResolver.resolve(this, response, smbPath);
                     } catch (PathResolveException e) {
                         resolvedSharePath = null;
                     }
@@ -179,10 +182,10 @@ public class Session implements AutoCloseable {
             TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), connection, bus);
 
             Share share;
-            if (response.isDiskShare() && dfsPathResolver != null && response.getCapabilities().contains(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS)) {
-                share = new DFSDiskShare(smbPath, treeConnect, dfsPathResolver);
-            } else if (response.isDiskShare()) {
-                share = new DiskShare(smbPath, treeConnect);
+/*            if (response.isDiskShare() && pathResolver != null && response.getCapabilities().contains(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS)) {
+                share = null;//new DFSDiskShare(smbPath, treeConnect, pathResolver);
+            } else */if (response.isDiskShare()) {
+                share = new DiskShare(smbPath, treeConnect, pathResolver);
             } else if (response.isNamedPipe()) {
                 share = new PipeShare(smbPath, treeConnect);
             } else if (response.isPrinterShare()) {

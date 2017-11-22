@@ -15,6 +15,8 @@
  */
 package com.hierynomus.smbj.common;
 
+import java.util.Objects;
+
 public class SmbPath {
     private final String hostname;
     private final String shareName;
@@ -89,6 +91,22 @@ public class SmbPath {
         return new SmbPath(split[0], split[1], split[2]);
     }
 
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SmbPath smbPath = (SmbPath) o;
+        return Objects.equals(hostname, smbPath.hostname) &&
+            Objects.equals(shareName, smbPath.shareName) &&
+            Objects.equals(path, smbPath.path);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(hostname, shareName, path);
+    }
+
     public String getHostname() {
         return hostname;
     }
@@ -99,5 +117,13 @@ public class SmbPath {
 
     public String getPath() {
         return path;
+    }
+
+    public boolean isOnSameHost(SmbPath other) {
+        return other != null && Objects.equals(this.hostname, other.hostname);
+    }
+
+    public boolean isOnSameShare(SmbPath other) {
+        return other != null && Objects.equals(this.hostname, other.hostname) && Objects.equals(this.shareName, other.shareName);
     }
 }

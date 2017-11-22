@@ -37,7 +37,6 @@ import com.hierynomus.smbj.session.Session;
 
 import java.io.IOException;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -54,10 +53,10 @@ public class Share implements AutoCloseable {
     private static final EnumSet<NtStatus> SUCCESS_OR_NO_MORE_FILES_OR_NO_SUCH_FILE = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_NO_MORE_FILES, NtStatus.STATUS_NO_SUCH_FILE);
     private static final EnumSet<NtStatus> SUCCESS_OR_EOF = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_END_OF_FILE);
 
-    private final SmbPath smbPath;
-    private final TreeConnect treeConnect;
+    protected final SmbPath smbPath;
+    protected final TreeConnect treeConnect;
     private final long treeId;
-    private final Session session;
+    protected Session session;
     private final SMB2Dialect dialect;
     private final int readBufferSize;
     private final long readTimeout;
@@ -134,32 +133,10 @@ public class Share implements AutoCloseable {
             path
         );
         SMB2CreateResponse resp = sendReceive(cr, "Create", path, getCreateSuccessStatus(), transactTimeout);
-
-        if (resp.getHeader().getStatus() == NtStatus.STATUS_STOPPED_ON_SYMLINK) {
-            SMB2Error.SymbolicLinkError symlinkData = getSymlinkErrorData(resp.getError());
-            if (symlinkData == null) {
-                throw new SMBApiException(resp.getHeader(), "Create failed for " + path + ": missing symlink data");
-            }
-            String target = SMB2Functions.resolveSymlinkTarget(cr.getFileName(), symlinkData);
-            return createFile(target, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
-        }
-
         return resp;
     }
 
-    private static SMB2Error.SymbolicLinkError getSymlinkErrorData(SMB2Error error) {
-        if (error != null) {
-            List<SMB2Error.SMB2ErrorData> errorData = error.getErrorData();
-            for (SMB2Error.SMB2ErrorData errorDatum : errorData) {
-                if (errorDatum instanceof SMB2Error.SymbolicLinkError) {
-                    return ((SMB2Error.SymbolicLinkError) errorDatum);
-                }
-            }
-        }
-        return null;
-    }
-
-    protected EnumSet<NtStatus> getCreateSuccessStatus() {
+    protected Set<NtStatus> getCreateSuccessStatus() {
         return SUCCESS_OR_SYMLINK;
     }
 
