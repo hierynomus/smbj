@@ -65,11 +65,13 @@ public class DFSPathResolver implements PathResolver {
         this.wrapped = wrapped;
         this.states = EnumSet.copyOf(wrapped.handledStates());
         this.states.add(NtStatus.STATUS_PATH_NOT_COVERED);
+        this.states.add(NtStatus.STATUS_BAD_NETWORK_NAME);
     }
 
     @Override
     public SmbPath resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath) throws PathResolveException {
-        if (responsePacket.getHeader().getStatus() == NtStatus.STATUS_PATH_NOT_COVERED) {
+        NtStatus status = responsePacket.getHeader().getStatus();
+        if (status == NtStatus.STATUS_PATH_NOT_COVERED || status == NtStatus.STATUS_BAD_NETWORK_NAME) {
             logger.info("DFS Share {} does not cover {}, resolve through DFS", this, smbPath);
             SmbPath target = SmbPath.parse(resolve(session, smbPath.toUncPath()));
             logger.info("DFS resolved {} -> {}", smbPath, target);
