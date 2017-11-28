@@ -30,6 +30,13 @@ public class SMBApiException extends SMBRuntimeException {
         this.failedCommand = failedCommand;
     }
 
+    public SMBApiException(NtStatus status, SMB2MessageCommandCode failedCommand, String message, Throwable t) {
+        super(message, t);
+        this.status = status;
+        this.statusCode = status.getValue();
+        this.failedCommand = failedCommand;
+    }
+
     public SMBApiException(SMB2Header header, String message) {
         super(message);
         this.status = header.getStatus();

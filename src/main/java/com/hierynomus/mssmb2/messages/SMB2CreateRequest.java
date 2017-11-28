@@ -92,8 +92,4 @@ public class SMB2CreateRequest extends SMB2Packet {
 
         buffer.putRawBytes(nameBytes);
     }
-
-    public String getFileName() {
-        return fileName;
-    }
 }

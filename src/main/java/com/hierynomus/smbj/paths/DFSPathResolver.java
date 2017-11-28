@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.share;
+package com.hierynomus.smbj.paths;
 
 import com.hierynomus.msdfsc.DFSException;
 import com.hierynomus.msdfsc.DFSPath;
@@ -22,38 +22,72 @@ import com.hierynomus.msdfsc.ReferralCache;
 import com.hierynomus.msdfsc.messages.SMB2GetDFSReferralRequest;
 import com.hierynomus.msdfsc.messages.SMB2GetDFSReferralResponse;
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.io.BufferByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.share.Share;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.concurrent.Future;
 
-public class DFSPathResolver {
+public class DFSPathResolver implements PathResolver {
     private static final Logger logger = LoggerFactory.getLogger(DFSPathResolver.class);
     private static final long FSCTL_DFS_GET_REFERRALS = 0x00060194L;
     private static final long FSCTL_DFS_GET_REFERRALS_EX = 0x000601B0L;
+    private final Set<NtStatus> states;
+
+    private PathResolver wrapped;
 
     private enum DfsRequestType {
         DOMAIN,
         DC,
         SYSVOL,
         ROOT,
-        LINK
+        LINK;
     }
 
     private ReferralCache referralCache = new ReferralCache();
+
     private DomainCache domainCache = new DomainCache();
 
-    public String resolve(Session session, String uncPath) throws PathResolveException {
+    public DFSPathResolver(PathResolver wrapped) {
+        this.wrapped = wrapped;
+        this.states = EnumSet.copyOf(wrapped.handledStates());
+        this.states.add(NtStatus.STATUS_PATH_NOT_COVERED);
+    }
+
+    @Override
+    public SmbPath resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath) throws PathResolveException {
+        if (smbPath.getPath() != null && responsePacket.getHeader().getStatus() == NtStatus.STATUS_PATH_NOT_COVERED) {
+            logger.info("DFS Share {} does not cover {}, resolve through DFS", smbPath.getShareName(), smbPath);
+            SmbPath target = SmbPath.parse(resolve(session, smbPath.toUncPath()));
+            logger.info("DFS resolved {} -> {}", smbPath, target);
+            return target;
+        } else if (smbPath.getPath() == null && responsePacket.getHeader().getStatus().isError()) {
+            logger.info("Attempting to resolve {} through DFS", smbPath);
+            return SmbPath.parse(resolve(session, smbPath.toUncPath()));
+        }
+        return wrapped.resolve(session, responsePacket, smbPath);
+    }
+
+    @Override
+    public Set<NtStatus> handledStates() {
+        return EnumSet.copyOf(this.states);
+    }
+
+    private String resolve(Session session, String uncPath) throws PathResolveException {
         logger.info("Starting DFS resolution for {}", uncPath);
         DFSPath dfsPath = new DFSPath(uncPath);
         ResolveState state = new ResolveState(dfsPath);
