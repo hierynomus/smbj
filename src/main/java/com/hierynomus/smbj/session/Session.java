@@ -149,26 +149,22 @@ public class Session implements AutoCloseable {
             smb2TreeConnectRequest.getHeader().setCreditRequest(256);
             Future<SMB2TreeConnectResponse> send = this.send(smb2TreeConnectRequest);
             SMB2TreeConnectResponse response = Futures.get(send, connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
-            if (response.getHeader().getStatus().isError()) {
-                if (pathResolver != null) {
-                    SmbPath resolvedSharePath;
+            try {
+                SmbPath resolvedSharePath = pathResolver.resolve(this, response, smbPath);
+                if (!resolvedSharePath.isOnSameShare(smbPath)) {
                     try {
-                        resolvedSharePath = pathResolver.resolve(this, response, smbPath);
-                    } catch (PathResolveException e) {
-                        resolvedSharePath = null;
-                    }
-
-                    if (resolvedSharePath != null) {
-                        try {
-                            Connection connection = getConnection().getClient().connect(resolvedSharePath.getHostname());
-                            Session session = connection.authenticate(getAuthenticationContext());
-                            return session.connectShare(shareName);
-                        } catch (IOException e) {
-                            throw new SMBRuntimeException("Could not connect to DFS root " + resolvedSharePath, e);
-                        }
+                        Connection connection = getConnection().getClient().connect(resolvedSharePath.getHostname());
+                        Session session = connection.authenticate(getAuthenticationContext());
+                        return session.connectShare(shareName);
+                    } catch (IOException e) {
+                        throw new SMBRuntimeException("Could not connect to DFS root " + resolvedSharePath, e);
                     }
                 }
+            } catch (PathResolveException ignored) {
+                // Ignored
+            }
 
+            if (response.getHeader().getStatus().isError()) {
                 logger.debug(response.getHeader().toString());
                 throw new SMBApiException(response.getHeader(), "Could not connect to " + smbPath);
             }

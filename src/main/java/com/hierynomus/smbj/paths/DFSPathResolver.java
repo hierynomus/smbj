@@ -57,6 +57,7 @@ public class DFSPathResolver implements PathResolver {
         ROOT,
         LINK;
     }
+
     private ReferralCache referralCache = new ReferralCache();
 
     private DomainCache domainCache = new DomainCache();
@@ -72,20 +73,23 @@ public class DFSPathResolver implements PathResolver {
     public SmbPath resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath) throws PathResolveException {
         NtStatus status = responsePacket.getHeader().getStatus();
         if (status == NtStatus.STATUS_PATH_NOT_COVERED || status == NtStatus.STATUS_BAD_NETWORK_NAME) {
-            logger.info("DFS Share {} does not cover {}, resolve through DFS", this, smbPath);
+            logger.info("DFS Share {} does not cover {}, resolve through DFS", smbPath.getShareName(), smbPath);
             SmbPath target = SmbPath.parse(resolve(session, smbPath.toUncPath()));
             logger.info("DFS resolved {} -> {}", smbPath, target);
             return target;
+        } else if (smbPath.getPath() == null && responsePacket.getHeader().getStatus().isError()) {
+            logger.info("Attempting to resolve {} through DFS", smbPath);
+            return SmbPath.parse(resolve(session, smbPath.toUncPath()));
         }
         return wrapped.resolve(session, responsePacket, smbPath);
     }
 
     @Override
     public Set<NtStatus> handledStates() {
-        return this.states;
+        return EnumSet.copyOf(this.states);
     }
 
-    public String resolve(Session session, String uncPath) throws PathResolveException {
+    private String resolve(Session session, String uncPath) throws PathResolveException {
         logger.info("Starting DFS resolution for {}", uncPath);
         DFSPath dfsPath = new DFSPath(uncPath);
         ResolveState state = new ResolveState(dfsPath);
