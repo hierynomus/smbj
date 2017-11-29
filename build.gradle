@@ -238,6 +238,14 @@ animalsniffer {
   ignore 'com.sun.security.jgss.*'
 }
 
+jacocoTestReport {
+    reports {
+        xml.enabled true
+        html.enabled true
+    }
+}
+
 project.tasks.release.dependsOn(project.tasks.build)
 project.tasks.release.finalizedBy(project.tasks.bintrayUpload)
 project.tasks.jacocoTestReport.dependsOn(project.tasks.test)
+project.tasks.check.dependsOn(project.tasks.jacocoTestReport)
