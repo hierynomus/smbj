@@ -143,7 +143,8 @@ public class Share implements AutoCloseable {
     void flush(SMB2FileId fileId) throws SMBApiException {
         SMB2Flush flushReq = new SMB2Flush(
             dialect,
-            fileId
+            fileId,
+            sessionId, treeId
         );
         sendReceive(flushReq, "Flush", fileId, SUCCESS, writeTimeout);
     }
