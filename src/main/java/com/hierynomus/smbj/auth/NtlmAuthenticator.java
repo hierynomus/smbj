@@ -28,7 +28,6 @@ import com.hierynomus.spnego.NegTokenInit;
 import com.hierynomus.spnego.NegTokenTarg;
 import com.hierynomus.spnego.SpnegoException;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.asn1.microsoft.MicrosoftObjectIdentifiers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,15 +42,15 @@ import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
 public class NtlmAuthenticator implements Authenticator {
     private static final Logger logger = LoggerFactory.getLogger(NtlmAuthenticator.class);
 
-    private static final ASN1ObjectIdentifier NTLMSSP = MicrosoftObjectIdentifiers.microsoft.branch("2.2.10");
+    // The OID for NTLMSSP
+    private static final ASN1ObjectIdentifier NTLMSSP = new ASN1ObjectIdentifier("1.3.6.1.4.1.311.2.2.10");
     private SecurityProvider securityProvider;
     private Random random;
 
     public static class Factory implements com.hierynomus.protocol.commons.Factory.Named<Authenticator> {
         @Override
         public String getName() {
-            // The OID for NTLMSSP
-            return "1.3.6.1.4.1.311.2.2.10";
+            return NTLMSSP.getId();
         }
 
         @Override
