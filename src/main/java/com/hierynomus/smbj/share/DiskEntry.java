@@ -107,15 +107,11 @@ public abstract class DiskEntry implements Closeable {
         this.setFileInformation(renameInfo);
     }
 
-    public void createHardlink( final String linkname ) 
-		throws SMBApiException 
-    {
+    public void createHardlink(final String linkname) throws SMBApiException {
 		this.createHardlink(linkname, false);
     }
 
-    public void createHardlink( final String linkname, final boolean replaceIfExist ) 
-	 	throws SMBApiException 
-    {
+    public void createHardlink(final String linkname, final boolean replaceIfExist) throws SMBApiException {
         final FileLinkInformation linkInfo = new FileLinkInformation(replaceIfExist, linkname);
         this.setFileInformation(linkInfo);
     }

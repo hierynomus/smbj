@@ -285,17 +285,14 @@ public class FileInformationFactory {
         };
         encoders.put(FileRenameInformation.class, renameCodec);
 
-        FileInformation.Encoder<FileLinkInformation> linkCodec = new FileInformation.Encoder<FileLinkInformation>() 
-        {
+        FileInformation.Encoder<FileLinkInformation> linkCodec = new FileInformation.Encoder<FileLinkInformation>() {
             @Override
-            public FileInformationClass getInformationClass() 
-            {
+            public FileInformationClass getInformationClass() {
                 return FileInformationClass.FileLinkInformation;
             }
 
             @Override
-            public void write(FileLinkInformation info, Buffer outputBuffer) 
-            {
+            public void write(FileLinkInformation info, Buffer outputBuffer) {
                 writeFileRenameInformation(info, outputBuffer);
             }
         };
