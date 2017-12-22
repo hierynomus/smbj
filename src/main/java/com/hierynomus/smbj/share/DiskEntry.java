@@ -117,7 +117,7 @@ public abstract class DiskEntry implements Closeable {
      * @see {@link DiskEntry#createHardlink(String, boolean)} 
      */
     public void createHardlink(final String linkname) throws SMBApiException {
-		this.createHardlink(linkname, false);
+        this.createHardlink(linkname, false);
     }
 
     /**
