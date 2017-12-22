@@ -111,6 +111,14 @@ public abstract class DiskEntry implements Closeable {
 		this.createHardlink(linkname, false);
     }
 
+    /**
+     * Creates hard link for receiver.
+     * 
+     * @param linkname the path to the hard link relative to share  
+     * @param replaceIfExist if true replaces existing entry.
+     * 
+     * @throws SMBApiException
+     */
     public void createHardlink(final String linkname, final boolean replaceIfExist) throws SMBApiException {
         final FileLinkInformation linkInfo = new FileLinkInformation(replaceIfExist, linkname);
         this.setFileInformation(linkInfo);
