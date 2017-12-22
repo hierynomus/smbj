@@ -107,6 +107,15 @@ public abstract class DiskEntry implements Closeable {
         this.setFileInformation(renameInfo);
     }
 
+    /**
+     * Creates hard link for receiver.<br/>
+     * This method is a shortcut for <code>DiskEntry#createHardlink(linkname, false)</code>
+     * 
+     * @param linkname the path to the hard link relative to share
+     * @throws SMBApiException
+     * 
+     * @see {@link DiskEntry#createHardlink(String, boolean)} 
+     */
     public void createHardlink(final String linkname) throws SMBApiException {
 		this.createHardlink(linkname, false);
     }
