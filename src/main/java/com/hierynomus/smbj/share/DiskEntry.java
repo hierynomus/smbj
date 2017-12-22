@@ -107,18 +107,18 @@ public abstract class DiskEntry implements Closeable {
         this.setFileInformation(renameInfo);
     }
 
-	public void createHardlink( final String linkname ) 
+    public void createHardlink( final String linkname ) 
 		throws SMBApiException 
-	{
+    {
 		this.createHardlink(linkname, false);
-	}
+    }
 
-	public void createHardlink( final String linkname, final boolean replaceIfExist ) 
+    public void createHardlink( final String linkname, final boolean replaceIfExist ) 
 	 	throws SMBApiException 
-	{
-		final FileLinkInformation linkInfo = new FileLinkInformation(replaceIfExist, linkname);
-		this.setFileInformation(linkInfo);
-	}
+    {
+        final FileLinkInformation linkInfo = new FileLinkInformation(replaceIfExist, linkname);
+        this.setFileInformation(linkInfo);
+    }
 	        
     /**
      * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
