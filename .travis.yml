@@ -4,6 +4,7 @@ sudo: false
 
 before_cache:
   - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
 
 cache:
   directories:
@@ -14,7 +15,6 @@ jdk:
   - oraclejdk8
   - openjdk8
   - oraclejdk9
-
 
 before_install:
   - pip install --user codecov
