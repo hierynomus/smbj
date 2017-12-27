@@ -285,6 +285,19 @@ public class FileInformationFactory {
         };
         encoders.put(FileRenameInformation.class, renameCodec);
 
+        FileInformation.Encoder<FileLinkInformation> linkCodec = new FileInformation.Encoder<FileLinkInformation>() {
+            @Override
+            public FileInformationClass getInformationClass() {
+                return FileInformationClass.FileLinkInformation;
+            }
+
+            @Override
+            public void write(FileLinkInformation info, Buffer outputBuffer) {
+                writeFileRenameInformation(info, outputBuffer);
+            }
+        };
+        encoders.put(FileLinkInformation.class, linkCodec);
+        
     }
 
     @SuppressWarnings("unchecked")

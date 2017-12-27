@@ -18,6 +18,7 @@ package com.hierynomus.smbj.share;
 import com.hierynomus.msdtyp.SecurityDescriptor;
 import com.hierynomus.msdtyp.SecurityInformation;
 import com.hierynomus.msfscc.fileinformation.FileAllInformation;
+import com.hierynomus.msfscc.fileinformation.FileLinkInformation;
 import com.hierynomus.msfscc.fileinformation.FileQueryableInformation;
 import com.hierynomus.msfscc.fileinformation.FileRenameInformation;
 import com.hierynomus.msfscc.fileinformation.FileSettableInformation;
@@ -106,6 +107,32 @@ public abstract class DiskEntry implements Closeable {
         this.setFileInformation(renameInfo);
     }
 
+    /**
+     * Creates hard link for receiver.<br/>
+     * This method is a shortcut for <code>DiskEntry#createHardlink(linkname, false)</code>
+     * 
+     * @param linkname the path to the hard link relative to share
+     * @throws SMBApiException
+     * 
+     * @see {@link DiskEntry#createHardlink(String, boolean)} 
+     */
+    public void createHardlink(final String linkname) throws SMBApiException {
+        this.createHardlink(linkname, false);
+    }
+
+    /**
+     * Creates hard link for receiver.
+     * 
+     * @param linkname the path to the hard link relative to share  
+     * @param replaceIfExist if true replaces existing entry.
+     * 
+     * @throws SMBApiException
+     */
+    public void createHardlink(final String linkname, final boolean replaceIfExist) throws SMBApiException {
+        final FileLinkInformation linkInfo = new FileLinkInformation(replaceIfExist, linkname);
+        this.setFileInformation(linkInfo);
+    }
+	        
     /**
      * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
      * corresponding operation.
