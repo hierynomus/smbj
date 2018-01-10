@@ -20,6 +20,7 @@ import com.hierynomus.msfscc.fileinformation.FileEndOfFileInformation;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
+import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.io.ByteChunkProvider;
 import org.slf4j.Logger;
@@ -28,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.concurrent.Future;
 
 public class File extends DiskEntry {
@@ -85,6 +87,29 @@ public class File extends DiskEntry {
      */
     public int write(ByteChunkProvider provider, ProgressListener progressListener) {
         return writer.write(provider, progressListener);
+    }
+
+    /***
+     * Write the data Async in buffer to this file at position fileOffset.
+     * @param buffer     the data to write
+     * @param fileOffset The offset, in bytes, into the file to which the data should be written
+     * @param offset     the start offset in the data
+     * @param length     the number of bytes that are written
+     * @return the Array List of write response future
+     */
+    public ArrayList<Future<SMB2WriteResponse>> writeAsync(byte[] buffer, long fileOffset, int offset, int length) {
+        return writer.writeAsync(buffer, fileOffset, offset, length);
+    }
+
+    /**
+     * Async Write all available data from the byte chunk provider to this file.
+     * The offset in the file to which data is written is determined by {@link ByteChunkProvider#getOffset()}.
+     *
+     * @param provider the byte chunk provider
+     * @return the Array List of write response future
+     */
+    public ArrayList<Future<SMB2WriteResponse>> writeAsync(ByteChunkProvider provider) {
+        return writer.writeAsync(provider);
     }
 
     public OutputStream getOutputStream() {
