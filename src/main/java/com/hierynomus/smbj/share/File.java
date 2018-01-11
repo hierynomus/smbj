@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Future;
 
 public class File extends DiskEntry {
@@ -95,9 +95,9 @@ public class File extends DiskEntry {
      * @param fileOffset The offset, in bytes, into the file to which the data should be written
      * @param offset     the start offset in the data
      * @param length     the number of bytes that are written
-     * @return the Array List of write response future
+     * @return the List of write response future
      */
-    public ArrayList<Future<SMB2WriteResponse>> writeAsync(byte[] buffer, long fileOffset, int offset, int length) {
+    public List<Future<SMB2WriteResponse>> writeAsync(byte[] buffer, long fileOffset, int offset, int length) {
         return writer.writeAsync(buffer, fileOffset, offset, length);
     }
 
@@ -106,9 +106,9 @@ public class File extends DiskEntry {
      * The offset in the file to which data is written is determined by {@link ByteChunkProvider#getOffset()}.
      *
      * @param provider the byte chunk provider
-     * @return the Array List of write response future
+     * @return the List of write response future
      */
-    public ArrayList<Future<SMB2WriteResponse>> writeAsync(ByteChunkProvider provider) {
+    public List<Future<SMB2WriteResponse>> writeAsync(ByteChunkProvider provider) {
         return writer.writeAsync(provider);
     }
 

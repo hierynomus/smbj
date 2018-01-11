@@ -24,8 +24,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.OutputStream;
-import java.util.concurrent.Future;
+import java.util.List;
 import java.util.ArrayList;
+import java.util.concurrent.Future;
 
 /**
  * Generic class that allows to write data to a share entry (Be it a printer or a file)
@@ -104,9 +105,9 @@ public class SMB2Writer {
      * @param fileOffset The offset, in bytes, into the file to which the data should be written
      * @param offset     the start offset in the data
      * @param length     the number of bytes that are written
-     * @return the Array List of write response future
+     * @return the List of write response future
      */
-    public ArrayList<Future<SMB2WriteResponse>> writeAsync(byte[] buffer, long fileOffset, int offset, int length) {
+    public List<Future<SMB2WriteResponse>> writeAsync(byte[] buffer, long fileOffset, int offset, int length) {
         return writeAsync(new ArrayByteChunkProvider(buffer, offset, length, fileOffset));
     }
 
@@ -115,17 +116,17 @@ public class SMB2Writer {
      * The offset in the file to which data is written is determined by {@link ByteChunkProvider#getOffset()}.
      *
      * @param provider the byte chunk provider
-     * @return the Array List of write response future
+     * @return the List of write response future
      */
-    public ArrayList<Future<SMB2WriteResponse>> writeAsync(ByteChunkProvider provider) {
-        ArrayList<Future<SMB2WriteResponse>> wrespFutureArrayList = new ArrayList<Future<SMB2WriteResponse>>();
+    public List<Future<SMB2WriteResponse>> writeAsync(ByteChunkProvider provider) {
+        List<Future<SMB2WriteResponse>> wrespFutureList = new ArrayList<Future<SMB2WriteResponse>>();
         while (provider.isAvailable()) {
             // maybe more than one time, need array list to store the write response future
             logger.debug("Sending async write request to {} from offset {}", this.entryName, provider.getOffset());
-            wrespFutureArrayList.add(share.writeAsync(fileId, provider));
+            wrespFutureList.add(share.writeAsync(fileId, provider));
         }
 
-        return wrespFutureArrayList;
+        return wrespFutureList;
 
     }
 
