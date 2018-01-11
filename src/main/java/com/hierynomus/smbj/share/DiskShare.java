@@ -55,6 +55,7 @@ import static com.hierynomus.mssmb2.SMB2CreateOptions.FILE_NON_DIRECTORY_FILE;
 import static com.hierynomus.mssmb2.SMB2ShareAccess.*;
 import static com.hierynomus.mssmb2.messages.SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_SECURITY;
 import static java.util.EnumSet.of;
+import static java.util.EnumSet.noneOf;
 
 public class DiskShare extends Share {
     private final PathResolver resolver;
@@ -398,11 +399,11 @@ public class DiskShare extends Share {
      * The SecurityDescriptor(MS-DTYP 2.4.6 SECURITY_DESCRIPTOR) for the Given FileId
      */
     public void setSecurityInfo(String path, Set<SecurityInformation> securityInfo, SecurityDescriptor securityDescriptor) throws SMBApiException {
-        Set<AccessMask> accessMask = of(READ_CONTROL);
+        Set<AccessMask> accessMask = noneOf(AccessMask.class);
         if (securityInfo.contains(SecurityInformation.SACL_SECURITY_INFORMATION)) {
             accessMask.add(ACCESS_SYSTEM_SECURITY);
         }
-        if (securityInfo.contains(SecurityInformation.OWNER_SECURITY_INFORMATION)) {
+        if (securityInfo.contains(SecurityInformation.OWNER_SECURITY_INFORMATION) || securityInfo.contains(SecurityInformation. GROUP_SECURITY_INFORMATION)) {
             accessMask.add(WRITE_OWNER);
         }
         if (securityInfo.contains(SecurityInformation.DACL_SECURITY_INFORMATION)) {
