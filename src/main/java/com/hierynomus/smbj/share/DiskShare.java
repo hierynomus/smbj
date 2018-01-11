@@ -55,6 +55,7 @@ import static com.hierynomus.mssmb2.SMB2CreateOptions.FILE_NON_DIRECTORY_FILE;
 import static com.hierynomus.mssmb2.SMB2ShareAccess.*;
 import static com.hierynomus.mssmb2.messages.SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_SECURITY;
 import static java.util.EnumSet.of;
+import static java.util.EnumSet.noneOf;
 
 public class DiskShare extends Share {
     private final PathResolver resolver;
@@ -209,7 +210,7 @@ public class DiskShare extends Share {
      * @see Directory#iterator(Class, String)
      */
     public <I extends FileDirectoryQueryableInformation> List<I> list(String path, Class<I> informationClass, String searchPattern) {
-        try (Directory d = openDirectory(path, of(GENERIC_READ), null, ALL, FILE_OPEN, null)) {
+        try (Directory d = openDirectory(path, of(FILE_LIST_DIRECTORY, FILE_READ_ATTRIBUTES, FILE_READ_EA), null, ALL, FILE_OPEN, null)) {
             return d.list(informationClass, searchPattern);
         }
     }
@@ -239,7 +240,7 @@ public class DiskShare extends Share {
      * Get information about the given path.
      **/
     public <F extends FileQueryableInformation> F getFileInformation(String path, Class<F> informationClass) throws SMBApiException {
-        try (DiskEntry e = open(path, of(GENERIC_READ), null, ALL, FILE_OPEN, null)) {
+        try (DiskEntry e = open(path, of(FILE_READ_ATTRIBUTES, FILE_READ_EA), null, ALL, FILE_OPEN, null)) {
             return e.getFileInformation(informationClass);
         }
     }
@@ -287,7 +288,7 @@ public class DiskShare extends Share {
      * Get information for a given path
      **/
     public <F extends FileSettableInformation> void setFileInformation(String path, F information) throws SMBApiException {
-        try (DiskEntry e = open(path, of(GENERIC_WRITE), null, ALL, FILE_OPEN, null)) {
+        try (DiskEntry e = open(path, of(FILE_WRITE_ATTRIBUTES, FILE_WRITE_EA), null, ALL, FILE_OPEN, null)) {
             e.setFileInformation(information);
         }
     }
@@ -371,7 +372,7 @@ public class DiskShare extends Share {
      * The SecurityDescriptor(MS-DTYP 2.4.6 SECURITY_DESCRIPTOR) for the Given Path
      */
     public SecurityDescriptor getSecurityInfo(String path, Set<SecurityInformation> securityInfo) throws SMBApiException {
-        EnumSet<AccessMask> accessMask = of(GENERIC_READ);
+        EnumSet<AccessMask> accessMask = of(READ_CONTROL);
         if (securityInfo.contains(SecurityInformation.SACL_SECURITY_INFORMATION)) {
             accessMask.add(ACCESS_SYSTEM_SECURITY);
         }
@@ -398,11 +399,11 @@ public class DiskShare extends Share {
      * The SecurityDescriptor(MS-DTYP 2.4.6 SECURITY_DESCRIPTOR) for the Given FileId
      */
     public void setSecurityInfo(String path, Set<SecurityInformation> securityInfo, SecurityDescriptor securityDescriptor) throws SMBApiException {
-        Set<AccessMask> accessMask = of(GENERIC_WRITE);
+        Set<AccessMask> accessMask = noneOf(AccessMask.class);
         if (securityInfo.contains(SecurityInformation.SACL_SECURITY_INFORMATION)) {
             accessMask.add(ACCESS_SYSTEM_SECURITY);
         }
-        if (securityInfo.contains(SecurityInformation.OWNER_SECURITY_INFORMATION)) {
+        if (securityInfo.contains(SecurityInformation.OWNER_SECURITY_INFORMATION) || securityInfo.contains(SecurityInformation. GROUP_SECURITY_INFORMATION)) {
             accessMask.add(WRITE_OWNER);
         }
         if (securityInfo.contains(SecurityInformation.DACL_SECURITY_INFORMATION)) {
