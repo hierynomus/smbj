@@ -21,6 +21,7 @@ public class AuthenticateResponse {
     private byte[] negToken;
     private byte[] signingKey;
     private WindowsVersion windowsVersion;
+    private String netBIOSName;
 
     public AuthenticateResponse() {
     }
@@ -51,5 +52,13 @@ public class AuthenticateResponse {
 
     public void setSigningKey(byte[] signingKey) {
         this.signingKey = signingKey;
+    }
+
+    public String getNetBIOSName() {
+        return netBIOSName;
+    }
+
+    public void setNetBIOSName(String netBIOSName) {
+        this.netBIOSName = netBIOSName;
     }
 }

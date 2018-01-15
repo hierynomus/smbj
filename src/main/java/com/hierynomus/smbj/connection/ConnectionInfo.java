@@ -28,6 +28,7 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 public class ConnectionInfo {
 
     private WindowsVersion windowsVersion;
+    private String netBIOSName;
     // All SMB2 Dialect
     private byte[] gssNegotiateToken;
     private UUID serverGuid;
@@ -107,6 +108,14 @@ public class ConnectionInfo {
 
     public void setWindowsVersion(WindowsVersion windowsVersion) {
         this.windowsVersion = windowsVersion;
+    }
+
+    public String getNetBIOSName() {
+        return netBIOSName;
+    }
+
+    public void setNetBIOSName(String netBIOSName) {
+        this.netBIOSName = netBIOSName;
     }
 
     @Override

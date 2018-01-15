@@ -202,6 +202,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
             return null;
         }
         connectionInfo.setWindowsVersion(resp.getWindowsVersion());
+        connectionInfo.setNetBIOSName(resp.getNetBIOSName());
         byte[] securityContext = resp.getNegToken();
         if (resp.getSigningKey() != null) {
             session.setSigningKey(resp.getSigningKey());
