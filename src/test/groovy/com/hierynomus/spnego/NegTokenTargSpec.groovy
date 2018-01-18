@@ -15,6 +15,8 @@
  */
 package com.hierynomus.spnego
 
+import com.hierynomus.ntlm.messages.AvId
+import com.hierynomus.ntlm.messages.NtlmChallenge
 import com.hierynomus.protocol.commons.ByteArrayUtils
 import com.hierynomus.protocol.commons.buffer.Buffer
 import com.hierynomus.protocol.commons.buffer.Endian
@@ -26,11 +28,16 @@ class NegTokenTargSpec extends Specification {
     given:
     def bytes = getClass().getClassLoader().getResourceAsStream("spnego/negTokenTarg_ntlmchallenge").bytes
     def buffer = new Buffer.PlainBuffer(bytes, Endian.LE)
-
-    expect:
     println(ByteArrayUtils.printHex(bytes))
-    def read = new NegTokenTarg().read(buffer)
-    read.negotiationResult == BigInteger.ONE
 
+    when:
+    def read = new NegTokenTarg().read(buffer)
+    def challenge = new NtlmChallenge()
+    challenge.read(new Buffer.PlainBuffer(read.getResponseToken(), Endian.LE))
+
+    then:
+    read.negotiationResult == BigInteger.ONE
+    challenge.getAvPairString(AvId.MsvAvNbComputerName) == "WIN-S2008R2"
+    challenge.getAvPairObject(AvId.MsvAvDnsComputerName) == "WIN-S2008R2"
   }
 }
