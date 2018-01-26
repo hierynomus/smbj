@@ -53,13 +53,13 @@ public class SmbPath {
     public String toUncPath() {
         StringBuilder b = new StringBuilder("\\\\");
         b.append(hostname);
-        if (shareName != null) {
+        if (shareName != null && !shareName.isEmpty()) {
             // Clients can either pass \share or share
             if (shareName.charAt(0) != '\\') {
                 b.append("\\");
             }
             b.append(shareName);
-            if (path != null) {
+            if (path != null && !path.isEmpty()) {
                 b.append("\\").append(path);
             }
         }
