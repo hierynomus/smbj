@@ -13,6 +13,7 @@ plugins {
   id 'ru.vyarus.github-info' version '1.1.0'
   id 'ru.vyarus.animalsniffer' version '1.4.2'
   id "idea"
+  id 'org.sonarqube' version "2.6"
 }
 
 group = "com.hierynomus"
@@ -223,6 +224,14 @@ jacocoTestReport {
         xml.enabled true
         html.enabled true
     }
+}
+
+sonarqube {
+  properties {
+    property "sonar.host.url", "https://sonarcloud.io"
+    property "sonar.organization", "hierynomus-github"
+    property "sonar.login", project.property('sonar.login')
+  }
 }
 
 project.tasks.release.dependsOn(project.tasks.build)
