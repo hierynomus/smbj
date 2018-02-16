@@ -297,7 +297,7 @@ public class Share implements AutoCloseable {
         return ioctlAsync(ROOT_ID, ctlCode, isFsCtl, inputData, -1);
     }
 
-    private Future<SMB2IoctlResponse> ioctlAsync(SMB2FileId fileId, long ctlCode, boolean isFsCtl, ByteChunkProvider inputData, int maxOutputResponse) {
+    Future<SMB2IoctlResponse> ioctlAsync(SMB2FileId fileId, long ctlCode, boolean isFsCtl, ByteChunkProvider inputData, int maxOutputResponse) {
         ByteChunkProvider inData = inputData == null ? EMPTY : inputData;
 
         if (inData.bytesLeft() > transactBufferSize) {

@@ -20,6 +20,8 @@ import com.hierynomus.msfscc.fileinformation.FileEndOfFileInformation;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.io.ByteChunkProvider;
 import org.slf4j.Logger;
@@ -143,6 +145,10 @@ public class File extends DiskEntry {
             destStream.write(buf, 0, numRead);
         }
         is.close();
+    }
+
+    public void copy(File file) throws Buffer.BufferException, TransportException {
+        new FileCopy(this,file,share).run();
     }
 
     /***
