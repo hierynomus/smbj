@@ -21,6 +21,7 @@ import com.hierynomus.msdfsc.messages.SMB2GetDFSReferralResponse.ReferralHeaderF
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 /**
  * [MS-DFSC].pdf: 3.1.1 Abstract Data Model
@@ -62,8 +63,13 @@ public class ReferralCache {
     private ReferralCacheNode cacheRoot = new ReferralCacheNode("<root>");
 
     public static class TargetSetEntry {
-        String targetPath;
-        boolean targetSetBoundary;
+        final String targetPath;
+        final boolean targetSetBoundary;
+
+        public TargetSetEntry(String targetPath, boolean targetSetBoundary) {
+            this.targetPath = targetPath;
+            this.targetSetBoundary = targetSetBoundary;
+        }
 
         public String getTargetPath() {
             return targetPath;
@@ -87,14 +93,14 @@ public class ReferralCache {
 
 
     public static class ReferralCacheEntry {
-        String dfsPathPrefix;
-        DFSReferral.ServerType rootOrLink;
-        boolean interlink;
-        int ttl;
-        long expires;
-        boolean targetFailback;
-        TargetSetEntry targetHint;
-        List<TargetSetEntry> targetList;
+        private final String dfsPathPrefix;
+        private final DFSReferral.ServerType rootOrLink;
+        private final boolean interlink;
+        private final int ttl;
+        private final long expires;
+        private final boolean targetFailback;
+        private final TargetSetEntry targetHint;
+        private final List<TargetSetEntry> targetList;
 
         public ReferralCacheEntry(SMB2GetDFSReferralResponse response, DomainCache domainCache) {
             List<DFSReferral> referralEntries = response.getReferralEntries();
@@ -116,22 +122,24 @@ public class ReferralCache {
 // - If the TargetList has one entry, and a lookup of the first path component of the TargetList entry
 //   against the DomainCache results in a cache hit, indicating that the path refers to a domain namespace.
 
-            this.interlink = response.getReferralHeaderFlags().contains(ReferralHeaderFlags.ReferralServers)
+            boolean interlink = response.getReferralHeaderFlags().contains(ReferralHeaderFlags.ReferralServers)
                 && !response.getReferralHeaderFlags().contains(ReferralHeaderFlags.StorageServers);
-            if (!this.interlink && referralEntries.size() == 1) {
+            if (!interlink && referralEntries.size() == 1) {
                 List<String> pathEntries = new DFSPath(firstReferral.getPath()).getPathComponents();
-                this.interlink = (domainCache.lookup(pathEntries.get(0)) != null);
+                interlink = (domainCache.lookup(pathEntries.get(0)) != null);
             }
+
+            this.interlink = interlink;
             this.ttl = firstReferral.getTtl();
             this.expires = System.currentTimeMillis() + this.ttl * 1000L;
             this.targetFailback = response.getReferralHeaderFlags().contains(ReferralHeaderFlags.TargetFailback);
-            targetList = new ArrayList<>(referralEntries.size());
+            List<TargetSetEntry> targetList = new ArrayList<>(referralEntries.size());
             for (DFSReferral r : referralEntries) {
-                TargetSetEntry e = new TargetSetEntry();
-                e.targetPath = r.getPath();
+                TargetSetEntry e = new TargetSetEntry(r.getPath(), false);
                 targetList.add(e);
             }
             this.targetHint = targetList.get(0);
+            this.targetList = Collections.unmodifiableList(targetList);
         }
 
         public boolean isExpired() {
@@ -171,11 +179,12 @@ public class ReferralCache {
 
     }
 
+    private static class ReferralCacheNode {
+        static final AtomicReferenceFieldUpdater<ReferralCacheNode, ReferralCacheEntry> ENTRY_UPDATER = AtomicReferenceFieldUpdater.newUpdater(ReferralCacheNode.class, ReferralCacheEntry.class, "entry");
 
-    static class ReferralCacheNode {
-        String pathComponent;
-        Map<String, ReferralCacheNode> childNodes = new ConcurrentHashMap<>();
-        ReferralCacheEntry entry;
+        private final String pathComponent;
+        private final Map<String, ReferralCacheNode> childNodes = new ConcurrentHashMap<>();
+        private ReferralCacheEntry entry;
 
         ReferralCacheNode(String pathComponent) {
             this.pathComponent = pathComponent;
@@ -190,7 +199,7 @@ public class ReferralCache {
                 }
                 referralCacheNode.addReferralEntry(pathComponents, entry);
             } else {
-                this.entry = entry;
+                ENTRY_UPDATER.set(this, entry);
             }
         }
 
@@ -202,12 +211,12 @@ public class ReferralCache {
                     return referralCacheNode.getReferralEntry(pathComponents);
                 }
             }
-            return entry;
+            return ENTRY_UPDATER.get(this);
         }
 
         void clear() {
-            this.childNodes = new HashMap<>();
-            this.entry = null;
+            this.childNodes.clear();
+            ENTRY_UPDATER.set(this, null);
         }
     }
 }
