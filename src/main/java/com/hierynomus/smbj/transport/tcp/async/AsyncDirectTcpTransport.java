@@ -31,6 +31,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.CompletionHandler;
 import java.util.Queue;
 import java.util.concurrent.*;
@@ -130,8 +131,15 @@ public class AsyncDirectTcpTransport<P extends Packet<?>> implements TransportLa
 
             @Override
             public void failed(Throwable exc, Object attachment) {
-                startNextWriteIfWaiting();
-                handlers.getReceiver().handleError(exc);
+                try {
+                    if (exc instanceof ClosedChannelException) {
+                        connected.set(false);
+                    } else {
+                        startNextWriteIfWaiting();
+                    }
+                } finally {
+                    handlers.getReceiver().handleError(exc);
+                }
             }
 
             private void startNextWriteIfWaiting() {
