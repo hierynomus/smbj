@@ -26,8 +26,8 @@ import java.util.Set;
 public interface PathResolver {
     PathResolver LOCAL = new PathResolver() {
         @Override
-        public SmbPath resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath) {
-            return smbPath;
+        public <T> T resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath, ResolveAction<T> action) throws PathResolveException {
+            return action.apply(smbPath);
         }
 
         @Override
@@ -36,7 +36,11 @@ public interface PathResolver {
         }
     };
 
-    SmbPath resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath) throws PathResolveException;
+    <T> T resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath, ResolveAction<T> action) throws PathResolveException;
 
     Set<NtStatus> handledStates();
+
+    interface ResolveAction<T> {
+        T apply(SmbPath target);
+    }
 }

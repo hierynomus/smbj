@@ -142,7 +142,7 @@ public class Session implements AutoCloseable {
 
     private Share connectTree(final String shareName) {
         String remoteHostname = connection.getRemoteHostname();
-        SmbPath smbPath = new SmbPath(remoteHostname, shareName);
+        final SmbPath smbPath = new SmbPath(remoteHostname, shareName);
         logger.info("Connecting to {} on session {}", smbPath, sessionId);
         try {
             SMB2TreeConnectRequest smb2TreeConnectRequest = new SMB2TreeConnectRequest(connection.getNegotiatedProtocol().getDialect(), smbPath, sessionId);
@@ -150,15 +150,25 @@ public class Session implements AutoCloseable {
             Future<SMB2TreeConnectResponse> send = this.send(smb2TreeConnectRequest);
             SMB2TreeConnectResponse response = Futures.get(send, connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
             try {
-                SmbPath resolvedSharePath = pathResolver.resolve(this, response, smbPath);
-                if (!resolvedSharePath.isOnSameShare(smbPath)) {
-                    try {
-                        Connection connection = getConnection().getClient().connect(resolvedSharePath.getHostname());
-                        Session session = connection.authenticate(getAuthenticationContext());
-                        return session.connectShare(shareName);
-                    } catch (IOException e) {
-                        throw new SMBRuntimeException("Could not connect to DFS root " + resolvedSharePath, e);
+                Share share = pathResolver.resolve(this, response, smbPath, new PathResolver.ResolveAction<Share>() {
+                    @Override
+                    public Share apply(SmbPath target) {
+                        if (!target.isOnSameShare(smbPath)) {
+                            try {
+                                Connection connection = getConnection().getClient().connect(target.getHostname());
+                                Session session = connection.authenticate(getAuthenticationContext());
+                                return session.connectShare(shareName);
+                            } catch (IOException e) {
+                                throw new SMBRuntimeException("Could not connect to DFS root " + target, e);
+                            }
+                        } else {
+                            return null;
+                        }
                     }
+                });
+
+                if (share != null) {
+                    return share;
                 }
             } catch (PathResolveException ignored) {
                 // Ignored
