@@ -17,6 +17,7 @@ package com.hierynomus.smbj
 
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mserref.NtStatus
+import com.hierynomus.msfscc.fileinformation.FileStandardInformation
 import com.hierynomus.mssmb2.SMB2CreateDisposition
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.mssmb2.SMBApiException
@@ -190,5 +191,27 @@ class SMB2FileIntegrationTest extends Specification {
 
     cleanup:
     share.rm("bigfile")
+  }
+
+  def "should be able to copy files remotely"() {
+    given:
+    def src = share.openFile("data\\1GBfile", EnumSet.of(AccessMask.FILE_READ_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null)
+    def dst = share.openFile("data\\targetFile", EnumSet.of(AccessMask.FILE_WRITE_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OVERWRITE_IF, null)
+
+    when:
+    src.remoteCopyTo(dst)
+
+    then:
+    share.fileExists("targetFile")
+    def srcSize = src.getFileInformation(FileStandardInformation.class).endOfFile
+    def dstSize = dst.getFileInformation(FileStandardInformation.class).endOfFile
+    srcSize == dstSize
+
+    cleanup:
+    try {
+      share.rm("targetFile")
+    } catch (SMBApiException e) {
+      // Ignored
+    }
   }
 }

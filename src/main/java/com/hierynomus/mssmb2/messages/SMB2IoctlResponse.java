@@ -27,6 +27,7 @@ import com.hierynomus.smb.SMBBuffer;
  * \
  */
 public class SMB2IoctlResponse extends SMB2Packet {
+    public static final int IOCTL_RESPONSE_STRUCTURE_SIZE = 49;
 
     private int controlCode;
     private SMB2FileId fileId;
@@ -65,11 +66,23 @@ public class SMB2IoctlResponse extends SMB2Packet {
      * STATUS_BUFFER_OVERFLOW and STATUS_INVALID_PARAMETER should be treated as a success code.
      *
      * @param status The status to verify
+     * @param buffer
      * @return
      */
     @Override
-    protected boolean isSuccess(NtStatus status) {
-        return super.isSuccess(status) || status == NtStatus.STATUS_BUFFER_OVERFLOW || status == NtStatus.STATUS_INVALID_PARAMETER;
+    protected boolean isSuccess(NtStatus status, SMBBuffer buffer) throws Buffer.BufferException {
+        if (super.isSuccess(status, buffer)) {
+            return true;
+        }
+
+        if (status == NtStatus.STATUS_BUFFER_OVERFLOW || status == NtStatus.STATUS_INVALID_PARAMETER) {
+            int oldRpos = buffer.rpos();
+            int structureSize = buffer.readUInt16();
+            buffer.rpos(oldRpos);
+            return structureSize == IOCTL_RESPONSE_STRUCTURE_SIZE;
+        }
+
+        return false;
     }
 
     public byte[] getOutputBuffer() {

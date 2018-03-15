@@ -106,7 +106,7 @@ public class SMB2Packet extends SMBPacket<SMB2Header> {
         this.buffer = buffer; // remember the buffer we read it from
         this.messageStartPos = buffer.rpos();
         header.readFrom(buffer);
-        if (isSuccess(header.getStatus())) {
+        if (isSuccess(header.getStatus(), buffer)) {
             readMessage(buffer);
         } else {
             readError(buffer);
@@ -119,7 +119,7 @@ public class SMB2Packet extends SMBPacket<SMB2Header> {
     }
 
     /**
-     * Read the message, this is only called in case the response is a success response according to {@link #isSuccess(NtStatus)}
+     * Read the message, this is only called in case the response is a success response according to {@link #isSuccess(NtStatus, SMBBuffer)}
      *
      * @param buffer
      * @throws Buffer.BufferException
@@ -132,9 +132,10 @@ public class SMB2Packet extends SMBPacket<SMB2Header> {
      * Callback to verify whether the status is a success status. Some responses have error codes that should be treated as success responses.
      *
      * @param status The status to verify
+     * @param buffer
      * @return {@code true} is {@link NtStatus#isSuccess()}
      */
-    protected boolean isSuccess(NtStatus status) {
+    protected boolean isSuccess(NtStatus status, SMBBuffer buffer) throws Buffer.BufferException {
         return status.isSuccess() && status != NtStatus.STATUS_PENDING;
     }
 
