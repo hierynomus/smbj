@@ -194,7 +194,7 @@ public class File extends DiskEntry {
         // Somewhat arbitrary defaults. If these exceed the server limitations STATUS_INVALID_PARAMETER will
         // be returned and the parameters will be adjusted.
         long maxChunkSize = 1 * 1024 * 1024;
-        long maxChunkCount = 256;
+        long maxChunkCount = 16;
         long maxRequestSize = maxChunkCount * maxChunkSize;
 
         long srcOff = sourceOffset;
@@ -298,13 +298,19 @@ public class File extends DiskEntry {
         request.write(buffer);
         byte[] data = buffer.getCompactData();
 
-        return share.receive(
+        SMB2IoctlResponse response = share.receive(
             share.ioctlAsync(target.fileId, CopyChunkRequest.getCtlCode(), true, new ArrayByteChunkProvider(data, 0, data.length, 0), -1),
             "IOCTL",
             target.fileId,
             COPY_CHUNK_ALLOWED_STATUS_VALUES,
             share.getReadTimeout()
         );
+
+        if (response.getError() != null) {
+            throw new SMBApiException(response.getHeader(), "FSCTL_SRV_COPYCHUNK failed");
+        }
+
+        return response;
     }
 
     /***
