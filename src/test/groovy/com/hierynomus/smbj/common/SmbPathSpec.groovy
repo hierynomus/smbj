@@ -105,12 +105,16 @@ class SmbPathSpec extends Specification {
   def "should rewrite path part to not contain '/'"() {
     given:
     def path = 'foo/bar'
+    def smbPath = new SmbPath("host", "share", path)
 
     when:
-    def smbPath = new SmbPath("host", "share", path)
+    def childPath = new SmbPath(smbPath, 'baz/boz')
+    def parsedPath = SmbPath.parse("//host/share/foo/bar")
 
     then:
     smbPath.path == 'foo\\bar'
     smbPath.toUncPath() == '\\\\host\\share\\foo\\bar'
+    childPath.toUncPath() == '\\\\host\\share\\foo\\bar\\baz\\boz'
+    parsedPath.toUncPath() == '\\\\host\\share\\foo\\bar'
   }
 }

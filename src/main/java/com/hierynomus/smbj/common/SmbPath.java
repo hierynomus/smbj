@@ -78,12 +78,13 @@ public class SmbPath {
     }
 
     public static SmbPath parse(String path) {
-        String splitPath = rewritePath(path);
-        if (path.charAt(0) == '\\') {
-            if (path.charAt(1) == '\\') {
-                splitPath = path.substring(2);
+        String rewritten = rewritePath(path);
+        String splitPath = rewritten;
+        if (rewritten.charAt(0) == '\\') {
+            if (rewritten.charAt(1) == '\\') {
+                splitPath = rewritten.substring(2);
             } else {
-                splitPath = path.substring(1);
+                splitPath = rewritten.substring(1);
             }
         }
 
