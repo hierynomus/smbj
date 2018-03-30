@@ -19,6 +19,7 @@ import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.smb.SMBBuffer;
+import com.hierynomus.smbj.common.SmbPath;
 
 import java.util.Set;
 
@@ -35,7 +36,7 @@ public class SMB2CreateRequest extends SMB2Packet {
     private final Set<SMB2ShareAccess> shareAccess;
     private final SMB2CreateDisposition createDisposition;
     private final Set<SMB2CreateOptions> createOptions;
-    private final String fileName; // Null to indicate the root of share
+    private final SmbPath path;
     private final Set<AccessMask> accessMask;
     private final SMB2ImpersonationLevel impersonationLevel;
 
@@ -46,7 +47,7 @@ public class SMB2CreateRequest extends SMB2Packet {
                              Set<AccessMask> accessMask,
                              Set<FileAttributes> fileAttributes,
                              Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition,
-                             Set<SMB2CreateOptions> createOptions, String fileName) {
+                             Set<SMB2CreateOptions> createOptions, SmbPath path) {
         super(57, smbDialect, SMB2MessageCommandCode.SMB2_CREATE, sessionId, treeId);
         this.impersonationLevel = ensureNotNull(impersonationLevel, SMB2ImpersonationLevel.Identification);
         this.accessMask = accessMask;
@@ -54,7 +55,7 @@ public class SMB2CreateRequest extends SMB2Packet {
         this.shareAccess = ensureNotNull(shareAccess, SMB2ShareAccess.class);
         this.createDisposition = ensureNotNull(createDisposition, SMB2CreateDisposition.FILE_SUPERSEDE);
         this.createOptions = ensureNotNull(createOptions, SMB2CreateOptions.class);
-        this.fileName = fileName;
+        this.path = path;
     }
 
     @Override
@@ -73,7 +74,9 @@ public class SMB2CreateRequest extends SMB2Packet {
         int offset = SMB2Header.STRUCTURE_SIZE + structureSize - 1; // The structureSize is including the minimum of 1 byte for the fileName
 
         byte[] nameBytes;
+        String fileName = path.getPath();
         if (fileName == null || fileName.trim().length() == 0) {
+            // If the path part of the SmbPath is `null`, this indicates the root of the share
             buffer.putUInt16(offset); // NameOffset (4 bytes)
             buffer.putUInt16(0); // NameLength (4 bytes)
             // For empty names(root directory) Windows requires
