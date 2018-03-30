@@ -184,7 +184,7 @@ public class ReferralCache {
 
         private final String pathComponent;
         private final Map<String, ReferralCacheNode> childNodes = new ConcurrentHashMap<>();
-        private ReferralCacheEntry entry;
+        private volatile ReferralCacheEntry entry;
 
         ReferralCacheNode(String pathComponent) {
             this.pathComponent = pathComponent;
