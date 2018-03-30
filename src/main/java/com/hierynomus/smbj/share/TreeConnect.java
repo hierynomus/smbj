@@ -57,13 +57,16 @@ public class TreeConnect {
     }
 
     void close() throws TransportException {
-        SMB2TreeDisconnect disconnect = new SMB2TreeDisconnect(connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeId);
-        Future<SMB2Packet> send = session.send(disconnect);
-        SMB2Packet smb2Packet = Futures.get(send, connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
-        if (!smb2Packet.getHeader().getStatus().isSuccess()) {
-            throw new SMBApiException(smb2Packet.getHeader(), "Error closing connection to " + smbPath);
+        try {
+            SMB2TreeDisconnect disconnect = new SMB2TreeDisconnect(connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeId);
+            Future<SMB2Packet> send = session.send(disconnect);
+            SMB2Packet smb2Packet = Futures.get(send, connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
+            if (!smb2Packet.getHeader().getStatus().isSuccess()) {
+                throw new SMBApiException(smb2Packet.getHeader(), "Error closing connection to " + smbPath);
+            }
+        } finally {
+            bus.publish(new TreeDisconnected(session.getSessionId(), treeId));
         }
-        bus.publish(new TreeDisconnected(session.getSessionId(), treeId));
     }
 
     public String getShareName() {

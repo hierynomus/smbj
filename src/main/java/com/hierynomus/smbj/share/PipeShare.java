@@ -20,7 +20,6 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.fsctl.FsCtlPipeWaitRequest;
 import com.hierynomus.mssmb2.*;
-import com.hierynomus.mssmb2.messages.SMB2CreateResponse;
 import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
 import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smbj.common.SmbPath;
@@ -91,11 +90,13 @@ public class PipeShare extends Share {
     }
 
     public NamedPipe open(String name, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
-        SMB2CreateResponse response = createFile(name, impersonationLevel, accessMask, attributes, shareAccesses, createDisposition, createOptions);
-        return new NamedPipe(response.getFileId(), this, name);
+        SmbPath path = new SmbPath(smbPath, name);
+        SMB2FileId response = super.openFileId(path, impersonationLevel, accessMask, attributes, shareAccesses, createDisposition, createOptions);
+        return new NamedPipe(response, this, path);
     }
 
-    public SMB2FileId openFileId(String path, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+    public SMB2FileId openFileId(String name, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        SmbPath path = new SmbPath(smbPath, name);
         return super.openFileId(path, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
     }
 
