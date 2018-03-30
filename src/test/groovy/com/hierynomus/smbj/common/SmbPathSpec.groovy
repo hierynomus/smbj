@@ -101,4 +101,16 @@ class SmbPathSpec extends Specification {
     "localhost\\foo" | "bieblobla\\foo" | false
     yesno = sameHost ? "" : "not"
   }
+
+  def "should rewrite path part to not contain '/'"() {
+    given:
+    def path = 'foo/bar'
+
+    when:
+    def smbPath = new SmbPath("host", "share", path)
+
+    then:
+    smbPath.path == 'foo\\bar'
+    smbPath.toUncPath() == '\\\\host\\share\\foo\\bar'
+  }
 }

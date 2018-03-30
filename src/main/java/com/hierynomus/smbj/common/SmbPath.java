@@ -15,6 +15,8 @@
  */
 package com.hierynomus.smbj.common;
 
+import com.hierynomus.utils.Strings;
+
 import java.util.Objects;
 
 public class SmbPath {
@@ -33,20 +35,24 @@ public class SmbPath {
     public SmbPath(String hostname, String shareName, String path) {
         this.shareName = shareName;
         this.hostname = hostname;
-        this.path = path;
+        this.path = rewritePath(path);
+    }
+
+    private static String rewritePath(String path) {
+        return Strings.isNotBlank(path) ? path.replace('/', '\\') : path;
     }
 
     public SmbPath(SmbPath parent, String path) {
         this.hostname = parent.hostname;
-        if (parent.shareName != null) {
+        if (Strings.isNotBlank(parent.shareName)) {
             this.shareName = parent.shareName;
         } else {
             throw new IllegalArgumentException("Can only make child SmbPath of fully specified SmbPath");
         }
-        if (parent.path != null) {
-            this.path = parent.path + "\\" + path;
+        if (Strings.isNotBlank(parent.path)) {
+            this.path = parent.path + "\\" + rewritePath(path);
         } else {
-            this.path = path;
+            this.path = rewritePath(path);
         }
     }
 
@@ -59,7 +65,7 @@ public class SmbPath {
                 b.append("\\");
             }
             b.append(shareName);
-            if (path != null && !path.isEmpty()) {
+            if (Strings.isNotBlank(path)) {
                 b.append("\\").append(path);
             }
         }
@@ -72,7 +78,7 @@ public class SmbPath {
     }
 
     public static SmbPath parse(String path) {
-        String splitPath = path;
+        String splitPath = rewritePath(path);
         if (path.charAt(0) == '\\') {
             if (path.charAt(1) == '\\') {
                 splitPath = path.substring(2);

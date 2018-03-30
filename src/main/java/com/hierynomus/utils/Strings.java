@@ -17,6 +17,7 @@ package com.hierynomus.utils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class Strings {
 
@@ -55,6 +56,15 @@ public class Strings {
             joiner.append(strings.get(i));
         }
         return joiner.toString();
+    }
+
+    /**
+     * Check whether the passed String is not null and not empty (after trim)
+     * @param s The string to check
+     * @return <code>true</code> iff the string is not blank
+     */
+    public static boolean isNotBlank(String s) {
+        return s != null && !s.trim().isEmpty();
     }
 
 }
