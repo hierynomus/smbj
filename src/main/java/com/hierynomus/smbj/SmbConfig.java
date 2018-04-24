@@ -23,7 +23,6 @@ import com.hierynomus.security.jce.JceSecurityProvider;
 import com.hierynomus.smb.SMBPacket;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
-import com.hierynomus.smbj.auth.SpnegoAuthenticator;
 import com.hierynomus.smbj.transport.TransportLayerFactory;
 import com.hierynomus.smbj.transport.tcp.direct.DirectTcpTransportFactory;
 
@@ -80,8 +79,22 @@ public final class SmbConfig {
             .withSoTimeout(DEFAULT_SO_TIMEOUT, DEFAULT_SO_TIMEOUT_UNIT)
             .withDialects(SMB2Dialect.SMB_2_1, SMB2Dialect.SMB_2_0_2)
             // order is important.  The authenticators listed first will be selected
-            .withAuthenticators(new SpnegoAuthenticator.Factory(), new NtlmAuthenticator.Factory())
+            .withAuthenticators(getDefaultAuthenticators())
             .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT);
+    }
+
+    private static List<Factory.Named<Authenticator>> getDefaultAuthenticators() {
+        List<Factory.Named<Authenticator>> authenticators = new ArrayList<>();
+
+        try {
+            Object spnegoFactory = Class.forName("com.hierynomus.smbj.auth.SpnegoAuthenticator.Factory").newInstance();
+            authenticators.add((Factory.Named<Authenticator>)spnegoFactory);
+        } catch (InstantiationException | IllegalAccessException | ClassNotFoundException | ClassCastException e) {
+            // Ignored; probably running on Android
+        }
+        authenticators.add(new NtlmAuthenticator.Factory());
+
+        return authenticators;
     }
 
     private SmbConfig() {
