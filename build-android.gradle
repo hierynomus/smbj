@@ -19,19 +19,31 @@ repositories {
 group = 'com.hierynomus'
 
 dependencies {
-  implementation "org.slf4j:slf4j-api:1.7.25"
-  implementation "org.bouncycastle:bcprov-jdk15on:1.57"
-  implementation 'net.engio:mbassador:1.3.0'
-  testImplementation 'org.codehaus.groovy:groovy-all:2.4.4'
-  testRuntimeOnly 'cglib:cglib-nodep:2.2'
-  testRuntimeOnly 'org.objenesis:objenesis:2.6'
-  testImplementation 'org.spockframework:spock-core:1.1-groovy-2.4'
-  testImplementation 'commons-io:commons-io:2.5'
-  testRuntimeOnly 'ch.qos.logback:logback-classic:1.2.3'
+  implementation SLF4J_API
+  implementation BCPROV_JDK15ON
+  implementation MBASSADOR
+  testImplementation GROOVY_ALL
+  testRuntimeOnly CGLIB_NODEP
+  testRuntimeOnly OBJENESIS
+  testImplementation SPOCK_CORE
+  testImplementation COMMONS_IO
+  testRuntimeOnly LOGBACK_CLASSIC
 }
 
+def androidSdkVersion = 24
+
 android {
-  compileSdkVersion 24
+  compileSdkVersion androidSdkVersion
+
+  defaultConfig {
+    minSdkVersion androidSdkVersion
+    targetSdkVersion androidSdkVersion
+
+    manifestPlaceholders = [
+      minSdkVersion   : androidSdkVersion,
+      targetSdkVersion: androidSdkVersion
+    ]
+  }
 
   compileOptions {
     sourceCompatibility JavaVersion.VERSION_1_8
