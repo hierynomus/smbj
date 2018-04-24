@@ -1,4 +1,3 @@
-language: java
 dist: trusty
 sudo: false
 
@@ -10,14 +9,29 @@ cache:
   directories:
   - $HOME/.gradle/caches/
   - $HOME/.gradle/wrapper/
-
-jdk:
-  - oraclejdk8
-  - openjdk8
-  - oraclejdk9
+  - $HOME/.android/build-cache
 
 before_install:
-  - pip install --user codecov
+      - pip install --user codecov
 
-after_success:
-- codecov
+matrix:
+  include:
+    - language: java
+      jdk: oraclejdk8
+      after_success:
+        - codecov
+    - language: java
+      jdk: openjdk8
+      after_success:
+        - codecov
+    - language: java
+      jdk: oraclejdk9
+      after_success:
+        - codecov
+    - language: android
+      android:
+        components:
+          - build-tools-26.0.2
+          - android-18
+          - extra
+      script: ./gradlew --build-file build-android.gradle build
