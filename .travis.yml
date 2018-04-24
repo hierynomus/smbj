@@ -12,7 +12,7 @@ cache:
   - $HOME/.android/build-cache
 
 before_install:
-      - pip install --user codecov
+  - pip install --user codecov
 
 matrix:
   include:
