@@ -87,7 +87,7 @@ public final class SmbConfig {
         List<Factory.Named<Authenticator>> authenticators = new ArrayList<>();
 
         try {
-            Object spnegoFactory = Class.forName("com.hierynomus.smbj.auth.SpnegoAuthenticator.Factory").newInstance();
+            Object spnegoFactory = Class.forName("com.hierynomus.smbj.auth.SpnegoAuthenticator$Factory").newInstance();
             authenticators.add((Factory.Named<Authenticator>)spnegoFactory);
         } catch (InstantiationException | IllegalAccessException | ClassNotFoundException | ClassCastException e) {
             // Ignored; probably running on Android
