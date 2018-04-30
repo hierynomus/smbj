@@ -21,6 +21,7 @@ matrix:
       after_success:
         - codecov
       script:
+        - ./gradlew check
         - ./gradlew sonarqube
     - language: java
       jdk: openjdk8
