@@ -1,5 +1,11 @@
 package com.hierynomus.protocol.commons;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
+import java.util.zip.GZIPInputStream;
+
 /**
  * <p> Encodes and decodes to and from Base64 notation. </p> <p> Homepage: <a href="http://iharder.net/base64">http://iharder.net/base64</a>.
  * </p> <p/> <p> Example: </p> <p/> <code>String encoded = Base64.encode( myByteArray );</code> <br /> <code>byte[]
@@ -803,19 +809,16 @@ public class Base64 {
 
             int head = bytes[0] & 0xff | bytes[1] << 8 & 0xff00;
             if (java.util.zip.GZIPInputStream.GZIP_MAGIC == head) {
-                java.io.ByteArrayInputStream bais = null;
-                java.util.zip.GZIPInputStream gzis = null;
-                java.io.ByteArrayOutputStream baos = null;
                 byte[] buffer = new byte[2048];
                 int length = 0;
 
-                try {
-                    baos = new java.io.ByteArrayOutputStream();
-                    bais = new java.io.ByteArrayInputStream(bytes);
-                    gzis = new java.util.zip.GZIPInputStream(bais);
+                try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+                     GZIPInputStream gzis = new GZIPInputStream(bais)) {
 
-                    while ((length = gzis.read(buffer)) >= 0)
+                    while ((length = gzis.read(buffer)) >= 0) {
                         baos.write(buffer, 0, length);
+                    }
 
                     // No error? Get new bytes.
                     bytes = baos.toByteArray();
@@ -824,21 +827,6 @@ public class Base64 {
                 catch (java.io.IOException e) {
                     // Just return originally-decoded bytes
                 } // end catch
-                finally {
-                    try {
-                        baos.close();
-                    } catch (Exception e) {
-                    }
-                    try {
-                        gzis.close();
-                    } catch (Exception e) {
-                    }
-                    try {
-                        bais.close();
-                    } catch (Exception e) {
-                    }
-                } // end finally
-
             } // end if: gzipped
         } // end if: bytes.length >= 2
 
@@ -857,20 +845,12 @@ public class Base64 {
         throws java.io.IOException {
 
         byte[] decoded = Base64.decodeFromFile(infile);
-        java.io.OutputStream out = null;
-        try {
-            out = new java.io.BufferedOutputStream(new java.io.FileOutputStream(outfile));
+        try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(outfile))) {
             out.write(decoded);
         } // end try
         catch (java.io.IOException e) {
             throw e; // Catch and release to execute finally{}
         } // end catch
-        finally {
-            try {
-                out.close();
-            } catch (Exception ex) {
-            }
-        } // end finally
     } // end decodeFileToFile
 
     /**
@@ -919,7 +899,9 @@ public class Base64 {
         } // end catch: java.io.IOException
         finally {
             try {
-                bis.close();
+                if (bis != null) {
+                    bis.close();
+                }
             } catch (Exception e) {
             }
         } // end finally
@@ -940,21 +922,12 @@ public class Base64 {
     public static void decodeToFile(String dataToDecode, String filename)
         throws java.io.IOException {
 
-        Base64.OutputStream bos = null;
-        try {
-            bos = new Base64.OutputStream(new java.io.FileOutputStream(filename), Base64.DECODE);
+        try (Base64.OutputStream bos = new Base64.OutputStream(new java.io.FileOutputStream(filename), Base64.DECODE)) {
             bos.write(dataToDecode.getBytes(PREFERRED_ENCODING));
         } // end try
         catch (java.io.IOException e) {
             throw e; // Catch and throw to execute finally{} block
         } // end catch: java.io.IOException
-        finally {
-            try {
-                bos.close();
-            } catch (Exception e) {
-            }
-        } // end finally
-
     } // end decodeToFile
 
     /**

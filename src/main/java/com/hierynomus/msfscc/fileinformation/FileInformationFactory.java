@@ -694,7 +694,7 @@ public class FileInformationFactory {
         buffer.putByte((byte) (information.isReplaceIfExists() ? 1 : 0));
         buffer.putRawBytes(new byte[]{0, 0, 0, 0, 0, 0, 0});    // reserved
         buffer.putUInt64(information.getRootDirectory());
-        buffer.putUInt32(information.getFileNameLength() * 2); // unicode
+        buffer.putUInt32(information.getFileNameLength() * 2L); // unicode
         buffer.putRawBytes(information.getFileName().getBytes(StandardCharsets.UTF_16LE));
     }
 

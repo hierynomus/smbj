@@ -69,7 +69,7 @@ public class FsCtlPipeWaitRequest {
 
         // Name (variable): A Unicode string that contains the name of the named pipe. Name MUST not include the
         // "\pipe\", so if the operation was on \\server\pipe\pipename, the name would be "pipename".
-        int nameStartPos = buffer.wpos();
+        long nameStartPos = buffer.wpos();
         buffer.putString(name, StandardCharsets.UTF_16);
 
         int endPos = buffer.wpos();
