@@ -228,7 +228,8 @@ sonarqube {
   properties {
     property "sonar.host.url", "https://sonarcloud.io"
     property "sonar.organization", "hierynomus-github"
-    property "sonar.login", project.property('sonar.login')
+    property "sonar.projectKey", "com.hierynomus:smbj"
+    // property "sonar.login", project.property('sonar.login')
   }
 }
 

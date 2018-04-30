@@ -10,6 +10,7 @@ cache:
   - $HOME/.gradle/caches/
   - $HOME/.gradle/wrapper/
   - $HOME/.android/build-cache
+  - $HOME/.sonar/cache
 
 matrix:
   include:
@@ -19,6 +20,8 @@ matrix:
         - pip install --user codecov
       after_success:
         - codecov
+      script:
+        - ./gradlew sonarqube
     - language: java
       jdk: openjdk8
     - language: java
@@ -30,3 +33,8 @@ matrix:
           - android-24
           - extra
       script: ./gradlew --build-file build-android.gradle build
+addons:
+  sonarcloud:
+    organization: "hierynomus-github"
+    token:
+      secure: "d97gMarjhrvgRcvnZlmKk4evHHfXQbw5NJWlpEMMxJyM0pksyfUaJBEljd6kG8bAm2f7yuBVlPJR3RQEBfGHh9QJg3fi0f7HPTE2DRCSYNBDZkSVKPEPnAeDlzyWAInPTNUV/0cdvNa7SBjmd7y/hWN6ihYF+e/WUQy5ChQ/H38rjoTAGsyGHQlPmd/+h7Ct3/cCqW3oUPUpvQIvH/Dq8QZt7pSy8FdtUXltHgZWdgvymDaxvRxb3KhBzo2hHWHBRXlo0MqnREx110UZ/zZOSXgxRY8/7oizWbgoPAZElBkKu40feoIUC6gqiimIbSk+VyaCEMRxfa3CLYmEYWx0BS1ClT1nuGuHnllxN7+WfcIfAYOMTAeLnFtMrV7+Ph26aR8PmRgHmxgpvAvEHmSRR6T9pk8VnI5OsiOhvFLmh2i2joTLCRfNmiVjM2gLlWSku6c0K5DemxpB++DKwZhmySlNVGuZg4HfqElRGM93dsQsxFGyeqCOqapVjXc0XBkDIkZfWu+9d4uMMqW7/2jUarLgtr/5/5+96tK28rFQuPicck80sKIxTotrtIDBZk7wHdoWjP84lf3H4CySCuRVpOU8+/3xEQZkIuuk5WOuqpsbl7LoHxddAdkhYq1e/NajiqL/670R9ui1EKOIqa+gwNspH9pzDWBzqFb4wSbB+M0="
