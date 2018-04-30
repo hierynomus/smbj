@@ -22,6 +22,7 @@ import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.io.ArrayByteChunkProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,16 +37,16 @@ public class NamedPipe implements Closeable {
 
     protected PipeShare share;
     protected SMB2FileId fileId;
-    protected String name;
+    protected SmbPath name;
 
-    NamedPipe(SMB2FileId fileId, PipeShare share, String name) {
+    NamedPipe(SMB2FileId fileId, PipeShare share, SmbPath name) {
         this.share = share;
         this.fileId = fileId;
         this.name = name;
     }
 
     public String getName() {
-        return name;
+        return name.getPath();
     }
 
     public SMB2FileId getFileId() {

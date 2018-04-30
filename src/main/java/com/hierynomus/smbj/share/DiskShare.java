@@ -66,7 +66,8 @@ public class DiskShare extends Share {
     }
 
     public DiskEntry open(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
-        SMB2CreateResponseContext response = createFileAndResolve(path, null, accessMask, attributes, shareAccesses, createDisposition, createOptions);
+        SmbPath pathAndFile = new SmbPath(smbPath, path);
+        SMB2CreateResponseContext response = createFileAndResolve(pathAndFile, null, accessMask, attributes, shareAccesses, createDisposition, createOptions);
         return getDiskEntry(path, response);
     }
 
@@ -75,14 +76,13 @@ public class DiskShare extends Share {
         return resolver.handledStates();
     }
 
-    private SMB2CreateResponseContext createFileAndResolve(String path, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+    private SMB2CreateResponseContext createFileAndResolve(SmbPath path, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         SMB2CreateResponse resp = super.createFile(path, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
         try {
-            SmbPath source = new SmbPath(smbPath, path);
-            SmbPath target = resolver.resolve(session, resp, source);
+            SmbPath target = resolver.resolve(session, resp, path);
             DiskShare resolveShare = this;
             Session connectedSession = this.session;
-            if (!source.isOnSameHost(target)) {
+            if (!path.isOnSameHost(target)) {
                 SMBClient client = treeConnect.getConnection().getClient();
                 try {
                     Connection connect = client.connect(target.getHostname());
@@ -91,11 +91,11 @@ public class DiskShare extends Share {
                     throw new SMBApiException(resp.getHeader(), "Cannot connect to resolved path " + target, e);
                 }
             }
-            if (!source.isOnSameShare(target)) {
+            if (!path.isOnSameShare(target)) {
                 resolveShare = (DiskShare) connectedSession.connectShare(target.getShareName());
             }
-            if (!source.equals(target)) {
-                return resolveShare.createFileAndResolve(target.getPath(), impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
+            if (!path.equals(target)) {
+                return resolveShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
             }
         } catch (PathResolveException e) {
             throw new SMBApiException(e.getStatus(), SMB2MessageCommandCode.SMB2_CREATE, "Cannot resolve path " + path, e);
@@ -437,7 +437,7 @@ public class DiskShare extends Share {
     }
 
     /**
-     * A return object for the {@link #createFileAndResolve(String, SMB2ImpersonationLevel, Set, Set, Set, SMB2CreateDisposition, Set)} call.
+     * A return object for the {@link #createFileAndResolve(SmbPath, SMB2ImpersonationLevel, Set, Set, Set, SMB2CreateDisposition, Set)} call.
      *
      * This object wraps the {@link SMB2CreateResponse} and the actual {@link Share} which generated it if the path needed to be resolved.
      */

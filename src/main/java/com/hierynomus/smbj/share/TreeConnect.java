@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.share;
 
+import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.messages.SMB2TreeDisconnect;
@@ -42,14 +43,16 @@ public class TreeConnect {
     private final Set<SMB2ShareCapabilities> capabilities;
     private Connection connection;
     private final SMBEventBus bus;
+    private final Set<AccessMask> maximalAccess;
 
-    public TreeConnect(long treeId, SmbPath smbPath, Session session, Set<SMB2ShareCapabilities> capabilities, Connection connection, SMBEventBus bus) {
+    public TreeConnect(long treeId, SmbPath smbPath, Session session, Set<SMB2ShareCapabilities> capabilities, Connection connection, SMBEventBus bus, Set<AccessMask> maximalAccess) {
         this.treeId = treeId;
         this.smbPath = smbPath;
         this.session = session;
         this.capabilities = capabilities;
         this.connection = connection;
         this.bus = bus;
+        this.maximalAccess = maximalAccess;
     }
 
     Connection getConnection() {
@@ -57,13 +60,16 @@ public class TreeConnect {
     }
 
     void close() throws TransportException {
-        SMB2TreeDisconnect disconnect = new SMB2TreeDisconnect(connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeId);
-        Future<SMB2Packet> send = session.send(disconnect);
-        SMB2Packet smb2Packet = Futures.get(send, connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
-        if (!smb2Packet.getHeader().getStatus().isSuccess()) {
-            throw new SMBApiException(smb2Packet.getHeader(), "Error closing connection to " + smbPath);
+        try {
+            SMB2TreeDisconnect disconnect = new SMB2TreeDisconnect(connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeId);
+            Future<SMB2Packet> send = session.send(disconnect);
+            SMB2Packet smb2Packet = Futures.get(send, connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
+            if (!smb2Packet.getHeader().getStatus().isSuccess()) {
+                throw new SMBApiException(smb2Packet.getHeader(), "Error closing connection to " + smbPath);
+            }
+        } finally {
+            bus.publish(new TreeDisconnected(session.getSessionId(), treeId));
         }
-        bus.publish(new TreeDisconnected(session.getSessionId(), treeId));
     }
 
     public String getShareName() {
@@ -76,6 +82,10 @@ public class TreeConnect {
 
     public Session getSession() {
         return session;
+    }
+
+    public Set<AccessMask> getMaximalAccess() {
+        return maximalAccess;
     }
 
     public boolean isDfsShare() {
