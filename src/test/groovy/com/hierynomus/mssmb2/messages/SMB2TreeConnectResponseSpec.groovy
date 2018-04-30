@@ -15,8 +15,10 @@
  */
 package com.hierynomus.mssmb2.messages
 
+import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mssmb2.SMB2ShareCapabilities
 import com.hierynomus.protocol.commons.ByteArrayUtils
+import com.hierynomus.protocol.commons.EnumWithValue
 import com.hierynomus.smb.SMBBuffer
 import spock.lang.Specification
 
@@ -34,7 +36,7 @@ class SMB2TreeConnectResponseSpec extends Specification {
 
     then:
     tcResponse.getCapabilities() == EnumSet.noneOf(SMB2ShareCapabilities.class)
-    tcResponse.getMaximalAccess() == 0x001f01ffL
+    tcResponse.getMaximalAccess() == EnumWithValue.EnumUtils.toEnumSet(0x001f01ffL, AccessMask.class)
     tcResponse.getShareFlags() == 0x800L
     tcResponse.isDiskShare()
   }

@@ -15,6 +15,8 @@
  */
 package com.hierynomus.smbj.common;
 
+import com.hierynomus.utils.Strings;
+
 import java.util.Objects;
 
 public class SmbPath {
@@ -33,33 +35,37 @@ public class SmbPath {
     public SmbPath(String hostname, String shareName, String path) {
         this.shareName = shareName;
         this.hostname = hostname;
-        this.path = path;
+        this.path = rewritePath(path);
+    }
+
+    private static String rewritePath(String path) {
+        return Strings.isNotBlank(path) ? path.replace('/', '\\') : path;
     }
 
     public SmbPath(SmbPath parent, String path) {
         this.hostname = parent.hostname;
-        if (parent.shareName != null) {
+        if (Strings.isNotBlank(parent.shareName)) {
             this.shareName = parent.shareName;
         } else {
             throw new IllegalArgumentException("Can only make child SmbPath of fully specified SmbPath");
         }
-        if (parent.path != null) {
-            this.path = parent.path + "\\" + path;
+        if (Strings.isNotBlank(parent.path)) {
+            this.path = parent.path + "\\" + rewritePath(path);
         } else {
-            this.path = path;
+            this.path = rewritePath(path);
         }
     }
 
     public String toUncPath() {
         StringBuilder b = new StringBuilder("\\\\");
         b.append(hostname);
-        if (shareName != null) {
+        if (shareName != null && !shareName.isEmpty()) {
             // Clients can either pass \share or share
             if (shareName.charAt(0) != '\\') {
                 b.append("\\");
             }
             b.append(shareName);
-            if (path != null) {
+            if (Strings.isNotBlank(path)) {
                 b.append("\\").append(path);
             }
         }
@@ -72,12 +78,13 @@ public class SmbPath {
     }
 
     public static SmbPath parse(String path) {
-        String splitPath = path;
-        if (path.charAt(0) == '\\') {
-            if (path.charAt(1) == '\\') {
-                splitPath = path.substring(2);
+        String rewritten = rewritePath(path);
+        String splitPath = rewritten;
+        if (rewritten.charAt(0) == '\\') {
+            if (rewritten.charAt(1) == '\\') {
+                splitPath = rewritten.substring(2);
             } else {
-                splitPath = path.substring(1);
+                splitPath = rewritten.substring(1);
             }
         }
 

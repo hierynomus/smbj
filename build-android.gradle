@@ -1,0 +1,66 @@
+buildscript {
+  repositories {
+    jcenter()
+    google()
+  }
+
+  dependencies {
+    classpath 'com.android.tools.build:gradle:3.1.0'
+  }
+}
+
+apply plugin: 'com.android.library'
+
+repositories {
+  jcenter()
+  google()
+}
+
+group = 'com.hierynomus'
+
+dependencies {
+  implementation SLF4J_API
+  implementation BCPROV_JDK15ON
+  implementation MBASSADOR
+  testImplementation GROOVY_ALL
+  testRuntimeOnly CGLIB_NODEP
+  testRuntimeOnly OBJENESIS
+  testImplementation SPOCK_CORE
+  testImplementation COMMONS_IO
+  testRuntimeOnly LOGBACK_CLASSIC
+}
+
+def androidSdkVersion = 24
+
+android {
+  compileSdkVersion androidSdkVersion
+
+  defaultConfig {
+    minSdkVersion androidSdkVersion
+    targetSdkVersion androidSdkVersion
+
+    manifestPlaceholders = [
+      minSdkVersion   : androidSdkVersion,
+      targetSdkVersion: androidSdkVersion
+    ]
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+
+  sourceSets {
+    main.java {
+      exclude(
+        'com/hierynomus/smbj/auth/SpnegoAuthenticator.java',
+        'com/hierynomus/smbj/auth/GSSAuthenticationContext.java',
+        'com/hierynomus/smbj/transport/tcp/async/**/*.java'
+      )
+    }
+  }
+
+  lintOptions {
+    abortOnError false
+  }
+}
