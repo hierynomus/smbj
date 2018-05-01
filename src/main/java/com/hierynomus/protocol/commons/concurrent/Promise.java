@@ -173,7 +173,7 @@ public class Promise<V, T extends Throwable> {
             }
 
             if (pendingEx != null) {
-                log.error("<< {} >> woke to: {}", name, pendingEx.toString());
+                log.error("<< {} >> woke to: {}", name, pendingEx);
                 throw pendingEx;
             }
 

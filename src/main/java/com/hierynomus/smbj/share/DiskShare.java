@@ -83,13 +83,7 @@ public class DiskShare extends Share {
             DiskShare resolveShare = this;
             Session connectedSession = this.session;
             if (!path.isOnSameHost(target)) {
-                SMBClient client = treeConnect.getConnection().getClient();
-                try {
-                    Connection connect = client.connect(target.getHostname());
-                    connectedSession = connect.authenticate(session.getAuthenticationContext());
-                } catch (IOException e) {
-                    throw new SMBApiException(resp.getHeader(), "Cannot connect to resolved path " + target, e);
-                }
+                connectedSession = buildNewSession(resp, target);
             }
             if (!path.isOnSameShare(target)) {
                 resolveShare = (DiskShare) connectedSession.connectShare(target.getShareName());
@@ -101,6 +95,17 @@ public class DiskShare extends Share {
             throw new SMBApiException(e.getStatus(), SMB2MessageCommandCode.SMB2_CREATE, "Cannot resolve path " + path, e);
         }
         return new SMB2CreateResponseContext(resp, this);
+    }
+
+    private Session buildNewSession(SMB2CreateResponse resp, SmbPath target) {
+        Session connectedSession;SMBClient client = treeConnect.getConnection().getClient();
+        try {
+            Connection connect = client.connect(target.getHostname());
+            connectedSession = connect.authenticate(session.getAuthenticationContext());
+        } catch (IOException e) {
+            throw new SMBApiException(resp.getHeader(), "Cannot connect to resolved path " + target, e);
+        }
+        return connectedSession;
     }
 
     protected DiskEntry getDiskEntry(String path, SMB2CreateResponseContext responseContext) {
