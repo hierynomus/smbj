@@ -104,8 +104,8 @@ public class ReferralCache {
 
         public ReferralCacheEntry(SMB2GetDFSReferralResponse response, DomainCache domainCache) {
             List<DFSReferral> referralEntries = response.getReferralEntries();
-            for (int i = 0; i < referralEntries.size(); i++) {
-                if (referralEntries.get(i).getPath() == null) {
+            for (DFSReferral referralEntry : referralEntries) {
+                if (referralEntry.getPath() == null) {
                     // illegal value for referral cache entry.
                     throw new IllegalStateException("Path cannot be null for a ReferralCacheEntry?");
                 }

@@ -253,7 +253,8 @@ public final class SmbConfig {
             return this;
         }
 
-        public Builder withAuthenticators(Factory.Named<Authenticator>... authenticators) {
+        @SafeVarargs
+        public final Builder withAuthenticators(Factory.Named<Authenticator>... authenticators) {
             return withAuthenticators(Arrays.asList(authenticators));
         }
 
