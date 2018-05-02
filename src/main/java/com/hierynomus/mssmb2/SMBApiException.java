@@ -18,6 +18,8 @@ package com.hierynomus.mssmb2;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 
+import java.io.IOException;
+
 public class SMBApiException extends SMBRuntimeException {
     private final NtStatus status;
     private final SMB2MessageCommandCode failedCommand;
@@ -65,6 +67,6 @@ public class SMBApiException extends SMBRuntimeException {
 
     @Override
     public String getMessage() {
-        return status + "(" + status.getValue() + "/" + statusCode + "): " + super.getMessage();
+        return String.format("%s (0x%08x): %s", status.name(), statusCode, super.getMessage());
     }
 }
