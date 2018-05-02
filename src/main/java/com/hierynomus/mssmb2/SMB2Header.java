@@ -183,6 +183,7 @@ public class SMB2Header implements SMBHeader {
 
     public void setStatus(NtStatus status) {
         this.status = status;
+        this.statusCode = status.getValue();
     }
 
     public NtStatus getStatus() {
@@ -215,7 +216,7 @@ public class SMB2Header implements SMBHeader {
 
     public String toString() {
         return String.format(
-            "dialect=%s, creditCharge=%s, creditRequest=%s, creditResponse=%s, message=%s, messageId=%s, asyncId=%s, sessionId=%s, treeId=%s, status=%s, statusCode=%s, flags=%s, nextCommandOffset=%s",
+            "dialect=%s, creditCharge=%s, creditRequest=%s, creditResponse=%s, message=%s, messageId=%s, asyncId=%s, sessionId=%s, treeId=%s, status=0x%08x, flags=%s, nextCommandOffset=%s",
             dialect,
             creditCharge,
             creditRequest,
@@ -226,7 +227,6 @@ public class SMB2Header implements SMBHeader {
             sessionId,
             treeId,
             status,
-            statusCode,
             flags,
             nextCommandOffset);
 
