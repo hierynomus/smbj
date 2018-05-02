@@ -226,7 +226,7 @@ public class SMB2Header implements SMBHeader {
             asyncId,
             sessionId,
             treeId,
-            status,
+            statusCode,
             flags,
             nextCommandOffset);
 
