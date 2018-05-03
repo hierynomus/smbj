@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2016 - SMBJ Contributors
+ * Copyright (C)2018 - SMBJ Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.mssmb2;
+package com.hierynomus.protocol.commons;
 
-import com.hierynomus.protocol.commons.Charsets;
+import java.nio.charset.Charset;
 
-public class SMB2Functions {
-    private static final byte[] EMPTY_BYTES = new byte[0];
+public final class Charsets {
+    public static final Charset UTF_8 = Charset.forName("UTF-8");
+    public static final Charset UTF_16BE = Charset.forName("UTF-16BE");
+    public static final Charset UTF_16LE = Charset.forName("UTF-16LE");
+    public static final Charset UTF_16 = Charset.forName("UTF-16");
 
-    public static byte[] unicode(String s) {
-        if (s == null) {
-            return EMPTY_BYTES;
-        } else {
-            return s.getBytes(Charsets.UTF_16LE);
-        }
+    private Charsets() {
     }
 }

@@ -19,10 +19,10 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Error;
 import com.hierynomus.mssmb2.SMB2Functions;
 import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.session.Session;
 
-import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -97,12 +97,12 @@ public class SymlinkPathResolver implements PathResolver {
 
     private String getSymlinkParsedPath(String fileName, int unparsedPathLength) {
         byte[] fileNameBytes = SMB2Functions.unicode(fileName);
-        return new String(fileNameBytes, 0, fileNameBytes.length - unparsedPathLength, StandardCharsets.UTF_16LE);
+        return new String(fileNameBytes, 0, fileNameBytes.length - unparsedPathLength, Charsets.UTF_16LE);
     }
 
     private String getSymlinkUnparsedPath(String fileName, int unparsedPathLength) {
         byte[] fileNameBytes = SMB2Functions.unicode(fileName);
-        return new String(fileNameBytes, fileNameBytes.length - unparsedPathLength, unparsedPathLength, StandardCharsets.UTF_16LE);
+        return new String(fileNameBytes, fileNameBytes.length - unparsedPathLength, unparsedPathLength, Charsets.UTF_16LE);
     }
 
     private String normalizePath(String path) {

@@ -17,10 +17,10 @@ package com.hierynomus.mssmb.messages;
 
 import com.hierynomus.mssmb.SMB1Packet;
 import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -56,7 +56,7 @@ public class SMB1ComNegotiateRequest extends SMB1Packet {
         buffer.putUInt16(byteCount); // ByteCount (2 bytes)
         for (String s : dialectsToWrite) {
             buffer.putByte((byte) 0x02); // BufferFormat (1 byte)
-            buffer.putNullTerminatedString(s, StandardCharsets.UTF_8);
+            buffer.putNullTerminatedString(s, Charsets.UTF_8);
         }
     }
 

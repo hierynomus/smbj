@@ -15,9 +15,8 @@
  */
 package com.hierynomus.smbj.common;
 
+import com.hierynomus.protocol.commons.Objects;
 import com.hierynomus.utils.Strings;
-
-import java.util.Objects;
 
 public class SmbPath {
     private final String hostname;

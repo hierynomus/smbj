@@ -15,10 +15,10 @@
  */
 package com.hierynomus.msdfsc.messages;
 
+import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,7 +63,7 @@ public class DFSReferralV34 extends DFSReferral {
             int curPos = buffer.rpos();
             buffer.rpos(referralStartPos + firstExpandedNameOffset);
             for (int i = 0; i < nrNames; i++) {
-                expandedNames.add(buffer.readNullTerminatedString(StandardCharsets.UTF_16));
+                expandedNames.add(buffer.readNullTerminatedString(Charsets.UTF_16));
             }
             buffer.rpos(curPos);
             // Padding will be skipped automatically
@@ -101,13 +101,13 @@ public class DFSReferralV34 extends DFSReferral {
     @Override
     void writeOffsettedData(SMBBuffer buffer) {
         if (!isSet(referralEntryFlags, ReferralEntryFlags.NameListReferral)) {
-            buffer.putNullTerminatedString(dfsPath, StandardCharsets.UTF_16);
-            buffer.putNullTerminatedString(dfsAlternatePath, StandardCharsets.UTF_16);
-            buffer.putNullTerminatedString(path, StandardCharsets.UTF_16);
+            buffer.putNullTerminatedString(dfsPath, Charsets.UTF_16);
+            buffer.putNullTerminatedString(dfsAlternatePath, Charsets.UTF_16);
+            buffer.putNullTerminatedString(path, Charsets.UTF_16);
         } else {
-            buffer.putNullTerminatedString(specialName, StandardCharsets.UTF_16);
+            buffer.putNullTerminatedString(specialName, Charsets.UTF_16);
             for (String expandedName : expandedNames) {
-                buffer.putNullTerminatedString(expandedName, StandardCharsets.UTF_16);
+                buffer.putNullTerminatedString(expandedName, Charsets.UTF_16);
             }
         }
     }

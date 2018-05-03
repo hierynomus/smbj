@@ -15,11 +15,11 @@
  */
 package com.hierynomus.msdfsc.messages;
 
+import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
 import com.hierynomus.smb.SMBBuffer;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public abstract class DFSReferral {
@@ -110,7 +110,7 @@ public abstract class DFSReferral {
     String readOffsettedString(SMBBuffer buffer, int referralStart, int offset) throws BufferException {
         int curr = buffer.rpos();
         buffer.rpos(referralStart + offset);
-        String s = buffer.readNullTerminatedString(StandardCharsets.UTF_16);
+        String s = buffer.readNullTerminatedString(Charsets.UTF_16);
         buffer.rpos(curr);
         return s;
     }
