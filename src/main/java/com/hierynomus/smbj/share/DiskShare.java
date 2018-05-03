@@ -98,14 +98,13 @@ public class DiskShare extends Share {
     }
 
     private Session buildNewSession(SMB2CreateResponse resp, SmbPath target) {
-        Session connectedSession;SMBClient client = treeConnect.getConnection().getClient();
+        SMBClient client = treeConnect.getConnection().getClient();
         try {
             Connection connect = client.connect(target.getHostname());
-            connectedSession = connect.authenticate(session.getAuthenticationContext());
+            return connect.authenticate(session.getAuthenticationContext());
         } catch (IOException e) {
             throw new SMBApiException(resp.getHeader(), "Cannot connect to resolved path " + target, e);
         }
-        return connectedSession;
     }
 
     protected DiskEntry getDiskEntry(String path, SMB2CreateResponseContext responseContext) {
