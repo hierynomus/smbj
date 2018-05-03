@@ -15,9 +15,9 @@
  */
 package com.hierynomus.msfscc.fsctl;
 
+import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -70,7 +70,7 @@ public class FsCtlPipeWaitRequest {
         // Name (variable): A Unicode string that contains the name of the named pipe. Name MUST not include the
         // "\pipe\", so if the operation was on \\server\pipe\pipename, the name would be "pipename".
         long nameStartPos = buffer.wpos();
-        buffer.putString(name, StandardCharsets.UTF_16);
+        buffer.putString(name, Charsets.UTF_16);
 
         int endPos = buffer.wpos();
         buffer.wpos(nameLengthPos);

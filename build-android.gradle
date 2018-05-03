@@ -30,7 +30,7 @@ dependencies {
   testRuntimeOnly LOGBACK_CLASSIC
 }
 
-def androidSdkVersion = 24
+def androidSdkVersion = 19
 
 android {
   compileSdkVersion androidSdkVersion

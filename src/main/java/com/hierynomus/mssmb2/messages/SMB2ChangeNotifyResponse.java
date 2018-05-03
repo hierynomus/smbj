@@ -18,11 +18,11 @@ package com.hierynomus.mssmb2.messages;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileNotifyAction;
 import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -69,7 +69,7 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
             nextEntryOffset = (int) buffer.readUInt32();
             FileNotifyAction action = EnumWithValue.EnumUtils.valueOf(buffer.readUInt32(), FileNotifyAction.class, null);
             fileNameLen = buffer.readUInt32();
-            fileName = buffer.readString(StandardCharsets.UTF_16LE, (int) fileNameLen / 2);
+            fileName = buffer.readString(Charsets.UTF_16LE, (int) fileNameLen / 2);
             notifyInfoList.add(new FileNotifyInfo(action, fileName));
             if (nextEntryOffset != 0) {
                 currentPos += nextEntryOffset;
