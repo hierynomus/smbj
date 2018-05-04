@@ -31,7 +31,7 @@ matrix:
       android:
         components:
           - build-tools-27.0.3
-          - android-24
+          - android-19
           - extra
       script: ./gradlew --build-file build-android.gradle build
 addons:
