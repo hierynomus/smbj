@@ -24,6 +24,7 @@ import com.hierynomus.security.jce.JceSecurityProvider;
 import com.hierynomus.smb.SMBPacket;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.transport.TransportLayerFactory;
 import com.hierynomus.smbj.transport.tcp.direct.DirectTcpTransportFactory;
 
@@ -42,6 +43,18 @@ public final class SmbConfig {
     private static final TimeUnit DEFAULT_TIMEOUT_UNIT = TimeUnit.SECONDS;
 
     private static final TransportLayerFactory<SMBPacket<?>> DEFAULT_TRANSPORT_LAYER_FACTORY = new DirectTcpTransportFactory();
+
+    private static final boolean ANDROID;
+    static {
+        boolean android;
+        try {
+            Class.forName("android.os.Build");
+            android = true;
+        } catch (ClassNotFoundException e) {
+            android = false;
+        }
+        ANDROID = android;
+    }
 
     private Set<SMB2Dialect> dialects;
     private List<Factory.Named<Authenticator>> authenticators;
@@ -66,15 +79,11 @@ public final class SmbConfig {
         return builder().build();
     }
 
-    public static SmbConfig createAndroidConfig() {
-        return builder().withAuthenticators(new NtlmAuthenticator.Factory()).withSecurityProvider(new BCSecurityProvider()).build();
-    }
-
     public static Builder builder() {
         return new Builder()
             .withClientGuid(UUID.randomUUID())
             .withRandomProvider(new SecureRandom())
-            .withSecurityProvider(new JceSecurityProvider())
+            .withSecurityProvider(getDefaultSecurityProvider())
             .withSocketFactory(new ProxySocketFactory())
             .withSigningRequired(false)
             .withDfsEnabled(false)
@@ -88,14 +97,24 @@ public final class SmbConfig {
             .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT);
     }
 
+    private static SecurityProvider getDefaultSecurityProvider() {
+        if (ANDROID) {
+            return new BCSecurityProvider();
+        } else {
+            return new JceSecurityProvider();
+        }
+    }
+
     private static List<Factory.Named<Authenticator>> getDefaultAuthenticators() {
         List<Factory.Named<Authenticator>> authenticators = new ArrayList<>();
 
-        try {
-            Object spnegoFactory = Class.forName("com.hierynomus.smbj.auth.SpnegoAuthenticator$Factory").newInstance();
-            authenticators.add((Factory.Named<Authenticator>)spnegoFactory);
-        } catch (InstantiationException | IllegalAccessException | ClassNotFoundException | ClassCastException e) {
-            // Ignored; probably running on Android
+        if (!ANDROID) {
+            try {
+                Object spnegoFactory = Class.forName("com.hierynomus.smbj.auth.SpnegoAuthenticator$Factory").newInstance();
+                authenticators.add((Factory.Named<Authenticator>)spnegoFactory);
+            } catch (InstantiationException | IllegalAccessException | ClassNotFoundException | ClassCastException e) {
+                throw new SMBRuntimeException(e);
+            }
         }
         authenticators.add(new NtlmAuthenticator.Factory());
 
