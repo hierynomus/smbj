@@ -19,6 +19,7 @@ import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.socket.ProxySocketFactory;
 import com.hierynomus.security.SecurityProvider;
+import com.hierynomus.security.bc.BCSecurityProvider;
 import com.hierynomus.security.jce.JceSecurityProvider;
 import com.hierynomus.smb.SMBPacket;
 import com.hierynomus.smbj.auth.Authenticator;
@@ -63,6 +64,10 @@ public final class SmbConfig {
 
     public static SmbConfig createDefaultConfig() {
         return builder().build();
+    }
+
+    public static SmbConfig createAndroidConfig() {
+        return builder().withAuthenticators(new NtlmAuthenticator.Factory()).withSecurityProvider(new BCSecurityProvider()).build();
     }
 
     public static Builder builder() {
