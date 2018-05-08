@@ -18,8 +18,6 @@ package com.hierynomus.mssmb2;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 
-import java.io.IOException;
-
 public class SMBApiException extends SMBRuntimeException {
     private final NtStatus status;
     private final SMB2MessageCommandCode failedCommand;
