@@ -519,7 +519,6 @@ public class FileInformationFactory {
         buffer.readByte(); // Reserved1 (1)
         byte[] shortNameBytes = buffer.readRawBytes(24);// Shortname
         String shortName = new String(shortNameBytes, 0, shortNameLen, Charsets.UTF_16LE);
-        buffer.readUInt16(); // Reserved2
         String fileName = buffer.readString(Charsets.UTF_16LE, (int) fileNameLen / 2);
         FileBothDirectoryInformation fi = new FileBothDirectoryInformation(
             nextOffset, fileIndex, fileName,
