@@ -430,6 +430,7 @@ public class DFSPathResolver implements PathResolver {
     private void handleRootOrLinkReferralResponse(ReferralResult result, SMB2GetDFSReferralResponse response) {
         if (response.getReferralEntries().isEmpty()) {
             result.status = NtStatus.STATUS_OBJECT_PATH_NOT_FOUND;
+            return;
         }
         ReferralCache.ReferralCacheEntry referralCacheEntry = new ReferralCache.ReferralCacheEntry(response, domainCache);
         referralCache.put(referralCacheEntry);
