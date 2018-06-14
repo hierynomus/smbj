@@ -37,6 +37,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -57,6 +59,7 @@ public class Session implements AutoCloseable {
     private SMBEventBus bus;
     private final PathResolver pathResolver;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
+    private List<Session> nestedSessions = new ArrayList<>();
     private AuthenticationContext userCredentials;
 
     private boolean guest;
@@ -151,14 +154,13 @@ public class Session implements AutoCloseable {
             SMB2TreeConnectResponse response = Futures.get(send, connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
             try {
                 SmbPath resolvedSharePath = pathResolver.resolve(this, response, smbPath);
+                Session session = this;
+                if (!resolvedSharePath.isOnSameHost(smbPath)) {
+                    logger.info("Re-routing the connection to host {}", resolvedSharePath.getHostname());
+                    session = buildNestedSession(resolvedSharePath);
+                }
                 if (!resolvedSharePath.isOnSameShare(smbPath)) {
-                    try {
-                        Connection connection = getConnection().getClient().connect(resolvedSharePath.getHostname());
-                        Session session = connection.authenticate(getAuthenticationContext());
-                        return session.connectShare(shareName);
-                    } catch (IOException e) {
-                        throw new SMBRuntimeException("Could not connect to DFS root " + resolvedSharePath, e);
-                    }
+                    return session.connectShare(resolvedSharePath.getShareName());
                 }
             } catch (PathResolveException ignored) {
                 // Ignored
@@ -194,6 +196,17 @@ public class Session implements AutoCloseable {
         }
     }
 
+    public Session buildNestedSession(SmbPath resolvedSharePath) {
+        try {
+            Connection connection = getConnection().getClient().connect(resolvedSharePath.getHostname());
+            Session session = connection.authenticate(getAuthenticationContext());
+            nestedSessions.add(session);
+            return session;
+        } catch (IOException e) {
+            throw new SMBRuntimeException("Could not connect to DFS root " + resolvedSharePath, e);
+        }
+    }
+
     @Handler
     @SuppressWarnings("unused")
     private void disconnectTree(TreeDisconnected disconnectEvent) {
@@ -211,6 +224,14 @@ public class Session implements AutoCloseable {
                     share.close();
                 } catch (IOException e) {
                     logger.error("Caught exception while closing TreeConnect with id: {}", share.getTreeConnect().getTreeId(), e);
+                }
+            }
+            for (Session nestedSession : nestedSessions) {
+                logger.info("Logging off nested session {} for session {}", nestedSession.getSessionId(), sessionId);
+                try {
+                    nestedSession.logoff();
+                } catch (TransportException te) {
+                    logger.error("Caught exception while logging off nested session {}");
                 }
             }
             SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);

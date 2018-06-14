@@ -130,6 +130,6 @@ public class SmbPath {
     }
 
     public boolean isOnSameShare(SmbPath other) {
-        return other != null && Objects.equals(this.hostname, other.hostname) && Objects.equals(this.shareName, other.shareName);
+        return isOnSameHost(other) && Objects.equals(this.shareName, other.shareName);
     }
 }

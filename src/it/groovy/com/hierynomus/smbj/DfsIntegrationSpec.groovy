@@ -37,8 +37,13 @@ class DfsIntegrationSpec extends Specification {
       .withDfsEnabled(true)
       .build()
     client = new SMBClient(config)
-    connection = client.connect("172.16.93.221")
+    connection = client.connect("172.16.93.251")
     session = connection.authenticate(new AuthenticationContext("jeroen", "jeroen".toCharArray(), null))
+  }
+
+  def cleanup() {
+    session.logoff()
+    connection.close()
   }
 
   def "should connect to DFS share"() {
@@ -50,6 +55,9 @@ class DfsIntegrationSpec extends Specification {
 
     then:
     list.fileName.contains("Docs")
+
+    cleanup:
+    share.close()
   }
 
   def "should list contents of DFS virtual directory"() {
@@ -61,5 +69,8 @@ class DfsIntegrationSpec extends Specification {
 
     then:
     dir.list().fileName.contains("ADir")
+
+    cleanup:
+    share.close()
   }
 }
