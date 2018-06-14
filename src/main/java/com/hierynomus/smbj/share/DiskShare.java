@@ -31,15 +31,12 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smb.SMBBuffer;
-import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
-import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.paths.PathResolveException;
 import com.hierynomus.smbj.paths.PathResolver;
 import com.hierynomus.smbj.session.Session;
 
-import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -54,8 +51,8 @@ import static com.hierynomus.mssmb2.SMB2CreateOptions.FILE_DIRECTORY_FILE;
 import static com.hierynomus.mssmb2.SMB2CreateOptions.FILE_NON_DIRECTORY_FILE;
 import static com.hierynomus.mssmb2.SMB2ShareAccess.*;
 import static com.hierynomus.mssmb2.messages.SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_SECURITY;
-import static java.util.EnumSet.of;
 import static java.util.EnumSet.noneOf;
+import static java.util.EnumSet.of;
 
 public class DiskShare extends Share {
     private final PathResolver resolver;
@@ -67,13 +64,30 @@ public class DiskShare extends Share {
 
     public DiskEntry open(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         SmbPath pathAndFile = new SmbPath(smbPath, path);
-        SMB2CreateResponseContext response = createFileAndResolve(pathAndFile, null, accessMask, attributes, shareAccesses, createDisposition, createOptions);
+        SMB2CreateResponseContext response = resolveAndCreateFile(pathAndFile, null, accessMask, attributes, shareAccesses, createDisposition, createOptions);
         return getDiskEntry(path, response);
     }
 
     @Override
     protected Set<NtStatus> getCreateSuccessStatus() {
         return resolver.handledStates();
+    }
+
+    private SMB2CreateResponseContext resolveAndCreateFile(SmbPath path, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        DiskShare resolvedShare = this;
+        try {
+            SmbPath target = resolver.resolve(session, path);
+            Session connectedSession = this.session;
+            if (!path.isOnSameHost(target)) {
+                connectedSession = connectedSession.buildNestedSession(target);
+            }
+            if (!path.isOnSameShare(target)) {
+                resolvedShare = (DiskShare) connectedSession.connectShare(target.getShareName());
+            }
+            return resolvedShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
+        } catch (PathResolveException pre) {
+            throw new SMBApiException(pre.getStatus(), SMB2MessageCommandCode.SMB2_CREATE, "Cannot resolve path " + path, pre);
+        }
     }
 
     private SMB2CreateResponseContext createFileAndResolve(SmbPath path, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
@@ -98,7 +112,6 @@ public class DiskShare extends Share {
     }
 
     private Session buildNewSession(SMB2CreateResponse resp, SmbPath target) {
-        SMBClient client = treeConnect.getConnection().getClient();
         try {
             return session.buildNestedSession(target);
         } catch (SMBRuntimeException e) {

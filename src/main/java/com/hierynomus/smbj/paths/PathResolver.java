@@ -31,12 +31,34 @@ public interface PathResolver {
         }
 
         @Override
+        public SmbPath resolve(Session session, SmbPath smbPath) throws PathResolveException {
+            return smbPath;
+        }
+
+        @Override
         public Set<NtStatus> handledStates() {
             return EnumSet.of(NtStatus.STATUS_SUCCESS);
         }
     };
 
+    /**
+     * Reactive path resolution based on response packet
+     * @param session
+     * @param responsePacket
+     * @param smbPath
+     * @return
+     * @throws PathResolveException
+     */
     SmbPath resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath) throws PathResolveException;
+
+    /**
+     * Proactive path resolution.
+     * @param session
+     * @param smbPath
+     * @return
+     * @throws PathResolveException
+     */
+    SmbPath resolve(Session session, SmbPath smbPath) throws PathResolveException;
 
     Set<NtStatus> handledStates();
 }

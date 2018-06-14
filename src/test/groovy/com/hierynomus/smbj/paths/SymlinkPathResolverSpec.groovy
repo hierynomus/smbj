@@ -17,7 +17,6 @@ package com.hierynomus.smbj.paths
 
 import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb2.SMB2Error
-import com.hierynomus.mssmb2.SMB2Functions
 import com.hierynomus.mssmb2.SMB2Header
 import com.hierynomus.mssmb2.messages.SMB2CreateResponse
 import com.hierynomus.smbj.common.SmbPath
