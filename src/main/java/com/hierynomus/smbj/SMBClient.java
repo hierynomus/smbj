@@ -25,6 +25,7 @@ import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,7 +35,7 @@ import static com.hierynomus.protocol.commons.IOUtils.closeSilently;
 /**
  * Server Message Block Client API.
  */
-public class SMBClient {
+public class SMBClient implements Closeable {
     /**
      * The default TCP port for SMB
      */
@@ -122,4 +123,17 @@ public class SMBClient {
     }
 
     private static final Logger log = LoggerFactory.getLogger(SMBClient.class);
+
+    @Override
+    public void close() throws IOException {
+        log.info("Going to close all remaining connections");
+        for (Connection connection : connectionTable.values()) {
+            try {
+                connection.close();
+            } catch (Exception e) {
+                log.debug("Error closing connection to host {}", connection.getRemoteHostname());
+                log.debug("Exception was: ", e);
+            }
+        }
+    }
 }
