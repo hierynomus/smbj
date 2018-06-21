@@ -22,6 +22,7 @@ import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.share.DiskShare
+import spock.lang.Ignore
 import spock.lang.Specification
 
 class DfsIntegrationSpec extends Specification {
@@ -37,8 +38,8 @@ class DfsIntegrationSpec extends Specification {
       .withDfsEnabled(true)
       .build()
     client = new SMBClient(config)
-    connection = client.connect("172.16.93.251")
-    session = connection.authenticate(new AuthenticationContext("jeroen", "jeroen".toCharArray(), null))
+    connection = client.connect("127.0.0.1")
+    session = connection.authenticate(new AuthenticationContext("smbj", "smbj".toCharArray(), null))
   }
 
   def cleanup() {
@@ -48,27 +49,29 @@ class DfsIntegrationSpec extends Specification {
 
   def "should connect to DFS share"() {
     given:
-    def share = session.connectShare("DFS_Test")
+    def share = session.connectShare("dfs")
 
     when:
     def list = (share as DiskShare).list("")
 
     then:
-    list.fileName.contains("Docs")
+    list.fileName.contains("public")
+    list.fileName.contains("user")
 
     cleanup:
     share.close()
   }
 
+  @Ignore
   def "should list contents of DFS virtual directory"() {
     given:
-    def share = session.connectShare("DFS_Test")
+    def share = session.connectShare("dfs")
 
     when:
-    def dir = (share as DiskShare).openDirectory("Docs", EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null)
+    def dir = (share as DiskShare).openDirectory("user", EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null)
 
     then:
-    dir.list().fileName.contains("ADir")
+    dir.list().fileName.contains(".")
 
     cleanup:
     share.close()
