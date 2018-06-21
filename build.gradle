@@ -1,3 +1,5 @@
+import com.bmuschko.gradle.docker.tasks.container.*
+import com.bmuschko.gradle.docker.tasks.image.*
 import java.text.SimpleDateFormat
 
 plugins {
@@ -8,6 +10,7 @@ plugins {
   id "maven-publish"
   id 'pl.allegro.tech.build.axion-release' version '1.8.1'
   id "com.github.hierynomus.license" version "0.12.1"
+  id "com.bmuschko.docker-remote-api" version "3.2.1"
   id "com.jfrog.bintray" version "1.7"
   id 'ru.vyarus.java-lib' version '1.0.5'
   id 'ru.vyarus.github-info' version '1.1.0'
@@ -233,7 +236,32 @@ sonarqube {
   }
 }
 
-project.tasks.release.dependsOn(project.tasks.build)
+
+task buildItestImage(type: DockerBuildImage) {
+  inputDir = file('src/it/docker-image')
+  tag = 'smbj/smbj-itest'
+}
+
+task createItestContainer(type: DockerCreateContainer) {
+  dependsOn buildItestImage
+  targetImageId { buildItestImage.getImageId() }
+  portBindings = ['445:445']
+}
+
+task startItestContainer(type: DockerStartContainer) {
+  dependsOn createItestContainer
+  targetContainerId { createItestContainer.getContainerId() }
+}
+
+task stopItestContainer(type: DockerStopContainer) {
+  targetContainerId { createItestContainer.getContainerId() }
+}
+
+project.tasks.integrationTest.dependsOn(startItestContainer)
+project.tasks.integrationTest.finalizedBy(stopItestContainer)
+
+
+project.tasks.release.dependsOn([project.tasks.integrationTest, project.tasks.build])
 project.tasks.release.finalizedBy(project.tasks.bintrayUpload)
 project.tasks.jacocoTestReport.dependsOn(project.tasks.test)
 project.tasks.check.dependsOn(project.tasks.jacocoTestReport)
