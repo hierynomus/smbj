@@ -1,5 +1,8 @@
 dist: trusty
-sudo: false
+sudo: required
+
+services:
+  - docker
 
 before_cache:
   - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
@@ -12,28 +15,53 @@ cache:
   - $HOME/.android/build-cache
   - $HOME/.sonar/cache
 
-matrix:
+stages:
+  - touchstone
+  - test
+  - android-test
+  - integration
+  - name: quality
+    if: branch = master
+
+jobs:
   include:
-    - language: java
+    - stage: touchstone
+      language: java
       jdk: oraclejdk8
-      before_install:
-        - pip install --user codecov
-      after_success:
-        - codecov
-      script:
-        - ./gradlew check
-        - ./gradlew sonarqube
-    - language: java
+    - stage: test
+      language: java
       jdk: openjdk8
-    - language: java
+    - stage: test
+      language: java
+      jdk: openjdk9
+    - stage: test
+      language: java
       jdk: oraclejdk9
-    - language: android
+    - stage: android-test
+      language: android
       android:
         components:
           - build-tools-27.0.3
           - android-19
           - extra
       script: ./gradlew --build-file build-android.gradle build
+    - stage: integration
+      language: java
+      jdk: oraclejdk8
+      script: ./gradlew integrationTest
+    - stage: quality
+      language: java
+      jdk: oraclejdk8
+      before_install:
+        - pip install --user codecov
+      after_success:
+        - codecov
+      script: ./gradlew check
+    - stage: quality
+      language: java
+      jdk: oraclejdk8
+      script: ./gradlew sonarqube
+
 addons:
   sonarcloud:
     organization: "hierynomus-github"

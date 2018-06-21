@@ -42,12 +42,6 @@ class SMB2FileIntegrationTest extends Specification {
   Connection connection
   SMBClient client
 
-//  def setupSpec() {
-//    if (!Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)) {
-//      Security.addProvider(new BouncyCastleProvider())
-//    }
-//  }
-
   def setup() {
     def config = SmbConfig
       .builder()
@@ -55,9 +49,9 @@ class SMB2FileIntegrationTest extends Specification {
     .withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>())
       .withSigningRequired(true).build()
     client = new SMBClient(config)
-    connection = client.connect("172.16.93.241")
-    session = connection.authenticate(new AuthenticationContext("jeroen", "jeroen".toCharArray(), null))
-    share = session.connectShare("NewShare") as DiskShare
+    connection = client.connect("127.0.0.1")
+    session = connection.authenticate(new AuthenticationContext("smbj", "smbj".toCharArray(), null))
+    share = session.connectShare("user") as DiskShare
   }
 
   def cleanup() {
@@ -65,10 +59,10 @@ class SMB2FileIntegrationTest extends Specification {
   }
 
   def "should list contents of empty share"() {
-    given:
+    when:
     def list = share.list("")
 
-    expect:
+    then:
     list.size() == 2
     list.get(0).fileName == "."
     list.get(1).fileName == ".."

@@ -27,11 +27,11 @@ import spock.lang.Specification
 import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_OPEN
 
 class IntegrationTest extends Specification {
-  static final def IP = "172.16.93.194"
-  static final def AUTH = new AuthenticationContext("jeroen", "jeroen".toCharArray(), null)
-  static final def SHARE = "NewShare"
-  static final def FOLDER_THAT_EXISTS = "api"
-  static final def FILE_THAT_EXISTS = "README.md"
+  static final def IP = "127.0.0.1"
+  static final def AUTH = new AuthenticationContext("smbj", "smbj".toCharArray(), null)
+  static final def SHARE = "public"
+  static final def FOLDER_THAT_EXISTS = "folder"
+  static final def FILE_THAT_EXISTS = "test.txt"
   static final def FOLDER_THAT_DOES_NOT_EXIST = "foo"
 
 
