@@ -443,6 +443,7 @@ public class DFSPathResolver implements PathResolver {
             return;
         }
         ReferralCache.ReferralCacheEntry referralCacheEntry = new ReferralCache.ReferralCacheEntry(response, domainCache);
+        logger.info("Got DFS Referral result: {}", referralCacheEntry);
         referralCache.put(referralCacheEntry);
         result.referralCacheEntry = referralCacheEntry;
     }
