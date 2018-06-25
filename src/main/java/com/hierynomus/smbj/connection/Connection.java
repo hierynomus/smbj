@@ -161,20 +161,25 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
             authenticator.init(config.getSecurityProvider(), config.getRandomProvider());
             Session session = getSession(authContext);
             byte[] securityContext = processAuthenticationToken(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
-            SMB2SessionSetup receive = initiateSessionSetup(securityContext, session);
-            long sessionId = receive.getHeader().getSessionId();
-            session.setSessionId(sessionId);
-            preauthSessionTable.registerSession(sessionId, session);
+            SMB2SessionSetup receive = initiateSessionSetup(securityContext, 0L);
+            long preauthSessionId = receive.getHeader().getSessionId();
+            if (preauthSessionId != 0L) {
+                preauthSessionTable.registerSession(preauthSessionId, session);
+            }
             try {
                 while (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
                     logger.debug("More processing required for authentication of {} using {}", authContext.getUsername(), authenticator);
                     securityContext = processAuthenticationToken(authenticator, authContext, receive.getSecurityBuffer(), session);
-                    receive = initiateSessionSetup(securityContext, session);
+                    receive = initiateSessionSetup(securityContext, preauthSessionId);
                 }
 
                 if (receive.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
                     throw new SMBApiException(receive.getHeader(), format("Authentication failed for '%s' using %s", authContext.getUsername(), authenticator));
                 }
+
+                // Some devices only allocate the sessionId on the STATUS_SUCCESS message, not while authenticating.
+                // So we need to set it on the session once we're completely authenticated.
+                session.setSessionId(receive.getHeader().getSessionId());
 
                 if (receive.getSecurityBuffer() != null) {
                     // process the last received buffer
@@ -185,7 +190,9 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
                 sessionTable.registerSession(session.getSessionId(), session);
                 return session;
             } finally {
-                preauthSessionTable.sessionClosed(sessionId);
+                if (preauthSessionId != 0L) {
+                    preauthSessionTable.sessionClosed(preauthSessionId);
+                }
             }
         } catch (SpnegoException | IOException e) {
             throw new SMBRuntimeException(e);
@@ -210,13 +217,13 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
         return securityContext;
     }
 
-    private SMB2SessionSetup initiateSessionSetup(byte[] securityContext, Session session) throws TransportException {
+    private SMB2SessionSetup initiateSessionSetup(byte[] securityContext, long sessionId) throws TransportException {
         SMB2SessionSetup req = new SMB2SessionSetup(
             connectionInfo.getNegotiatedProtocol().getDialect(),
             EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED),
             connectionInfo.getClientCapabilities());
         req.setSecurityBuffer(securityContext);
-        req.getHeader().setSessionId(session.getSessionId());
+        req.getHeader().setSessionId(sessionId);
         return sendAndReceive(req);
     }
 
