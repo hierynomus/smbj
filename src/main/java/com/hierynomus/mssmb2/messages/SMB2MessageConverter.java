@@ -60,13 +60,14 @@ public class SMB2MessageConverter implements PacketFactory<SMB2Packet> {
                 return read(new SMB2Flush(), buffer);
             case SMB2_WRITE:
                 return read(new SMB2WriteResponse(), buffer);
+            case SMB2_LOCK:
+                return read(new SMB2LockResponse(), buffer);
             case SMB2_IOCTL:
                 return read(new SMB2IoctlResponse(), buffer);
             case SMB2_QUERY_INFO:
                 return read(new SMB2QueryInfoResponse(), buffer);
             case SMB2_SET_INFO:
                 return read(new SMB2SetInfoResponse(), buffer);
-            case SMB2_LOCK:
             case SMB2_CANCEL:
             case SMB2_OPLOCK_BREAK:
             default:

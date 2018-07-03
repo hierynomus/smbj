@@ -23,6 +23,7 @@ import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.msfscc.FileSystemInformationClass;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.*;
+import com.hierynomus.mssmb2.messages.submodule.SMB2LockElement;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.SmbConfig;
@@ -37,6 +38,7 @@ import com.hierynomus.smbj.session.Session;
 
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -315,6 +317,17 @@ public class Share implements AutoCloseable {
 
         SMB2IoctlRequest ioreq = new SMB2IoctlRequest(dialect, sessionId, treeId, ctlCode, fileId, inData, isFsCtl, maxResponse);
         return send(ioreq);
+    }
+
+    SMB2LockResponse sendLockRequest(SMB2FileId fileId, short lockSequenceNumber, int lockSequenceIndex, List<SMB2LockElement> lockElements) {
+        SMB2LockRequest qreq = new SMB2LockRequest(
+            dialect,
+            sessionId, treeId,
+            lockSequenceNumber, lockSequenceIndex,
+            fileId, lockElements
+        );
+
+        return sendReceive(qreq, "Lock", fileId, SUCCESS, transactTimeout);
     }
 
     private <T extends SMB2Packet> T sendReceive(SMB2Packet request, String name, Object target, Set<NtStatus> successResponses, long timeout) {
