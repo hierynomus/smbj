@@ -18,8 +18,10 @@ package com.hierynomus.smbj
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb2.SMB2CreateDisposition
+import com.hierynomus.mssmb2.SMB2LockFlag
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.mssmb2.SMBApiException
+import com.hierynomus.mssmb2.messages.submodule.SMB2LockElement
 import com.hierynomus.smb.SMBPacket
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.Connection
@@ -184,5 +186,28 @@ class SMB2FileIntegrationTest extends Specification {
 
     cleanup:
     share.rm("bigfile")
+  }
+
+  def "should lock and unlock the file"() {
+    given:
+    def fileToLock = share.openFile("fileToLock", EnumSet.of(AccessMask.GENERIC_READ, AccessMask.GENERIC_WRITE), null, EnumSet.noneOf(SMB2ShareAccess.class), FILE_CREATE, null)
+    def lockElement01 = new SMB2LockElement(0, 10, EnumSet.of(SMB2LockFlag.SMB2_LOCKFLAG_EXCLUSIVE_LOCK, SMB2LockFlag.SMB2_LOCKFLAG_FAIL_IMMEDIATELY))
+    def unlockElement01 = new SMB2LockElement(0, 10, EnumSet.of(SMB2LockFlag.SMB2_LOCKFLAG_UNLOCK))
+
+    when:
+    def lockResponse01 = fileToLock.lockRequest(0 as short, 0, [lockElement01] as List)
+
+    then:
+    lockResponse01.header.status == NtStatus.STATUS_SUCCESS
+
+    when:
+    def unlockResponse01 = fileToLock.lockRequest(0 as short, 0, [unlockElement01] as List)
+
+    then:
+    unlockResponse01.header.status == NtStatus.STATUS_SUCCESS
+
+    cleanup:
+    fileToLock.close()
+    share.rm("fileToLock")
   }
 }
