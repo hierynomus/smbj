@@ -21,12 +21,15 @@ import com.hierynomus.msfscc.fileinformation.FileDirectoryQueryableInformation;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.msfscc.fileinformation.FileInformation;
 import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
+import com.hierynomus.mssmb2.SMB2CompletionFilter;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMBApiException;
+import com.hierynomus.mssmb2.messages.SMB2ChangeNotifyResponse;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryRequest;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryResponse;
 
 import java.util.*;
+import java.util.concurrent.Future;
 
 public class Directory extends DiskEntry implements Iterable<FileIdBothDirectoryInformation> {
     Directory(SMB2FileId fileId, DiskShare diskShare, String fileName) {
@@ -105,6 +108,18 @@ public class Directory extends DiskEntry implements Iterable<FileIdBothDirectory
      */
     public <F extends FileDirectoryQueryableInformation> Iterator<F> iterator(Class<F> informationClass, String searchPattern) {
         return new DirectoryIterator<>(informationClass, searchPattern);
+    }
+
+    /***
+     * Send a change notify request and and return a Future for change notify response.
+     *
+     * @param completionFilter types of changes to monitor
+     * @param outputBufferLength maximum number of bytes the server is allowed to return
+     * @param recursive monitor changes on any file or directory contained beneath the directory
+     * @return a Future to be used to retrieve the change notify response packet
+     */
+    public Future<SMB2ChangeNotifyResponse> sendChangeNotifyRequest(Set<SMB2CompletionFilter> completionFilter, long outputBufferLength, boolean recursive) {
+        return share.sendChangeNotifyRequest(fileId, completionFilter, outputBufferLength, recursive);
     }
 
     public SMB2FileId getFileId() {

@@ -317,6 +317,17 @@ public class Share implements AutoCloseable {
         return send(ioreq);
     }
 
+    Future<SMB2ChangeNotifyResponse> sendChangeNotifyRequest(SMB2FileId fileId, Set<SMB2CompletionFilter> completionFilter, long outputBufferLength, boolean recursive) {
+        SMB2ChangeNotifyRequest qreq = new SMB2ChangeNotifyRequest(
+            dialect,
+            sessionId, treeId,
+            fileId, completionFilter,
+            outputBufferLength, recursive
+        );
+
+        return send(qreq);
+    }
+
     private <T extends SMB2Packet> T sendReceive(SMB2Packet request, String name, Object target, Set<NtStatus> successResponses, long timeout) {
         Future<T> fut = send(request);
         return receive(fut, name, target, successResponses, timeout);
