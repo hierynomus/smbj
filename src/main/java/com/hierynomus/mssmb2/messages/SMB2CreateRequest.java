@@ -39,16 +39,19 @@ public class SMB2CreateRequest extends SMB2Packet {
     private final SmbPath path;
     private final Set<AccessMask> accessMask;
     private final SMB2ImpersonationLevel impersonationLevel;
+    private final SMB2OplockLevel oplockLevel;
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
     public SMB2CreateRequest(SMB2Dialect smbDialect,
                              long sessionId, long treeId,
+                             SMB2OplockLevel oplockLevel,
                              SMB2ImpersonationLevel impersonationLevel,
                              Set<AccessMask> accessMask,
                              Set<FileAttributes> fileAttributes,
                              Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition,
                              Set<SMB2CreateOptions> createOptions, SmbPath path) {
         super(57, smbDialect, SMB2MessageCommandCode.SMB2_CREATE, sessionId, treeId);
+        this.oplockLevel = ensureNotNull(oplockLevel, SMB2OplockLevel.SMB2_OPLOCK_LEVEL_NONE);
         this.impersonationLevel = ensureNotNull(impersonationLevel, SMB2ImpersonationLevel.Identification);
         this.accessMask = accessMask;
         this.fileAttributes = ensureNotNull(fileAttributes, FileAttributes.class);
@@ -62,7 +65,7 @@ public class SMB2CreateRequest extends SMB2Packet {
     protected void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putByte((byte) 0); // SecurityFlags (1 byte) - Reserved
-        buffer.putByte((byte) 0);  // RequestedOpLockLevel (1 byte) - None
+        buffer.putByte((byte)oplockLevel.getValue());  // RequestedOpLockLevel (1 byte)
         buffer.putUInt32(impersonationLevel.getValue()); // ImpersonationLevel (4 bytes) - Identification
         buffer.putReserved(8); // SmbCreateFlags (8 bytes)
         buffer.putReserved(8); // Reserved (8 bytes)
@@ -94,5 +97,9 @@ public class SMB2CreateRequest extends SMB2Packet {
         buffer.putUInt32(0); // CreateContextsLength (4 bytes)
 
         buffer.putRawBytes(nameBytes);
+    }
+
+    public SmbPath getPath() {
+        return path;
     }
 }

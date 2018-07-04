@@ -29,6 +29,7 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.event.TreeDisconnected;
+import com.hierynomus.smbj.event.handler.MessageIdCallback;
 import com.hierynomus.smbj.paths.PathResolveException;
 import com.hierynomus.smbj.paths.PathResolver;
 import com.hierynomus.smbj.share.*;
@@ -180,7 +181,7 @@ public class Session implements AutoCloseable {
 
             Share share;
             if (response.isDiskShare()) {
-                share = new DiskShare(smbPath, treeConnect, pathResolver);
+                share = new DiskShare(smbPath, treeConnect, pathResolver, bus);
             } else if (response.isNamedPipe()) {
                 share = new PipeShare(smbPath, treeConnect);
             } else if (response.isPrinterShare()) {
@@ -277,10 +278,22 @@ public class Session implements AutoCloseable {
      * @throws TransportException
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
+        return send(packet, null);
+    }
+
+    /***
+     * send a packet and callback for the corresponding messageId. The packet will be signed or not depending on the session's flags.
+     *
+     * @param packet SMBPacket to send
+     * @param messageIdCallback callback to return corresponding messageId
+     * @return a Future to be used to retrieve the response packet
+     * @throws TransportException
+     */
+    public <T extends SMB2Packet> Future<T> send(SMB2Packet packet, MessageIdCallback messageIdCallback) throws TransportException {
         if (signingRequired && !packetSignatory.isInitialized()) {
             throw new TransportException("Message signing is required, but no signing key is negotiated");
         }
-        return connection.send(packetSignatory.sign(packet));
+        return connection.send(packetSignatory.sign(packet), messageIdCallback);
     }
 
     public <T extends SMB2Packet> T processSendResponse(SMB2CreateRequest packet) throws TransportException {

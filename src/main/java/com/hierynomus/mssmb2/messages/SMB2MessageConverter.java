@@ -23,6 +23,8 @@ import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smbj.common.Check;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 
+import java.util.Arrays;
+
 public class SMB2MessageConverter implements PacketFactory<SMB2Packet> {
 
     private SMB2Packet read(SMBBuffer buffer) throws Buffer.BufferException {
@@ -66,9 +68,21 @@ public class SMB2MessageConverter implements PacketFactory<SMB2Packet> {
                 return read(new SMB2QueryInfoResponse(), buffer);
             case SMB2_SET_INFO:
                 return read(new SMB2SetInfoResponse(), buffer);
+            case SMB2_OPLOCK_BREAK:
+                // 3.2.5.19 Receiving an SMB2 OPLOCK_BREAK Notification
+                // If the MessageId field of the SMB2 header of the response is 0xFFFFFFFFFFFFFFFF,
+                // this MUST be
+                // processed as an oplock break indication.
+                buffer.skip(24);
+                byte[] messageId = buffer.readRawBytes(8);
+                buffer.rpos(0);
+                if(Arrays.equals(messageId, (new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF}))) {
+                    return read(new SMB2OplockBreakNotification(), buffer);
+                } else {
+                    return read(new SMB2OplockBreakAcknowledgmentResponse(), buffer);
+                }
             case SMB2_LOCK:
             case SMB2_CANCEL:
-            case SMB2_OPLOCK_BREAK:
             default:
                 throw new SMBRuntimeException("Unknown SMB2 Message Command type: " + command);
 
