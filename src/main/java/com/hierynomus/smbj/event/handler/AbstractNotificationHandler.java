@@ -19,8 +19,25 @@ import com.hierynomus.smbj.event.AsyncCreateRequestNotification;
 import com.hierynomus.smbj.event.AsyncCreateResponseNotification;
 import com.hierynomus.smbj.event.OplockBreakNotification;
 
-public interface NotificationHandler {
-    void handleAsyncCreateRequestNotification(AsyncCreateRequestNotification asyncCreateRequestNotification);
-    void handleAsyncCreateResponseNotification(AsyncCreateResponseNotification asyncCreateResponseNotification);
-    void handleOplockBreakNotification(OplockBreakNotification oplockBreakNotification);
+/***
+ * Abstract class for user only interested in some notification to override
+ */
+public abstract class AbstractNotificationHandler implements NotificationHandler {
+
+    @Override
+    public void handleAsyncCreateRequestNotification(
+        AsyncCreateRequestNotification asyncCreateRequestNotification) {
+
+    }
+
+    @Override
+    public void handleAsyncCreateResponseNotification(
+        AsyncCreateResponseNotification asyncCreateResponseNotification) {
+
+    }
+
+    @Override
+    public void handleOplockBreakNotification(OplockBreakNotification oplockBreakNotification) {
+
+    }
 }

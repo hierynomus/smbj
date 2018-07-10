@@ -70,9 +70,6 @@ import static com.hierynomus.mssmb2.SMB2CreateOptions.FILE_DIRECTORY_FILE;
 import static com.hierynomus.mssmb2.SMB2CreateOptions.FILE_NON_DIRECTORY_FILE;
 import static com.hierynomus.mssmb2.SMB2ShareAccess.*;
 import static com.hierynomus.mssmb2.messages.SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_SECURITY;
-import static com.hierynomus.smbj.event.handler.NotificationMessageType.SMB2_CREATE_REQUEST;
-import static com.hierynomus.smbj.event.handler.NotificationMessageType.SMB2_CREATE_RESPONSE;
-import static com.hierynomus.smbj.event.handler.NotificationMessageType.SMB2_OPLOCK_BREAK_NOTIFICATION;
 import static java.util.EnumSet.of;
 import static java.util.EnumSet.noneOf;
 
@@ -597,8 +594,7 @@ public class DiskShare extends Share {
                 taskQueue.execute(new Runnable() {
                     @Override
                     public void run() {
-                        notificationHandler.handle(SMB2_OPLOCK_BREAK_NOTIFICATION,
-                                                   oplockBreakNotification);
+                        notificationHandler.handleOplockBreakNotification(oplockBreakNotification);
                     }
                 }, notifyExecutor);
             }else {
@@ -626,8 +622,7 @@ public class DiskShare extends Share {
                 taskQueue.execute(new Runnable() {
                     @Override
                     public void run() {
-                        notificationHandler.handle(SMB2_CREATE_REQUEST,
-                                                   asyncCreateRequestNotification);
+                        notificationHandler.handleAsyncCreateRequestNotification(asyncCreateRequestNotification);
                     }
                 }, notifyExecutor);
             }else {
@@ -656,8 +651,7 @@ public class DiskShare extends Share {
                 taskQueue.execute(new Runnable() {
                     @Override
                     public void run() {
-                        notificationHandler.handle(SMB2_CREATE_RESPONSE,
-                                                   asyncCreateResponseNotification);
+                        notificationHandler.handleAsyncCreateResponseNotification(asyncCreateResponseNotification);
                     }
                 }, notifyExecutor);
             }else {

@@ -21,15 +21,12 @@ import com.hierynomus.mssmb2.SMB2CreateDisposition
 import com.hierynomus.mssmb2.SMB2OplockLevel
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.mssmb2.SMBApiException
-import com.hierynomus.smb.SMBPacket
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.event.AsyncCreateResponseNotification
-import com.hierynomus.smbj.event.AsyncNotification
 import com.hierynomus.smbj.event.OplockBreakNotification
+import com.hierynomus.smbj.event.handler.AbstractNotificationHandler
 import com.hierynomus.smbj.event.handler.MessageIdCallback
-import com.hierynomus.smbj.event.handler.NotificationHandler
-import com.hierynomus.smbj.event.handler.NotificationMessageType
 import com.hierynomus.smbj.io.ArrayByteChunkProvider
 import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.share.DiskEntry
@@ -204,49 +201,36 @@ class SMB2FileIntegrationTest extends Specification {
     def messageIdPathMap = new ConcurrentHashMap<Long, String>()
     // Should call async listener, just calling dummy in test case
     def testSucceed = new AtomicBoolean(false)
-    share.setNotificationHandler( new NotificationHandler() {
+    share.setNotificationHandler( new AbstractNotificationHandler() {
 
       @Override
-      void handle(NotificationMessageType type, AsyncNotification asyncNotification) {
-        switch (type) {
-          case NotificationMessageType.SMB2_CREATE_RESPONSE:
-            if(asyncNotification instanceof AsyncCreateResponseNotification) {
-              def asyncCreateResponseNotification = (AsyncCreateResponseNotification)asyncNotification
-              def createResponseFuture = asyncCreateResponseNotification.future
-              def createResponse
-              try {
-                createResponse = createResponseFuture.get()
-              } catch (Throwable t) {
-                throw new IllegalStateException("Unable to get create response", t)
-              }
-              def getPath = messageIdPathMap.remove(createResponse.header.messageId)
-              if(getPath == null) {
-                System.out.println("Could not find path in map. Should not related to async create, ignored.")
-                return
-              }
+      void handleAsyncCreateResponseNotification(
+        AsyncCreateResponseNotification asyncCreateResponseNotification) {
+        def createResponseFuture = asyncCreateResponseNotification.future
+        def createResponse
+        try {
+          createResponse = createResponseFuture.get()
+        } catch (Throwable t) {
+          throw new IllegalStateException("Unable to get create response", t)
+        }
+        def getPath = messageIdPathMap.remove(createResponse.header.messageId)
+        if(getPath == null) {
+          System.out.println("Could not find path in map. Should not related to async create, ignored.")
+          return
+        }
 
-              if(createResponse.header.status != NtStatus.STATUS_SUCCESS) {
-                throw new IllegalStateException("Async create failed with status " + createResponse.header.status.value)
-              }
+        if(createResponse.header.status != NtStatus.STATUS_SUCCESS) {
+          throw new IllegalStateException("Async create failed with status " + createResponse.header.status.value)
+        }
 
-              def diskEntry = share.getDiskEntry(getPath, new DiskShare.SMB2CreateResponseContext(createResponse, share))
+        def diskEntry = share.getDiskEntry(getPath, new DiskShare.SMB2CreateResponseContext(createResponse, share))
 
-              if(diskEntry != null) {
-                // Should call async listener, just calling dummy in test case
-                testSucceed.compareAndSet(false, true)
-              }
-
-            } else {
-              // error handling, dummy in test case
-              throw new IllegalStateException("Type did't match the actual message")
-            }
-
-            break
-          default:
-            // ignored, not used in this case
-            break
+        if(diskEntry != null) {
+          // Should call async listener, just calling dummy in test case
+          testSucceed.compareAndSet(false, true)
         }
       }
+
     })
 
     when:
@@ -281,72 +265,54 @@ class SMB2FileIntegrationTest extends Specification {
     def fileIdDiskEntryMap = new ConcurrentHashMap<String, DiskEntry>()
     def succeedBreakToLevel2 = new AtomicBoolean(false)
     def oplockBreakAcknowledgmentResponseSucceed = new AtomicBoolean(false)
-    share.setNotificationHandler( new NotificationHandler() {
+    share.setNotificationHandler( new AbstractNotificationHandler() {
 
       @Override
-      void handle(NotificationMessageType type, AsyncNotification asyncNotification) {
-        switch (type) {
-          case NotificationMessageType.SMB2_CREATE_RESPONSE:
-            if(asyncNotification instanceof AsyncCreateResponseNotification) {
-              def asyncCreateResponseNotification = (AsyncCreateResponseNotification)asyncNotification
-              def createResponseFuture = asyncCreateResponseNotification.future
-              def createResponse
-              try {
-                createResponse = createResponseFuture.get()
-              } catch (Throwable t) {
-                throw new IllegalStateException("Unable to get create response", t)
-              }
-              def getPath = messageIdPathMap.remove(createResponse.header.messageId)
-              if(getPath == null) {
-                System.out.println("Could not find path in map. Should not related to async create, ignored.")
-                return
-              }
+      void handleAsyncCreateResponseNotification(
+        AsyncCreateResponseNotification asyncCreateResponseNotification) {
+        def createResponseFuture = asyncCreateResponseNotification.future
+        def createResponse
+        try {
+          createResponse = createResponseFuture.get()
+        } catch (Throwable t) {
+          throw new IllegalStateException("Unable to get create response", t)
+        }
+        def getPath = messageIdPathMap.remove(createResponse.header.messageId)
+        if(getPath == null) {
+          System.out.println("Could not find path in map. Should not related to async create, ignored.")
+          return
+        }
 
-              if(createResponse.header.status != NtStatus.STATUS_SUCCESS) {
-                throw new IllegalStateException("Async create failed with status " + createResponse.header.status.value)
-              }
+        if(createResponse.header.status != NtStatus.STATUS_SUCCESS) {
+          throw new IllegalStateException("Async create failed with status " + createResponse.header.status.value)
+        }
 
-              def diskEntry = share.getDiskEntry(getPath, new DiskShare.SMB2CreateResponseContext(createResponse, share))
+        def diskEntry = share.getDiskEntry(getPath, new DiskShare.SMB2CreateResponseContext(createResponse, share))
 
-              if(diskEntry != null) {
-                // Should call async listener, just calling dummy in test case
-                messageIdDiskEntryMap.put(createResponse.header.messageId, diskEntry)
-                fileIdDiskEntryMap.put(diskEntry.fileId.toHexString(), diskEntry)
-              }
+        if(diskEntry != null) {
+          // Should call async listener, just calling dummy in test case
+          messageIdDiskEntryMap.put(createResponse.header.messageId, diskEntry)
+          fileIdDiskEntryMap.put(diskEntry.fileId.toHexString(), diskEntry)
+        }
+      }
 
-            } else {
-              // error handling, dummy in test case
-              throw new IllegalStateException("Type did't match the actual message")
-            }
-
-            break
-          case NotificationMessageType.SMB2_OPLOCK_BREAK_NOTIFICATION:
-            if(asyncNotification instanceof OplockBreakNotification) {
-              def oplockBreakNotification = (OplockBreakNotification)asyncNotification
-              def oplockBreakLevel = oplockBreakNotification.oplockLevel
-              def getDiskEntry = fileIdDiskEntryMap.get(oplockBreakNotification.fileId.toHexString())
-              if(getDiskEntry == null) {
-                throw new IllegalStateException("Unable to get corresponding diskEntry!")
-              }
-              // Assume we already notify client and had succeed handled client cache to break
-              if(oplockBreakLevel) {
-                // In this test case, this code should only run exactly once.
-                succeedBreakToLevel2.compareAndSet(false, true)
-              }
-              // Should return to client for handling the client cache, dummy in test case
-              def oplockBreakAcknowledgmentResponse = getDiskEntry.acknowledgeOplockBreak(oplockBreakLevel)
-              if(oplockBreakAcknowledgmentResponse.header.status == NtStatus.STATUS_SUCCESS) {
-                // In this test case, this code should only run exactly once.
-                oplockBreakAcknowledgmentResponseSucceed.compareAndSet(false, true)
-              }
-            }else {
-              // error handling, dummy in test case
-              throw new IllegalStateException("Type did't match the actual message")
-            }
-            break
-          default:
-            // ignored, not used in this case
-            break
+      @Override
+      void handleOplockBreakNotification(OplockBreakNotification oplockBreakNotification) {
+        def oplockBreakLevel = oplockBreakNotification.oplockLevel
+        def getDiskEntry = fileIdDiskEntryMap.get(oplockBreakNotification.fileId.toHexString())
+        if(getDiskEntry == null) {
+          throw new IllegalStateException("Unable to get corresponding diskEntry!")
+        }
+        // Assume we already notify client and had succeed handled client cache to break
+        if(oplockBreakLevel) {
+          // In this test case, this code should only run exactly once.
+          succeedBreakToLevel2.compareAndSet(false, true)
+        }
+        // Should return to client for handling the client cache, dummy in test case
+        def oplockBreakAcknowledgmentResponse = getDiskEntry.acknowledgeOplockBreak(oplockBreakLevel)
+        if(oplockBreakAcknowledgmentResponse.header.status == NtStatus.STATUS_SUCCESS) {
+          // In this test case, this code should only run exactly once.
+          oplockBreakAcknowledgmentResponseSucceed.compareAndSet(false, true)
         }
       }
     })
