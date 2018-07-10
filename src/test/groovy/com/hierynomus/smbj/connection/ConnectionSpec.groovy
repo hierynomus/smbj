@@ -17,7 +17,10 @@ package com.hierynomus.smbj.connection
 
 import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb2.SMBApiException
+import com.hierynomus.mssmb2.messages.SMB2CreateRequest
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse
+import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest
+import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse
 import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.auth.AuthenticationContext
@@ -87,6 +90,27 @@ class ConnectionSpec extends Specification {
     then:
     def exc = thrown(SMBApiException)
     exc.status == NtStatus.STATUS_NOT_SUPPORTED
+  }
+
+  def "should report STATUS_NETWORK_SESSION_EXPIRED to client application"() {
+    given:
+    config = smbConfig({ req ->
+      if (req instanceof SMB2TreeConnectRequest) {
+        def resp = new SMB2TreeConnectResponse()
+        resp.header.status = NtStatus.STATUS_NETWORK_SESSION_EXPIRED
+        return resp
+      }
+    })
+    client = new SMBClient(config)
+
+    when:
+    def conn = client.connect("foo")
+    def sess = conn.authenticate(new AuthenticationContext("smbj", "smbj".toCharArray(), null))
+    sess.connectShare("foo")
+
+    then:
+    def exc = thrown(SMBApiException)
+    exc.status == NtStatus.STATUS_NETWORK_SESSION_EXPIRED
   }
 
   class EventPersister {
