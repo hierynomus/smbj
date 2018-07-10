@@ -388,10 +388,9 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
             return;
         }
 
-        // TODO reauthenticate session!
         // [MS-SMB2].pdf 3.2.5.1.6 Handling Session Expiration
         // if (packet.getHeader().getStatus() == NtStatus.STATUS_NETWORK_SESSION_EXPIRED) {
-        //     return;
+            // TODO reauthenticate session!
         // }
 
         if (packet.getHeader().getSessionId() != 0 && (packet.getHeader().getMessage() != SMB2MessageCommandCode.SMB2_SESSION_SETUP)) {
