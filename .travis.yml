@@ -21,7 +21,6 @@ stages:
   - android-test
   - integration
   - name: quality
-    if: branch = master
 
 jobs:
   include:
@@ -61,6 +60,7 @@ jobs:
       language: java
       jdk: oraclejdk8
       script: ./gradlew sonarqube
+      if: type != pull_request
 
 addons:
   sonarcloud:
