@@ -49,11 +49,12 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
      * STATUS_NOTIFY_ENUM_DIR should be treated as a success code.
      *
      * @param status The status to verify
+     * @param buffer
      * @return
      */
     @Override
-    protected boolean isSuccess(NtStatus status) {
-        return super.isSuccess(status) || status == NtStatus.STATUS_NOTIFY_ENUM_DIR;
+    protected boolean isSuccess(NtStatus status, SMBBuffer buffer) throws Buffer.BufferException {
+        return super.isSuccess(status, buffer) || status == NtStatus.STATUS_NOTIFY_ENUM_DIR;
     }
 
     private List<FileNotifyInfo> readFileNotifyInfo(SMBBuffer buffer, int outputBufferOffset)

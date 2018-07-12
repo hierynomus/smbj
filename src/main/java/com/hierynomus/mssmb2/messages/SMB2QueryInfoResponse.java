@@ -43,11 +43,12 @@ public class SMB2QueryInfoResponse extends SMB2Packet {
      * STATUS_BUFFER_OVERFLOW should be treated as a success code.
      *
      * @param status The status to verify
+     * @param buffer
      * @return
      */
     @Override
-    protected boolean isSuccess(NtStatus status) {
-        return super.isSuccess(status) || status == NtStatus.STATUS_BUFFER_OVERFLOW;
+    protected boolean isSuccess(NtStatus status, SMBBuffer buffer) throws Buffer.BufferException {
+        return super.isSuccess(status, buffer) || status == NtStatus.STATUS_BUFFER_OVERFLOW;
     }
 
     public byte[] getOutputBuffer() {

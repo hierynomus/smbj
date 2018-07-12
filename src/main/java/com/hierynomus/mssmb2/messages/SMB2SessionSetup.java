@@ -78,11 +78,12 @@ public class SMB2SessionSetup extends SMB2Packet {
      * STATUS_MORE_PROCESSING_REQUIRED should be treated as a success code.
      *
      * @param status The status to verify
+     * @param buffer
      * @return
      */
     @Override
-    protected boolean isSuccess(NtStatus status) {
-        return super.isSuccess(status) || status == NtStatus.STATUS_MORE_PROCESSING_REQUIRED;
+    protected boolean isSuccess(NtStatus status, SMBBuffer buffer) throws Buffer.BufferException {
+        return super.isSuccess(status, buffer) || status == NtStatus.STATUS_MORE_PROCESSING_REQUIRED;
     }
 
     private byte[] readSecurityBuffer(SMBBuffer buffer, int securityBufferOffset, int securityBufferLength) throws Buffer.BufferException {
