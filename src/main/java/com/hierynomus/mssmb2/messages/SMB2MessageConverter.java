@@ -23,7 +23,11 @@ import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smbj.common.Check;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 
+import java.util.Arrays;
+
 public class SMB2MessageConverter implements PacketFactory<SMB2Packet> {
+
+    private SMB2OplockBreakFactory oplockBreakFactory = new SMB2OplockBreakFactory();
 
     private SMB2Packet read(SMBBuffer buffer) throws Buffer.BufferException {
         // Check we see a valid header start
@@ -66,9 +70,10 @@ public class SMB2MessageConverter implements PacketFactory<SMB2Packet> {
                 return read(new SMB2QueryInfoResponse(), buffer);
             case SMB2_SET_INFO:
                 return read(new SMB2SetInfoResponse(), buffer);
+            case SMB2_OPLOCK_BREAK:
+                return oplockBreakFactory.read(buffer);
             case SMB2_LOCK:
             case SMB2_CANCEL:
-            case SMB2_OPLOCK_BREAK:
             default:
                 throw new SMBRuntimeException("Unknown SMB2 Message Command type: " + command);
 

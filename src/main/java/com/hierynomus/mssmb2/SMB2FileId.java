@@ -19,6 +19,8 @@ import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 
+import java.util.Arrays;
+
 /**
  * [MS-SMB2].pdf 2.2.14.1 SMB2_FILEID
  */
@@ -52,5 +54,25 @@ public class SMB2FileId {
         return "SMB2FileId{" +
             "persistentHandle=" + ByteArrayUtils.printHex(persistentHandle) +
             '}';
+    }
+
+    public String toHexString() {
+        return ByteArrayUtils.toHex(persistentHandle) + ByteArrayUtils.toHex(volatileHandle);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SMB2FileId smb2FileId = (SMB2FileId) o;
+        return Arrays.equals(persistentHandle, smb2FileId.persistentHandle) &&
+               Arrays.equals(volatileHandle, smb2FileId.volatileHandle);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Arrays.hashCode(persistentHandle);
+        result = 31 * result + Arrays.hashCode(volatileHandle);
+        return result;
     }
 }

@@ -34,9 +34,14 @@ import com.hierynomus.smbj.auth.AuthenticateResponse;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.common.SmbPath;
+import com.hierynomus.smbj.event.AsyncCreateRequestNotification;
+import com.hierynomus.smbj.event.AsyncCreateResponseNotification;
 import com.hierynomus.smbj.event.ConnectionClosed;
+import com.hierynomus.smbj.event.OplockBreakNotification;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
+import com.hierynomus.smbj.event.handler.MessageIdCallback;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.spnego.NegTokenInit;
 import com.hierynomus.spnego.SpnegoException;
@@ -255,6 +260,19 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
      * @throws TransportException When a transport level error occurred
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
+        return send(packet, null);
+    }
+
+    /***
+     * Send a packet and callback for the corresponding messageId. Currently, only support SMB2CreateRequest
+     *
+     * @param packet SMBPacket to send
+     * @param messageIdCallback callback to return corresponding messageId
+     * @return a Future to be used to retrieve the response packet
+     * @throws TransportException When a transport level error occurred
+     */
+    public <T extends SMB2Packet> Future<T> send(SMB2Packet packet, MessageIdCallback messageIdCallback) throws TransportException {
+
         lock.lock();
         try {
             int availableCredits = sequenceWindow.available();
@@ -266,6 +284,20 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
             packet.getHeader().setMessageId(messageIds[0]);
             logger.debug("Granted {} (out of {}) credits to {}", grantCredits, availableCredits, packet);
             packet.getHeader().setCreditRequest(Math.max(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits, grantCredits));
+
+            long messageId = packet.getHeader().getMessageId();
+
+            if(messageIdCallback != null) {
+                messageIdCallback.callback(messageId);
+            }
+
+            if(packet.getHeader().getMessage() == SMB2MessageCommandCode.SMB2_CREATE) {
+                bus.publish(new AsyncCreateRequestNotification(
+                    packet.getHeader().getSessionId(),
+                    packet.getHeader().getTreeId(),
+                    messageId)
+                );
+            }
 
             Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID());
             outstandingRequests.registerOutstanding(request);
@@ -370,6 +402,21 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
         long messageId = packet.getSequenceNumber();
 
         if (!outstandingRequests.isOutstanding(messageId)) {
+
+            // 3.2.5.19 Receiving an SMB2 OPLOCK_BREAK Notification
+            // If the MessageId field of the SMB2 header of the response is 0xFFFFFFFFFFFFFFFF,
+            // this MUST be
+            // processed as an oplock break indication.
+            if(packet instanceof SMB2OplockBreakNotification) {
+                SMB2OplockBreakNotification oplockBreakNotification = (SMB2OplockBreakNotification)packet;
+                logger.debug("Received SMB2OplockBreakNotification Packet for FileId {} with {}", oplockBreakNotification.getFileId(), oplockBreakNotification.getOplockLevel());
+                bus.publish(new OplockBreakNotification(
+                    oplockBreakNotification.getOplockLevel(),
+                    oplockBreakNotification.getFileId()
+                ));
+                return;
+            }
+
             throw new TransportException("Received response with unknown sequence number <<" + messageId + ">>");
         }
 
@@ -407,6 +454,19 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
 
             // check packet signature. Drop the packet if it is not correct.
             verifyPacketSignature(packet, session);
+        }
+
+        // Handing case for Oplock/Lease related issue
+        if(packet instanceof SMB2CreateResponse) {
+            SMB2CreateResponse smb2CreateResponse = (SMB2CreateResponse)packet;
+            bus.publish(new AsyncCreateResponseNotification(
+                smb2CreateResponse.getHeader().getSessionId(),
+                smb2CreateResponse.getHeader().getTreeId(),
+                messageId,
+                smb2CreateResponse.getFileId(),
+                smb2CreateResponse)
+            );
+
         }
 
         // [MS-SMB2].pdf 3.2.5.1.8 Processing the Response

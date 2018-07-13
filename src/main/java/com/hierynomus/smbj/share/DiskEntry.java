@@ -23,7 +23,9 @@ import com.hierynomus.msfscc.fileinformation.FileQueryableInformation;
 import com.hierynomus.msfscc.fileinformation.FileRenameInformation;
 import com.hierynomus.msfscc.fileinformation.FileSettableInformation;
 import com.hierynomus.mssmb2.SMB2FileId;
+import com.hierynomus.mssmb2.SMB2OplockBreakLevel;
 import com.hierynomus.mssmb2.SMBApiException;
+import com.hierynomus.mssmb2.messages.SMB2OplockBreakAcknowledgmentResponse;
 import com.hierynomus.protocol.transport.TransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +49,14 @@ public abstract class DiskEntry implements Closeable {
 
     public void close() {
         share.closeFileId(fileId);
+    }
+
+    public DiskShare getShare() {
+        return share;
+    }
+
+    public String getFileName() {
+        return fileName;
     }
 
     public SMB2FileId getFileId() {
@@ -180,5 +190,15 @@ public abstract class DiskEntry implements Closeable {
         } catch (Exception e) {
             logger.warn("File close failed for {},{},{}", fileName, share, fileId, e);
         }
+    }
+
+    /***
+     * Send a acknowledgment for Oplock Break Notification. 2.2.24 SMB2 OPLOCK_BREAK Acknowledgment.
+     *
+     * @param oplockLevel the oplock break level after receiving the oplock break notification (current holding oplock level)
+     * @return Server response to oplock break acknowledgment. 2.2.25 SMB2 OPLOCK_BREAK Response.
+     */
+    public SMB2OplockBreakAcknowledgmentResponse acknowledgeOplockBreak(SMB2OplockBreakLevel oplockLevel) {
+        return share.sendOplockBreakAcknowledgment(fileId, oplockLevel);
     }
 }

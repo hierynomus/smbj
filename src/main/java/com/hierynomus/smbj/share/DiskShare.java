@@ -29,20 +29,37 @@ import com.hierynomus.mssmb2.messages.SMB2SetInfoRequest;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
+import com.hierynomus.protocol.commons.concurrent.TaskQueue;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
-import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.event.AsyncCreateRequestNotification;
+import com.hierynomus.smbj.event.AsyncCreateResponseNotification;
+import com.hierynomus.smbj.event.OplockBreakNotification;
+import com.hierynomus.smbj.event.SMBEventBus;
+import com.hierynomus.smbj.event.handler.MessageIdCallback;
+import com.hierynomus.smbj.event.handler.NotificationHandler;
 import com.hierynomus.smbj.paths.PathResolveException;
 import com.hierynomus.smbj.paths.PathResolver;
 import com.hierynomus.smbj.session.Session;
 
+import net.engio.mbassy.listener.Handler;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 
 import static com.hierynomus.msdtyp.AccessMask.*;
 import static com.hierynomus.mserref.NtStatus.*;
@@ -58,17 +75,118 @@ import static java.util.EnumSet.of;
 import static java.util.EnumSet.noneOf;
 
 public class DiskShare extends Share {
+    private static final Logger logger = LoggerFactory.getLogger(DiskShare.class);
     private final PathResolver resolver;
+    private SMBEventBus bus;
+    private NotificationHandler notificationHandler = null;
 
-    public DiskShare(SmbPath smbPath, TreeConnect treeConnect, PathResolver pathResolver) {
+    private final ExecutorService notifyExecutor;
+    private final boolean isCreatedNotifyExecutor;
+    private final TaskQueue taskQueue = new TaskQueue();
+    // TODO: ensure the event is only used by one Connect instance
+    private final Set<SMB2FileId> openedOplockFileId = Collections.newSetFromMap(new ConcurrentHashMap<SMB2FileId, Boolean>());
+    // TODO: Implement a internal centralize messageId callback to record all implemented notificationHandler MessageId
+    private final Set<Long> createRequestMessageId = Collections.newSetFromMap(new ConcurrentHashMap<Long, Boolean>());
+
+    public DiskShare(SmbPath smbPath, TreeConnect treeConnect, PathResolver pathResolver, SMBEventBus bus) {
         super(smbPath, treeConnect);
         this.resolver = pathResolver;
+        this.bus = bus;
+        if (bus != null) {
+            bus.subscribe(this);
+        }
+        ExecutorService executorFromConfig = treeConnect.getConnection().getConfig().getNotifyExecutorService();
+        if(executorFromConfig != null) {
+            notifyExecutor = executorFromConfig;
+            isCreatedNotifyExecutor = false;
+        } else {
+            notifyExecutor = Executors.newSingleThreadExecutor(new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    Thread t = Executors.defaultThreadFactory().newThread(r);
+                    t.setDaemon(true);
+                    t.setName(DiskShare.super.smbPath.getShareName() + "-Thread-1");
+                    return t;
+                }
+            });
+            isCreatedNotifyExecutor = true;
+        }
+    }
+
+    @Override
+    public void close() throws IOException {
+        super.close();
+        if(isCreatedNotifyExecutor) {
+            // cleanup for executor
+            notifyExecutor.shutdown();
+        }
+        // cleanup for set
+        openedOplockFileId.clear();
+        createRequestMessageId.clear();
     }
 
     public DiskEntry open(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        return open(path, null, null, accessMask, attributes, shareAccesses, createDisposition, createOptions);
+    }
+
+    public DiskEntry open(String path, SMB2OplockLevel oplockLevel, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        SMB2CreateResponseDiskEntry result = openWithResponse(path, oplockLevel, impersonationLevel, accessMask, attributes, shareAccesses, createDisposition, createOptions);
+        return result.getDiskEntry();
+    }
+
+    /***
+     * Synchronously open a diskEntry. Returning the diskEntry with the createResponse.
+     *
+     * @param path target file path
+     * @param oplockLevel requesting oplock level
+     * @param impersonationLevel requesting impersonation level
+     * @param accessMask desired access
+     * @param attributes file attributes
+     * @param shareAccesses the share access of this create request
+     * @param createDisposition create disposition of this create request
+     * @param createOptions create options of this create request
+     * @return the diskEntry and the corresponding createResponse.
+     */
+    public SMB2CreateResponseDiskEntry openWithResponse(String path, SMB2OplockLevel oplockLevel, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         SmbPath pathAndFile = new SmbPath(smbPath, path);
-        SMB2CreateResponseContext response = createFileAndResolve(pathAndFile, null, accessMask, attributes, shareAccesses, createDisposition, createOptions);
-        return getDiskEntry(path, response);
+        SMB2CreateResponseContext response = createFileAndResolve(pathAndFile, oplockLevel, impersonationLevel, accessMask, attributes, shareAccesses, createDisposition, createOptions);
+        return new SMB2CreateResponseDiskEntry(response.resp, getDiskEntry(path, response));
+    }
+
+    /***
+     * Send a create request and return a Future for create response. User are required to deal with DFS issue by himself.
+     *
+     * @param path target file path
+     * @param oplockLevel requesting oplock level
+     * @param impersonationLevel requesting impersonation level
+     * @param accessMask desired access
+     * @param attributes file attributes
+     * @param shareAccesses the share access of this create request
+     * @param createDisposition create disposition of this create request
+     * @param createOptions create options of this create request
+     * @return a Future to be used to retrieve the create response packet
+     */
+    public Future<SMB2CreateResponse> openAsync(String path, SMB2OplockLevel oplockLevel, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        return openAsync(path, oplockLevel, impersonationLevel, accessMask, attributes, shareAccesses, createDisposition, createOptions, null);
+    }
+
+    /***
+     * Send a create request and callback for messageId for create response. User are required to deal with DFS issue by himself.
+     *
+     * @param path target file path
+     * @param oplockLevel requesting oplock level
+     * @param impersonationLevel requesting impersonation level
+     * @param accessMask desired access
+     * @param attributes file attributes
+     * @param shareAccesses the share access of this create request
+     * @param createDisposition create disposition of this create request
+     * @param createOptions create options of this create request
+     * @param messageIdCallback callback to return corresponding messageId
+     * @return a Future to be used to retrieve the create response packet
+     */
+    public Future<SMB2CreateResponse> openAsync(String path, SMB2OplockLevel oplockLevel, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions, MessageIdCallback messageIdCallback) {
+        SmbPath pathAndFile = new SmbPath(smbPath, path);
+        return super.createAsync(pathAndFile, oplockLevel, impersonationLevel, accessMask, attributes, shareAccesses, createDisposition, createOptions, messageIdCallback);
     }
 
     @Override
@@ -76,8 +194,8 @@ public class DiskShare extends Share {
         return resolver.handledStates();
     }
 
-    private SMB2CreateResponseContext createFileAndResolve(SmbPath path, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
-        SMB2CreateResponse resp = super.createFile(path, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
+    private SMB2CreateResponseContext createFileAndResolve(SmbPath path, SMB2OplockLevel oplockLevel, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        SMB2CreateResponse resp = super.createFile(path, oplockLevel, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
         try {
             SmbPath target = resolver.resolve(session, resp, path);
             DiskShare resolveShare = this;
@@ -89,7 +207,7 @@ public class DiskShare extends Share {
                 resolveShare = (DiskShare) connectedSession.connectShare(target.getShareName());
             }
             if (!path.equals(target)) {
-                return resolveShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
+                return resolveShare.createFileAndResolve(target, oplockLevel, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
             }
         } catch (PathResolveException e) {
             throw new SMBApiException(e.getStatus(), SMB2MessageCommandCode.SMB2_CREATE, "Cannot resolve path " + path, e);
@@ -106,19 +224,32 @@ public class DiskShare extends Share {
         }
     }
 
-    protected DiskEntry getDiskEntry(String path, SMB2CreateResponseContext responseContext) {
+    public DiskEntry getDiskEntry(String path, SMB2CreateResponseContext responseContext) {
         SMB2CreateResponse response = responseContext.resp;
+        DiskEntry diskEntry;
         if (response.getFileAttributes().contains(FILE_ATTRIBUTE_DIRECTORY)) {
-            return new Directory(response.getFileId(), responseContext.share, path);
+            diskEntry = new Directory(response.getFileId(), responseContext.share, path);
         } else {
-            return new File(response.getFileId(), responseContext.share, path);
+            diskEntry = new File(response.getFileId(), responseContext.share, path);
         }
+        // if oplock level is not none, put it to set.
+        if (response.getOplockLevel() != SMB2OplockLevel.SMB2_OPLOCK_LEVEL_NONE) {
+            openedOplockFileId.add(diskEntry.fileId);
+        }
+        return diskEntry;
     }
 
     /**
      * Get a handle to a directory in the given path
      */
     public Directory openDirectory(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        return openDirectory(path, null, null, accessMask, attributes, shareAccesses, createDisposition, createOptions);
+    }
+
+    /**
+     * Get a handle to a directory in the given path
+     */
+    public Directory openDirectory(String path, SMB2OplockLevel oplockLevel, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         EnumSet<SMB2CreateOptions> actualCreateOptions = createOptions != null ? EnumSet.copyOf(createOptions) : EnumSet.noneOf(SMB2CreateOptions.class);
         actualCreateOptions.add(FILE_DIRECTORY_FILE);
         actualCreateOptions.remove(FILE_NON_DIRECTORY_FILE);
@@ -128,6 +259,8 @@ public class DiskShare extends Share {
 
         return (Directory) open(
             path,
+            oplockLevel,
+            impersonationLevel,
             accessMask,
             actualAttributes,
             shareAccesses,
@@ -136,7 +269,17 @@ public class DiskShare extends Share {
         );
     }
 
+    /**
+     * Get a handle to a file in the given path
+     */
     public File openFile(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        return openFile(path, null, null, accessMask, attributes, shareAccesses, createDisposition, createOptions);
+    }
+
+    /**
+     * Get a handle to a file in the given path
+     */
+    public File openFile(String path, SMB2OplockLevel oplockLevel, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         EnumSet<SMB2CreateOptions> actualCreateOptions = createOptions != null ? EnumSet.copyOf(createOptions) : EnumSet.noneOf(SMB2CreateOptions.class);
         actualCreateOptions.add(FILE_NON_DIRECTORY_FILE);
         actualCreateOptions.remove(FILE_DIRECTORY_FILE);
@@ -146,12 +289,21 @@ public class DiskShare extends Share {
 
         return (File) open(
             path,
+            oplockLevel,
+            impersonationLevel,
             accessMask,
             actualAttributes,
             shareAccesses,
             createDisposition,
             actualCreateOptions
         );
+    }
+
+    @Override
+    void closeFileId(SMB2FileId fileId) throws SMBApiException {
+        super.closeFileId(fileId);
+        // remove the the fileId from set when success, i.e. no Exception throws
+        openedOplockFileId.remove(fileId);
     }
 
     /**
@@ -434,23 +586,164 @@ public class DiskShare extends Share {
         );
     }
 
+    /***
+     * 3.2.5.19 Receiving an SMB2 OPLOCK_BREAK Notification, this handler is responsible to call acknowledgeOplockBreak if needed. Set the handler for Receiving an Oplock Break Notification.
+     * You MUST set this handler before create/open diskEntry with oplock.
+     *
+     * @param handler handler for Receiving an Oplock Break Notification and Async Create Request/Response.
+     */
+    public void setNotificationHandler(NotificationHandler handler) {
+        this.notificationHandler = handler;
+    }
+
+    /***
+     * Handler for handing the oplock break notification event from server. 3.2.5.19 Receiving an SMB2 OPLOCK_BREAK Notification.
+     *
+     * @param oplockBreakNotification received oplock break notification from server.
+     */
+    @Handler
+    @SuppressWarnings("unused")
+    private void oplockBreakNotification(final OplockBreakNotification oplockBreakNotification) {
+        try {
+
+            final SMB2FileId fileId = oplockBreakNotification.getFileId();
+            final SMB2OplockBreakLevel oplockLevel = oplockBreakNotification.getOplockLevel();
+            logger.debug("FileId {} received OplockBreakNotification, Oplock level {}", fileId, oplockLevel);
+
+            if(notificationHandler != null) {
+                // Preventing the improper use of handler (holding the thread). if holding thread, timeout exception will be throw.
+                if (openedOplockFileId.contains(fileId)) {
+                    // submit to taskQueue only when this DiskShare opened a handle with this fileId. Otherwise, ignore it.
+                    taskQueue.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            notificationHandler.handleOplockBreakNotification(oplockBreakNotification);
+                        }
+                    }, notifyExecutor);
+                }
+            }else {
+                logger.warn("FileId {}, NotificationHandler not exist to handle Oplock Break.", fileId);
+                throw new IllegalStateException("NotificationHandler not exist to handle Oplock Break.");
+            }
+
+        } catch (Throwable t) {
+            logger.error("Handling oplockBreakNotification error occur : ", t);
+            throw t;
+        }
+    }
+
+    /***
+     * Async create request handler.
+     *
+     * @param asyncCreateRequestNotification filePath with the corresponding messageId.
+     */
+    @Handler
+    @SuppressWarnings("unused")
+    private void createRequestNotification(final AsyncCreateRequestNotification asyncCreateRequestNotification) {
+        try {
+            if(notificationHandler != null) {
+                // Preventing the improper use of handler (holding the thread). if holding thread, timeout exception will be throw.
+                // Checking treeId can always map a DiskShare for AsyncCreateRequestNotification, because this happens before sending message.
+                if(asyncCreateRequestNotification.getSessionId() == this.sessionId
+                   && asyncCreateRequestNotification.getTreeId() == this.treeId) {
+                    // add the messageId to Set if createRequest is sending by this DiskShare
+                    createRequestMessageId.add(asyncCreateRequestNotification.getMessageId());
+
+                    // submit to taskQueue only when sessionId and treeId match. Otherwise, ignore it.
+                    taskQueue.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            notificationHandler.handleAsyncCreateRequestNotification(asyncCreateRequestNotification);
+                        }
+                    }, notifyExecutor);
+                }else {
+                    logger.debug("asyncCreateRequestNotification ignored. this.treeId = " + this.treeId + ", notification.getTreeId() = " + asyncCreateRequestNotification.getTreeId());
+                }
+            }else {
+                logger.debug("NotificationHandler not exist to handle asyncCreateRequestNotification");
+            }
+        } catch (Throwable t) {
+            logger.error("Handling createRequestNotification error occur : ", t);
+            throw t;
+        }
+    }
+
+    /***
+     * Async create response handler. This is also a oplock related handler.
+     * Passing the createResponse Future to the client.
+     * This is also intended to prevent oplock break too fast and not able to handle oplock break notification properly.
+     * Notify the client oplock is granted on createResponse but still under processing.
+     *
+     * @param asyncCreateResponseNotification the corresponding messageId and fileId with the Future of createResponse.
+     */
+    @Handler
+    @SuppressWarnings("unused")
+    private void createResponseNotification(final AsyncCreateResponseNotification asyncCreateResponseNotification) {
+        try {
+            if(notificationHandler != null) {
+                // Preventing the improper use of handler (holding the thread). if holding thread, timeout exception will be throw.
+                boolean shouldHandle = createRequestMessageId.remove(asyncCreateResponseNotification.getMessageId());
+                if(shouldHandle) {
+                    // submit to taskQueue only if createRequest is sent out by this DiskShare. Otherwise, ignore it.
+                    taskQueue.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            notificationHandler.handleAsyncCreateResponseNotification(
+                                asyncCreateResponseNotification);
+                        }
+                    }, notifyExecutor);
+                }else {
+                    logger.debug("asyncCreateResponseNotification ignored. MessageId = " + asyncCreateResponseNotification.getMessageId() + ", is not handled by this.treeId = " + this.treeId);
+                }
+            }else {
+                logger.debug("NotificationHandler not exist to handle asyncCreateResponseNotification");
+            }
+        } catch (Throwable t) {
+            logger.error("Handling createResponseNotification error occur : ", t);
+            throw t;
+        }
+    }
+
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" + getSmbPath() + "]";
     }
 
     /**
-     * A return object for the {@link #createFileAndResolve(SmbPath, SMB2ImpersonationLevel, Set, Set, Set, SMB2CreateDisposition, Set)} call.
+     * A return object for the {@link #createFileAndResolve(SmbPath, SMB2OplockLevel, SMB2ImpersonationLevel, Set, Set, Set, SMB2CreateDisposition, Set)} call.
      *
      * This object wraps the {@link SMB2CreateResponse} and the actual {@link Share} which generated it if the path needed to be resolved.
      */
-    static class SMB2CreateResponseContext {
+    public static class SMB2CreateResponseContext {
         final SMB2CreateResponse resp;
         final DiskShare share;
 
         public SMB2CreateResponseContext(SMB2CreateResponse resp, DiskShare share) {
             this.resp = resp;
             this.share = share;
+        }
+    }
+
+    /**
+     * A return object for the {@link #openWithResponse(String, SMB2OplockLevel, SMB2ImpersonationLevel, Set, Set, Set, SMB2CreateDisposition, Set)} call.
+     *
+     * This object wraps the {@link SMB2CreateResponse} and the diskEntry instance {@link DiskEntry}.
+     */
+    public static class SMB2CreateResponseDiskEntry {
+        final SMB2CreateResponse resp;
+        final DiskEntry diskEntry;
+
+        public SMB2CreateResponseDiskEntry(SMB2CreateResponse resp, DiskEntry diskEntry) {
+            this.resp = resp;
+            this.diskEntry = diskEntry;
+        }
+
+        public SMB2CreateResponse getCreateResponse() {
+            return resp;
+        }
+
+        public DiskEntry getDiskEntry() {
+            return diskEntry;
         }
     }
 }

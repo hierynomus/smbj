@@ -50,6 +50,7 @@ public class PrinterShare extends Share {
     public void print(ByteChunkProvider provider, ProgressListener progressListener) {
         SMB2FileId fileId = openFileId(null,
             null,
+            null,
             EnumSet.of(AccessMask.FILE_WRITE_DATA),
             EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
             EnumSet.of(SMB2ShareAccess.FILE_SHARE_WRITE),
