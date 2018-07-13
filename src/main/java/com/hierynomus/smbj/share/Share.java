@@ -56,7 +56,7 @@ public class Share implements AutoCloseable {
 
     protected final SmbPath smbPath;
     protected final TreeConnect treeConnect;
-    private final long treeId;
+    protected final long treeId;
     protected Session session;
     private final SMB2Dialect dialect;
     private final int readBufferSize;
@@ -65,7 +65,7 @@ public class Share implements AutoCloseable {
     private final long writeTimeout;
     private final int transactBufferSize;
     private final long transactTimeout;
-    private final long sessionId;
+    protected final long sessionId;
     private final AtomicBoolean disconnected = new AtomicBoolean(false);
 
     Share(SmbPath smbPath, TreeConnect treeConnect) {

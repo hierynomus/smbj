@@ -21,12 +21,14 @@ import com.hierynomus.mssmb2.SMB2OplockBreakLevel;
 /***
  * Event for notifying the oplock break notification for corresponding fileId
  */
-public class OplockBreakNotification implements SMBEvent, AsyncNotification {
+public class OplockBreakNotification extends AbstractAsyncNotification implements SMBEvent {
 
     private SMB2OplockBreakLevel oplockLevel;
     private SMB2FileId fileId;
 
     public OplockBreakNotification(SMB2OplockBreakLevel oplockLevel, SMB2FileId fileId) {
+        // will always getting 0 for sessionId and treeId for oplock break notification.
+        super(0L, 0L);
         this.oplockLevel = oplockLevel;
         this.fileId = fileId;
     }

@@ -25,7 +25,6 @@ import com.hierynomus.mssmb2.messages.*;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
-import com.hierynomus.protocol.commons.concurrent.FutureWrapper;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.*;
 import com.hierynomus.smb.SMBPacket;
@@ -292,10 +291,12 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
                 messageIdCallback.callback(messageId);
             }
 
-            if(packet instanceof SMB2CreateRequest) {
-                SMB2CreateRequest createRequest = (SMB2CreateRequest)packet;
-                SmbPath path = createRequest.getPath();
-                bus.publish(new AsyncCreateRequestNotification(messageId, path));
+            if(packet.getHeader().getMessage() == SMB2MessageCommandCode.SMB2_CREATE) {
+                bus.publish(new AsyncCreateRequestNotification(
+                    packet.getHeader().getSessionId(),
+                    packet.getHeader().getTreeId(),
+                    messageId)
+                );
             }
 
             Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID());
@@ -409,7 +410,10 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
             if(packet instanceof SMB2OplockBreakNotification) {
                 SMB2OplockBreakNotification oplockBreakNotification = (SMB2OplockBreakNotification)packet;
                 logger.debug("Received SMB2OplockBreakNotification Packet for FileId {} with {}", oplockBreakNotification.getFileId(), oplockBreakNotification.getOplockLevel());
-                bus.publish(new OplockBreakNotification(oplockBreakNotification.getOplockLevel(), oplockBreakNotification.getFileId()));
+                bus.publish(new OplockBreakNotification(
+                    oplockBreakNotification.getOplockLevel(),
+                    oplockBreakNotification.getFileId()
+                ));
                 return;
             }
 
@@ -456,8 +460,14 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
         // Handing case for Oplock/Lease related issue
         if(packet instanceof SMB2CreateResponse) {
             SMB2CreateResponse smb2CreateResponse = (SMB2CreateResponse)packet;
-            Future<SMB2CreateResponse> future = new FutureWrapper<>(outstandingRequests.getRequestByMessageId(messageId).getPromise().future());
-            bus.publish(new AsyncCreateResponseNotification(messageId, smb2CreateResponse.getFileId(), future));
+            bus.publish(new AsyncCreateResponseNotification(
+                smb2CreateResponse.getHeader().getSessionId(),
+                smb2CreateResponse.getHeader().getTreeId(),
+                messageId,
+                smb2CreateResponse.getFileId(),
+                smb2CreateResponse)
+            );
+
         }
 
         // [MS-SMB2].pdf 3.2.5.1.8 Processing the Response

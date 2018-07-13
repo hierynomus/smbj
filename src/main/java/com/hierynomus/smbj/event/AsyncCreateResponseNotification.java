@@ -18,21 +18,21 @@ package com.hierynomus.smbj.event;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.messages.SMB2CreateResponse;
 
-import java.util.concurrent.Future;
-
 /***
  * Event for notifying the fileId and CreateResponseFuture to corresponding messageId on AysncCreate
  */
-public class AsyncCreateResponseNotification implements SMBEvent, AsyncNotification {
+public class AsyncCreateResponseNotification extends AbstractAsyncNotification implements SMBEvent {
 
     private long messageId;
     private SMB2FileId fileId;
-    private Future<SMB2CreateResponse> future;
+    private SMB2CreateResponse createResponse;
 
-    public AsyncCreateResponseNotification(long messageId, SMB2FileId fileId, Future<SMB2CreateResponse> future) {
+    public AsyncCreateResponseNotification(long sessionId, long treeId, long messageId,
+                                           SMB2FileId fileId, SMB2CreateResponse createResponse) {
+        super(sessionId, treeId);
         this.messageId = messageId;
         this.fileId = fileId;
-        this.future = future;
+        this.createResponse = createResponse;
     }
 
     public long getMessageId() {
@@ -43,7 +43,7 @@ public class AsyncCreateResponseNotification implements SMBEvent, AsyncNotificat
         return fileId;
     }
 
-    public Future<SMB2CreateResponse> getFuture() {
-        return future;
+    public SMB2CreateResponse getCreateResponse() {
+        return createResponse;
     }
 }

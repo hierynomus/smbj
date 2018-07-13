@@ -18,33 +18,35 @@ package com.hierynomus.mssmb2.messages;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 
-import java.util.Arrays;
+public class SMB2OplockBreakFactory {
 
-public class SMB2OplockBreakFactory{
+    // 3.2.5.19 Receiving an SMB2 OPLOCK_BREAK Notification
+    // If the MessageId field of the SMB2 header of the response is 0xFFFFFFFFFFFFFFFF,
+    // this MUST be processed as an oplock break indication.
+    // 0xFFFFFFFFFFFFFFFF == -1
+    private static final long breakMessageId = -1;
 
     public SMB2OplockBreak read(SMBBuffer buffer) throws Buffer.BufferException {
-        // 3.2.5.19 Receiving an SMB2 OPLOCK_BREAK Notification
-        // If the MessageId field of the SMB2 header of the response is 0xFFFFFFFFFFFFFFFF,
-        // this MUST be
-        // processed as an oplock break indication.
+
         buffer.skip(24);
-        byte[] messageId = buffer.readRawBytes(8);
+        long messageId = buffer.readLong();
         buffer.rpos(0);
-        final boolean isBreakNotification = Arrays.equals(messageId, (new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF}));
+        final boolean isBreakNotification = messageId == breakMessageId;
 
         // TODO: Use structureSize as well to determine oplock and lease.
         // buffer.skip(64);
         // final int structureSize = buffer.readUInt16();
         // buffer.rpos(0);
 
-        if(isBreakNotification) {
+        if (isBreakNotification) {
             return read(new SMB2OplockBreakNotification(), buffer);
-        }else {
+        } else {
             return read(new SMB2OplockBreakAcknowledgmentResponse(), buffer);
         }
     }
 
-    private SMB2OplockBreak read(SMB2OplockBreak packet, SMBBuffer buffer) throws Buffer.BufferException {
+    private SMB2OplockBreak read(SMB2OplockBreak packet, SMBBuffer buffer)
+        throws Buffer.BufferException {
         packet.read(buffer);
         return packet;
     }

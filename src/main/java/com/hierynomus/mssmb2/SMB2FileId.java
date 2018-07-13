@@ -16,7 +16,6 @@
 package com.hierynomus.mssmb2;
 
 import com.hierynomus.protocol.commons.ByteArrayUtils;
-import com.hierynomus.protocol.commons.Objects;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 
@@ -66,8 +65,8 @@ public class SMB2FileId {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         SMB2FileId smb2FileId = (SMB2FileId) o;
-        return Objects.equals(persistentHandle, smb2FileId.persistentHandle) &&
-               Objects.equals(volatileHandle, smb2FileId.volatileHandle);
+        return Arrays.equals(persistentHandle, smb2FileId.persistentHandle) &&
+               Arrays.equals(volatileHandle, smb2FileId.volatileHandle);
     }
 
     @Override

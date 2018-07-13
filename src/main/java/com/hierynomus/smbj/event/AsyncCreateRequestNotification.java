@@ -18,23 +18,18 @@ package com.hierynomus.smbj.event;
 import com.hierynomus.smbj.common.SmbPath;
 
 /***
- * Event for notifying the SmbPath to DiskShare Notification Handler
+ * Event for notifying the messageId to DiskShare Notification Handler
  */
-public class AsyncCreateRequestNotification implements SMBEvent, AsyncNotification {
+public class AsyncCreateRequestNotification extends AbstractAsyncNotification implements SMBEvent {
 
     private long messageId;
-    private SmbPath path;
 
-    public AsyncCreateRequestNotification(long messageId, SmbPath path) {
+    public AsyncCreateRequestNotification(long sessionId, long treeId, long messageId) {
+        super(sessionId, treeId);
         this.messageId = messageId;
-        this.path = path;
     }
 
     public long getMessageId() {
         return messageId;
-    }
-
-    public SmbPath getPath() {
-        return path;
     }
 }

@@ -15,13 +15,24 @@
  */
 package com.hierynomus.smbj.event;
 
-/**
- * Base class for asynchronous notification events that need to be handled by notification
- * handlers (observers)
- */
-public interface AsyncNotification {
+public abstract class AbstractAsyncNotification implements AsyncNotification {
 
-    long getSessionId();
+    private long sessionId;
+    private long treeId;
 
-    long getTreeId();
+    public AbstractAsyncNotification(long sessionId, long treeId) {
+        this.sessionId = sessionId;
+        this.treeId = treeId;
+    }
+
+    @Override
+    public long getSessionId() {
+        return sessionId;
+    }
+
+    @Override
+    public long getTreeId() {
+        return treeId;
+    }
 }
+
