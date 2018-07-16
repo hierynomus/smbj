@@ -34,12 +34,10 @@ import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
-import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.paths.PathResolveException;
 import com.hierynomus.smbj.paths.PathResolver;
 import com.hierynomus.smbj.session.Session;
 
-import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -72,8 +70,8 @@ public class DiskShare extends Share {
     }
 
     @Override
-    protected Set<NtStatus> getCreateSuccessStatus() {
-        return resolver.handledStates();
+    protected StatusHandler getCreateStatusHandler() {
+        return resolver.statusHandler();
     }
 
     private SMB2CreateResponseContext createFileAndResolve(SmbPath path, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
@@ -92,7 +90,7 @@ public class DiskShare extends Share {
                 return resolveShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
             }
         } catch (PathResolveException e) {
-            throw new SMBApiException(e.getStatus(), SMB2MessageCommandCode.SMB2_CREATE, "Cannot resolve path " + path, e);
+            throw new SMBApiException(e.getStatusCode(), SMB2MessageCommandCode.SMB2_CREATE, "Cannot resolve path " + path, e);
         }
         return new SMB2CreateResponseContext(resp, this);
     }
@@ -154,25 +152,39 @@ public class DiskShare extends Share {
         );
     }
 
+    private static StatusHandler FILE_EXISTS_STATUS_HANDLER = new StatusHandler() {
+        @Override
+        public boolean isSuccess(long statusCode) {
+            return statusCode == STATUS_OBJECT_NAME_NOT_FOUND.getValue() || statusCode == STATUS_OBJECT_PATH_NOT_FOUND.getValue() || statusCode == STATUS_FILE_IS_A_DIRECTORY.getValue();
+        }
+    };
+
     /**
      * File in the given path exists or not
      */
     public boolean fileExists(String path) throws SMBApiException {
-        return exists(path, of(FILE_NON_DIRECTORY_FILE), of(STATUS_OBJECT_NAME_NOT_FOUND, STATUS_OBJECT_PATH_NOT_FOUND, STATUS_FILE_IS_A_DIRECTORY));
+        return exists(path, of(FILE_NON_DIRECTORY_FILE), FILE_EXISTS_STATUS_HANDLER);
     }
+
+    private static StatusHandler FOLDER_EXISTS_STATUS_HANDLER = new StatusHandler() {
+        @Override
+        public boolean isSuccess(long statusCode) {
+            return statusCode == STATUS_OBJECT_NAME_NOT_FOUND.getValue() || statusCode == STATUS_OBJECT_PATH_NOT_FOUND.getValue() || statusCode == STATUS_NOT_A_DIRECTORY.getValue();
+        }
+    };
 
     /**
      * Folder in the given path exists or not.
      */
     public boolean folderExists(String path) throws SMBApiException {
-        return exists(path, of(FILE_DIRECTORY_FILE), of(STATUS_OBJECT_NAME_NOT_FOUND, STATUS_OBJECT_PATH_NOT_FOUND, STATUS_NOT_A_DIRECTORY));
+        return exists(path, of(FILE_DIRECTORY_FILE), FOLDER_EXISTS_STATUS_HANDLER);
     }
 
-    private boolean exists(String path, EnumSet<SMB2CreateOptions> createOptions, Set<NtStatus> acceptedStatuses) throws SMBApiException {
+    private boolean exists(String path, EnumSet<SMB2CreateOptions> createOptions, StatusHandler statusHandler) throws SMBApiException {
         try (DiskEntry ignored = open(path, of(FILE_READ_ATTRIBUTES), of(FILE_ATTRIBUTE_NORMAL), ALL, FILE_OPEN, createOptions)) {
             return true;
         } catch (SMBApiException sae) {
-            if (acceptedStatuses.contains(sae.getStatus())) {
+            if (statusHandler.isSuccess(sae.getStatusCode())) {
                 return false;
             } else {
                 throw sae;

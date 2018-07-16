@@ -45,7 +45,7 @@ class SMB2ReadResponseSpec extends Specification {
     response.read(new SMBBuffer(bytes1))
 
     then:
-    response.header.status == NtStatus.STATUS_END_OF_FILE
+    response.header.statusCode == NtStatus.STATUS_END_OF_FILE.value
   }
 
 }

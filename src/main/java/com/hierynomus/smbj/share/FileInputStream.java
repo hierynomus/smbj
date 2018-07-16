@@ -119,7 +119,7 @@ class FileInputStream extends InputStream {
         }
 
         SMB2ReadResponse res = Futures.get(nextResponse, readTimeout, TimeUnit.MILLISECONDS, TransportException.Wrapper);
-        if (res.getHeader().getStatus() == NtStatus.STATUS_SUCCESS) {
+        if (res.getHeader().getStatusCode() == NtStatus.STATUS_SUCCESS.getValue()) {
             buf = res.getData();
             curr = 0;
             offset += res.getDataLength();
@@ -128,13 +128,13 @@ class FileInputStream extends InputStream {
             }
         }
 
-        if (res.getHeader().getStatus() == NtStatus.STATUS_END_OF_FILE) {
+        if (res.getHeader().getStatusCode() == NtStatus.STATUS_END_OF_FILE.getValue()) {
             logger.debug("EOF, {} bytes read", offset);
             isClosed = true;
             return;
         }
 
-        if (res.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+        if (res.getHeader().getStatusCode() != NtStatus.STATUS_SUCCESS.getValue()) {
             throw new SMBApiException(res.getHeader(), "Read failed for " + this);
         }
 

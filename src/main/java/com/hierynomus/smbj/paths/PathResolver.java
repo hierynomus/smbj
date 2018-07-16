@@ -19,6 +19,7 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.share.StatusHandler;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -31,12 +32,12 @@ public interface PathResolver {
         }
 
         @Override
-        public Set<NtStatus> handledStates() {
-            return EnumSet.of(NtStatus.STATUS_SUCCESS);
+        public StatusHandler statusHandler() {
+            return StatusHandler.SUCCESS;
         }
     };
 
     SmbPath resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath) throws PathResolveException;
 
-    Set<NtStatus> handledStates();
+    StatusHandler statusHandler();
 }

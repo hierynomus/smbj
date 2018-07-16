@@ -103,7 +103,7 @@ class FileOutputStreamSpec extends Specification {
 
   SMB2Packet createResponse() {
     def response = new SMB2CreateResponse()
-    response.header.status = NtStatus.STATUS_SUCCESS
+    response.header.statusCode = NtStatus.STATUS_SUCCESS.value
     response.fileAttributes = EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL)
     response.fileId = new SMB2FileId(new byte[0], new byte[0])
     response
@@ -111,7 +111,7 @@ class FileOutputStreamSpec extends Specification {
 
   SMB2WriteResponse write(SMB2WriteRequest req) {
     def response = new SMB2WriteResponse()
-    response.header.status = NtStatus.STATUS_SUCCESS
+    response.header.statusCode = NtStatus.STATUS_SUCCESS.value
     response.bytesWritten = req.maxPayloadSize
     req.byteProvider.writeChunk(devNull)
     response

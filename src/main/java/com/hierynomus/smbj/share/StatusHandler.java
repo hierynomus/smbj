@@ -13,21 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.msdfsc;
+package com.hierynomus.smbj.share;
 
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.smbj.paths.PathResolveException;
 
-public class DFSException extends PathResolveException {
-    public DFSException(long status, String message) {
-        super(status, message);
-    }
+public interface StatusHandler {
+    StatusHandler SUCCESS = new StatusHandler() {
+        @Override
+        public boolean isSuccess(long statusCode) {
+            return statusCode == NtStatus.STATUS_SUCCESS.getValue();
+        }
+    };
 
-    public DFSException(long status) {
-        super(status);
-    }
-
-    public DFSException(Throwable cause) {
-        super(cause);
-    }
+    boolean isSuccess(long statusCode);
 }

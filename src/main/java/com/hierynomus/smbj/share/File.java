@@ -117,7 +117,7 @@ public class File extends DiskEntry {
      */
     public int read(byte[] buffer, long fileOffset, int offset, int length) {
         SMB2ReadResponse response = share.read(fileId, fileOffset, length);
-        if (response.getHeader().getStatus() == NtStatus.STATUS_END_OF_FILE) {
+        if (response.getHeader().getStatusCode() == NtStatus.STATUS_END_OF_FILE.getValue()) {
             return -1;
         } else {
             byte[] data = response.getData();

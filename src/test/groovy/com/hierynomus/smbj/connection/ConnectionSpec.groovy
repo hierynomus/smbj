@@ -79,7 +79,7 @@ class ConnectionSpec extends Specification {
     given:
     config = smbConfig({ req ->
       def resp = new SMB2NegotiateResponse()
-      resp.header.status = NtStatus.STATUS_NOT_SUPPORTED
+      resp.header.statusCode = NtStatus.STATUS_NOT_SUPPORTED.value
       return resp
     })
     client = new SMBClient(config)
@@ -89,7 +89,7 @@ class ConnectionSpec extends Specification {
 
     then:
     def exc = thrown(SMBApiException)
-    exc.status == NtStatus.STATUS_NOT_SUPPORTED
+    exc.statusCode == NtStatus.STATUS_NOT_SUPPORTED.value
   }
 
   def "should report STATUS_NETWORK_SESSION_EXPIRED to client application"() {
@@ -97,7 +97,7 @@ class ConnectionSpec extends Specification {
     config = smbConfig({ req ->
       if (req instanceof SMB2TreeConnectRequest) {
         def resp = new SMB2TreeConnectResponse()
-        resp.header.status = NtStatus.STATUS_NETWORK_SESSION_EXPIRED
+        resp.header.statusCode = NtStatus.STATUS_NETWORK_SESSION_EXPIRED.value
         return resp
       }
     })
@@ -110,7 +110,7 @@ class ConnectionSpec extends Specification {
 
     then:
     def exc = thrown(SMBApiException)
-    exc.status == NtStatus.STATUS_NETWORK_SESSION_EXPIRED
+    exc.statusCode == NtStatus.STATUS_NETWORK_SESSION_EXPIRED.value
   }
 
   class EventPersister {

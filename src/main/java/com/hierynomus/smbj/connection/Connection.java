@@ -167,13 +167,13 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
                 preauthSessionTable.registerSession(preauthSessionId, session);
             }
             try {
-                while (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
+                while (receive.getHeader().getStatusCode() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED.getValue()) {
                     logger.debug("More processing required for authentication of {} using {}", authContext.getUsername(), authenticator);
                     securityContext = processAuthenticationToken(authenticator, authContext, receive.getSecurityBuffer(), session);
                     receive = initiateSessionSetup(securityContext, preauthSessionId);
                 }
 
-                if (receive.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+                if (receive.getHeader().getStatusCode() != NtStatus.STATUS_SUCCESS.getValue()) {
                     throw new SMBApiException(receive.getHeader(), format("Authentication failed for '%s' using %s", authContext.getUsername(), authenticator));
                 }
 
@@ -310,7 +310,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
             throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + resp);
         }
         SMB2NegotiateResponse negotiateResponse = (SMB2NegotiateResponse) resp;
-        if (!negotiateResponse.getHeader().getStatus().isSuccess()) {
+        if (!NtStatus.isSuccess(negotiateResponse.getHeader().getStatusCode())) {
             throw new SMBApiException(negotiateResponse.getHeader(), "Failure during dialect negotiation");
         }
         connectionInfo.negotiated(negotiateResponse);

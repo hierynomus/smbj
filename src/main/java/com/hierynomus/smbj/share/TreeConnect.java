@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.share;
 
 import com.hierynomus.msdtyp.AccessMask;
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.messages.SMB2TreeDisconnect;
@@ -64,7 +65,7 @@ public class TreeConnect {
             SMB2TreeDisconnect disconnect = new SMB2TreeDisconnect(connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeId);
             Future<SMB2Packet> send = session.send(disconnect);
             SMB2Packet smb2Packet = Futures.get(send, connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
-            if (!smb2Packet.getHeader().getStatus().isSuccess()) {
+            if (!NtStatus.isSuccess(smb2Packet.getHeader().getStatusCode())) {
                 throw new SMBApiException(smb2Packet.getHeader(), "Error closing connection to " + smbPath);
             }
         } finally {
