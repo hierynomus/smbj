@@ -21,7 +21,4 @@ package com.hierynomus.smbj.event;
  */
 public interface AsyncNotification {
 
-    long getSessionId();
-
-    long getTreeId();
 }

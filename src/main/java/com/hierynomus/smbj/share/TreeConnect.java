@@ -42,16 +42,16 @@ public class TreeConnect {
     private Session session;
     private final Set<SMB2ShareCapabilities> capabilities;
     private Connection connection;
-    private final SMBEventBus bus;
+    private final SMBEventBus connectionPrivateBus;
     private final Set<AccessMask> maximalAccess;
 
-    public TreeConnect(long treeId, SmbPath smbPath, Session session, Set<SMB2ShareCapabilities> capabilities, Connection connection, SMBEventBus bus, Set<AccessMask> maximalAccess) {
+    public TreeConnect(long treeId, SmbPath smbPath, Session session, Set<SMB2ShareCapabilities> capabilities, Connection connection, SMBEventBus connectionPrivateBus, Set<AccessMask> maximalAccess) {
         this.treeId = treeId;
         this.smbPath = smbPath;
         this.session = session;
         this.capabilities = capabilities;
         this.connection = connection;
-        this.bus = bus;
+        this.connectionPrivateBus = connectionPrivateBus;
         this.maximalAccess = maximalAccess;
     }
 
@@ -68,7 +68,7 @@ public class TreeConnect {
                 throw new SMBApiException(smb2Packet.getHeader(), "Error closing connection to " + smbPath);
             }
         } finally {
-            bus.publish(new TreeDisconnected(session.getSessionId(), treeId));
+            connectionPrivateBus.publish(new TreeDisconnected(session.getSessionId(), treeId));
         }
     }
 

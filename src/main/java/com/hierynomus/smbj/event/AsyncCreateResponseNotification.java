@@ -21,22 +21,17 @@ import com.hierynomus.mssmb2.messages.SMB2CreateResponse;
 /***
  * Event for notifying the fileId and CreateResponseFuture to corresponding messageId on AysncCreate
  */
-public class AsyncCreateResponseNotification extends AbstractAsyncNotification implements SMBEvent {
+public class AsyncCreateResponseNotification extends AbstractAsyncResponseNotification
+    implements SMBEvent {
 
-    private long messageId;
     private SMB2FileId fileId;
     private SMB2CreateResponse createResponse;
 
-    public AsyncCreateResponseNotification(long sessionId, long treeId, long messageId,
-                                           SMB2FileId fileId, SMB2CreateResponse createResponse) {
-        super(sessionId, treeId);
-        this.messageId = messageId;
+    public AsyncCreateResponseNotification(long messageId, SMB2FileId fileId,
+                                           SMB2CreateResponse createResponse) {
+        super(messageId);
         this.fileId = fileId;
         this.createResponse = createResponse;
-    }
-
-    public long getMessageId() {
-        return messageId;
     }
 
     public SMB2FileId getFileId() {

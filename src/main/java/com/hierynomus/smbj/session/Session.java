@@ -57,7 +57,7 @@ public class Session implements AutoCloseable {
     private boolean encryptData; // SMB3.x
 
     private Connection connection;
-    private SMBEventBus bus;
+    private final SMBEventBus connectionPrivateBus;
     private final PathResolver pathResolver;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
     private List<Session> nestedSessions = new ArrayList<>();
@@ -66,14 +66,14 @@ public class Session implements AutoCloseable {
     private boolean guest;
     private boolean anonymous;
 
-    public Session(Connection connection, AuthenticationContext userCredentials, SMBEventBus bus, PathResolver pathResolver, SecurityProvider securityProvider) {
+    public Session(Connection connection, AuthenticationContext userCredentials, SMBEventBus connectionPrivateBus, PathResolver pathResolver, SecurityProvider securityProvider) {
         this.connection = connection;
         this.userCredentials = userCredentials;
-        this.bus = bus;
+        this.connectionPrivateBus = connectionPrivateBus;
         this.pathResolver = pathResolver;
         this.packetSignatory = new PacketSignatory(connection.getNegotiatedProtocol().getDialect(), securityProvider);
-        if (bus != null) {
-            bus.subscribe(this);
+        if (connectionPrivateBus != null) {
+            connectionPrivateBus.subscribe(this);
         }
     }
 
@@ -177,11 +177,11 @@ public class Session implements AutoCloseable {
             }
 
             long treeId = response.getHeader().getTreeId();
-            TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), connection, bus, response.getMaximalAccess());
+            TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), connection, connectionPrivateBus, response.getMaximalAccess());
 
             Share share;
             if (response.isDiskShare()) {
-                share = new DiskShare(smbPath, treeConnect, pathResolver, bus);
+                share = new DiskShare(smbPath, treeConnect, pathResolver, connectionPrivateBus);
             } else if (response.isNamedPipe()) {
                 share = new PipeShare(smbPath, treeConnect);
             } else if (response.isPrinterShare()) {
@@ -241,7 +241,7 @@ public class Session implements AutoCloseable {
                 throw new SMBApiException(response.getHeader(), "Could not logoff session <<" + sessionId + ">>");
             }
         } finally {
-            bus.publish(new SessionLoggedOff(sessionId));
+            connectionPrivateBus.publish(new SessionLoggedOff(sessionId));
         }
     }
 

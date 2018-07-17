@@ -37,6 +37,7 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.event.AsyncCreateRequestNotification;
 import com.hierynomus.smbj.event.AsyncCreateResponseNotification;
+import com.hierynomus.smbj.event.AsyncRequestMessageIdNotification;
 import com.hierynomus.smbj.event.OplockBreakNotification;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.handler.MessageIdCallback;
@@ -69,34 +70,35 @@ import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_CREATE;
 import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_OPEN;
 import static com.hierynomus.mssmb2.SMB2CreateOptions.FILE_DIRECTORY_FILE;
 import static com.hierynomus.mssmb2.SMB2CreateOptions.FILE_NON_DIRECTORY_FILE;
+import static com.hierynomus.mssmb2.SMB2MessageCommandCode.SMB2_CREATE;
 import static com.hierynomus.mssmb2.SMB2ShareAccess.*;
 import static com.hierynomus.mssmb2.messages.SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_SECURITY;
 import static java.util.EnumSet.of;
 import static java.util.EnumSet.noneOf;
 
 public class DiskShare extends Share {
+    public static final EnumSet<SMB2MessageCommandCode> asyncSupport = EnumSet.of(SMB2_CREATE);
     private static final Logger logger = LoggerFactory.getLogger(DiskShare.class);
     private final PathResolver resolver;
-    private SMBEventBus bus;
+    private final SMBEventBus connectionPrivateBus;
     private NotificationHandler notificationHandler = null;
 
     private final ExecutorService notifyExecutor;
     private final boolean isCreatedNotifyExecutor;
-    private final TaskQueue taskQueue = new TaskQueue();
-    // TODO: ensure the event is only used by one Connect instance
+    private final TaskQueue taskQueue;
     private final Set<SMB2FileId> openedOplockFileId = Collections.newSetFromMap(new ConcurrentHashMap<SMB2FileId, Boolean>());
-    // TODO: Implement a internal centralize messageId callback to record all implemented notificationHandler MessageId
-    private final Set<Long> createRequestMessageId = Collections.newSetFromMap(new ConcurrentHashMap<Long, Boolean>());
+    // Only add the messageId to Set when the operation is on the asyncSupport Set. Must remove when receive the corresponding AsyncResponse.
+    private final Set<Long> asyncOperationMessageId = Collections.newSetFromMap(new ConcurrentHashMap<Long, Boolean>());
 
-    public DiskShare(SmbPath smbPath, TreeConnect treeConnect, PathResolver pathResolver, SMBEventBus bus) {
+    public DiskShare(SmbPath smbPath, TreeConnect treeConnect, PathResolver pathResolver, SMBEventBus connectionPrivateBus) {
         super(smbPath, treeConnect);
         this.resolver = pathResolver;
-        this.bus = bus;
-        if (bus != null) {
-            bus.subscribe(this);
+        this.connectionPrivateBus = connectionPrivateBus;
+        if (connectionPrivateBus != null) {
+            connectionPrivateBus.subscribe(this);
         }
         ExecutorService executorFromConfig = treeConnect.getConnection().getConfig().getNotifyExecutorService();
-        if(executorFromConfig != null) {
+        if (executorFromConfig != null) {
             notifyExecutor = executorFromConfig;
             isCreatedNotifyExecutor = false;
         } else {
@@ -111,18 +113,19 @@ public class DiskShare extends Share {
             });
             isCreatedNotifyExecutor = true;
         }
+        this.taskQueue = new TaskQueue(notifyExecutor, logger);
     }
 
     @Override
     public void close() throws IOException {
         super.close();
-        if(isCreatedNotifyExecutor) {
+        if (isCreatedNotifyExecutor) {
             // cleanup for executor
             notifyExecutor.shutdown();
         }
         // cleanup for set
         openedOplockFileId.clear();
-        createRequestMessageId.clear();
+        asyncOperationMessageId.clear();
     }
 
     public DiskEntry open(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
@@ -597,6 +600,26 @@ public class DiskShare extends Share {
     }
 
     /***
+     * Record the messageId for the Async Operation.
+     *
+     * @param asyncRequestMessageIdNotification messageId requires handle Async Response for specific sessionId and treeId.
+     */
+    @Handler
+    @SuppressWarnings("unused")
+    private void setMessageIdForSupportedAsyncOperation(final AsyncRequestMessageIdNotification asyncRequestMessageIdNotification) {
+        try {
+            if (asyncRequestMessageIdNotification.getSessionId() == this.sessionId
+                && asyncRequestMessageIdNotification.getTreeId() == this.treeId) {
+                // add the messageId to Set if Async Request is sending by this DiskShare
+                asyncOperationMessageId.add(asyncRequestMessageIdNotification.getMessageId());
+            }
+        } catch (Throwable t) {
+            logger.error("Handling setMessageIdForSupportedAsyncOperation error occur : ", t);
+            throw t;
+        }
+    }
+
+    /***
      * Handler for handing the oplock break notification event from server. 3.2.5.19 Receiving an SMB2 OPLOCK_BREAK Notification.
      *
      * @param oplockBreakNotification received oplock break notification from server.
@@ -608,24 +631,27 @@ public class DiskShare extends Share {
 
             final SMB2FileId fileId = oplockBreakNotification.getFileId();
             final SMB2OplockBreakLevel oplockLevel = oplockBreakNotification.getOplockLevel();
-            logger.debug("FileId {} received OplockBreakNotification, Oplock level {}", fileId, oplockLevel);
-
-            if(notificationHandler != null) {
-                // Preventing the improper use of handler (holding the thread). if holding thread, timeout exception will be throw.
-                if (openedOplockFileId.contains(fileId)) {
+            // Check should this DiskShare handle this oplock break notification. If not, just ignore.
+            if (openedOplockFileId.contains(fileId)) {
+                logger.debug("FileId {} received OplockBreakNotification, Oplock level {}", fileId,
+                             oplockLevel);
+                if (notificationHandler != null) {
+                    // Preventing the improper use of handler (holding the thread). if holding thread, timeout exception will be throw.
                     // submit to taskQueue only when this DiskShare opened a handle with this fileId. Otherwise, ignore it.
                     taskQueue.execute(new Runnable() {
                         @Override
                         public void run() {
                             notificationHandler.handleOplockBreakNotification(oplockBreakNotification);
                         }
-                    }, notifyExecutor);
+                    });
+                } else {
+                    logger.warn(
+                        "FileId {}, NotificationHandler not exist to handle Oplock Break. On treeId = {}",
+                        fileId, this.treeId);
+                    throw new IllegalStateException(
+                        "NotificationHandler not exist to handle Oplock Break.");
                 }
-            }else {
-                logger.warn("FileId {}, NotificationHandler not exist to handle Oplock Break.", fileId);
-                throw new IllegalStateException("NotificationHandler not exist to handle Oplock Break.");
             }
-
         } catch (Throwable t) {
             logger.error("Handling oplockBreakNotification error occur : ", t);
             throw t;
@@ -641,26 +667,23 @@ public class DiskShare extends Share {
     @SuppressWarnings("unused")
     private void createRequestNotification(final AsyncCreateRequestNotification asyncCreateRequestNotification) {
         try {
-            if(notificationHandler != null) {
-                // Preventing the improper use of handler (holding the thread). if holding thread, timeout exception will be throw.
-                // Checking treeId can always map a DiskShare for AsyncCreateRequestNotification, because this happens before sending message.
-                if(asyncCreateRequestNotification.getSessionId() == this.sessionId
-                   && asyncCreateRequestNotification.getTreeId() == this.treeId) {
-                    // add the messageId to Set if createRequest is sending by this DiskShare
-                    createRequestMessageId.add(asyncCreateRequestNotification.getMessageId());
-
+            // Checking treeId can always map a DiskShare for AsyncCreateRequestNotification, because this happens before sending message.
+            if (asyncCreateRequestNotification.getSessionId() == this.sessionId
+                && asyncCreateRequestNotification.getTreeId() == this.treeId) {
+                if (notificationHandler != null) {
+                    // Preventing the improper use of handler (holding the thread). if holding thread, timeout exception will be throw.
                     // submit to taskQueue only when sessionId and treeId match. Otherwise, ignore it.
                     taskQueue.execute(new Runnable() {
                         @Override
                         public void run() {
                             notificationHandler.handleAsyncCreateRequestNotification(asyncCreateRequestNotification);
                         }
-                    }, notifyExecutor);
-                }else {
-                    logger.debug("asyncCreateRequestNotification ignored. this.treeId = " + this.treeId + ", notification.getTreeId() = " + asyncCreateRequestNotification.getTreeId());
+                    });
+                } else {
+                    logger.debug("NotificationHandler not exist to handle asyncCreateRequestNotification. On treeId = {}", this.treeId);
                 }
-            }else {
-                logger.debug("NotificationHandler not exist to handle asyncCreateRequestNotification");
+            } else {
+                logger.debug("asyncCreateRequestNotification ignored. this.treeId = {}, notification.getTreeId() = {}", this.treeId, asyncCreateRequestNotification.getTreeId());
             }
         } catch (Throwable t) {
             logger.error("Handling createRequestNotification error occur : ", t);
@@ -680,23 +703,24 @@ public class DiskShare extends Share {
     @SuppressWarnings("unused")
     private void createResponseNotification(final AsyncCreateResponseNotification asyncCreateResponseNotification) {
         try {
-            if(notificationHandler != null) {
-                // Preventing the improper use of handler (holding the thread). if holding thread, timeout exception will be throw.
-                boolean shouldHandle = createRequestMessageId.remove(asyncCreateResponseNotification.getMessageId());
-                if(shouldHandle) {
+            // No matter the notificationHandler is set or not. Always try to remove the messageId from the Set.
+            boolean shouldHandle = asyncOperationMessageId.remove(asyncCreateResponseNotification.getMessageId());
+            // Check should this DiskShare handle the create response. If not, just ignore.
+            if (shouldHandle) {
+                if (notificationHandler != null) {
+                    // Preventing the improper use of handler (holding the thread). if holding thread, timeout exception will be throw.
                     // submit to taskQueue only if createRequest is sent out by this DiskShare. Otherwise, ignore it.
                     taskQueue.execute(new Runnable() {
                         @Override
                         public void run() {
-                            notificationHandler.handleAsyncCreateResponseNotification(
-                                asyncCreateResponseNotification);
+                            notificationHandler.handleAsyncCreateResponseNotification(asyncCreateResponseNotification);
                         }
-                    }, notifyExecutor);
-                }else {
-                    logger.debug("asyncCreateResponseNotification ignored. MessageId = " + asyncCreateResponseNotification.getMessageId() + ", is not handled by this.treeId = " + this.treeId);
+                    });
+                } else {
+                    logger.debug("NotificationHandler not exist to handle asyncCreateResponseNotification. On treeId = {}", this.treeId);
                 }
-            }else {
-                logger.debug("NotificationHandler not exist to handle asyncCreateResponseNotification");
+            } else {
+                logger.debug("asyncCreateResponseNotification ignored. MessageId = {}, is not handled by this.treeId = {}", asyncCreateResponseNotification.getMessageId(), this.treeId);
             }
         } catch (Throwable t) {
             logger.error("Handling createResponseNotification error occur : ", t);

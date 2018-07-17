@@ -18,6 +18,7 @@ package com.hierynomus.smbj
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb2.SMB2CreateDisposition
+import com.hierynomus.mssmb2.SMB2FileId
 import com.hierynomus.mssmb2.SMB2OplockLevel
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.mssmb2.SMBApiException
@@ -206,13 +207,7 @@ class SMB2FileIntegrationTest extends Specification {
       @Override
       void handleAsyncCreateResponseNotification(
         AsyncCreateResponseNotification asyncCreateResponseNotification) {
-        def createResponseFuture = asyncCreateResponseNotification.future
-        def createResponse
-        try {
-          createResponse = createResponseFuture.get()
-        } catch (Throwable t) {
-          throw new IllegalStateException("Unable to get create response", t)
-        }
+        def createResponse = asyncCreateResponseNotification.createResponse
         def getPath = messageIdPathMap.remove(createResponse.header.messageId)
         if(getPath == null) {
           System.out.println("Could not find path in map. Should not related to async create, ignored.")
@@ -262,7 +257,7 @@ class SMB2FileIntegrationTest extends Specification {
     def messageIdPathMap = new ConcurrentHashMap<Long, String>()
     // Should call async listener, just using hashmap as dummy in test case
     def messageIdDiskEntryMap = new ConcurrentHashMap<Long, DiskEntry>()
-    def fileIdDiskEntryMap = new ConcurrentHashMap<String, DiskEntry>()
+    def fileIdDiskEntryMap = new ConcurrentHashMap<SMB2FileId, DiskEntry>()
     def succeedBreakToLevel2 = new AtomicBoolean(false)
     def oplockBreakAcknowledgmentResponseSucceed = new AtomicBoolean(false)
     share.setNotificationHandler( new AbstractNotificationHandler() {
@@ -270,13 +265,7 @@ class SMB2FileIntegrationTest extends Specification {
       @Override
       void handleAsyncCreateResponseNotification(
         AsyncCreateResponseNotification asyncCreateResponseNotification) {
-        def createResponseFuture = asyncCreateResponseNotification.future
-        def createResponse
-        try {
-          createResponse = createResponseFuture.get()
-        } catch (Throwable t) {
-          throw new IllegalStateException("Unable to get create response", t)
-        }
+        def createResponse = asyncCreateResponseNotification.createResponse
         def getPath = messageIdPathMap.remove(createResponse.header.messageId)
         if(getPath == null) {
           System.out.println("Could not find path in map. Should not related to async create, ignored.")
@@ -292,14 +281,14 @@ class SMB2FileIntegrationTest extends Specification {
         if(diskEntry != null) {
           // Should call async listener, just calling dummy in test case
           messageIdDiskEntryMap.put(createResponse.header.messageId, diskEntry)
-          fileIdDiskEntryMap.put(diskEntry.fileId.toHexString(), diskEntry)
+          fileIdDiskEntryMap.put(diskEntry.fileId, diskEntry)
         }
       }
 
       @Override
       void handleOplockBreakNotification(OplockBreakNotification oplockBreakNotification) {
         def oplockBreakLevel = oplockBreakNotification.oplockLevel
-        def getDiskEntry = fileIdDiskEntryMap.get(oplockBreakNotification.fileId.toHexString())
+        def getDiskEntry = fileIdDiskEntryMap.get(oplockBreakNotification.fileId)
         if(getDiskEntry == null) {
           throw new IllegalStateException("Unable to get corresponding diskEntry!")
         }

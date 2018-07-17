@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright (C)2016 - SMBJ Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,24 +15,27 @@
  */
 package com.hierynomus.smbj.event;
 
-public abstract class AbstractAsyncNotification implements AsyncNotification {
+public class AsyncRequestMessageIdNotification implements SMBEvent {
 
     private long sessionId;
     private long treeId;
+    private long messageId;
 
-    public AbstractAsyncNotification(long sessionId, long treeId) {
+    public AsyncRequestMessageIdNotification(long sessionId, long treeId, long messageId) {
         this.sessionId = sessionId;
         this.treeId = treeId;
+        this.messageId = messageId;
     }
 
-    @Override
     public long getSessionId() {
         return sessionId;
     }
 
-    @Override
     public long getTreeId() {
         return treeId;
     }
-}
 
+    public long getMessageId() {
+        return messageId;
+    }
+}

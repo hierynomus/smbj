@@ -30,12 +30,12 @@ public abstract class SMB2OplockBreak extends SMB2Packet {
         super();
     }
 
-    protected SMB2OplockBreak(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType, long sessionId) {
-        super(structureSize, dialect, messageType, sessionId);
+    protected SMB2OplockBreak(int structureSize, SMB2Dialect dialect, long sessionId) {
+        super(structureSize, dialect, SMB2MessageCommandCode.SMB2_OPLOCK_BREAK, sessionId);
     }
 
-    protected SMB2OplockBreak(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType, long sessionId, long treeId) {
-        super(structureSize, dialect, messageType, sessionId, treeId);
+    protected SMB2OplockBreak(int structureSize, SMB2Dialect dialect, long sessionId, long treeId) {
+        super(structureSize, dialect, SMB2MessageCommandCode.SMB2_OPLOCK_BREAK, sessionId, treeId);
     }
 
     public SMB2OplockBreakLevel getOplockLevel() {

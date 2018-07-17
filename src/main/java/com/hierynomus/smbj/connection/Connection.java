@@ -34,15 +34,16 @@ import com.hierynomus.smbj.auth.AuthenticateResponse;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.common.SMBRuntimeException;
-import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.event.AsyncCreateRequestNotification;
 import com.hierynomus.smbj.event.AsyncCreateResponseNotification;
+import com.hierynomus.smbj.event.AsyncRequestMessageIdNotification;
 import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.OplockBreakNotification;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.event.handler.MessageIdCallback;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.spnego.NegTokenInit;
 import com.hierynomus.spnego.SpnegoException;
 import net.engio.mbassy.listener.Handler;
@@ -88,24 +89,25 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
 
     private SmbConfig config;
     private TransportLayer<SMBPacket<?>> transport;
-    private final SMBEventBus bus;
+    private final SMBEventBus clientGlobalBus;
+    private final SMBEventBus connectionPrivateBus = new SMBEventBus();
     private final ReentrantLock lock = new ReentrantLock();
     private int remotePort;
 
-    public Connection(SmbConfig config, SMBClient client, SMBEventBus bus) {
+    public Connection(SmbConfig config, SMBClient client, SMBEventBus clientGlobalBus) {
         this.config = config;
         this.client = client;
         this.transport = config.getTransportLayerFactory().createTransportLayer(new PacketHandlers<>(new SMBPacketSerializer(), this, converter), config);
-        this.bus = bus;
-        bus.subscribe(this);
+        this.clientGlobalBus = clientGlobalBus;
+        connectionPrivateBus.subscribe(this);
     }
 
     public Connection(Connection connection) {
         this.client = connection.client;
         this.config = connection.config;
         this.transport = connection.transport;
-        this.bus = connection.bus;
-        bus.subscribe(this);
+        this.clientGlobalBus = connection.clientGlobalBus;
+        connectionPrivateBus.subscribe(this);
     }
 
     public void connect(String hostname, int port) throws IOException {
@@ -147,7 +149,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
         } finally {
             transport.disconnect();
             logger.info("Closed connection to {}", getRemoteHostname());
-            bus.publish(new ConnectionClosed(remoteName, remotePort));
+            clientGlobalBus.publish(new ConnectionClosed(remoteName, remotePort));
         }
     }
 
@@ -205,7 +207,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
     }
 
     private Session getSession(AuthenticationContext authContext) {
-        return new Session(this, authContext, bus, client.getPathResolver(), config.getSecurityProvider());
+        return new Session(this, authContext, connectionPrivateBus, client.getPathResolver(), config.getSecurityProvider());
     }
 
     private byte[] processAuthenticationToken(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {
@@ -287,12 +289,20 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
 
             long messageId = packet.getHeader().getMessageId();
 
-            if(messageIdCallback != null) {
+            if (messageIdCallback != null) {
                 messageIdCallback.callback(messageId);
             }
 
-            if(packet.getHeader().getMessage() == SMB2MessageCommandCode.SMB2_CREATE) {
-                bus.publish(new AsyncCreateRequestNotification(
+            if (DiskShare.asyncSupport.contains(packet.getHeader().getMessage())) {
+                connectionPrivateBus.publish(new AsyncRequestMessageIdNotification(
+                    packet.getHeader().getSessionId(),
+                    packet.getHeader().getTreeId(),
+                    messageId)
+                );
+            }
+
+            if (packet.getHeader().getMessage() == SMB2MessageCommandCode.SMB2_CREATE) {
+                connectionPrivateBus.publish(new AsyncCreateRequestNotification(
                     packet.getHeader().getSessionId(),
                     packet.getHeader().getTreeId(),
                     messageId)
@@ -407,10 +417,10 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
             // If the MessageId field of the SMB2 header of the response is 0xFFFFFFFFFFFFFFFF,
             // this MUST be
             // processed as an oplock break indication.
-            if(packet instanceof SMB2OplockBreakNotification) {
+            if (packet instanceof SMB2OplockBreakNotification) {
                 SMB2OplockBreakNotification oplockBreakNotification = (SMB2OplockBreakNotification)packet;
                 logger.debug("Received SMB2OplockBreakNotification Packet for FileId {} with {}", oplockBreakNotification.getFileId(), oplockBreakNotification.getOplockLevel());
-                bus.publish(new OplockBreakNotification(
+                connectionPrivateBus.publish(new OplockBreakNotification(
                     oplockBreakNotification.getOplockLevel(),
                     oplockBreakNotification.getFileId()
                 ));
@@ -457,11 +467,9 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
         }
 
         // Handing case for Oplock/Lease related issue
-        if(packet instanceof SMB2CreateResponse) {
+        if (packet instanceof SMB2CreateResponse) {
             SMB2CreateResponse smb2CreateResponse = (SMB2CreateResponse)packet;
-            bus.publish(new AsyncCreateResponseNotification(
-                smb2CreateResponse.getHeader().getSessionId(),
-                smb2CreateResponse.getHeader().getTreeId(),
+            connectionPrivateBus.publish(new AsyncCreateResponseNotification(
                 messageId,
                 smb2CreateResponse.getFileId(),
                 smb2CreateResponse)

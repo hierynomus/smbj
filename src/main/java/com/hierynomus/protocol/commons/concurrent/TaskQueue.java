@@ -13,108 +13,69 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/*
- * Copyright (c) 2011-2017 Contributors to the Eclipse Foundation
- *
- * This program and the accompanying materials are made available under the
- * terms of the Eclipse Public License 2.0 which is available at
- * http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
- * which is available at https://www.apache.org/licenses/LICENSE-2.0.
- *
- * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
- */
-// Modified: Changed the package
 package com.hierynomus.protocol.commons.concurrent;
 
-// Modified: Changed Logger
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.LinkedList;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * A task queue that always run all tasks in order. The executor to run the tasks is passed when
- * the tasks when the tasks are executed, this executor is not guaranteed to be used, as if several
- * tasks are queued, the original thread will be used.
- *
- * More specifically, any call B to the {@link #execute(Runnable, Executor)} method that happens-after another call A to the
- * same method, will result in B's task running after A's.
- *
- * @author <a href="david.lloyd@jboss.com">David Lloyd</a>
- * @author <a href="mailto:tim.fox@jboss.com">Tim Fox</a>
- * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
- */
-public class TaskQueue {
+public class TaskQueue implements Executor {
 
-    // Modified: Changed Logger
-    static final Logger log = LoggerFactory.getLogger(TaskQueue.class);
+    private final Logger logger;
+    private final Executor executor;
 
-    private static class Task {
+    private final ConcurrentLinkedDeque<Runnable> queue = new ConcurrentLinkedDeque<>();
+    private final AtomicBoolean isIdle = new AtomicBoolean(true);
 
-        private final Runnable runnable;
-        private final Executor exec;
+    public TaskQueue(Executor executor) {
+        this(executor, LoggerFactory.getLogger(TaskQueue.class));
+    }
 
-        public Task(Runnable runnable, Executor exec) {
-            this.runnable = runnable;
-            this.exec = exec;
+    public TaskQueue(Executor executor, Logger logger) {
+        this.executor = executor;
+        this.logger = logger;
+    }
+
+    private synchronized void taskFinished() {
+        final Runnable nextTask = queue.poll();
+        if (nextTask != null) {
+            try {
+                executor.execute(nextTask);
+            } catch (Throwable t) {
+                logger.error("Caught unexpected Throwable", t);
+            } finally {
+                taskFinished();
+            }
+        } else {
+            // the last task in queue is finished
+            isIdle.compareAndSet(false, true);
         }
     }
 
-    // @protectedby tasks
-    private final LinkedList<Task> tasks = new LinkedList<>();
+    @Override
+    public synchronized void execute(final Runnable command) {
+        if (command == null) {
+            throw new NullPointerException("adding null task to task queue!");
+        }
 
-    // @protectedby tasks
-    private Executor current;
-
-    private final Runnable runner;
-
-    public TaskQueue() {
-        // Modified: Changed from Java 8 Lambda Sytle to Java 7 Style
-        runner = new Runnable() {
+        final Runnable customTask = new Runnable() {
             @Override
             public void run() {
-                TaskQueue.this.run();
+                try {
+                    command.run();
+                } catch (Throwable ignored) {
+                    logger.error("Caught unexpected Throwable", ignored);
+                }
+                taskFinished();
             }
         };
-    }
 
-    private void run() {
-        for (; ; ) {
-            final Task task;
-            synchronized (tasks) {
-                task = tasks.poll();
-                if (task == null) {
-                    current = null;
-                    return;
-                }
-                if (task.exec != current) {
-                    tasks.addFirst(task);
-                    task.exec.execute(runner);
-                    current = task.exec;
-                    return;
-                }
-            }
-            try {
-                task.runnable.run();
-            } catch (Throwable t) {
-                log.error("Caught unexpected Throwable", t);
-            }
-        }
-    };
-
-    /**
-     * Run a task.
-     *
-     * @param task the task to run.
-     */
-    public void execute(Runnable task, Executor executor) {
-        synchronized (tasks) {
-            tasks.add(new Task(task, executor));
-            if (current == null) {
-                current = executor;
-                executor.execute(runner);
-            }
+        queue.add(customTask);
+        if (isIdle.compareAndSet(true, false)) {
+            executor.execute(queue.poll());
         }
     }
 }

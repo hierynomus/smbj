@@ -45,7 +45,7 @@ public class SMBClient implements Closeable {
 
     private SmbConfig config;
 
-    private SMBEventBus bus;
+    private SMBEventBus clientGlobalBus;
     private PathResolver pathResolver;
 
     public SMBClient() {
@@ -56,10 +56,10 @@ public class SMBClient implements Closeable {
         this(config, new SMBEventBus());
     }
 
-    public SMBClient(SmbConfig config, SMBEventBus bus) {
+    public SMBClient(SmbConfig config, SMBEventBus clientGlobalBus) {
         this.config = config;
-        this.bus = bus;
-        bus.subscribe(this);
+        this.clientGlobalBus = clientGlobalBus;
+        clientGlobalBus.subscribe(this);
         this.pathResolver = new SymlinkPathResolver(PathResolver.LOCAL);
         if (config.isDfsEnabled()) {
             this.pathResolver = new DFSPathResolver(this.pathResolver);
@@ -98,7 +98,7 @@ public class SMBClient implements Closeable {
             String hostPort = hostname + ":" + port;
             Connection cachedConnection = connectionTable.get(hostPort);
             if (cachedConnection == null || !cachedConnection.isConnected()) {
-                Connection connection = new Connection(config, this, bus);
+                Connection connection = new Connection(config, this, clientGlobalBus);
                 try {
                     connection.connect(hostname, port);
                 } catch (IOException e) {

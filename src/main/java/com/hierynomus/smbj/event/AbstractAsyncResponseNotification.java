@@ -15,21 +15,15 @@
  */
 package com.hierynomus.smbj.event;
 
-import com.hierynomus.smbj.common.SmbPath;
-
-/***
- * Event for notifying the messageId to DiskShare Notification Handler
- */
-public class AsyncCreateRequestNotification extends AbstractAsyncRequestNotification
-    implements SMBEvent {
+public abstract class AbstractAsyncResponseNotification implements AsyncResponseNotification {
 
     private long messageId;
 
-    public AsyncCreateRequestNotification(long sessionId, long treeId, long messageId) {
-        super(sessionId, treeId);
+    public AbstractAsyncResponseNotification(long messageId) {
         this.messageId = messageId;
     }
 
+    @Override
     public long getMessageId() {
         return messageId;
     }

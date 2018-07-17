@@ -27,7 +27,7 @@ import com.hierynomus.smb.SMBBuffer;
 public class SMB2OplockBreakAcknowledgment extends SMB2OplockBreak {
 
     public SMB2OplockBreakAcknowledgment(SMB2Dialect negotiatedDialect, long sessionId, long treeId, SMB2OplockBreakLevel oplockLevel, SMB2FileId fileId) {
-        super(24, negotiatedDialect, SMB2MessageCommandCode.SMB2_OPLOCK_BREAK, sessionId, treeId);
+        super(24, negotiatedDialect, sessionId, treeId);
         this.oplockLevel = oplockLevel;
         this.fileId = fileId;
     }
