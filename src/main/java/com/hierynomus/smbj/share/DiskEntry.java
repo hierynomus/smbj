@@ -49,7 +49,7 @@ public abstract class DiskEntry implements Closeable {
         return fileId;
     }
 
-    public FileAllInformation getFileInformation() throws SMBApiException, TransportException {
+    public FileAllInformation getFileInformation() throws SMBApiException {
         return getFileInformation(FileAllInformation.class);
     }
 

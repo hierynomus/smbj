@@ -71,14 +71,10 @@ public class AsyncDirectTcpTransport<P extends Packet<?>> implements TransportLa
     public void write(P packet) throws TransportException {
         ByteBuffer bufferToSend = prepareBufferToSend(packet); // Serialize first, as it might throw
         logger.trace("Sending packet << {} >>", packet);
-        try {
-            writeOrEnqueue(bufferToSend);
-        } catch (IOException ioe) {
-            throw TransportException.Wrapper.wrap(ioe);
-        }
+        writeOrEnqueue(bufferToSend);
     }
 
-    private void writeOrEnqueue(ByteBuffer buffer) throws IOException {
+    private void writeOrEnqueue(ByteBuffer buffer) {
         synchronized (this) {
             writeQueue.add(buffer);
             if (!writingNow.getAndSet(true)) {

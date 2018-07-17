@@ -94,7 +94,7 @@ class StubSmbServer {
     byte[] b = new byte[4]
     int read = IOUtils.read(inputStream, b)
     if (read < b.length) {
-      return -1;
+      return -1
     }
     Buffer.PlainBuffer plainBuffer = new Buffer.PlainBuffer(b, Endian.BE)
     plainBuffer.readByte() // Ignore first byte

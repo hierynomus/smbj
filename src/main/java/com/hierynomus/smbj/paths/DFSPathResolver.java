@@ -54,7 +54,7 @@ public class DFSPathResolver implements PathResolver {
         DC,
         SYSVOL,
         ROOT,
-        LINK;
+        LINK
     }
 
     private ReferralCache referralCache = new ReferralCache();

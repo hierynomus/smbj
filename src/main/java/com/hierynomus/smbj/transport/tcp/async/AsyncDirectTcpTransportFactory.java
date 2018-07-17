@@ -40,7 +40,7 @@ public class AsyncDirectTcpTransportFactory<P extends Packet<?>> implements Tran
     }
 
     public AsyncDirectTcpTransportFactory() {
-        this((AsynchronousChannelGroup) DEFAULT_CHANNEL_GROUP);
+        this(DEFAULT_CHANNEL_GROUP);
     }
 
     public AsyncDirectTcpTransportFactory(ExecutorService executor) {

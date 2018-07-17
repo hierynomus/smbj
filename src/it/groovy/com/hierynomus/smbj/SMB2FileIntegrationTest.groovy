@@ -142,10 +142,10 @@ class SMB2FileIntegrationTest extends Specification {
     when:
     def ostream = file.getOutputStream(new LoggingProgressListener())
     try {
-      byte[] buffer = new byte[4096];
-      int len;
+      byte[] buffer = new byte[4096]
+      int len
       while ((len = istream.read(buffer)) != -1) {
-        ostream.write(buffer, 0, len);
+        ostream.write(buffer, 0, len)
       }
     } finally {
       istream.close()

@@ -125,7 +125,7 @@ public class SMBClient implements Closeable {
     private static final Logger log = LoggerFactory.getLogger(SMBClient.class);
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         log.info("Going to close all remaining connections");
         for (Connection connection : connectionTable.values()) {
             try {

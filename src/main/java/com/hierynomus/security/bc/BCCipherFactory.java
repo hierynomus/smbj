@@ -79,7 +79,7 @@ public class BCCipherFactory {
         }
 
         @Override
-        public int update(byte[] in, int inOff, int bytes, byte[] out, int outOff) throws SecurityException {
+        public int update(byte[] in, int inOff, int bytes, byte[] out, int outOff) {
             return wrappedCipher.processBytes(in, inOff, bytes, out, outOff);
         }
 
@@ -108,19 +108,19 @@ public class BCCipherFactory {
         }
 
         @Override
-        public void init(CryptMode cryptMode, byte[] bytes) throws SecurityException {
+        public void init(CryptMode cryptMode, byte[] bytes) {
             streamCipher.init(cryptMode == CryptMode.ENCRYPT, createParams(bytes));
         }
 
         protected abstract CipherParameters createParams(byte[] key);
 
         @Override
-        public int update(byte[] in, int inOff, int bytes, byte[] out, int outOff) throws SecurityException {
+        public int update(byte[] in, int inOff, int bytes, byte[] out, int outOff) {
             return streamCipher.processBytes(in, inOff, bytes, out, outOff);
         }
 
         @Override
-        public int doFinal(byte[] out, int outOff) throws SecurityException {
+        public int doFinal(byte[] out, int outOff) {
             streamCipher.reset();
             return 0;
         }
