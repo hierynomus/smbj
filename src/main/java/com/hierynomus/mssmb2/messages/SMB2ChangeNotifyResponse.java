@@ -52,8 +52,8 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
      * @return
      */
     @Override
-    protected boolean isSuccess(NtStatus status) {
-        return super.isSuccess(status) || status == NtStatus.STATUS_NOTIFY_ENUM_DIR;
+    protected boolean isSuccess(long status) {
+        return super.isSuccess(status) || status == NtStatus.STATUS_NOTIFY_ENUM_DIR.getValue();
     }
 
     private List<FileNotifyInfo> readFileNotifyInfo(SMBBuffer buffer, int outputBufferOffset)

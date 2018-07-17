@@ -106,7 +106,7 @@ public class SMB2Packet extends SMBPacket<SMB2Header> {
         this.buffer = buffer; // remember the buffer we read it from
         this.messageStartPos = buffer.rpos();
         header.readFrom(buffer);
-        if (isSuccess(header.getStatus())) {
+        if (isSuccess(header.getStatusCode())) {
             readMessage(buffer);
         } else {
             readError(buffer);
@@ -134,15 +134,15 @@ public class SMB2Packet extends SMBPacket<SMB2Header> {
      * @param status The status to verify
      * @return {@code true} is {@link NtStatus#isSuccess()}
      */
-    protected boolean isSuccess(NtStatus status) {
-        return status.isSuccess() && status != NtStatus.STATUS_PENDING;
+    protected boolean isSuccess(long statusCode) {
+        return NtStatus.isSuccess(statusCode) && statusCode != NtStatus.STATUS_PENDING.getValue();
     }
 
     /**
      * Check whether this packet is an intermediate ASYNC response
      */
     public boolean isIntermediateAsyncResponse() {
-        return isSet(header.getFlags(), SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND) && header.getStatus() == NtStatus.STATUS_PENDING;
+        return isSet(header.getFlags(), SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND) && header.getStatusCode() == NtStatus.STATUS_PENDING.getValue();
     }
 
     /**

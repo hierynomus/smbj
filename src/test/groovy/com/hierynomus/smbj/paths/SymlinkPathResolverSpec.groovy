@@ -64,7 +64,7 @@ class SymlinkPathResolverSpec extends Specification {
     def resp = Stub(SMB2CreateResponse) {
       getError() >> error
       getHeader() >> Stub(SMB2Header) {
-        getStatus() >> NtStatus.STATUS_STOPPED_ON_SYMLINK
+        getStatusCode() >> NtStatus.STATUS_STOPPED_ON_SYMLINK.value
       }
     }
     resp

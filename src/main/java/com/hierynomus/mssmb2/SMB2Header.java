@@ -41,7 +41,6 @@ public class SMB2Header implements SMBHeader {
     private long asyncId;
     private long sessionId;
     private long treeId;
-    private NtStatus status;
     private long statusCode;
     private long flags;
     private long nextCommandOffset; // TODO Message Compounding
@@ -164,8 +163,7 @@ public class SMB2Header implements SMBHeader {
         buffer.skip(4); // ProtocolId (4 bytes) (already verified)
         buffer.skip(2); // StructureSize (2 bytes)
         buffer.readUInt16(); // CreditCharge (2 bytes)
-        statusCode = buffer.readUInt32();
-        status = EnumUtils.valueOf(statusCode, NtStatus.class, NtStatus.UNKNOWN); // Status (4 bytes)
+        statusCode = buffer.readUInt32(); // Status (4 bytes)
         message = SMB2MessageCommandCode.lookup(buffer.readUInt16()); // Command (2 bytes)
         creditResponse = buffer.readUInt16(); // CreditRequest/CreditResponse (2 bytes)
         flags = buffer.readUInt32(); // Flags (4 bytes)
@@ -181,13 +179,8 @@ public class SMB2Header implements SMBHeader {
         signature = buffer.readRawBytes(16); // Signature (16 bytes)
     }
 
-    public void setStatus(NtStatus status) {
-        this.status = status;
-        this.statusCode = status.getValue();
-    }
-
-    public NtStatus getStatus() {
-        return status;
+    public void setStatusCode(long statusCode) {
+        this.statusCode = statusCode;
     }
 
     public long getStatusCode() {

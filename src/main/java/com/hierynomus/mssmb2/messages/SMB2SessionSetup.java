@@ -81,8 +81,8 @@ public class SMB2SessionSetup extends SMB2Packet {
      * @return
      */
     @Override
-    protected boolean isSuccess(NtStatus status) {
-        return super.isSuccess(status) || status == NtStatus.STATUS_MORE_PROCESSING_REQUIRED;
+    protected boolean isSuccess(long status) {
+        return super.isSuccess(status) || status == NtStatus.STATUS_MORE_PROCESSING_REQUIRED.getValue();
     }
 
     private byte[] readSecurityBuffer(SMBBuffer buffer, int securityBufferOffset, int securityBufferLength) throws Buffer.BufferException {

@@ -29,6 +29,9 @@ import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import static com.hierynomus.mserref.NtStatus.STATUS_IO_TIMEOUT;
+import static com.hierynomus.mserref.NtStatus.STATUS_SUCCESS;
+
 public class PipeShare extends Share {
     private static final int FSCTL_PIPE_WAIT = 0x00110018;
 
@@ -78,14 +81,13 @@ public class PipeShare extends Share {
 
         SMB2IoctlResponse response = receive(responseFuture, timeoutMs);
 
-        NtStatus status = response.getHeader().getStatus();
-        switch (status) {
-            case STATUS_SUCCESS:
-                return true;
-            case STATUS_IO_TIMEOUT:
-                return false;
-            default:
-                throw new SMBApiException(response.getHeader(), "Error while waiting for pipe " + name);
+        long status = response.getHeader().getStatusCode();
+        if (status == STATUS_SUCCESS.getValue()) {
+            return true;
+        } else if (status == STATUS_IO_TIMEOUT.getValue()) {
+            return false;
+        } else {
+            throw new SMBApiException(response.getHeader(), "Error while waiting for pipe " + name);
         }
     }
 
