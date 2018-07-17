@@ -19,15 +19,15 @@ import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
+import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2TreeDisconnect;
 import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.mssmb2.SMBApiException;
+import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.TreeDisconnected;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.protocol.transport.TransportException;
 
 import java.util.Set;
 import java.util.concurrent.Future;

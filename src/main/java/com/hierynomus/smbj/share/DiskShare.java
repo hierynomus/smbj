@@ -18,7 +18,6 @@ package com.hierynomus.smbj.share;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SecurityDescriptor;
 import com.hierynomus.msdtyp.SecurityInformation;
-import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.FileSystemInformationClass;
 import com.hierynomus.msfscc.fileinformation.*;
@@ -52,8 +51,8 @@ import static com.hierynomus.mssmb2.SMB2CreateOptions.FILE_DIRECTORY_FILE;
 import static com.hierynomus.mssmb2.SMB2CreateOptions.FILE_NON_DIRECTORY_FILE;
 import static com.hierynomus.mssmb2.SMB2ShareAccess.*;
 import static com.hierynomus.mssmb2.messages.SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_SECURITY;
-import static java.util.EnumSet.of;
 import static java.util.EnumSet.noneOf;
+import static java.util.EnumSet.of;
 
 public class DiskShare extends Share {
     private final PathResolver resolver;

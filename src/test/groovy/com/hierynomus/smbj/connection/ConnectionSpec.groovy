@@ -17,7 +17,6 @@ package com.hierynomus.smbj.connection
 
 import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb2.SMBApiException
-import com.hierynomus.mssmb2.messages.SMB2CreateRequest
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse

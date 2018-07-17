@@ -24,9 +24,7 @@ import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.StatusHandler;
 
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 
 import static com.hierynomus.utils.Strings.join;
 import static com.hierynomus.utils.Strings.split;

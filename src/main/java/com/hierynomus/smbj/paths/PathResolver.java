@@ -15,14 +15,10 @@
  */
 package com.hierynomus.smbj.paths;
 
-import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.StatusHandler;
-
-import java.util.EnumSet;
-import java.util.Set;
 
 public interface PathResolver {
     PathResolver LOCAL = new PathResolver() {

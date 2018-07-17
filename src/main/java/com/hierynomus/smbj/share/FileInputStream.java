@@ -19,14 +19,13 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.smbj.ProgressListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.EnumSet;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 

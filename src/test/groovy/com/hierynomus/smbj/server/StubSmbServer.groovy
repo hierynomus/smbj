@@ -20,13 +20,10 @@ import com.hierynomus.protocol.commons.buffer.Buffer
 import com.hierynomus.protocol.commons.buffer.Endian
 import com.hierynomus.smb.SMBBuffer
 import org.apache.commons.io.IOUtils
-import org.codehaus.groovy.runtime.IOGroovyMethods
 import org.slf4j.LoggerFactory
 
-import javax.net.ssl.SSLServerSocket
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
-import java.util.logging.Logger
 
 class StubSmbServer {
   private static final def logger = LoggerFactory.getLogger(StubSmbServer.class)

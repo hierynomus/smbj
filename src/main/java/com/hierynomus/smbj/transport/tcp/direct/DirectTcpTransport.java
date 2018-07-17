@@ -19,9 +19,9 @@ import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.socket.ProxySocketFactory;
 import com.hierynomus.protocol.transport.PacketHandlers;
-import com.hierynomus.smbj.transport.PacketReader;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.protocol.transport.TransportLayer;
+import com.hierynomus.smbj.transport.PacketReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

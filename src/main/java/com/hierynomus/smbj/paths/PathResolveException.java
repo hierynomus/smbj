@@ -16,7 +16,6 @@
 package com.hierynomus.smbj.paths;
 
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.protocol.commons.EnumWithValue;
 
 public class PathResolveException extends Exception {
     private final long status;

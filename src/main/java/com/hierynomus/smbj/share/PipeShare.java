@@ -16,7 +16,6 @@
 package com.hierynomus.smbj.share;
 
 import com.hierynomus.msdtyp.AccessMask;
-import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.fsctl.FsCtlPipeWaitRequest;
 import com.hierynomus.mssmb2.*;

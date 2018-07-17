@@ -15,7 +15,6 @@
  */
 package com.hierynomus.msdfsc;
 
-import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.smbj.paths.PathResolveException;
 
 public class DFSException extends PathResolveException {
