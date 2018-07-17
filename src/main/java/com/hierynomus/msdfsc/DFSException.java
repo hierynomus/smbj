@@ -15,15 +15,14 @@
  */
 package com.hierynomus.msdfsc;
 
-import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.smbj.paths.PathResolveException;
 
 public class DFSException extends PathResolveException {
-    public DFSException(NtStatus status, String message) {
+    public DFSException(long status, String message) {
         super(status, message);
     }
 
-    public DFSException(NtStatus status) {
+    public DFSException(long status) {
         super(status);
     }
 

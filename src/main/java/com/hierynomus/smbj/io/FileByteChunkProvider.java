@@ -15,8 +15,6 @@
  */
 package com.hierynomus.smbj.io;
 
-import com.hierynomus.smbj.common.SMBRuntimeException;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;

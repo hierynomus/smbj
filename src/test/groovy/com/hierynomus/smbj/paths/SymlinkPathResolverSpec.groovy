@@ -17,7 +17,6 @@ package com.hierynomus.smbj.paths
 
 import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb2.SMB2Error
-import com.hierynomus.mssmb2.SMB2Functions
 import com.hierynomus.mssmb2.SMB2Header
 import com.hierynomus.mssmb2.messages.SMB2CreateResponse
 import com.hierynomus.smbj.common.SmbPath
@@ -64,7 +63,7 @@ class SymlinkPathResolverSpec extends Specification {
     def resp = Stub(SMB2CreateResponse) {
       getError() >> error
       getHeader() >> Stub(SMB2Header) {
-        getStatus() >> NtStatus.STATUS_STOPPED_ON_SYMLINK
+        getStatusCode() >> NtStatus.STATUS_STOPPED_ON_SYMLINK.value
       }
     }
     resp

@@ -19,9 +19,9 @@ import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.protocol.transport.PacketFactory;
-import com.hierynomus.smbj.transport.PacketReader;
 import com.hierynomus.protocol.transport.PacketReceiver;
 import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.smbj.transport.PacketReader;
 
 import java.io.EOFException;
 import java.io.IOException;

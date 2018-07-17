@@ -78,9 +78,10 @@ public class SMB2Error {
      * @throws Buffer.BufferException
      */
     private void readErrorData(SMB2Header header, SMBBuffer buffer) throws Buffer.BufferException {
-        if (header.getStatus() == NtStatus.STATUS_BUFFER_TOO_SMALL) {
+        long statusCode = header.getStatusCode();
+        if (statusCode == NtStatus.STATUS_BUFFER_TOO_SMALL.getValue()) {
             this.errorData.add(new BufferTooSmallError().read(buffer));
-        } else if (header.getStatus() == NtStatus.STATUS_STOPPED_ON_SYMLINK) {
+        } else if (statusCode == NtStatus.STATUS_STOPPED_ON_SYMLINK.getValue()) {
             this.errorData.add(new SymbolicLinkError().read(buffer));
         }
     }

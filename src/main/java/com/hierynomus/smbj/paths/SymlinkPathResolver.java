@@ -22,30 +22,33 @@ import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.share.StatusHandler;
 
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 
 import static com.hierynomus.utils.Strings.join;
 import static com.hierynomus.utils.Strings.split;
 
 public class SymlinkPathResolver implements PathResolver {
     private PathResolver wrapped;
-    private Set<NtStatus> states;
+    private StatusHandler statusHandler;
 
-    public SymlinkPathResolver(PathResolver wrapped) {
+    public SymlinkPathResolver(final PathResolver wrapped) {
         this.wrapped = wrapped;
-        this.states = EnumSet.copyOf(wrapped.handledStates());
-        this.states.add(NtStatus.STATUS_STOPPED_ON_SYMLINK);
+        this.statusHandler = new StatusHandler() {
+            @Override
+            public boolean isSuccess(long statusCode) {
+                return statusCode == NtStatus.STATUS_STOPPED_ON_SYMLINK.getValue() || wrapped.statusHandler().isSuccess(statusCode);
+            }
+        };
     }
 
     @Override
     public SmbPath resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath) throws PathResolveException {
-        if (responsePacket.getHeader().getStatus() == NtStatus.STATUS_STOPPED_ON_SYMLINK) {
+        if (responsePacket.getHeader().getStatusCode() == NtStatus.STATUS_STOPPED_ON_SYMLINK.getValue()) {
             SMB2Error.SymbolicLinkError symlinkData = getSymlinkErrorData(responsePacket.getError());
             if (symlinkData == null) {
-                throw new PathResolveException(responsePacket.getHeader().getStatus(), "Create failed for " + smbPath + ": missing symlink data");
+                throw new PathResolveException(responsePacket.getHeader().getStatusCode(), "Create failed for " + smbPath + ": missing symlink data");
             }
             String target = resolveSymlinkTarget(smbPath.getPath(), symlinkData);
             return new SmbPath(smbPath.getHostname(), smbPath.getShareName(), target);
@@ -55,8 +58,8 @@ public class SymlinkPathResolver implements PathResolver {
     }
 
     @Override
-    public Set<NtStatus> handledStates() {
-        return EnumSet.copyOf(states);
+    public StatusHandler statusHandler() {
+        return statusHandler;
     }
 
     private static SMB2Error.SymbolicLinkError getSymlinkErrorData(SMB2Error error) {

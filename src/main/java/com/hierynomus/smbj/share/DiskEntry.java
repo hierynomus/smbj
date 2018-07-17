@@ -17,11 +17,7 @@ package com.hierynomus.smbj.share;
 
 import com.hierynomus.msdtyp.SecurityDescriptor;
 import com.hierynomus.msdtyp.SecurityInformation;
-import com.hierynomus.msfscc.fileinformation.FileAllInformation;
-import com.hierynomus.msfscc.fileinformation.FileLinkInformation;
-import com.hierynomus.msfscc.fileinformation.FileQueryableInformation;
-import com.hierynomus.msfscc.fileinformation.FileRenameInformation;
-import com.hierynomus.msfscc.fileinformation.FileSettableInformation;
+import com.hierynomus.msfscc.fileinformation.*;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.protocol.transport.TransportException;

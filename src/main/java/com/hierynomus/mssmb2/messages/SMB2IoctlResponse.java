@@ -68,8 +68,8 @@ public class SMB2IoctlResponse extends SMB2Packet {
      * @return
      */
     @Override
-    protected boolean isSuccess(NtStatus status) {
-        return super.isSuccess(status) || status == NtStatus.STATUS_BUFFER_OVERFLOW || status == NtStatus.STATUS_INVALID_PARAMETER;
+    protected boolean isSuccess(long status) {
+        return super.isSuccess(status) || status == NtStatus.STATUS_BUFFER_OVERFLOW.getValue() || status == NtStatus.STATUS_INVALID_PARAMETER.getValue();
     }
 
     public byte[] getOutputBuffer() {

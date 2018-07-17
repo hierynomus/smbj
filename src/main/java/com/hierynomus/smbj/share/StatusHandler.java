@@ -13,32 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.paths;
+package com.hierynomus.smbj.share;
 
 import com.hierynomus.mserref.NtStatus;
 
-public class PathResolveException extends Exception {
-    private final long status;
+public interface StatusHandler {
+    StatusHandler SUCCESS = new StatusHandler() {
+        @Override
+        public boolean isSuccess(long statusCode) {
+            return statusCode == NtStatus.STATUS_SUCCESS.getValue();
+        }
+    };
 
-    public PathResolveException(long status) {
-        this.status = status;
-    }
-
-    public PathResolveException(long status, String message) {
-        super(message);
-        this.status = status;
-    }
-
-    public PathResolveException(Throwable cause) {
-        super(cause);
-        this.status = NtStatus.STATUS_OTHER.getValue();
-    }
-
-    public long getStatusCode() {
-        return status;
-    }
-
-    public NtStatus getStatus() {
-        return NtStatus.valueOf(status);
-    }
+    boolean isSuccess(long statusCode);
 }

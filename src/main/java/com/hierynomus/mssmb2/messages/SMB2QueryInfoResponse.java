@@ -46,8 +46,8 @@ public class SMB2QueryInfoResponse extends SMB2Packet {
      * @return
      */
     @Override
-    protected boolean isSuccess(NtStatus status) {
-        return super.isSuccess(status) || status == NtStatus.STATUS_BUFFER_OVERFLOW;
+    protected boolean isSuccess(long status) {
+        return super.isSuccess(status) || status == NtStatus.STATUS_BUFFER_OVERFLOW.getValue();
     }
 
     public byte[] getOutputBuffer() {

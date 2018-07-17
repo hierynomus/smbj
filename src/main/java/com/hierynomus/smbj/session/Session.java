@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.session;
 
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.SMBApiException;
@@ -166,7 +167,7 @@ public class Session implements AutoCloseable {
                 // Ignored
             }
 
-            if (response.getHeader().getStatus().isError()) {
+            if (NtStatus.isError(response.getHeader().getStatusCode())) {
                 logger.debug(response.getHeader().toString());
                 throw new SMBApiException(response.getHeader(), "Could not connect to " + smbPath);
             }
@@ -236,7 +237,7 @@ public class Session implements AutoCloseable {
             }
             SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
             SMB2Logoff response = Futures.get(this.<SMB2Logoff>send(logoff), connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
-            if (!response.getHeader().getStatus().isSuccess()) {
+            if (!NtStatus.isSuccess(response.getHeader().getStatusCode())) {
                 throw new SMBApiException(response.getHeader(), "Could not logoff session <<" + sessionId + ">>");
             }
         } finally {
