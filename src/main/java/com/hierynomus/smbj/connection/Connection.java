@@ -227,7 +227,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
         return sendAndReceive(req);
     }
 
-    private Authenticator getAuthenticator(AuthenticationContext context) throws IOException, SpnegoException {
+    private Authenticator getAuthenticator(AuthenticationContext context) throws SpnegoException {
         List<Factory.Named<Authenticator>> supportedAuthenticators = new ArrayList<>(config.getSupportedAuthenticators());
         List<ASN1ObjectIdentifier> mechTypes = new ArrayList<>();
         if (connectionInfo.getGssNegotiateToken().length > 0) {

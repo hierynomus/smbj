@@ -83,19 +83,19 @@ class FileInputStream extends InputStream {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         isClosed = true;
         file = null;
         buf = null;
     }
 
     @Override
-    public int available() throws IOException {
+    public int available() {
         return 0;
     }
 
     @Override
-    public long skip(long n) throws IOException {
+    public long skip(long n) {
         if (buf == null) {
             offset += n;
         } else if (curr + n < buf.length) {
@@ -140,7 +140,7 @@ class FileInputStream extends InputStream {
         nextResponse = sendRequest();
     }
 
-    private Future<SMB2ReadResponse> sendRequest() throws IOException {
+    private Future<SMB2ReadResponse> sendRequest() {
         return file.readAsync(offset, bufferSize);
     }
 }

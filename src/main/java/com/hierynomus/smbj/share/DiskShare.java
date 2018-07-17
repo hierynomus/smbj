@@ -262,7 +262,7 @@ public class DiskShare extends Share {
     /**
      * Get information for a given fileId
      **/
-    public FileAllInformation getFileInformation(SMB2FileId fileId) throws SMBApiException, TransportException {
+    public FileAllInformation getFileInformation(SMB2FileId fileId) throws SMBApiException {
         return getFileInformation(fileId, FileAllInformation.class);
     }
 

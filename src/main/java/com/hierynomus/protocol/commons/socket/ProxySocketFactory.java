@@ -54,7 +54,7 @@ public class ProxySocketFactory extends SocketFactory {
     }
 
     @Override
-    public Socket createSocket() throws IOException {
+    public Socket createSocket() {
         return new Socket(proxy);
     }
 

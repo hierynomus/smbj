@@ -190,7 +190,7 @@ class FileReadSpec extends Specification {
   byte[] randomData(int seed, int length) {
     Random rng = new Random(seed)
     byte[] data = new byte[length]
-    rng.nextBytes(data);
+    rng.nextBytes(data)
     data
   }
 

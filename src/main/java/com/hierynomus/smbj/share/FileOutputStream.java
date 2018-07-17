@@ -87,7 +87,7 @@ class FileOutputStream extends OutputStream {
         }
     }
 
-    private void sendWriteRequest() throws TransportException {
+    private void sendWriteRequest() {
         writer.write(provider, progressListener);
     }
 
@@ -123,7 +123,7 @@ class FileOutputStream extends OutputStream {
         }
 
         @Override
-        protected int getChunk(byte[] chunk) throws IOException {
+        protected int getChunk(byte[] chunk) {
             return buf.read(chunk);
         }
 

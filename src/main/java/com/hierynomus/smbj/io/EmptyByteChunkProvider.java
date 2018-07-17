@@ -28,7 +28,7 @@ public class EmptyByteChunkProvider extends ByteChunkProvider {
     }
 
     @Override
-    protected int getChunk(byte[] chunk) throws IOException {
+    protected int getChunk(byte[] chunk) {
         return 0;
     }
 
