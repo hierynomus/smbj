@@ -17,6 +17,7 @@ package com.hierynomus.smbj;
 
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.protocol.commons.Factory;
+import com.hierynomus.protocol.commons.concurrent.TaskQueue;
 import com.hierynomus.protocol.commons.socket.ProxySocketFactory;
 import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.security.bc.BCSecurityProvider;
@@ -31,7 +32,6 @@ import com.hierynomus.smbj.transport.tcp.direct.DirectTcpTransportFactory;
 import javax.net.SocketFactory;
 import java.security.SecureRandom;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public final class SmbConfig {
@@ -73,7 +73,7 @@ public final class SmbConfig {
     private int transactBufferSize;
     private TransportLayerFactory<SMBPacket<?>> transportLayerFactory;
     private long transactTimeout;
-    private ExecutorService notifyExecutor;
+    private TaskQueue taskQueue;
 
     private int soTimeout;
 
@@ -97,7 +97,7 @@ public final class SmbConfig {
             // order is important.  The authenticators listed first will be selected
             .withAuthenticators(getDefaultAuthenticators())
             .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
-            .withNotifyExecutorService(null);
+            .withTaskQueue(null);
 
     }
 
@@ -149,7 +149,7 @@ public final class SmbConfig {
         transportLayerFactory = other.transportLayerFactory;
         soTimeout = other.soTimeout;
         useMultiProtocolNegotiate = other.useMultiProtocolNegotiate;
-        notifyExecutor = other.notifyExecutor;
+        taskQueue = other.taskQueue;
     }
 
     public Random getRandomProvider() {
@@ -224,8 +224,8 @@ public final class SmbConfig {
         return socketFactory;
     }
 
-    public ExecutorService getNotifyExecutorService() {
-        return notifyExecutor;
+    public TaskQueue getTaskQueue() {
+        return taskQueue;
     }
 
     public static class Builder {
@@ -407,8 +407,8 @@ public final class SmbConfig {
             return this;
         }
 
-        public Builder withNotifyExecutorService(ExecutorService notifyExecutor) {
-            config.notifyExecutor = notifyExecutor;
+        public Builder withTaskQueue(TaskQueue taskQueue) {
+            config.taskQueue = taskQueue;
             return this;
         }
     }

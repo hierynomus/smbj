@@ -29,6 +29,7 @@ import com.hierynomus.mssmb2.messages.SMB2SetInfoRequest;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
+import com.hierynomus.protocol.commons.concurrent.SingleThreadExecutorTaskQueue;
 import com.hierynomus.protocol.commons.concurrent.TaskQueue;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smb.SMBBuffer;
@@ -57,10 +58,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
 
 import static com.hierynomus.msdtyp.AccessMask.*;
 import static com.hierynomus.mserref.NtStatus.*;
@@ -83,8 +81,7 @@ public class DiskShare extends Share {
     private final SMBEventBus connectionPrivateBus;
     private NotificationHandler notificationHandler = null;
 
-    private final ExecutorService notifyExecutor;
-    private final boolean isCreatedNotifyExecutor;
+    private final boolean isCreatedTaskQueue;
     private final TaskQueue taskQueue;
     private final Set<SMB2FileId> openedOplockFileId = Collections.newSetFromMap(new ConcurrentHashMap<SMB2FileId, Boolean>());
     // Only add the messageId to Set when the operation is on the asyncSupport Set. Must remove when receive the corresponding AsyncResponse.
@@ -97,31 +94,22 @@ public class DiskShare extends Share {
         if (connectionPrivateBus != null) {
             connectionPrivateBus.subscribe(this);
         }
-        ExecutorService executorFromConfig = treeConnect.getConnection().getConfig().getNotifyExecutorService();
-        if (executorFromConfig != null) {
-            notifyExecutor = executorFromConfig;
-            isCreatedNotifyExecutor = false;
+        TaskQueue taskQueueFromConfig = treeConnect.getConnection().getConfig().getTaskQueue();
+        if (taskQueueFromConfig != null) {
+            taskQueue = taskQueueFromConfig;
+            isCreatedTaskQueue = false;
         } else {
-            notifyExecutor = Executors.newSingleThreadExecutor(new ThreadFactory() {
-                @Override
-                public Thread newThread(Runnable r) {
-                    Thread t = Executors.defaultThreadFactory().newThread(r);
-                    t.setDaemon(true);
-                    t.setName(DiskShare.super.smbPath.getShareName() + "-Thread-1");
-                    return t;
-                }
-            });
-            isCreatedNotifyExecutor = true;
+            taskQueue = new SingleThreadExecutorTaskQueue();
+            isCreatedTaskQueue = true;
         }
-        this.taskQueue = new TaskQueue(notifyExecutor, logger);
     }
 
     @Override
     public void close() throws IOException {
         super.close();
-        if (isCreatedNotifyExecutor) {
+        if (isCreatedTaskQueue) {
             // cleanup for executor
-            notifyExecutor.shutdown();
+            ((SingleThreadExecutorTaskQueue)taskQueue).close();
         }
         // cleanup for set
         openedOplockFileId.clear();

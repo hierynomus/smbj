@@ -15,15 +15,19 @@
  */
 package com.hierynomus.protocol.commons.concurrent;
 
-/***
- * An object that executes submitted tasks in sequence. The TaskQueue MUST guarantee all
- * submitted tasks will execute in sequence.
- */
-public interface TaskQueue {
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-    /***
-     * execute the task. The implementation MUST guarantee the execution is in sequence.
-     * @param task runnable task
-     */
-    void execute(Runnable task);
+public class SingleThreadExecutorTaskQueue implements TaskQueue{
+
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+    @Override
+    public void execute(Runnable task) {
+        executorService.execute(task);
+    }
+
+    public void close() {
+        executorService.shutdown();
+    }
 }
