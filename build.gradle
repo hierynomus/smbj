@@ -8,7 +8,7 @@ plugins {
   id "jacoco"
   id "jdepend"
   id "maven-publish"
-  id 'pl.allegro.tech.build.axion-release' version '1.8.1'
+  id 'pl.allegro.tech.build.axion-release' version '1.9.2'
   id "com.github.hierynomus.license" version "0.12.1"
   id "com.bmuschko.docker-remote-api" version "3.2.1"
   id "com.jfrog.bintray" version "1.7"
@@ -236,7 +236,6 @@ sonarqube {
   }
 }
 
-
 task buildItestImage(type: DockerBuildImage) {
   inputDir = file('src/it/docker-image')
   tag = 'smbj/smbj-itest'
@@ -261,7 +260,15 @@ project.tasks.integrationTest.dependsOn(startItestContainer)
 project.tasks.integrationTest.finalizedBy(stopItestContainer)
 
 
-project.tasks.release.dependsOn([project.tasks.integrationTest, project.tasks.build])
 project.tasks.release.finalizedBy(project.tasks.bintrayUpload)
+
+task forkedUploadRelease(type: GradleBuild) {
+  buildFile = project.buildFile
+  tasks = ["bintrayUpload"]
+}
+
+project.tasks.release.dependsOn([project.tasks.integrationTest, project.tasks.build])
+project.tasks.release.finalizedBy(project.tasks.forkedUploadRelease)
+
 project.tasks.jacocoTestReport.dependsOn(project.tasks.test)
 project.tasks.check.dependsOn(project.tasks.jacocoTestReport)
