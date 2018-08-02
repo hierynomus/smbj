@@ -15,11 +15,7 @@
  */
 package com.hierynomus.msfscc.fileinformation;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
-
-import java.util.ArrayList;
-
-public class FileStreamInformationItem{
+public class FileStreamInformationItem {
 
     private long size;
     private long allocSize;

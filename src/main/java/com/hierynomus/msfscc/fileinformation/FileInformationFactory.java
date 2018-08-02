@@ -497,13 +497,13 @@ public class FileInformationFactory {
      */
     private static FileStreamInformation parseFileStreamInformation(Buffer<?> buffer) throws Buffer.BufferException {
 
-        ArrayList<FileStreamInformationItem> streamList=new ArrayList<>();
+        List<FileStreamInformationItem> streamList = new ArrayList<>();
         long currEntry = 0;
         long nextEntry = 0;
 
         do {
             currEntry += nextEntry;
-            buffer.rpos((int)currEntry);
+            buffer.rpos((int) currEntry);
 
             nextEntry = buffer.readUInt32(); //Unsigned 32
             long nameLen = buffer.readUInt32(); //Unsigned 32
@@ -512,7 +512,7 @@ public class FileInformationFactory {
 
             String name = buffer.readString(Charsets.UTF_16LE, (int) nameLen / 2);
             streamList.add(new FileStreamInformationItem(size, allocSize, name));
-        } while (nextEntry !=0 );
+        } while (nextEntry != 0);
 
         return new FileStreamInformation(streamList);
     }
