@@ -23,7 +23,7 @@ import com.hierynomus.msfscc.fileinformation.FileQueryableInformation;
 import com.hierynomus.msfscc.fileinformation.FileRenameInformation;
 import com.hierynomus.msfscc.fileinformation.FileSettableInformation;
 import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.SMB2OplockBreakLevel;
+import com.hierynomus.mssmb2.SMB2OplockLevel;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2OplockBreakAcknowledgmentResponse;
 import com.hierynomus.protocol.transport.TransportException;
@@ -198,7 +198,7 @@ public abstract class DiskEntry implements Closeable {
      * @param oplockLevel the oplock break level after receiving the oplock break notification (current holding oplock level)
      * @return Server response to oplock break acknowledgment. 2.2.25 SMB2 OPLOCK_BREAK Response.
      */
-    public SMB2OplockBreakAcknowledgmentResponse acknowledgeOplockBreak(SMB2OplockBreakLevel oplockLevel) {
+    public SMB2OplockBreakAcknowledgmentResponse acknowledgeOplockBreak(SMB2OplockLevel oplockLevel) {
         return share.sendOplockBreakAcknowledgment(fileId, oplockLevel);
     }
 }

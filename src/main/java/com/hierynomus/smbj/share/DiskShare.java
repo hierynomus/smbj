@@ -618,7 +618,7 @@ public class DiskShare extends Share {
         try {
 
             final SMB2FileId fileId = oplockBreakNotification.getFileId();
-            final SMB2OplockBreakLevel oplockLevel = oplockBreakNotification.getOplockLevel();
+            final SMB2OplockLevel oplockLevel = oplockBreakNotification.getOplockLevel();
             // Check should this DiskShare handle this oplock break notification. If not, just ignore.
             if (openedOplockFileId.contains(fileId)) {
                 logger.debug("FileId {} received OplockBreakNotification, Oplock level {}", fileId,

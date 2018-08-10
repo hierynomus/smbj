@@ -16,7 +16,7 @@
 package com.hierynomus.mssmb2.messages;
 
 import com.hierynomus.mssmb2.SMB2FileId;
-import com.hierynomus.mssmb2.SMB2OplockBreakLevel;
+import com.hierynomus.mssmb2.SMB2OplockLevel;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
@@ -25,7 +25,7 @@ public class SMB2OplockBreakServerResponse extends SMB2OplockBreak {
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.readUInt16(); // StructureSize (2 bytes)
-        oplockLevel = EnumWithValue.EnumUtils.valueOf(buffer.readByte(), SMB2OplockBreakLevel.class, SMB2OplockBreakLevel.SMB2_OPLOCK_LEVEL_NONE); // OpLockLevel (1 byte)
+        oplockLevel = EnumWithValue.EnumUtils.valueOf(buffer.readByte(), SMB2OplockLevel.class, SMB2OplockLevel.SMB2_OPLOCK_LEVEL_NONE); // OpLockLevel (1 byte)
         buffer.readByte(); // Reserved (1 byte)
         buffer.skip(4); // Reserved2 (4 bytes)
         fileId = SMB2FileId.read(buffer); // FileId (16 bytes)

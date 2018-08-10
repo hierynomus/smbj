@@ -18,12 +18,12 @@ package com.hierynomus.mssmb2.messages;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
-import com.hierynomus.mssmb2.SMB2OplockBreakLevel;
+import com.hierynomus.mssmb2.SMB2OplockLevel;
 import com.hierynomus.mssmb2.SMB2Packet;
 
 public abstract class SMB2OplockBreak extends SMB2Packet {
 
-    protected SMB2OplockBreakLevel oplockLevel;
+    protected SMB2OplockLevel oplockLevel;
     protected SMB2FileId fileId;
 
     protected SMB2OplockBreak() {
@@ -38,7 +38,7 @@ public abstract class SMB2OplockBreak extends SMB2Packet {
         super(structureSize, dialect, SMB2MessageCommandCode.SMB2_OPLOCK_BREAK, sessionId, treeId);
     }
 
-    public SMB2OplockBreakLevel getOplockLevel() {
+    public SMB2OplockLevel getOplockLevel() {
         return oplockLevel;
     }
 
