@@ -23,8 +23,6 @@ import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smbj.common.Check;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 
-import java.util.Arrays;
-
 public class SMB2MessageConverter implements PacketFactory<SMB2Packet> {
 
     private SMB2OplockBreakFactory oplockBreakFactory = new SMB2OplockBreakFactory();
