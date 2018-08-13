@@ -79,7 +79,7 @@ public class SpnegoAuthenticator implements Authenticator {
                 String hostName = session.getConnection().getRemoteHostname();
                 GSSName serverName = gssManager.createName(service + "@" + hostName, GSSName.NT_HOSTBASED_SERVICE);
                 gssContext = gssManager.createContext(serverName, spnegoOid, context.getCreds(), GSSContext.DEFAULT_LIFETIME);
-                gssContext.requestMutualAuth(false);
+                gssContext.requestMutualAuth(true);
                 // TODO fill in all the other options too
             }
 
