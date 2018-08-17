@@ -19,7 +19,7 @@ public final class GSSContextConfig {
 
     private boolean requestMutualAuth;
     private boolean requestCredDeleg;
-    // TODO: Implement other option
+    // TODO Implement other option
 //    private boolean requestReplayDet;
 //    private boolean requestSequenceDet;
 //    private boolean requestAnonymity;
