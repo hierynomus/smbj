@@ -19,6 +19,7 @@ import com.hierynomus.mssmb2.SMB2Header;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.security.SecurityProvider;
+import com.hierynomus.smbj.GSSContextConfig;
 import com.hierynomus.smbj.session.Session;
 import com.sun.security.jgss.ExtendedGSSContext;
 import com.sun.security.jgss.InquireType;
@@ -79,7 +80,9 @@ public class SpnegoAuthenticator implements Authenticator {
                 String hostName = session.getConnection().getRemoteHostname();
                 GSSName serverName = gssManager.createName(service + "@" + hostName, GSSName.NT_HOSTBASED_SERVICE);
                 gssContext = gssManager.createContext(serverName, spnegoOid, context.getCreds(), GSSContext.DEFAULT_LIFETIME);
-                gssContext.requestMutualAuth(true);
+                GSSContextConfig clientGSSContextConfig = session.getConnection().getConfig().getClientGSSContextConfig();
+                gssContext.requestMutualAuth(clientGSSContextConfig.isRequestMutualAuth());
+                gssContext.requestCredDeleg(clientGSSContextConfig.isRequestCredDeleg());
                 // TODO fill in all the other options too
             }
 
