@@ -75,10 +75,9 @@ import static java.util.EnumSet.of;
 import static java.util.EnumSet.noneOf;
 
 public class DiskShare extends Share {
-    public static final EnumSet<SMB2MessageCommandCode> asyncSupport = EnumSet.of(SMB2_CREATE);
+    public static final EnumSet<SMB2MessageCommandCode> asyncSupport = of(SMB2_CREATE);
     private static final Logger logger = LoggerFactory.getLogger(DiskShare.class);
     private final PathResolver resolver;
-    private final SMBEventBus connectionPrivateBus;
     private NotificationHandler notificationHandler = null;
 
     private final boolean isCreatedTaskQueue;
@@ -90,7 +89,6 @@ public class DiskShare extends Share {
     public DiskShare(SmbPath smbPath, TreeConnect treeConnect, PathResolver pathResolver, SMBEventBus connectionPrivateBus) {
         super(smbPath, treeConnect);
         this.resolver = pathResolver;
-        this.connectionPrivateBus = connectionPrivateBus;
         if (connectionPrivateBus != null) {
             connectionPrivateBus.subscribe(this);
         }

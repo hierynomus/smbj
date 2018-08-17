@@ -33,7 +33,7 @@ public class SMB2OplockBreakFactory {
         buffer.rpos(0);
         final boolean isBreakNotification = messageId == breakMessageId;
 
-        // TODO: Use structureSize as well to determine oplock and lease.
+        // TODO Use structureSize as well to determine oplock and lease.
         // buffer.skip(64);
         // final int structureSize = buffer.readUInt16();
         // buffer.rpos(0);

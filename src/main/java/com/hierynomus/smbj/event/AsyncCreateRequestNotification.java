@@ -15,8 +15,6 @@
  */
 package com.hierynomus.smbj.event;
 
-import com.hierynomus.smbj.common.SmbPath;
-
 /***
  * Event for notifying the messageId to DiskShare Notification Handler
  */

@@ -20,7 +20,7 @@ import com.hierynomus.smbj.event.AsyncCreateResponseNotification;
 import com.hierynomus.smbj.event.OplockBreakNotification;
 
 public interface NotificationHandler {
-    // TODO: add user reference property to allow user to check same NotificationHandler or not.
+    // TODO add user reference property to allow user to check same NotificationHandler or not.
     void handleAsyncCreateRequestNotification(AsyncCreateRequestNotification asyncCreateRequestNotification);
     void handleAsyncCreateResponseNotification(AsyncCreateResponseNotification asyncCreateResponseNotification);
     void handleOplockBreakNotification(OplockBreakNotification oplockBreakNotification);

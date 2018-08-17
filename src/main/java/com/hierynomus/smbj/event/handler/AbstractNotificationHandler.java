@@ -27,17 +27,23 @@ public abstract class AbstractNotificationHandler implements NotificationHandler
     @Override
     public void handleAsyncCreateRequestNotification(
         AsyncCreateRequestNotification asyncCreateRequestNotification) {
-
+        // Empty method for override
+        // This is useful for user only implement some methods of NotificationHandler
+        // Leave this method Empty will perform nothing when received an asyncCreateRequestNotification
     }
 
     @Override
     public void handleAsyncCreateResponseNotification(
         AsyncCreateResponseNotification asyncCreateResponseNotification) {
-
+        // Empty method for override
+        // This is useful for user only implement some methods of NotificationHandler
+        // Leave this method Empty will perform nothing when received an asyncCreateResponseNotification
     }
 
     @Override
     public void handleOplockBreakNotification(OplockBreakNotification oplockBreakNotification) {
-
+        // Empty method for override
+        // This is useful for user only implement some methods of NotificationHandler
+        // Leave this method Empty will perform nothing when received an oplockBreakNotification
     }
 }
