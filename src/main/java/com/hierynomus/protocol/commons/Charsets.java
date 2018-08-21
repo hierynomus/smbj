@@ -17,6 +17,9 @@ package com.hierynomus.protocol.commons;
 
 import java.nio.charset.Charset;
 
+/**
+ * Android compatibility layer, as API level 19 does not have {@link java.nio.charset.StandardCharsets}.
+ */
 public final class Charsets {
     public static final Charset UTF_8 = Charset.forName("UTF-8");
     public static final Charset UTF_16BE = Charset.forName("UTF-16BE");
