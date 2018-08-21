@@ -158,7 +158,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
     public Session authenticate(AuthenticationContext authContext) {
         try {
             Authenticator authenticator = getAuthenticator(authContext);
-            authenticator.init(config.getSecurityProvider(), config.getRandomProvider());
+            authenticator.init(config);
             Session session = getSession(authContext);
             byte[] securityContext = processAuthenticationToken(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
             SMB2SessionSetup receive = initiateSessionSetup(securityContext, 0L);

@@ -22,6 +22,7 @@ import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.security.SecurityProvider;
+import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.spnego.NegTokenInit;
@@ -173,9 +174,9 @@ public class NtlmAuthenticator implements Authenticator {
     }
 
     @Override
-    public void init(SecurityProvider securityProvider, Random random) {
-        this.securityProvider = securityProvider;
-        this.random = random;
+    public void init(SmbConfig config) {
+        this.securityProvider = config.getSecurityProvider();
+        this.random = config.getRandomProvider();
     }
 
     @Override
