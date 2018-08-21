@@ -72,6 +72,7 @@ public final class SmbConfig {
     private int transactBufferSize;
     private TransportLayerFactory<SMBPacket<?>> transportLayerFactory;
     private long transactTimeout;
+    private GSSContextConfig clientGSSContextConfig;
 
     private int soTimeout;
 
@@ -94,7 +95,8 @@ public final class SmbConfig {
             .withDialects(SMB2Dialect.SMB_2_1, SMB2Dialect.SMB_2_0_2)
             // order is important.  The authenticators listed first will be selected
             .withAuthenticators(getDefaultAuthenticators())
-            .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT);
+            .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
+            .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig());
     }
 
     private static SecurityProvider getDefaultSecurityProvider() {
@@ -145,6 +147,7 @@ public final class SmbConfig {
         transportLayerFactory = other.transportLayerFactory;
         soTimeout = other.soTimeout;
         useMultiProtocolNegotiate = other.useMultiProtocolNegotiate;
+        clientGSSContextConfig = other.clientGSSContextConfig;
     }
 
     public Random getRandomProvider() {
@@ -217,6 +220,10 @@ public final class SmbConfig {
 
     public SocketFactory getSocketFactory() {
         return socketFactory;
+    }
+
+    public GSSContextConfig getClientGSSContextConfig() {
+        return clientGSSContextConfig;
     }
 
     public static class Builder {
@@ -395,6 +402,14 @@ public final class SmbConfig {
 
         public Builder withMultiProtocolNegotiate(boolean useMultiProtocolNegotiate) {
             config.useMultiProtocolNegotiate = useMultiProtocolNegotiate;
+            return this;
+        }
+
+        public Builder withClientGSSContextConfig(GSSContextConfig clientGSSContextConfig) {
+            if (clientGSSContextConfig == null) {
+                throw new IllegalArgumentException("Client GSSContext Config may not be null");
+            }
+            config.clientGSSContextConfig = clientGSSContextConfig;
             return this;
         }
     }
