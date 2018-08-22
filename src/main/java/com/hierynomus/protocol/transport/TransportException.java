@@ -15,6 +15,7 @@
  */
 package com.hierynomus.protocol.transport;
 
+import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.ExceptionWrapper;
 
 import java.io.IOException;
@@ -36,5 +37,9 @@ public class TransportException extends IOException {
 
     public TransportException(String s) {
         super(s);
+    }
+
+    public TransportException(String s, Throwable throwable) {
+        super(s, throwable);
     }
 }

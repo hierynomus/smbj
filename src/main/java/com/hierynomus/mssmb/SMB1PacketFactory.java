@@ -20,9 +20,9 @@ import com.hierynomus.protocol.transport.PacketFactory;
 
 import java.io.IOException;
 
-public class SMB1MessageConverter implements PacketFactory<SMB1Packet> {
+public class SMB1PacketFactory implements PacketFactory<SMB1PacketData> {
     @Override
-    public SMB1Packet read(byte[] data) throws Buffer.BufferException, IOException {
+    public SMB1PacketData read(byte[] data) throws Buffer.BufferException, IOException {
         throw new SMB1NotSupportedException();
     }
 

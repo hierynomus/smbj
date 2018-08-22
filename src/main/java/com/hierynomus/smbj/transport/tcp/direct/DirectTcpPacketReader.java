@@ -15,7 +15,7 @@
  */
 package com.hierynomus.smbj.transport.tcp.direct;
 
-import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.protocol.transport.PacketFactory;
@@ -27,23 +27,23 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class DirectTcpPacketReader<P extends Packet<?>> extends PacketReader<P> {
+public class DirectTcpPacketReader<PD extends PacketData<?>> extends PacketReader<PD> {
 
-    private final PacketFactory<P> packetFactory;
+    private final PacketFactory<PD> packetFactory;
 
-    public DirectTcpPacketReader(String host, InputStream in, PacketFactory<P> packetFactory, PacketReceiver<P> handler) {
+    public DirectTcpPacketReader(String host, InputStream in, PacketFactory<PD> packetFactory, PacketReceiver<PD> handler) {
         super(host, in, handler);
         this.packetFactory = packetFactory;
     }
 
-    private P readPacket(int packetLength) throws IOException, Buffer.BufferException {
+    private PD readPacket(int packetLength) throws IOException, Buffer.BufferException {
         byte[] buf = new byte[packetLength];
         readFully(buf);
         return packetFactory.read(buf);
     }
 
     @Override
-    protected P doRead() throws TransportException {
+    protected PD doRead() throws TransportException {
         try {
             int packetLength = readTcpHeader();
             return readPacket(packetLength);

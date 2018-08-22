@@ -16,24 +16,25 @@
 package com.hierynomus.smbj.transport.tcp.tunnel;
 
 import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.transport.PacketHandlers;
 import com.hierynomus.protocol.transport.TransportLayer;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.transport.TransportLayerFactory;
 
-public class TunnelTransportFactory<P extends Packet<?>> implements TransportLayerFactory<P> {
-    private TransportLayerFactory<P> tunnelFactory;
+public class TunnelTransportFactory<PD extends PacketData<?>, P extends Packet<?>> implements TransportLayerFactory<PD, P> {
+    private TransportLayerFactory<PD, P> tunnelFactory;
     private String tunnelHost;
     private int tunnelPort;
 
-    public TunnelTransportFactory(TransportLayerFactory<P> tunnelFactory, String tunnelHost, int tunnelPort) {
+    public TunnelTransportFactory(TransportLayerFactory<PD, P> tunnelFactory, String tunnelHost, int tunnelPort) {
         this.tunnelFactory = tunnelFactory;
         this.tunnelHost = tunnelHost;
         this.tunnelPort = tunnelPort;
     }
 
     @Override
-    public TransportLayer<P> createTransportLayer(PacketHandlers<P> handlers, SmbConfig config) {
+    public TransportLayer<P> createTransportLayer(PacketHandlers<PD, P> handlers, SmbConfig config) {
         return new TunnelTransport<>(tunnelFactory.createTransportLayer(handlers, config), tunnelHost, tunnelPort);
     }
 }

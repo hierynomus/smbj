@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.transport;
 
 import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.transport.PacketReceiver;
 import com.hierynomus.protocol.transport.TransportException;
 import org.slf4j.Logger;
@@ -24,16 +25,16 @@ import org.slf4j.LoggerFactory;
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class PacketReader<P extends Packet<?>> implements Runnable {
+public abstract class PacketReader<PD extends PacketData<?>> implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(PacketReader.class);
 
     protected InputStream in;
-    private PacketReceiver<P> handler;
+    private PacketReceiver<PD> handler;
 
     private AtomicBoolean stopped = new AtomicBoolean(false);
     private Thread thread;
 
-    public PacketReader(String host, InputStream in, PacketReceiver<P> handler) {
+    public PacketReader(String host, InputStream in, PacketReceiver<PD> handler) {
         this.in = in;
         this.handler = handler;
         this.thread = new Thread(this, "Packet Reader for " + host);
@@ -66,7 +67,7 @@ public abstract class PacketReader<P extends Packet<?>> implements Runnable {
     }
 
     private void readPacket() throws TransportException {
-        P packet = doRead();
+        PD packet = doRead();
         logger.debug("Received packet {}", packet);
         handler.handle(packet);
     }
@@ -77,7 +78,7 @@ public abstract class PacketReader<P extends Packet<?>> implements Runnable {
      * @return the read SMB2Packet
      * @throws TransportException
      */
-    protected abstract P doRead() throws TransportException;
+    protected abstract PD doRead() throws TransportException;
 
     public void start() {
         logger.debug("Starting PacketReader on thread: {}", thread.getName());

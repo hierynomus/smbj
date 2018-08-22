@@ -15,7 +15,7 @@
  */
 package com.hierynomus.smbj.transport.tcp.async;
 
-import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
 import com.hierynomus.protocol.transport.PacketFactory;
 import com.hierynomus.protocol.transport.PacketReceiver;
@@ -31,19 +31,19 @@ import java.nio.channels.CompletionHandler;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class AsyncPacketReader<P extends Packet<?>> {
+public class AsyncPacketReader<PD extends PacketData<?>> {
     private static final Logger logger = LoggerFactory.getLogger(PacketReader.class);
 
-    private final PacketFactory<P> packetFactory;
-    private PacketReceiver<P> handler;
+    private final PacketFactory<PD> packetFactory;
+    private PacketReceiver<PD> handler;
     private final AsynchronousSocketChannel channel;
     private String remoteHost;
     private int soTimeout = 0;
 
     private AtomicBoolean stopped = new AtomicBoolean(false);
 
-    public AsyncPacketReader(AsynchronousSocketChannel channel, PacketFactory<P> packetFactory,
-                             PacketReceiver<P> handler) {
+    public AsyncPacketReader(AsynchronousSocketChannel channel, PacketFactory<PD> packetFactory,
+                             PacketReceiver<PD> handler) {
         this.channel = channel;
         this.packetFactory = packetFactory;
         this.handler = handler;
@@ -106,7 +106,7 @@ public class AsyncPacketReader<P extends Packet<?>> {
 
     private void readAndHandlePacket(byte[] packetBytes) {
         try {
-            P packet = packetFactory.read(packetBytes);
+            PD packet = packetFactory.read(packetBytes);
             logger.trace("Received packet << {} >>", packet);
             handler.handle(packet);
         } catch (BufferException | IOException e) {

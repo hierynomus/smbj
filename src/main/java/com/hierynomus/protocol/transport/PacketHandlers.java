@@ -16,17 +16,18 @@
 package com.hierynomus.protocol.transport;
 
 import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.PacketData;
 
 /**
  * Groups together all the various handlers involved in dealing with packets of
  * type P.
  */
-public class PacketHandlers<P extends Packet<?>> {
+public class PacketHandlers<PD extends PacketData<?>, P extends Packet<?>> {
     private final PacketSerializer<P, ?> serializer;
-    private final PacketReceiver<P> receiver;
-    private final PacketFactory<P> packetFactory;
+    private final PacketReceiver<PD> receiver;
+    private final PacketFactory<PD> packetFactory;
 
-    public PacketHandlers(PacketSerializer<P, ?> serializer, PacketReceiver<P> receiver, PacketFactory<P> packetFactory) {
+    public PacketHandlers(PacketSerializer<P, ?> serializer, PacketReceiver<PD> receiver, PacketFactory<PD> packetFactory) {
         super();
         this.serializer = serializer;
         this.receiver = receiver;
@@ -37,11 +38,11 @@ public class PacketHandlers<P extends Packet<?>> {
         return serializer;
     }
 
-    public PacketReceiver<P> getReceiver() {
+    public PacketReceiver<PD> getReceiver() {
         return receiver;
     }
 
-    public PacketFactory<P> getPacketFactory() {
+    public PacketFactory<PD> getPacketFactory() {
         return packetFactory;
     }
 

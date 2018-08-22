@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.transport.tcp.async;
 
 import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
 import com.hierynomus.protocol.transport.PacketHandlers;
@@ -40,14 +41,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * A transport layer over Direct TCP/IP that uses asynchronous I/O.
  */
-public class AsyncDirectTcpTransport<P extends Packet<?>> implements TransportLayer<P> {
+public class AsyncDirectTcpTransport<PD extends PacketData<?>, P extends Packet<?>> implements TransportLayer<P> {
     private static final int DEFAULT_CONNECT_TIMEOUT = 5000;
     private static final int DIRECT_HEADER_SIZE = 4;
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
-    private final PacketHandlers<P> handlers;
+    private final PacketHandlers<PD, P> handlers;
     private final AsynchronousSocketChannel socketChannel;
-    private final AsyncPacketReader<P> packetReader;
+    private final AsyncPacketReader<PD> packetReader;
     private final AtomicBoolean connected;
     private int soTimeout = 0;
 
@@ -55,7 +56,7 @@ public class AsyncDirectTcpTransport<P extends Packet<?>> implements TransportLa
     private final Queue<ByteBuffer> writeQueue;
     private AtomicBoolean writingNow;
 
-    public AsyncDirectTcpTransport(int soTimeout, PacketHandlers<P> handlers, AsynchronousChannelGroup group)
+    public AsyncDirectTcpTransport(int soTimeout, PacketHandlers<PD, P> handlers, AsynchronousChannelGroup group)
         throws IOException {
         this.soTimeout = soTimeout;
         this.handlers = handlers;

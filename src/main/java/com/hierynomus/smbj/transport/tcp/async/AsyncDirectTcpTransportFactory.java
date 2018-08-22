@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.transport.tcp.async;
 
 import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.transport.PacketHandlers;
 import com.hierynomus.protocol.transport.TransportLayer;
 import com.hierynomus.smbj.SmbConfig;
@@ -26,12 +27,12 @@ import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.util.concurrent.ExecutorService;
 
-public class AsyncDirectTcpTransportFactory<P extends Packet<?>> implements TransportLayerFactory<P> {
+public class AsyncDirectTcpTransportFactory<PD extends PacketData<?>, P extends Packet<?>> implements TransportLayerFactory<PD, P> {
     private static final AsynchronousChannelGroup DEFAULT_CHANNEL_GROUP = null;  // use system default
     private final AsynchronousChannelGroup group;
 
     @Override
-    public TransportLayer<P> createTransportLayer(PacketHandlers<P> handlers, SmbConfig config) {
+    public TransportLayer<P> createTransportLayer(PacketHandlers<PD, P> handlers, SmbConfig config) {
         try {
             return new AsyncDirectTcpTransport<>(config.getSoTimeout(), handlers, group);
         } catch (IOException e) {

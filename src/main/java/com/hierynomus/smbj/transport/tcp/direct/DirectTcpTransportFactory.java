@@ -16,14 +16,15 @@
 package com.hierynomus.smbj.transport.tcp.direct;
 
 import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.transport.PacketHandlers;
 import com.hierynomus.protocol.transport.TransportLayer;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.transport.TransportLayerFactory;
 
-public class DirectTcpTransportFactory<P extends Packet<?>> implements TransportLayerFactory<P> {
+public class DirectTcpTransportFactory<PD extends PacketData<?>, P extends Packet<?>> implements TransportLayerFactory<PD, P> {
     @Override
-    public TransportLayer<P> createTransportLayer(PacketHandlers<P> handlers, SmbConfig config) {
+    public TransportLayer<P> createTransportLayer(PacketHandlers<PD, P> handlers, SmbConfig config) {
         return new DirectTcpTransport<>(config.getSocketFactory(), config.getSoTimeout(), handlers);
     }
 

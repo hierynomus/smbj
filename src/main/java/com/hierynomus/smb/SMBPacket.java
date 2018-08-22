@@ -16,9 +16,10 @@
 package com.hierynomus.smb;
 
 import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.commons.buffer.Buffer;
 
-public abstract class SMBPacket<H extends SMBHeader> implements Packet<SMBBuffer> {
-    protected final H header;
+public abstract class SMBPacket<PD extends SMBPacketData<H>, H extends SMBHeader> implements Packet<SMBBuffer> {
+    protected H header;
 
     public SMBPacket(H header) {
         this.header = header;
@@ -27,4 +28,12 @@ public abstract class SMBPacket<H extends SMBHeader> implements Packet<SMBBuffer
     public H getHeader() {
         return header;
     }
+
+    protected abstract void read(PD packetData) throws Buffer.BufferException;
+
+    @Override
+    public final void read(SMBBuffer buffer) throws Buffer.BufferException {
+        throw new UnsupportedOperationException("Call read(PD extends PacketData<H>) instead of this method");
+    }
+
 }

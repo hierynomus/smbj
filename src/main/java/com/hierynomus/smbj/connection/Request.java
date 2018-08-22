@@ -15,10 +15,12 @@
  */
 package com.hierynomus.smbj.connection;
 
+import com.hierynomus.mssmb.SMB1Packet;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.concurrent.AFuture;
 import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
 import com.hierynomus.protocol.commons.concurrent.Promise;
+import com.hierynomus.smb.SMBPacket;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 
 import java.util.Date;
@@ -27,10 +29,19 @@ import java.util.UUID;
 class Request {
 
     private final Promise<SMB2Packet, SMBRuntimeException> promise;
+    private SMBPacket<?, ?> packet;
     private final long messageId;
     private final UUID cancelId;
     private final Date timestamp;
     private long asyncId;
+
+    public Request(SMBPacket<?, ?> packet, long messageId, UUID cancelId) {
+        this.packet = packet;
+        this.messageId = messageId;
+        this.cancelId = cancelId;
+        timestamp = new Date();
+        this.promise = new Promise<>(String.valueOf(messageId), SMBRuntimeException.Wrapper);
+    }
 
     public long getAsyncId() {
         return asyncId;
@@ -38,13 +49,6 @@ class Request {
 
     public void setAsyncId(long asyncId) {
         this.asyncId = asyncId;
-    }
-
-    public Request(long messageId, UUID cancelId) {
-        this.messageId = messageId;
-        this.cancelId = cancelId;
-        timestamp = new Date();
-        this.promise = new Promise<>(String.valueOf(messageId), SMBRuntimeException.Wrapper);
     }
 
     Promise<SMB2Packet, SMBRuntimeException> getPromise() {
@@ -69,4 +73,7 @@ class Request {
         return timestamp;
     }
 
+    public SMBPacket<?, ?> getPacket() {
+        return packet;
+    }
 }

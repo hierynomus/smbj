@@ -16,12 +16,13 @@
 package com.hierynomus.smbj.transport;
 
 import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.transport.PacketHandlers;
 import com.hierynomus.protocol.transport.TransportLayer;
 import com.hierynomus.smbj.SmbConfig;
 
-public interface TransportLayerFactory<P extends Packet<?>> {
+public interface TransportLayerFactory<PD extends PacketData<?>, P extends Packet<?>> {
 
-    TransportLayer<P> createTransportLayer(PacketHandlers<P> handlers, SmbConfig config);
+    TransportLayer<P> createTransportLayer(PacketHandlers<PD, P> handlers, SmbConfig config);
 
 }
