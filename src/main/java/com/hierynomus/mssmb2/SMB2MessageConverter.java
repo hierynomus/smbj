@@ -23,6 +23,12 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 
 public class SMB2MessageConverter {
 
+    private static final long FSCTL_PIPE_PEEK = 0x0011400cL;
+    private static final long FSCTL_PIPE_TRANSCEIVE = 0x0011c017L;
+    private static final long FSCTL_DFS_GET_REFERRALS = 0x00060194L;
+    private static final long FSCTL_SRV_COPYCHUNK = 0x001440F2L;
+    private static final long FSCTL_SRV_COPYCHUNK_WRITE = 0x001480F2L;
+
     private SMB2Packet getPacketInstance(SMB2PacketData packetData) {
         SMB2MessageCommandCode command = packetData.getHeader().getMessage();
         switch (command) {
@@ -95,9 +101,15 @@ public class SMB2MessageConverter {
             case SMB2_QUERY_INFO:
                 return statusCode == NtStatus.STATUS_BUFFER_OVERFLOW.getValue();
             case SMB2_IOCTL:
-//                SMB2IoctlRequest r = (SMB2IoctlRequest) requestPacket;
-//                long controlCode = r.getControlCode();
-                return statusCode == NtStatus.STATUS_BUFFER_OVERFLOW.getValue() || statusCode == NtStatus.STATUS_INVALID_PARAMETER.getValue();
+                SMB2IoctlRequest r = (SMB2IoctlRequest) requestPacket;
+                long controlCode = r.getControlCode();
+                if (controlCode == FSCTL_PIPE_PEEK || controlCode == FSCTL_PIPE_TRANSCEIVE || controlCode == FSCTL_DFS_GET_REFERRALS) {
+                    return statusCode == NtStatus.STATUS_BUFFER_OVERFLOW.getValue();
+                }
+                if (controlCode == FSCTL_SRV_COPYCHUNK || controlCode == FSCTL_SRV_COPYCHUNK_WRITE) {
+                    return statusCode == NtStatus.STATUS_INVALID_PARAMETER.getValue();
+                }
+                return false;
             default:
                 return false;
         }
