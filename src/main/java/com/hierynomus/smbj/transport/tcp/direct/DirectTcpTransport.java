@@ -38,9 +38,9 @@ import static java.lang.String.format;
 /**
  * A transport layer over Direct TCP/IP.
  */
-public class DirectTcpTransport<PD extends PacketData<?>, P extends Packet<?>> implements TransportLayer<P> {
+public class DirectTcpTransport<D extends PacketData<?>, P extends Packet<?>> implements TransportLayer<P> {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
-    private final PacketHandlers<PD, P> handlers;
+    private final PacketHandlers<D, P> handlers;
 
     private final ReentrantLock writeLock = new ReentrantLock();
 
@@ -49,11 +49,11 @@ public class DirectTcpTransport<PD extends PacketData<?>, P extends Packet<?>> i
 
     private Socket socket;
     private BufferedOutputStream output;
-    private PacketReader<PD> packetReaderThread;
+    private PacketReader<D> packetReaderThread;
 
     private static final int INITIAL_BUFFER_SIZE = 9000;
 
-    public DirectTcpTransport(SocketFactory socketFactory, int soTimeout, PacketHandlers<PD, P> handlers) {
+    public DirectTcpTransport(SocketFactory socketFactory, int soTimeout, PacketHandlers<D, P> handlers) {
         this.soTimeout = soTimeout;
         this.socketFactory = socketFactory;
         this.handlers = handlers;

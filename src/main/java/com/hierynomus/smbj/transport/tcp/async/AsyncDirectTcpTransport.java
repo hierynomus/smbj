@@ -41,14 +41,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * A transport layer over Direct TCP/IP that uses asynchronous I/O.
  */
-public class AsyncDirectTcpTransport<PD extends PacketData<?>, P extends Packet<?>> implements TransportLayer<P> {
+public class AsyncDirectTcpTransport<D extends PacketData<?>, P extends Packet<?>> implements TransportLayer<P> {
     private static final int DEFAULT_CONNECT_TIMEOUT = 5000;
     private static final int DIRECT_HEADER_SIZE = 4;
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
-    private final PacketHandlers<PD, P> handlers;
+    private final PacketHandlers<D, P> handlers;
     private final AsynchronousSocketChannel socketChannel;
-    private final AsyncPacketReader<PD> packetReader;
+    private final AsyncPacketReader<D> packetReader;
     private final AtomicBoolean connected;
     private int soTimeout = 0;
 
@@ -56,7 +56,7 @@ public class AsyncDirectTcpTransport<PD extends PacketData<?>, P extends Packet<
     private final Queue<ByteBuffer> writeQueue;
     private AtomicBoolean writingNow;
 
-    public AsyncDirectTcpTransport(int soTimeout, PacketHandlers<PD, P> handlers, AsynchronousChannelGroup group)
+    public AsyncDirectTcpTransport(int soTimeout, PacketHandlers<D, P> handlers, AsynchronousChannelGroup group)
         throws IOException {
         this.soTimeout = soTimeout;
         this.handlers = handlers;

@@ -17,8 +17,8 @@ package com.hierynomus.protocol.transport;
 
 import com.hierynomus.protocol.PacketData;
 
-public interface PacketReceiver<PD extends PacketData<?>> {
-    void handle(PD packet) throws TransportException;
+public interface PacketReceiver<D extends PacketData<?>> {
+    void handle(D packet) throws TransportException;
 
     void handleError(Throwable t);
 }

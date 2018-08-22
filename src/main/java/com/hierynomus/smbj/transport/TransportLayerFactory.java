@@ -21,8 +21,8 @@ import com.hierynomus.protocol.transport.PacketHandlers;
 import com.hierynomus.protocol.transport.TransportLayer;
 import com.hierynomus.smbj.SmbConfig;
 
-public interface TransportLayerFactory<PD extends PacketData<?>, P extends Packet<?>> {
+public interface TransportLayerFactory<D extends PacketData<?>, P extends Packet<?>> {
 
-    TransportLayer<P> createTransportLayer(PacketHandlers<PD, P> handlers, SmbConfig config);
+    TransportLayer<P> createTransportLayer(PacketHandlers<D, P> handlers, SmbConfig config);
 
 }

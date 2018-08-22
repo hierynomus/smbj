@@ -25,16 +25,16 @@ import org.slf4j.LoggerFactory;
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class PacketReader<PD extends PacketData<?>> implements Runnable {
+public abstract class PacketReader<D extends PacketData<?>> implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(PacketReader.class);
 
     protected InputStream in;
-    private PacketReceiver<PD> handler;
+    private PacketReceiver<D> handler;
 
     private AtomicBoolean stopped = new AtomicBoolean(false);
     private Thread thread;
 
-    public PacketReader(String host, InputStream in, PacketReceiver<PD> handler) {
+    public PacketReader(String host, InputStream in, PacketReceiver<D> handler) {
         this.in = in;
         this.handler = handler;
         this.thread = new Thread(this, "Packet Reader for " + host);
@@ -67,7 +67,7 @@ public abstract class PacketReader<PD extends PacketData<?>> implements Runnable
     }
 
     private void readPacket() throws TransportException {
-        PD packet = doRead();
+        D packet = doRead();
         logger.debug("Received packet {}", packet);
         handler.handle(packet);
     }
@@ -78,7 +78,7 @@ public abstract class PacketReader<PD extends PacketData<?>> implements Runnable
      * @return the read SMB2Packet
      * @throws TransportException
      */
-    protected abstract PD doRead() throws TransportException;
+    protected abstract D doRead() throws TransportException;
 
     public void start() {
         logger.debug("Starting PacketReader on thread: {}", thread.getName());

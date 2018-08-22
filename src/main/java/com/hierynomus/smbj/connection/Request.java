@@ -15,7 +15,6 @@
  */
 package com.hierynomus.smbj.connection;
 
-import com.hierynomus.mssmb.SMB1Packet;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.concurrent.AFuture;
 import com.hierynomus.protocol.commons.concurrent.CancellableFuture;

@@ -22,12 +22,12 @@ import com.hierynomus.protocol.PacketData;
  * Groups together all the various handlers involved in dealing with packets of
  * type P.
  */
-public class PacketHandlers<PD extends PacketData<?>, P extends Packet<?>> {
+public class PacketHandlers<D extends PacketData<?>, P extends Packet<?>> {
     private final PacketSerializer<P, ?> serializer;
-    private final PacketReceiver<PD> receiver;
-    private final PacketFactory<PD> packetFactory;
+    private final PacketReceiver<D> receiver;
+    private final PacketFactory<D> packetFactory;
 
-    public PacketHandlers(PacketSerializer<P, ?> serializer, PacketReceiver<PD> receiver, PacketFactory<PD> packetFactory) {
+    public PacketHandlers(PacketSerializer<P, ?> serializer, PacketReceiver<D> receiver, PacketFactory<D> packetFactory) {
         super();
         this.serializer = serializer;
         this.receiver = receiver;
@@ -38,11 +38,11 @@ public class PacketHandlers<PD extends PacketData<?>, P extends Packet<?>> {
         return serializer;
     }
 
-    public PacketReceiver<PD> getReceiver() {
+    public PacketReceiver<D> getReceiver() {
         return receiver;
     }
 
-    public PacketFactory<PD> getPacketFactory() {
+    public PacketFactory<D> getPacketFactory() {
         return packetFactory;
     }
 

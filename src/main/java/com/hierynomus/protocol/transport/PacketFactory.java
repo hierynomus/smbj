@@ -20,7 +20,7 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 
 import java.io.IOException;
 
-public interface PacketFactory<PD extends PacketData<?>> {
+public interface PacketFactory<D extends PacketData<?>> {
 
     /**
      * Construct {@link PacketData packet data} out of the raw byte data.
@@ -28,7 +28,7 @@ public interface PacketFactory<PD extends PacketData<?>> {
      * @param data the byte array containing the full packet data
      * @return A newly constructed {@link PacketData} object.
      */
-    PD read(byte[] data) throws Buffer.BufferException, IOException;
+    D read(byte[] data) throws Buffer.BufferException, IOException;
 
     /**
      * Checks whether this PacketFactory is able to handle the incoming raw byte data.

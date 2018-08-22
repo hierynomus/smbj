@@ -95,10 +95,11 @@ public class SMB2MessageConverter {
             case SMB2_QUERY_INFO:
                 return statusCode == NtStatus.STATUS_BUFFER_OVERFLOW.getValue();
             case SMB2_IOCTL:
-                SMB2IoctlRequest r = (SMB2IoctlRequest) requestPacket;
-                long controlCode = r.getControlCode();
+//                SMB2IoctlRequest r = (SMB2IoctlRequest) requestPacket;
+//                long controlCode = r.getControlCode();
                 return statusCode == NtStatus.STATUS_BUFFER_OVERFLOW.getValue() || statusCode == NtStatus.STATUS_INVALID_PARAMETER.getValue();
+            default:
+                return false;
         }
-        return false;
     }
 }

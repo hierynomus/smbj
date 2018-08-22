@@ -15,7 +15,6 @@
  */
 package com.hierynomus.protocol.transport;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.ExceptionWrapper;
 
 import java.io.IOException;

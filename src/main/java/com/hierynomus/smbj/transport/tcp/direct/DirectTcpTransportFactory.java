@@ -22,9 +22,9 @@ import com.hierynomus.protocol.transport.TransportLayer;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.transport.TransportLayerFactory;
 
-public class DirectTcpTransportFactory<PD extends PacketData<?>, P extends Packet<?>> implements TransportLayerFactory<PD, P> {
+public class DirectTcpTransportFactory<D extends PacketData<?>, P extends Packet<?>> implements TransportLayerFactory<D, P> {
     @Override
-    public TransportLayer<P> createTransportLayer(PacketHandlers<PD, P> handlers, SmbConfig config) {
+    public TransportLayer<P> createTransportLayer(PacketHandlers<D, P> handlers, SmbConfig config) {
         return new DirectTcpTransport<>(config.getSocketFactory(), config.getSoTimeout(), handlers);
     }
 

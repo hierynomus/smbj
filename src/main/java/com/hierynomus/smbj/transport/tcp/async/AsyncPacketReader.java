@@ -31,19 +31,19 @@ import java.nio.channels.CompletionHandler;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class AsyncPacketReader<PD extends PacketData<?>> {
+public class AsyncPacketReader<D extends PacketData<?>> {
     private static final Logger logger = LoggerFactory.getLogger(PacketReader.class);
 
-    private final PacketFactory<PD> packetFactory;
-    private PacketReceiver<PD> handler;
+    private final PacketFactory<D> packetFactory;
+    private PacketReceiver<D> handler;
     private final AsynchronousSocketChannel channel;
     private String remoteHost;
     private int soTimeout = 0;
 
     private AtomicBoolean stopped = new AtomicBoolean(false);
 
-    public AsyncPacketReader(AsynchronousSocketChannel channel, PacketFactory<PD> packetFactory,
-                             PacketReceiver<PD> handler) {
+    public AsyncPacketReader(AsynchronousSocketChannel channel, PacketFactory<D> packetFactory,
+                             PacketReceiver<D> handler) {
         this.channel = channel;
         this.packetFactory = packetFactory;
         this.handler = handler;
@@ -106,7 +106,7 @@ public class AsyncPacketReader<PD extends PacketData<?>> {
 
     private void readAndHandlePacket(byte[] packetBytes) {
         try {
-            PD packet = packetFactory.read(packetBytes);
+            D packet = packetFactory.read(packetBytes);
             logger.trace("Received packet << {} >>", packet);
             handler.handle(packet);
         } catch (BufferException | IOException e) {

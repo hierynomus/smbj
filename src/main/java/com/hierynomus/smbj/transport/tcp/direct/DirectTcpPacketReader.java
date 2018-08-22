@@ -27,23 +27,23 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class DirectTcpPacketReader<PD extends PacketData<?>> extends PacketReader<PD> {
+public class DirectTcpPacketReader<D extends PacketData<?>> extends PacketReader<D> {
 
-    private final PacketFactory<PD> packetFactory;
+    private final PacketFactory<D> packetFactory;
 
-    public DirectTcpPacketReader(String host, InputStream in, PacketFactory<PD> packetFactory, PacketReceiver<PD> handler) {
+    public DirectTcpPacketReader(String host, InputStream in, PacketFactory<D> packetFactory, PacketReceiver<D> handler) {
         super(host, in, handler);
         this.packetFactory = packetFactory;
     }
 
-    private PD readPacket(int packetLength) throws IOException, Buffer.BufferException {
+    private D readPacket(int packetLength) throws IOException, Buffer.BufferException {
         byte[] buf = new byte[packetLength];
         readFully(buf);
         return packetFactory.read(buf);
     }
 
     @Override
-    protected PD doRead() throws TransportException {
+    protected D doRead() throws TransportException {
         try {
             int packetLength = readTcpHeader();
             return readPacket(packetLength);

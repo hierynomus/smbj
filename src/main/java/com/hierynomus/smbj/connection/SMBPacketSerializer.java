@@ -15,7 +15,6 @@
  */
 package com.hierynomus.smbj.connection;
 
-import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.transport.PacketSerializer;
 import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smb.SMBPacket;

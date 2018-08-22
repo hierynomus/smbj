@@ -27,12 +27,12 @@ import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.util.concurrent.ExecutorService;
 
-public class AsyncDirectTcpTransportFactory<PD extends PacketData<?>, P extends Packet<?>> implements TransportLayerFactory<PD, P> {
+public class AsyncDirectTcpTransportFactory<D extends PacketData<?>, P extends Packet<?>> implements TransportLayerFactory<D, P> {
     private static final AsynchronousChannelGroup DEFAULT_CHANNEL_GROUP = null;  // use system default
     private final AsynchronousChannelGroup group;
 
     @Override
-    public TransportLayer<P> createTransportLayer(PacketHandlers<PD, P> handlers, SmbConfig config) {
+    public TransportLayer<P> createTransportLayer(PacketHandlers<D, P> handlers, SmbConfig config) {
         try {
             return new AsyncDirectTcpTransport<>(config.getSoTimeout(), handlers, group);
         } catch (IOException e) {
