@@ -91,7 +91,7 @@ public class DiskShare extends Share {
         } catch (PathResolveException e) {
             throw new SMBApiException(e.getStatusCode(), SMB2MessageCommandCode.SMB2_CREATE, "Cannot resolve path " + path, e);
         }
-        return new SMB2CreateResponseContext(resp, this);
+        return new SMB2CreateResponseContext(resp, path, this);
     }
 
     private Session buildNewSession(SMB2CreateResponse resp, SmbPath target) {
@@ -106,9 +106,9 @@ public class DiskShare extends Share {
     protected DiskEntry getDiskEntry(String path, SMB2CreateResponseContext responseContext) {
         SMB2CreateResponse response = responseContext.resp;
         if (response.getFileAttributes().contains(FILE_ATTRIBUTE_DIRECTORY)) {
-            return new Directory(response.getFileId(), responseContext.share, path);
+            return new Directory(response.getFileId(), responseContext.share, responseContext.target.toUncPath());
         } else {
-            return new File(response.getFileId(), responseContext.share, path);
+            return new File(response.getFileId(), responseContext.share, responseContext.target.toUncPath());
         }
     }
 
@@ -458,9 +458,11 @@ public class DiskShare extends Share {
     static class SMB2CreateResponseContext {
         final SMB2CreateResponse resp;
         final DiskShare share;
+        final SmbPath target;
 
-        public SMB2CreateResponseContext(SMB2CreateResponse resp, DiskShare share) {
+        public SMB2CreateResponseContext(SMB2CreateResponse resp, SmbPath target, DiskShare share) {
             this.resp = resp;
+            this.target = target;
             this.share = share;
         }
     }
