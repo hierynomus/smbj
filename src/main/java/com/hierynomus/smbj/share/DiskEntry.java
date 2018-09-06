@@ -49,6 +49,14 @@ public abstract class DiskEntry implements Closeable {
         return fileId;
     }
 
+    public String getFileName() {
+        return fileName;
+    }
+
+    public DiskShare getDiskShare() {
+        return share;
+    }
+
     public FileAllInformation getFileInformation() throws SMBApiException {
         return getFileInformation(FileAllInformation.class);
     }
