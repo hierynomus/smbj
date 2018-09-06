@@ -13,12 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.protocol.transport;
+package com.hierynomus.mssmb2;
 
-import com.hierynomus.protocol.PacketData;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.transport.PacketFactory;
 
-public interface PacketReceiver<D extends PacketData<?>> {
-    void handle(D packet) throws TransportException;
+public class SMB2PacketFactory implements PacketFactory<SMB2PacketData> {
 
-    void handleError(Throwable t);
+    @Override
+    public SMB2PacketData read(byte[] data) throws Buffer.BufferException {
+        return new SMB2PacketData(data);
+    }
+
+    @Override
+    public boolean canHandle(byte[] data) {
+        return data[0] == (byte) 0xFE && data[1] == 'S' && data[2] == 'M' && data[3] == 'B';
+    }
 }

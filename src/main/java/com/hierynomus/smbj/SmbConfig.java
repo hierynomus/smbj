@@ -22,6 +22,7 @@ import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.security.bc.BCSecurityProvider;
 import com.hierynomus.security.jce.JceSecurityProvider;
 import com.hierynomus.smb.SMBPacket;
+import com.hierynomus.smb.SMBPacketData;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
 import com.hierynomus.smbj.common.SMBRuntimeException;
@@ -42,7 +43,7 @@ public final class SmbConfig {
     private static final int DEFAULT_TIMEOUT = 60;
     private static final TimeUnit DEFAULT_TIMEOUT_UNIT = TimeUnit.SECONDS;
 
-    private static final TransportLayerFactory<SMBPacket<?>> DEFAULT_TRANSPORT_LAYER_FACTORY = new DirectTcpTransportFactory();
+    private static final TransportLayerFactory<SMBPacketData<?>, SMBPacket<?, ?>> DEFAULT_TRANSPORT_LAYER_FACTORY = new DirectTcpTransportFactory();
 
     private static final boolean ANDROID;
     static {
@@ -70,7 +71,7 @@ public final class SmbConfig {
     private int writeBufferSize;
     private long writeTimeout;
     private int transactBufferSize;
-    private TransportLayerFactory<SMBPacket<?>> transportLayerFactory;
+    private TransportLayerFactory<SMBPacketData<?>, SMBPacket<?, ?>> transportLayerFactory;
     private long transactTimeout;
     private GSSContextConfig clientGSSContextConfig;
 
@@ -210,7 +211,7 @@ public final class SmbConfig {
         return transactTimeout;
     }
 
-    public TransportLayerFactory<SMBPacket<?>> getTransportLayerFactory() {
+    public TransportLayerFactory<SMBPacketData<?>, SMBPacket<?, ?>> getTransportLayerFactory() {
         return transportLayerFactory;
     }
 
@@ -359,7 +360,7 @@ public final class SmbConfig {
             return withReadBufferSize(bufferSize).withWriteBufferSize(bufferSize).withTransactBufferSize(bufferSize);
         }
 
-        public Builder withTransportLayerFactory(TransportLayerFactory<SMBPacket<?>> transportLayerFactory) {
+        public Builder withTransportLayerFactory(TransportLayerFactory<SMBPacketData<?>, SMBPacket<?, ?>> transportLayerFactory) {
             if (transportLayerFactory == null) {
                 throw new IllegalArgumentException("Transport layer factory may not be null");
             }

@@ -13,21 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.mssmb;
+package com.hierynomus.mssmb2.messages
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.transport.PacketFactory;
+import com.hierynomus.mssmb2.SMB2MessageConverter
+import com.hierynomus.mssmb2.SMB2PacketData
+import spock.lang.Shared
+import spock.lang.Specification
 
-import java.io.IOException;
+class AbstractPacketReadSpec extends Specification {
+  @Shared
+  def converter = new SMB2MessageConverter()
 
-public class SMB1MessageConverter implements PacketFactory<SMB1Packet> {
-    @Override
-    public SMB1Packet read(byte[] data) throws Buffer.BufferException, IOException {
-        throw new SMB1NotSupportedException();
-    }
-
-    @Override
-    public boolean canHandle(byte[] data) {
-        return data[0] == (byte) 0xFF && data[1] == 'S' && data[2] == 'M' && data[3] == 'B';
-    }
+  def convert(byte[] bytes) {
+    def packetData = new SMB2PacketData(bytes)
+    return converter.readPacket(null, packetData)
+  }
 }

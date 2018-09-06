@@ -15,15 +15,20 @@
  */
 package com.hierynomus.smbj.connection
 
+import com.hierynomus.mssmb2.SMB2Header
+import com.hierynomus.mssmb2.SMB2MessageConverter
 import com.hierynomus.mssmb2.SMB2Packet
+import com.hierynomus.mssmb2.SMB2PacketData
+import com.hierynomus.protocol.commons.buffer.Buffer
 import com.hierynomus.protocol.transport.PacketHandlers
 import com.hierynomus.protocol.transport.PacketReceiver
 import com.hierynomus.protocol.transport.TransportException
 import com.hierynomus.protocol.transport.TransportLayer
+import com.hierynomus.smb.SMBPacket
 import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.transport.TransportLayerFactory
 
-class StubTransportLayerFactory implements TransportLayerFactory<SMB2Packet> {
+class StubTransportLayerFactory implements TransportLayerFactory<SMB2PacketData, SMB2Packet> {
   private Closure<SMB2Packet> processPacket
 
   StubTransportLayerFactory(Closure<SMB2Packet> processPacket) {
@@ -31,17 +36,20 @@ class StubTransportLayerFactory implements TransportLayerFactory<SMB2Packet> {
   }
 
   @Override
-  TransportLayer<SMB2Packet> createTransportLayer(PacketHandlers<SMB2Packet> handlers, SmbConfig config) {
+  TransportLayer<SMB2Packet> createTransportLayer(PacketHandlers<SMB2PacketData, SMB2Packet> handlers, SmbConfig config) {
     return new StubTransportLayer(handlers.receiver, processPacket)
   }
 
   private static class StubTransportLayer implements TransportLayer<SMB2Packet> {
     private boolean connected
-    private PacketReceiver<SMB2Packet> receiver
+    private PacketReceiver<SMB2PacketData> receiver
     private Closure<SMB2Packet> processPacket
 
-    StubTransportLayer(PacketReceiver<SMB2Packet> receiver, Closure<SMB2Packet> processPacket) {
+    StubTransportLayer(PacketReceiver<SMB2PacketData> receiver, Closure<SMB2Packet> processPacket) {
       this.receiver = receiver
+      if (this.receiver instanceof Connection) {
+        ((Connection) this.receiver).smb2Converter = new StubMessageConverter()
+      }
       this.processPacket = processPacket
     }
 
@@ -52,7 +60,7 @@ class StubTransportLayerFactory implements TransportLayerFactory<SMB2Packet> {
       if (response != null) {
         response.header.messageId = packet.header.messageId
         response.header.creditResponse = packet.header.creditRequest
-        receiver.handle(response)
+        receiver.handle(new StubPacketData(response))
       } else {
         throw new TransportException("No response for " + packet)
       }
@@ -74,4 +82,33 @@ class StubTransportLayerFactory implements TransportLayerFactory<SMB2Packet> {
     }
   }
 
+  private static class StubPacketData extends SMB2PacketData {
+    private SMB2Packet packet
+
+    StubPacketData(SMB2Packet packet) throws Buffer.BufferException {
+      super(new byte[0])
+      this.packet = packet
+    }
+
+    @Override
+    SMB2Header getHeader() {
+      return packet.header
+    }
+
+    @Override
+    protected void readHeader() throws Buffer.BufferException {
+    }
+  }
+
+  private static class StubMessageConverter extends SMB2MessageConverter {
+    private realConverter = new SMB2MessageConverter()
+    @Override
+    SMB2Packet readPacket(SMBPacket requestPacket, SMB2PacketData packetData) throws Buffer.BufferException {
+      if (packetData instanceof StubPacketData) {
+        return packetData.packet
+      } else {
+        return realConverter.readPacket(requestPacket, packetData)
+      }
+    }
+  }
 }
