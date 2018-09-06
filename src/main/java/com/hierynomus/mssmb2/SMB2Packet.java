@@ -22,12 +22,12 @@ import com.hierynomus.smb.SMBPacket;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 
-public class SMB2Packet extends SMBPacket<SMB2Header> {
+public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2Header> {
+
     public static final int SINGLE_CREDIT_PAYLOAD_SIZE = 64 * 1024;
     protected int structureSize;
     private SMBBuffer buffer;
     private SMB2Error error;
-    private int messageStartPos;
     private int messageEndPos;
 
     protected SMB2Packet() {
@@ -75,7 +75,7 @@ public class SMB2Packet extends SMBPacket<SMB2Header> {
      * @return The start position of this received packet in the buffer
      */
     public int getMessageStartPos() {
-        return messageStartPos;
+        return header.getHeaderStartPosition();
     }
 
     /**
@@ -102,24 +102,22 @@ public class SMB2Packet extends SMBPacket<SMB2Header> {
         throw new UnsupportedOperationException("Should be implemented by specific message type");
     }
 
-    public final void read(SMBBuffer buffer) throws Buffer.BufferException {
-        this.buffer = buffer; // remember the buffer we read it from
-        this.messageStartPos = buffer.rpos();
-        header.readFrom(buffer);
-        if (isSuccess(header.getStatusCode())) {
-            readMessage(buffer);
-        } else {
-            readError(buffer);
-        }
+    protected final void read(SMB2PacketData packetData) throws Buffer.BufferException {
+        this.buffer = packetData.getDataBuffer(); // remember the buffer we read it from
+        this.header = packetData.getHeader();
+        readMessage(buffer);
         this.messageEndPos = buffer.rpos();
     }
 
-    protected void readError(SMBBuffer buffer) throws Buffer.BufferException {
+    final void readError(SMB2PacketData packetData) throws Buffer.BufferException {
+        this.buffer = packetData.getDataBuffer(); // remember the buffer we read it from
+        this.header = packetData.getHeader();
         this.error = new SMB2Error().read(header, buffer);
+        this.messageEndPos = buffer.rpos();
     }
 
     /**
-     * Read the message, this is only called in case the response is a success response according to {@link #isSuccess(NtStatus)}
+     * Read the packet body, this should be implemented by the various packet types.
      *
      * @param buffer
      * @throws Buffer.BufferException
@@ -129,13 +127,11 @@ public class SMB2Packet extends SMBPacket<SMB2Header> {
     }
 
     /**
-     * Callback to verify whether the status is a success status. Some responses have error codes that should be treated as success responses.
-     *
-     * @param status The status to verify
-     * @return {@code true} is {@link NtStatus#isSuccess()}
+     * Whether this packet contains a success response or an error response
+     * @return {@code true} if the packet does not contain {@link SMB2Error error} data
      */
-    protected boolean isSuccess(long statusCode) {
-        return NtStatus.isSuccess(statusCode) && statusCode != NtStatus.STATUS_PENDING.getValue();
+    public final boolean isSuccess() {
+        return this.error == null;
     }
 
     /**

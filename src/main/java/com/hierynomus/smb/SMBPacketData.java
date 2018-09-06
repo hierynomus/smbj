@@ -15,25 +15,36 @@
  */
 package com.hierynomus.smb;
 
-import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
-public abstract class SMBPacket<D extends SMBPacketData<H>, H extends SMBHeader> implements Packet<SMBBuffer> {
-    protected H header;
+/**
+ * The SMB Packet Data represents a partially deserialized SMB packet.
+ * Only the header part is deserialized after which we can determine which packet
+ * needs to be constructed.
+ *
+ * @param <H> The SMBHeader type
+ */
+public abstract class SMBPacketData<H extends SMBHeader> implements PacketData<SMBBuffer> {
+    private H header;
+    protected SMBBuffer dataBuffer;
 
-    public SMBPacket(H header) {
+    public SMBPacketData(H header, byte[] data) throws Buffer.BufferException {
         this.header = header;
+        this.dataBuffer = new SMBBuffer(data);
+        readHeader();
+    }
+
+    protected void readHeader() throws Buffer.BufferException {
+        this.header.readFrom(dataBuffer);
     }
 
     public H getHeader() {
         return header;
     }
 
-    protected abstract void read(D packetData) throws Buffer.BufferException;
-
     @Override
-    public final void read(SMBBuffer buffer) throws Buffer.BufferException {
-        throw new UnsupportedOperationException("Call read(D extends PacketData<H>) instead of this method");
+    public SMBBuffer getDataBuffer() {
+        return dataBuffer;
     }
-
 }

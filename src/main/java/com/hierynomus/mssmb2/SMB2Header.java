@@ -18,6 +18,7 @@ package com.hierynomus.mssmb2;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smb.SMBHeader;
+import com.hierynomus.smbj.common.Check;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 
@@ -43,9 +44,12 @@ public class SMB2Header implements SMBHeader {
     private long flags;
     private long nextCommandOffset; // TODO Message Compounding
     private byte[] signature;
+    // We need to keep track of where the header is in the buffer, for both signature verification as well as compounding.
+    private int headerStartPosition;
 
     @Override
     public void writeTo(SMBBuffer buffer) {
+        this.headerStartPosition = buffer.wpos(); // Set the current start position of the header.
         buffer.putRawBytes(new byte[]{(byte) 0xFE, 'S', 'M', 'B'}); // ProtocolId (4 byte)
         buffer.putUInt16(STRUCTURE_SIZE); // StructureSize (2 byte)
         writeCreditCharge(buffer); // CreditCharge (2 byte)
@@ -158,7 +162,9 @@ public class SMB2Header implements SMBHeader {
 
     @Override
     public void readFrom(Buffer<?> buffer) throws Buffer.BufferException {
-        buffer.skip(4); // ProtocolId (4 bytes) (already verified)
+        this.headerStartPosition = buffer.rpos(); // Keep track of the header start position.
+        byte[] protocolId = buffer.readRawBytes(4); // ProtocolId (4 bytes) (already verified)
+        Check.ensureEquals(protocolId, new byte[]{(byte) 0xFE, 'S', 'M', 'B'}, "Could not find SMB2 Packet header");
         buffer.skip(2); // StructureSize (2 bytes)
         buffer.readUInt16(); // CreditCharge (2 bytes)
         statusCode = buffer.readUInt32(); // Status (4 bytes)
@@ -229,5 +235,9 @@ public class SMB2Header implements SMBHeader {
 
     public byte[] getSignature() {
         return signature;
+    }
+
+    public int getHeaderStartPosition() {
+        return headerStartPosition;
     }
 }

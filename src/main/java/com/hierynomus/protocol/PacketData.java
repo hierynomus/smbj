@@ -13,12 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.protocol.transport;
+package com.hierynomus.protocol;
 
-import com.hierynomus.protocol.PacketData;
+import com.hierynomus.protocol.commons.buffer.Buffer;
 
-public interface PacketReceiver<D extends PacketData<?>> {
-    void handle(D packet) throws TransportException;
-
-    void handleError(Throwable t);
+/**
+ * Represents the received (potentially partially deserialized) packet data.
+ * @param <B> The Buffer type.
+ */
+public interface PacketData<B extends Buffer<B>> {
+    B getDataBuffer();
 }

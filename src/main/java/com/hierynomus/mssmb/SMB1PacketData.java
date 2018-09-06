@@ -13,12 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.protocol.transport;
+package com.hierynomus.mssmb;
 
-import com.hierynomus.protocol.PacketData;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.smb.SMBPacketData;
 
-public interface PacketReceiver<D extends PacketData<?>> {
-    void handle(D packet) throws TransportException;
-
-    void handleError(Throwable t);
+public class SMB1PacketData extends SMBPacketData<SMB1Header> {
+    public SMB1PacketData(byte[] data) throws Buffer.BufferException {
+        super(new SMB1Header(), data);
+    }
 }
