@@ -33,10 +33,10 @@ class FileOutputStream extends OutputStream {
 
     private static final Logger logger = LoggerFactory.getLogger(FileOutputStream.class);
 
-    FileOutputStream(SMB2Writer writer, int bufferSize, ProgressListener progressListener) {
+    FileOutputStream(SMB2Writer writer, int bufferSize, long offset, ProgressListener progressListener) {
         this.writer = writer;
         this.progressListener = progressListener;
-        this.provider = new ByteArrayProvider(bufferSize);
+        this.provider = new ByteArrayProvider(bufferSize,offset);
     }
 
     @Override
@@ -113,8 +113,9 @@ class FileOutputStream extends OutputStream {
 
         private RingBuffer buf;
 
-        private ByteArrayProvider(int maxWriteSize) {
+        private ByteArrayProvider(int maxWriteSize, long offset) {
             this.buf = new RingBuffer(maxWriteSize);
+            this.offset = offset;
         }
 
         @Override
