@@ -775,13 +775,13 @@ public class Buffer<T extends Buffer<T>> {
             }
 
             @Override
-            public long skip(long n) throws IOException {
+            public long skip(long n) {
                 Buffer.this.rpos((int) n);
                 return n;
             }
 
             @Override
-            public int available() throws IOException {
+            public int available() {
                 return Buffer.this.available();
             }
         };

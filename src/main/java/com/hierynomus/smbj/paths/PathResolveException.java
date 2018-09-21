@@ -18,23 +18,27 @@ package com.hierynomus.smbj.paths;
 import com.hierynomus.mserref.NtStatus;
 
 public class PathResolveException extends Exception {
-    private final NtStatus status;
+    private final long status;
 
-    public PathResolveException(NtStatus status) {
+    public PathResolveException(long status) {
         this.status = status;
     }
 
-    public PathResolveException(NtStatus status, String message) {
+    public PathResolveException(long status, String message) {
         super(message);
         this.status = status;
     }
 
     public PathResolveException(Throwable cause) {
         super(cause);
-        this.status = NtStatus.UNKNOWN;
+        this.status = NtStatus.STATUS_OTHER.getValue();
+    }
+
+    public long getStatusCode() {
+        return status;
     }
 
     public NtStatus getStatus() {
-        return status;
+        return NtStatus.valueOf(status);
     }
 }

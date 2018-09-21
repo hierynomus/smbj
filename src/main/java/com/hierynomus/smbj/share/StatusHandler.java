@@ -13,21 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.mssmb;
+package com.hierynomus.smbj.share;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.transport.PacketFactory;
+import com.hierynomus.mserref.NtStatus;
 
-import java.io.IOException;
+public interface StatusHandler {
+    StatusHandler SUCCESS = new StatusHandler() {
+        @Override
+        public boolean isSuccess(long statusCode) {
+            return statusCode == NtStatus.STATUS_SUCCESS.getValue();
+        }
+    };
 
-public class SMB1MessageConverter implements PacketFactory<SMB1Packet> {
-    @Override
-    public SMB1Packet read(byte[] data) throws Buffer.BufferException, IOException {
-        throw new SMB1NotSupportedException();
-    }
-
-    @Override
-    public boolean canHandle(byte[] data) {
-        return data[0] == (byte) 0xFF && data[1] == 'S' && data[2] == 'M' && data[3] == 'B';
-    }
+    boolean isSuccess(long statusCode);
 }

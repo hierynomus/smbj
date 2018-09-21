@@ -22,22 +22,23 @@ import com.hierynomus.protocol.commons.EnumWithValue
 import com.hierynomus.smb.SMBBuffer
 import spock.lang.Specification
 
-class SMB2TreeConnectResponseSpec extends Specification {
+class SMB2TreeConnectResponseSpec extends AbstractPacketReadSpec {
 
   def "should parse tree connects"() {
     given:
     String hexString1 = "fe534d42400000000000000003000100010000000000000003000000000000000000000001000000010400d40058000000000000000000000000000000000000100001000008000000000000ff011f00"
-
     byte[] bytes1 = ByteArrayUtils.parseHex(hexString1)
-    SMB2TreeConnectResponse tcResponse = new SMB2TreeConnectResponse()
 
     when:
-    tcResponse.read(new SMBBuffer(bytes1))
+    def response = convert(bytes1)
 
     then:
-    tcResponse.getCapabilities() == EnumSet.noneOf(SMB2ShareCapabilities.class)
-    tcResponse.getMaximalAccess() == EnumWithValue.EnumUtils.toEnumSet(0x001f01ffL, AccessMask.class)
-    tcResponse.getShareFlags() == 0x800L
-    tcResponse.isDiskShare()
+    response.class == SMB2TreeConnectResponse.class
+    with (response as SMB2TreeConnectResponse) { tcResponse ->
+      tcResponse.getCapabilities() == EnumSet.noneOf(SMB2ShareCapabilities.class)
+      tcResponse.getMaximalAccess() == EnumWithValue.EnumUtils.toEnumSet(0x001f01ffL, AccessMask.class)
+      tcResponse.getShareFlags() == 0x800L
+      tcResponse.isDiskShare()
+    }
   }
 }

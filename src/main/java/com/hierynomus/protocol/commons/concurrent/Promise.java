@@ -32,7 +32,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class Promise<V, T extends Throwable> {
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final String name;
     private final ExceptionWrapper<T> wrapper;
@@ -75,7 +75,7 @@ public class Promise<V, T extends Throwable> {
     public void deliver(V val) {
         lock.lock();
         try {
-            log.debug("Setting << {} >> to `{}`", name, val);
+            logger.debug("Setting << {} >> to `{}`", name, val);
             this.val = val;
             cond.signalAll();
         } finally {
@@ -160,7 +160,7 @@ public class Promise<V, T extends Throwable> {
                 return val;
             }
 
-            log.debug("Awaiting << {} >>", name);
+            logger.debug("Awaiting << {} >>", name);
 
             if (timeout == 0) {
                 while (val == null && pendingEx == null) {
@@ -173,7 +173,7 @@ public class Promise<V, T extends Throwable> {
             }
 
             if (pendingEx != null) {
-                log.error("<< {} >> woke to: {}", name, pendingEx);
+                logger.error("<< {} >> woke to: {}", name, pendingEx);
                 throw pendingEx;
             }
 

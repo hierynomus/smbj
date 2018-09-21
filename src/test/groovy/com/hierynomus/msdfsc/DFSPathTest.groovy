@@ -16,7 +16,6 @@
 
 package com.hierynomus.msdfsc
 
-import com.hierynomus.smbj.common.SmbPath
 import spock.lang.Specification
 import spock.lang.Unroll
 

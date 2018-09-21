@@ -29,7 +29,7 @@ class RingBufferSpec extends Specification {
 
 
     when:
-    cBuf.write(actual, 0, 5);
+    cBuf.write(actual, 0, 5)
 
     then:
     cBuf.size() == 5
@@ -39,24 +39,24 @@ class RingBufferSpec extends Specification {
 
   def "should be able to append only selected bytes to buffer"() {
     given:
-    def actual = [4, 5, 6, 7, 1] as byte[];
+    def actual = [4, 5, 6, 7, 1] as byte[]
     def byteArray = new byte[3]
 
     when:
-    cBuf.write(actual, 2, 3);
+    cBuf.write(actual, 2, 3)
 
     then:
     cBuf.size() == 3
-    cBuf.read(byteArray);
+    cBuf.read(byteArray)
     byteArray == [6, 7, 1] as byte[]
   }
 
   def "should throw exception if bytes to write do not exist"() {
     given:
-    def actual = [4, 5, 6, 7, 1] as byte[];
+    def actual = [4, 5, 6, 7, 1] as byte[]
 
     when:
-    cBuf.write(actual, 2, 4);
+    cBuf.write(actual, 2, 4)
 
     then:
     thrown IllegalArgumentException
@@ -64,16 +64,16 @@ class RingBufferSpec extends Specification {
 
   def "should be able to append single byte to buffer"() {
     given:
-    def actual = [4, 5, 6, 7, 1] as byte[];
+    def actual = [4, 5, 6, 7, 1] as byte[]
     def byteArray = new byte[4]
 
     when:
-    cBuf.write(actual, 2, 3);
-    cBuf.write(2);
+    cBuf.write(actual, 2, 3)
+    cBuf.write(2)
 
     then:
     cBuf.size() == 4
-    cBuf.read(byteArray);
+    cBuf.read(byteArray)
     byteArray == [6, 7, 1, 2] as byte[]
   }
 
@@ -84,12 +84,12 @@ class RingBufferSpec extends Specification {
     def byteArray = new byte[5]
 
     when:
-    cBuf.write(b1, 0, 3);
-    cBuf.write(b2, 0, 2);
+    cBuf.write(b1, 0, 3)
+    cBuf.write(b2, 0, 2)
 
     then:
     cBuf.size() == 5
-    cBuf.read(byteArray);
+    cBuf.read(byteArray)
     byteArray == [4, 5, 6, 12, 13] as byte[]
   }
 
@@ -101,23 +101,23 @@ class RingBufferSpec extends Specification {
     def o2 = new byte[i2.length]
 
     when:
-    cBuf.write(i1, 0, i1.length);
+    cBuf.write(i1, 0, i1.length)
     cBuf.read(o1)
-    cBuf.write(i2, 0, i2.length);
+    cBuf.write(i2, 0, i2.length)
 
     then:
     cBuf.size() == 10
-    cBuf.read(o2);
+    cBuf.read(o2)
     o2 == i2
   }
 
   def "should throw exception if buffer is full"() {
     given:
-    def b = [4, 5, 6, 1, 2, 3, 4] as byte[];
+    def b = [4, 5, 6, 1, 2, 3, 4] as byte[]
 
     when:
-    cBuf.write(b, 0, 6);
-    cBuf.write(b, 0, 6);
+    cBuf.write(b, 0, 6)
+    cBuf.write(b, 0, 6)
 
     then:
     thrown IndexOutOfBoundsException
@@ -131,24 +131,24 @@ class RingBufferSpec extends Specification {
     def b3 = new byte[1]
 
     when:
-    cBuf.write(b, 0, 6);
+    cBuf.write(b, 0, 6)
 
     then:
     cBuf.size() == 6
-    cBuf.read(b1);
+    cBuf.read(b1)
     b1 == [4, 5] as byte[]
-    cBuf.read(b2);
+    cBuf.read(b2)
     b2 == [6, 7, 1] as byte[]
-    cBuf.read(b3);
+    cBuf.read(b3)
     b3 == [20] as byte[]
   }
 
   def "should read zero bytes when read is called with zero byte buffer"() {
     given:
-    def b = [4, 5, 6] as byte[];
+    def b = [4, 5, 6] as byte[]
 
     when:
-    cBuf.write(b, 0, 3);
+    cBuf.write(b, 0, 3)
 
     then:
     cBuf.size() == 3
@@ -160,11 +160,11 @@ class RingBufferSpec extends Specification {
 
   def "should read available bytes when read is called with larger than available byte buffer"() {
     given:
-    def b = [4, 5, 6] as byte[];
+    def b = [4, 5, 6] as byte[]
     def byteArray = new byte[6]
 
     when:
-    cBuf.write(b, 0, 3);
+    cBuf.write(b, 0, 3)
 
     then:
     cBuf.size() == 3
@@ -178,68 +178,68 @@ class RingBufferSpec extends Specification {
     def b = [4, 5, 6, 10, 12] as byte[]
 
     when:
-    cBuf.write(b, 0, 5);
+    cBuf.write(b, 0, 5)
 
     then:
     cBuf.size() == 5
-    cBuf.read(new byte[1]);
+    cBuf.read(new byte[1])
     cBuf.size() == 4
-    cBuf.read(new byte[2]);
+    cBuf.read(new byte[2])
     cBuf.size() == 2
-    cBuf.read(new byte[2]);
+    cBuf.read(new byte[2])
     cBuf.size() == 0
   }
 
   def "should be able to append more bytes if bytes are read"() {
     given:
-    cBuf = new RingBuffer(3);
+    cBuf = new RingBuffer(3)
     def b1 = [4, 5, 6] as byte[]
     def byteArray = new byte[3]
 
     when:
-    cBuf.write(b1, 0, 3);
-    cBuf.read(new byte[1]);
-    cBuf.write([30] as byte[], 0, 1);
+    cBuf.write(b1, 0, 3)
+    cBuf.read(new byte[1])
+    cBuf.write([30] as byte[], 0, 1)
 
 
     then:
     cBuf.size() == 3
-    cBuf.read(byteArray);
+    cBuf.read(byteArray)
     byteArray == [5, 6, 30] as byte[]
   }
 
 
   def "should be able to append more bytes if write position has wrapped around"() {
     given:
-    cBuf = new RingBuffer(6);
+    cBuf = new RingBuffer(6)
     def b1 = [1, 2, 3, 4, 5, 6] as byte[]
     def byteArray = new byte[6]
 
     when:
-    cBuf.write(b1, 0, 6);
-    cBuf.read(new byte[4]);
-    cBuf.write([7, 8] as byte[], 0, 2);
-    cBuf.write([9, 10] as byte[], 0, 2);
+    cBuf.write(b1, 0, 6)
+    cBuf.read(new byte[4])
+    cBuf.write([7, 8] as byte[], 0, 2)
+    cBuf.write([9, 10] as byte[], 0, 2)
 
 
     then:
     cBuf.size() == 6
-    cBuf.read(byteArray);
+    cBuf.read(byteArray)
     byteArray == [5, 6, 7, 8, 9, 10] as byte[]
   }
 
   def "should be able to append bytes in the middle of array if write position has wrapped around"() {
     given:
-    cBuf = new RingBuffer(3);
+    cBuf = new RingBuffer(3)
     def b1 = [1, 2, 3, 4, 5] as byte[]
-    def r1 = new byte[2];
-    def r2 = new byte[3];
+    def r1 = new byte[2]
+    def r2 = new byte[3]
 
     when:
-    cBuf.write(b1, 0, 2);
-    cBuf.read(r1);
-    cBuf.write(b1, 2, 3);
-    cBuf.read(r2);
+    cBuf.write(b1, 0, 2)
+    cBuf.read(r1)
+    cBuf.write(b1, 2, 3)
+    cBuf.read(r2)
 
     then:
     r1 == [1, 2] as byte[]
@@ -248,14 +248,14 @@ class RingBufferSpec extends Specification {
 
   def "should throw exception if full when write position has wrapped around"() {
     given:
-    cBuf = new RingBuffer(6);
-    def b = [1, 2, 3, 4, 5, 6] as byte[];
+    cBuf = new RingBuffer(6)
+    def b = [1, 2, 3, 4, 5, 6] as byte[]
 
     when:
-    cBuf.write(b, 0, 6);
+    cBuf.write(b, 0, 6)
     cBuf.read(new byte[4])
-    cBuf.write([7, 8] as byte[], 0, 2);
-    cBuf.write([9, 10, 11] as byte[], 0, 3);
+    cBuf.write([7, 8] as byte[], 0, 2)
+    cBuf.write([9, 10, 11] as byte[], 0, 3)
 
     then:
     thrown IndexOutOfBoundsException

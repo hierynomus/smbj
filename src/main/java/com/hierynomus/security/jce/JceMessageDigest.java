@@ -37,7 +37,7 @@ public class JceMessageDigest implements MessageDigest {
             }
         } catch (NoSuchAlgorithmException e) {
             if ("MD4".equals(algorithm)) {
-                tryMd4();
+                tryMd4(e);
             } else {
                 throw new SecurityException(e);
             }
@@ -51,12 +51,12 @@ public class JceMessageDigest implements MessageDigest {
      *
      * @throws SecurityException If the MD4 digest could not be loaded
      */
-    private void tryMd4() throws SecurityException {
+    private void tryMd4(NoSuchAlgorithmException originalException) throws SecurityException {
         try {
             Class<?> md4Class = Class.forName("sun.security.provider.MD4");
             this.md = (java.security.MessageDigest) md4Class.getMethod("getInstance").invoke(null);
         } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e1) {
-            throw new SecurityException(e1);
+            throw new SecurityException(originalException);
         }
     }
 

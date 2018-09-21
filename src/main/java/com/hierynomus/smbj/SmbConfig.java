@@ -22,6 +22,7 @@ import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.security.bc.BCSecurityProvider;
 import com.hierynomus.security.jce.JceSecurityProvider;
 import com.hierynomus.smb.SMBPacket;
+import com.hierynomus.smb.SMBPacketData;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
 import com.hierynomus.smbj.common.SMBRuntimeException;
@@ -42,7 +43,7 @@ public final class SmbConfig {
     private static final int DEFAULT_TIMEOUT = 60;
     private static final TimeUnit DEFAULT_TIMEOUT_UNIT = TimeUnit.SECONDS;
 
-    private static final TransportLayerFactory<SMBPacket<?>> DEFAULT_TRANSPORT_LAYER_FACTORY = new DirectTcpTransportFactory();
+    private static final TransportLayerFactory<SMBPacketData<?>, SMBPacket<?, ?>> DEFAULT_TRANSPORT_LAYER_FACTORY = new DirectTcpTransportFactory();
 
     private static final boolean ANDROID;
     static {
@@ -70,8 +71,9 @@ public final class SmbConfig {
     private int writeBufferSize;
     private long writeTimeout;
     private int transactBufferSize;
-    private TransportLayerFactory<SMBPacket<?>> transportLayerFactory;
+    private TransportLayerFactory<SMBPacketData<?>, SMBPacket<?, ?>> transportLayerFactory;
     private long transactTimeout;
+    private GSSContextConfig clientGSSContextConfig;
 
     private int soTimeout;
 
@@ -94,7 +96,8 @@ public final class SmbConfig {
             .withDialects(SMB2Dialect.SMB_2_1, SMB2Dialect.SMB_2_0_2)
             // order is important.  The authenticators listed first will be selected
             .withAuthenticators(getDefaultAuthenticators())
-            .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT);
+            .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
+            .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig());
     }
 
     private static SecurityProvider getDefaultSecurityProvider() {
@@ -145,6 +148,7 @@ public final class SmbConfig {
         transportLayerFactory = other.transportLayerFactory;
         soTimeout = other.soTimeout;
         useMultiProtocolNegotiate = other.useMultiProtocolNegotiate;
+        clientGSSContextConfig = other.clientGSSContextConfig;
     }
 
     public Random getRandomProvider() {
@@ -207,7 +211,7 @@ public final class SmbConfig {
         return transactTimeout;
     }
 
-    public TransportLayerFactory<SMBPacket<?>> getTransportLayerFactory() {
+    public TransportLayerFactory<SMBPacketData<?>, SMBPacket<?, ?>> getTransportLayerFactory() {
         return transportLayerFactory;
     }
 
@@ -217,6 +221,10 @@ public final class SmbConfig {
 
     public SocketFactory getSocketFactory() {
         return socketFactory;
+    }
+
+    public GSSContextConfig getClientGSSContextConfig() {
+        return clientGSSContextConfig;
     }
 
     public static class Builder {
@@ -352,7 +360,7 @@ public final class SmbConfig {
             return withReadBufferSize(bufferSize).withWriteBufferSize(bufferSize).withTransactBufferSize(bufferSize);
         }
 
-        public Builder withTransportLayerFactory(TransportLayerFactory<SMBPacket<?>> transportLayerFactory) {
+        public Builder withTransportLayerFactory(TransportLayerFactory<SMBPacketData<?>, SMBPacket<?, ?>> transportLayerFactory) {
             if (transportLayerFactory == null) {
                 throw new IllegalArgumentException("Transport layer factory may not be null");
             }
@@ -395,6 +403,14 @@ public final class SmbConfig {
 
         public Builder withMultiProtocolNegotiate(boolean useMultiProtocolNegotiate) {
             config.useMultiProtocolNegotiate = useMultiProtocolNegotiate;
+            return this;
+        }
+
+        public Builder withClientGSSContextConfig(GSSContextConfig clientGSSContextConfig) {
+            if (clientGSSContextConfig == null) {
+                throw new IllegalArgumentException("Client GSSContext Config may not be null");
+            }
+            config.clientGSSContextConfig = clientGSSContextConfig;
             return this;
         }
     }

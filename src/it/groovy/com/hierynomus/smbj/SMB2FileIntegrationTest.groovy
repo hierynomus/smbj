@@ -17,10 +17,10 @@ package com.hierynomus.smbj
 
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mserref.NtStatus
+import com.hierynomus.msfscc.fileinformation.FileStandardInformation
 import com.hierynomus.mssmb2.SMB2CreateDisposition
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.mssmb2.SMBApiException
-import com.hierynomus.smb.SMBPacket
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.io.ArrayByteChunkProvider
@@ -32,8 +32,7 @@ import spock.lang.Unroll
 
 import java.nio.charset.StandardCharsets
 
-import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_CREATE
-import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_OPEN
+import static com.hierynomus.mssmb2.SMB2CreateDisposition.*
 
 class SMB2FileIntegrationTest extends Specification {
 
@@ -125,7 +124,7 @@ class SMB2FileIntegrationTest extends Specification {
 
     then:
     def e = thrown(SMBApiException.class)
-    e.status == NtStatus.STATUS_SHARING_VIOLATION
+    e.statusCode == NtStatus.STATUS_SHARING_VIOLATION.value
     share.list("").collect { it.fileName } contains "locked"
 
     cleanup:
@@ -143,10 +142,10 @@ class SMB2FileIntegrationTest extends Specification {
     when:
     def ostream = file.getOutputStream(new LoggingProgressListener())
     try {
-      byte[] buffer = new byte[4096];
-      int len;
+      byte[] buffer = new byte[4096]
+      int len
       while ((len = istream.read(buffer)) != -1) {
-        ostream.write(buffer, 0, len);
+        ostream.write(buffer, 0, len)
       }
     } finally {
       istream.close()
@@ -184,5 +183,37 @@ class SMB2FileIntegrationTest extends Specification {
 
     cleanup:
     share.rm("bigfile")
+  }
+
+  def "should be able to copy files remotely"() {
+    given:
+    def src = share.openFile("srcFile", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_OVERWRITE_IF, null)
+    src.write(new ArrayByteChunkProvider("Hello World!".getBytes(StandardCharsets.UTF_8), 0))
+    src.close()
+
+    src = share.openFile("srcFile", EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    def dst = share.openFile("dstFile", EnumSet.of(AccessMask.FILE_WRITE_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OVERWRITE_IF, null)
+
+    when:
+    src.remoteCopyTo(dst)
+
+    then:
+    share.fileExists("dstFile")
+    def srcSize = src.getFileInformation(FileStandardInformation.class).endOfFile
+    def dstSize = dst.getFileInformation(FileStandardInformation.class).endOfFile
+    srcSize == dstSize
+
+    cleanup:
+    try {
+      share.rm("srcFile")
+    } catch (SMBApiException e) {
+      // Ignored
+    }
+
+    try {
+      share.rm("dstFile")
+    } catch (SMBApiException e) {
+      // Ignored
+    }
   }
 }

@@ -18,7 +18,6 @@ package com.hierynomus.smbj.share;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SecurityDescriptor;
 import com.hierynomus.msdtyp.SecurityInformation;
-import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.FileSystemInformationClass;
 import com.hierynomus.msfscc.fileinformation.*;
@@ -69,8 +68,8 @@ public class DiskShare extends Share {
     }
 
     @Override
-    protected Set<NtStatus> getCreateSuccessStatus() {
-        return resolver.handledStates();
+    protected StatusHandler getCreateStatusHandler() {
+        return resolver.statusHandler();
     }
 
     private SMB2CreateResponseContext resolveAndCreateFile(SmbPath path, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
@@ -79,7 +78,7 @@ public class DiskShare extends Share {
             DiskShare resolvedShare = rerouteIfNeeded(path, target);
             return resolvedShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
         } catch (PathResolveException pre) {
-            throw new SMBApiException(pre.getStatus(), SMB2MessageCommandCode.SMB2_CREATE, "Cannot resolve path " + path, pre);
+            throw new SMBApiException(pre.getStatus().getValue(), SMB2MessageCommandCode.SMB2_CREATE, "Cannot resolve path " + path, pre);
         }
     }
 
@@ -103,17 +102,17 @@ public class DiskShare extends Share {
                 return resolveShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
             }
         } catch (PathResolveException e) {
-            throw new SMBApiException(e.getStatus(), SMB2MessageCommandCode.SMB2_CREATE, "Cannot resolve path " + path, e);
+            throw new SMBApiException(e.getStatusCode(), SMB2MessageCommandCode.SMB2_CREATE, "Cannot resolve path " + path, e);
         }
-        return new SMB2CreateResponseContext(resp, this);
+        return new SMB2CreateResponseContext(resp, path, this);
     }
 
     protected DiskEntry getDiskEntry(String path, SMB2CreateResponseContext responseContext) {
         SMB2CreateResponse response = responseContext.resp;
         if (response.getFileAttributes().contains(FILE_ATTRIBUTE_DIRECTORY)) {
-            return new Directory(response.getFileId(), responseContext.share, path);
+            return new Directory(response.getFileId(), responseContext.share, responseContext.target.toUncPath());
         } else {
-            return new File(response.getFileId(), responseContext.share, path);
+            return new File(response.getFileId(), responseContext.share, responseContext.target.toUncPath());
         }
     }
 
@@ -156,25 +155,39 @@ public class DiskShare extends Share {
         );
     }
 
+    private static StatusHandler FILE_EXISTS_STATUS_HANDLER = new StatusHandler() {
+        @Override
+        public boolean isSuccess(long statusCode) {
+            return statusCode == STATUS_OBJECT_NAME_NOT_FOUND.getValue() || statusCode == STATUS_OBJECT_PATH_NOT_FOUND.getValue() || statusCode == STATUS_FILE_IS_A_DIRECTORY.getValue();
+        }
+    };
+
     /**
      * File in the given path exists or not
      */
     public boolean fileExists(String path) throws SMBApiException {
-        return exists(path, of(FILE_NON_DIRECTORY_FILE), of(STATUS_OBJECT_NAME_NOT_FOUND, STATUS_OBJECT_PATH_NOT_FOUND, STATUS_FILE_IS_A_DIRECTORY));
+        return exists(path, of(FILE_NON_DIRECTORY_FILE), FILE_EXISTS_STATUS_HANDLER);
     }
+
+    private static StatusHandler FOLDER_EXISTS_STATUS_HANDLER = new StatusHandler() {
+        @Override
+        public boolean isSuccess(long statusCode) {
+            return statusCode == STATUS_OBJECT_NAME_NOT_FOUND.getValue() || statusCode == STATUS_OBJECT_PATH_NOT_FOUND.getValue() || statusCode == STATUS_NOT_A_DIRECTORY.getValue();
+        }
+    };
 
     /**
      * Folder in the given path exists or not.
      */
     public boolean folderExists(String path) throws SMBApiException {
-        return exists(path, of(FILE_DIRECTORY_FILE), of(STATUS_OBJECT_NAME_NOT_FOUND, STATUS_OBJECT_PATH_NOT_FOUND, STATUS_NOT_A_DIRECTORY));
+        return exists(path, of(FILE_DIRECTORY_FILE), FOLDER_EXISTS_STATUS_HANDLER);
     }
 
-    private boolean exists(String path, EnumSet<SMB2CreateOptions> createOptions, Set<NtStatus> acceptedStatuses) throws SMBApiException {
+    private boolean exists(String path, EnumSet<SMB2CreateOptions> createOptions, StatusHandler statusHandler) throws SMBApiException {
         try (DiskEntry ignored = open(path, of(FILE_READ_ATTRIBUTES), of(FILE_ATTRIBUTE_NORMAL), ALL, FILE_OPEN, createOptions)) {
             return true;
         } catch (SMBApiException sae) {
-            if (acceptedStatuses.contains(sae.getStatus())) {
+            if (statusHandler.isSuccess(sae.getStatusCode())) {
                 return false;
             } else {
                 throw sae;
@@ -253,7 +266,7 @@ public class DiskShare extends Share {
     /**
      * Get information for a given fileId
      **/
-    public FileAllInformation getFileInformation(SMB2FileId fileId) throws SMBApiException, TransportException {
+    public FileAllInformation getFileInformation(SMB2FileId fileId) throws SMBApiException {
         return getFileInformation(fileId, FileAllInformation.class);
     }
 
@@ -449,9 +462,11 @@ public class DiskShare extends Share {
     static class SMB2CreateResponseContext {
         final SMB2CreateResponse resp;
         final DiskShare share;
+        final SmbPath target;
 
-        public SMB2CreateResponseContext(SMB2CreateResponse resp, DiskShare share) {
+        public SMB2CreateResponseContext(SMB2CreateResponse resp, SmbPath target, DiskShare share) {
             this.resp = resp;
+            this.target = target;
             this.share = share;
         }
     }

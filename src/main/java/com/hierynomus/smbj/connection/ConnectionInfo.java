@@ -17,8 +17,8 @@ package com.hierynomus.smbj.connection;
 
 import com.hierynomus.mssmb2.SMB2GlobalCapability;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
-
 import com.hierynomus.ntlm.messages.WindowsVersion;
+
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.UUID;

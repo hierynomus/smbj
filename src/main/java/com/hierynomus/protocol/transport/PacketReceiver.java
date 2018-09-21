@@ -15,10 +15,10 @@
  */
 package com.hierynomus.protocol.transport;
 
-import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.PacketData;
 
-public interface PacketReceiver<P extends Packet<?>> {
-    void handle(P packet) throws TransportException;
+public interface PacketReceiver<D extends PacketData<?>> {
+    void handle(D packet) throws TransportException;
 
     void handleError(Throwable t);
 }

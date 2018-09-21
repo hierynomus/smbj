@@ -44,18 +44,6 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
         }
     }
 
-    /**
-     * [MS-SMB2].pdf 3.3.4.4
-     * STATUS_NOTIFY_ENUM_DIR should be treated as a success code.
-     *
-     * @param status The status to verify
-     * @return
-     */
-    @Override
-    protected boolean isSuccess(NtStatus status) {
-        return super.isSuccess(status) || status == NtStatus.STATUS_NOTIFY_ENUM_DIR;
-    }
-
     private List<FileNotifyInfo> readFileNotifyInfo(SMBBuffer buffer, int outputBufferOffset)
         throws Buffer.BufferException {
         List<FileNotifyInfo> notifyInfoList = new ArrayList<>();

@@ -50,7 +50,7 @@ class BasicPacketProcessor {
   private static SMB2Packet negotiateResponse() {
     def response = new SMB2NegotiateResponse()
     response.header.message = SMB2MessageCommandCode.SMB2_NEGOTIATE
-    response.header.status = NtStatus.STATUS_SUCCESS
+    response.header.statusCode = NtStatus.STATUS_SUCCESS.value
     response.dialect = SMB2Dialect.SMB_2_1
     response
   }
@@ -60,7 +60,7 @@ class BasicPacketProcessor {
     response.header.message = SMB2MessageCommandCode.SMB2_SESSION_SETUP
     response.header.sessionId = 1
     response.securityBuffer = new byte[16]
-    response.header.status = NtStatus.STATUS_SUCCESS
+    response.header.statusCode = NtStatus.STATUS_SUCCESS.value
     response.sessionFlags = EnumSet.noneOf(SMB2SessionSetup.SMB2SessionFlags)
     response
   }
@@ -68,13 +68,13 @@ class BasicPacketProcessor {
   private static SMB2Packet logoffResponse() {
     def response = new SMB2Logoff()
     response.header.message = SMB2MessageCommandCode.SMB2_LOGOFF
-    response.header.status = NtStatus.STATUS_SUCCESS
+    response.header.statusCode = NtStatus.STATUS_SUCCESS.value
     response
   }
 
   private static SMB2Packet connectResponse() {
     def response = new SMB2TreeConnectResponse()
-    response.header.status = NtStatus.STATUS_SUCCESS
+    response.header.statusCode = NtStatus.STATUS_SUCCESS.value
     response.capabilities = EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS)
     response.shareType = 0x01 as byte
     response
@@ -82,7 +82,7 @@ class BasicPacketProcessor {
 
   private static SMB2Packet disconnectResponse() {
     def response = new SMB2TreeDisconnect()
-    response.header.status = NtStatus.STATUS_SUCCESS
+    response.header.statusCode = NtStatus.STATUS_SUCCESS.value
     response
   }
 }

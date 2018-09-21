@@ -190,13 +190,13 @@ class FileReadSpec extends Specification {
   byte[] randomData(int seed, int length) {
     Random rng = new Random(seed)
     byte[] data = new byte[length]
-    rng.nextBytes(data);
+    rng.nextBytes(data)
     data
   }
 
   SMB2Packet createResponse() {
     def response = new SMB2CreateResponse()
-    response.header.status = NtStatus.STATUS_SUCCESS
+    response.header.statusCode = NtStatus.STATUS_SUCCESS.value
     response.fileAttributes = EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL)
     response.fileId = new SMB2FileId(new byte[0], new byte[0])
     response
@@ -213,9 +213,9 @@ class FileReadSpec extends Specification {
     def response = new SMB2ReadResponse()
 
     if (length <= 0) {
-      response.header.status = NtStatus.STATUS_END_OF_FILE
+      response.header.statusCode = NtStatus.STATUS_END_OF_FILE.value
     } else {
-      response.header.status = NtStatus.STATUS_SUCCESS
+      response.header.statusCode = NtStatus.STATUS_SUCCESS.value
       response.data = Arrays.copyOfRange(data, offset, offset + length)
       response.dataLength = length
     }
