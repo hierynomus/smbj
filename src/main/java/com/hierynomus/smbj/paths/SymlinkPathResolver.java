@@ -58,6 +58,12 @@ public class SymlinkPathResolver implements PathResolver {
     }
 
     @Override
+    public SmbPath resolve(Session session, SmbPath smbPath) throws PathResolveException {
+        return wrapped.resolve(session, smbPath);
+    }
+
+
+    @Override
     public StatusHandler statusHandler() {
         return statusHandler;
     }
