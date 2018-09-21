@@ -70,8 +70,9 @@ public class Jdk7HttpProxySocket extends Socket {
         // Expecting HTTP/1.x 200 OK
         if (proxyResponse.contains("200")) {
             // Flush any outstanding message in buffer
-            if (socketInput.available() > 0) {
-                socketInput.skip(socketInput.available());
+            int avail = socketInput.available();
+            while (avail > 0) {
+                avail -= socketInput.skip(avail);
             }
             // Proxy Connect Successful
         } else {

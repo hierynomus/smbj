@@ -233,7 +233,7 @@ public class Session implements AutoCloseable {
                 try {
                     nestedSession.logoff();
                 } catch (TransportException te) {
-                    logger.error("Caught exception while logging off nested session {}");
+                    logger.error("Caught exception while logging off nested session {}", nestedSession.getSessionId());
                 }
             }
             SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
