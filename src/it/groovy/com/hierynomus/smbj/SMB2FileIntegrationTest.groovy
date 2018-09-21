@@ -187,7 +187,7 @@ class SMB2FileIntegrationTest extends Specification {
   def "should append to the file"() {
     given:
     def file = share.openFile("appendfile", EnumSet.of(AccessMask.FILE_WRITE_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN_IF, null)
-    def bytes = new byte[32 * 1024 * 1024 + 10]
+    def bytes = new byte[1024 * 1024]
     Random.newInstance().nextBytes(bytes)
     def istream = new ByteArrayInputStream(bytes)
 
@@ -210,7 +210,7 @@ class SMB2FileIntegrationTest extends Specification {
 
     when:
     def appendfile = share.openFile("appendfile", EnumSet.of(AccessMask.FILE_WRITE_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN_IF, null)
-    def bytes2 = new byte[32 * 1024 * 1024 + 10]
+    def bytes2 = new byte[1024 * 1024]
     Random.newInstance().nextBytes(bytes2)
     def istream2 = new ByteArrayInputStream(bytes2)
     ostream = appendfile.getOutputStream(new LoggingProgressListener(),true)
@@ -230,7 +230,7 @@ class SMB2FileIntegrationTest extends Specification {
     share.fileExists("appendfile")
 
     when:
-    def readBytes = new byte[2* (32 * 1024 * 1024 + 10)]
+    def readBytes = new byte[2* 1024 * 1024]
     def readFile = share.openFile("appendfile", EnumSet.of(AccessMask.FILE_READ_DATA), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
     try {
       def remoteIs = readFile.getInputStream(new LoggingProgressListener())
