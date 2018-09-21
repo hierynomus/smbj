@@ -90,6 +90,16 @@ public class DFSPathResolver implements PathResolver {
         return this.statusHandler;
     }
 
+    @Override
+    public SmbPath resolve(Session session, SmbPath smbPath) throws PathResolveException {
+        SmbPath target = SmbPath.parse(resolve(session, smbPath.toUncPath()));
+        if (!smbPath.equals(target)) {
+            logger.info("DFS resolved {} -> {}", smbPath, target);
+            return target;
+        }
+        return wrapped.resolve(session, smbPath);
+    }
+
     private String resolve(Session session, String uncPath) throws PathResolveException {
         logger.info("Starting DFS resolution for {}", uncPath);
         DFSPath dfsPath = new DFSPath(uncPath);
@@ -436,6 +446,7 @@ public class DFSPathResolver implements PathResolver {
             return;
         }
         ReferralCache.ReferralCacheEntry referralCacheEntry = new ReferralCache.ReferralCacheEntry(response, domainCache);
+        logger.info("Got DFS Referral result: {}", referralCacheEntry);
         referralCache.put(referralCacheEntry);
         result.referralCacheEntry = referralCacheEntry;
     }

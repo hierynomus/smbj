@@ -30,7 +30,6 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smb.SMBBuffer;
-import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.paths.PathResolveException;
@@ -64,7 +63,7 @@ public class DiskShare extends Share {
 
     public DiskEntry open(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         SmbPath pathAndFile = new SmbPath(smbPath, path);
-        SMB2CreateResponseContext response = createFileAndResolve(pathAndFile, null, accessMask, attributes, shareAccesses, createDisposition, createOptions);
+        SMB2CreateResponseContext response = resolveAndCreateFile(pathAndFile, null, accessMask, attributes, shareAccesses, createDisposition, createOptions);
         return getDiskEntry(path, response);
     }
 
@@ -73,18 +72,32 @@ public class DiskShare extends Share {
         return resolver.statusHandler();
     }
 
+    private SMB2CreateResponseContext resolveAndCreateFile(SmbPath path, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        try {
+            SmbPath target = resolver.resolve(session, path);
+            DiskShare resolvedShare = rerouteIfNeeded(path, target);
+            return resolvedShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
+        } catch (PathResolveException pre) {
+            throw new SMBApiException(pre.getStatus().getValue(), SMB2MessageCommandCode.SMB2_CREATE, "Cannot resolve path " + path, pre);
+        }
+    }
+
+    private DiskShare rerouteIfNeeded(SmbPath path, SmbPath target) {
+        Session connectedSession = this.session;
+        if (!path.isOnSameHost(target)) {
+            connectedSession = connectedSession.buildNestedSession(target);
+        }
+        if (!path.isOnSameShare(target)) {
+            return (DiskShare) connectedSession.connectShare(target.getShareName());
+        }
+        return this;
+    }
+
     private SMB2CreateResponseContext createFileAndResolve(SmbPath path, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         SMB2CreateResponse resp = super.createFile(path, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
         try {
             SmbPath target = resolver.resolve(session, resp, path);
-            DiskShare resolveShare = this;
-            Session connectedSession = this.session;
-            if (!path.isOnSameHost(target)) {
-                connectedSession = buildNewSession(resp, target);
-            }
-            if (!path.isOnSameShare(target)) {
-                resolveShare = (DiskShare) connectedSession.connectShare(target.getShareName());
-            }
+            DiskShare resolveShare = rerouteIfNeeded(path, target);
             if (!path.equals(target)) {
                 return resolveShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
             }
@@ -92,15 +105,6 @@ public class DiskShare extends Share {
             throw new SMBApiException(e.getStatusCode(), SMB2MessageCommandCode.SMB2_CREATE, "Cannot resolve path " + path, e);
         }
         return new SMB2CreateResponseContext(resp, path, this);
-    }
-
-    private Session buildNewSession(SMB2CreateResponse resp, SmbPath target) {
-        SMBClient client = treeConnect.getConnection().getClient();
-        try {
-            return session.buildNestedSession(target);
-        } catch (SMBRuntimeException e) {
-            throw new SMBApiException(resp.getHeader(), "Cannot connect to resolved path " + target, e);
-        }
     }
 
     protected DiskEntry getDiskEntry(String path, SMB2CreateResponseContext responseContext) {
