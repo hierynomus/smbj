@@ -201,7 +201,7 @@ public class File extends DiskEntry {
 
         // Somewhat arbitrary defaults. If these exceed the server limitations STATUS_INVALID_PARAMETER will
         // be returned and the parameters will be adjusted.
-        long maxChunkSize = 1 * 1024 * 1024;
+        long maxChunkSize = 1024L * 1024;
         long maxChunkCount = 16;
         long maxRequestSize = maxChunkCount * maxChunkSize;
 

@@ -91,7 +91,10 @@ public class AsyncDirectTcpTransport<D extends PacketData<?>, P extends Packet<?
             Future<Void> connectFuture = socketChannel.connect(remoteAddress);
             connectFuture.get(DEFAULT_CONNECT_TIMEOUT, TimeUnit.MILLISECONDS);
             connected.set(true);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (ExecutionException | TimeoutException e) {
+            throw TransportException.Wrapper.wrap(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw TransportException.Wrapper.wrap(e);
         }
         packetReader.start(remoteHostname, this.soTimeout);

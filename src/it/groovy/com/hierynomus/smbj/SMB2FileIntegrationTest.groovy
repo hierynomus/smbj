@@ -289,4 +289,26 @@ class SMB2FileIntegrationTest extends Specification {
       // Ignored
     }
   }
+
+  def "should correctly detect file and folder existence"() {
+    given:
+    share.mkdir("im_a_directory")
+    def src = share.openFile("im_a_file", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_OVERWRITE_IF, null)
+    src.write(new ArrayByteChunkProvider("Hello World!".getBytes(StandardCharsets.UTF_8), 0))
+    src.close()
+
+    expect:
+    share.fileExists("im_a_file")
+    share.folderExists("im_a_directory")
+    !share.folderExists("im_a_file")
+    !share.fileExists("im_a_directory")
+    !share.fileExists("i_do_not_exist")
+    !share.folderExists("i_do_not_exist")
+
+    cleanup:
+    share.rm("im_a_file")
+    share.rmdir("im_a_directory", false)
+  }
+
+  def noexcept
 }
