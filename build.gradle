@@ -23,6 +23,7 @@ group = "com.hierynomus"
 defaultTasks "build"
 
 repositories {
+  mavenLocal()
   mavenCentral()
   maven { url "https://jitpack.io" }
   maven { url "http://dl.bintray.com/typesafe/maven-releases" }
@@ -39,6 +40,7 @@ dependencies {
   compile SLF4J_API
   compile BCPROV_JDK15ON
   compile MBASSADOR
+  compile "com.hierynomus.asn-one:asn-one:0.0.1-dev.27+4d928b6"
   testCompile GROOVY_ALL
   testRuntime CGLIB_NODEP
   testRuntime OBJENESIS
