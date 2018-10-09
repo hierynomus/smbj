@@ -111,7 +111,7 @@ public class NegTokenInit extends SpnegoToken {
     private NegTokenInit read(Buffer<?> buffer) throws SpnegoException {
         try (ASN1InputStream is = new ASN1InputStream(new DERDecoder(), buffer.asInputStream())) {
             ASN1TaggedObject applicationSpecific = is.readObject();
-            if (applicationSpecific.getTag().getAsn1TagClass() != ASN1TagClass.Application) {
+            if (applicationSpecific.getTag().getAsn1TagClass() != ASN1TagClass.APPLICATION) {
                 throw new SpnegoException("Incorrect GSS-API ASN.1 token received, expected to find an [APPLICATION 0], not: " + applicationSpecific);
             }
             ASN1Sequence implicitSequence = applicationSpecific.getObject(ASN1Tag.SEQUENCE);
