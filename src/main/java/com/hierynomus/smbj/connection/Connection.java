@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.connection;
 
+import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb.SMB1PacketFactory;
 import com.hierynomus.mssmb.SMB1NotSupportedException;
@@ -45,7 +46,6 @@ import com.hierynomus.smbj.session.Session;
 import com.hierynomus.spnego.NegTokenInit;
 import com.hierynomus.spnego.SpnegoException;
 import net.engio.mbassy.listener.Handler;
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

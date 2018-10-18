@@ -39,6 +39,7 @@ dependencies {
   compile SLF4J_API
   compile BCPROV_JDK15ON
   compile MBASSADOR
+  compile ASN_ONE
   testCompile GROOVY_ALL
   testRuntime CGLIB_NODEP
   testRuntime OBJENESIS
@@ -171,7 +172,7 @@ if (project.hasProperty("bintrayUsername") && project.hasProperty("bintrayApiKey
       labels = ["smb", "smb2", "smb3", "network", "windows", "file-transfer"]
       githubRepo = "hierynomus/smbj"
       version {
-        name = project.version.toString()
+        name = "${project.version}"
         vcsTag = "v${project.version}"
         released = new SimpleDateFormat('yyyy-MM-dd\'T\'HH:mm:ss.SSSZZ').format(new Date())
         gpg {
@@ -258,9 +259,6 @@ task stopItestContainer(type: DockerStopContainer) {
 
 project.tasks.integrationTest.dependsOn(startItestContainer)
 project.tasks.integrationTest.finalizedBy(stopItestContainer)
-
-
-project.tasks.release.finalizedBy(project.tasks.bintrayUpload)
 
 task forkedUploadRelease(type: GradleBuild) {
   buildFile = project.buildFile
