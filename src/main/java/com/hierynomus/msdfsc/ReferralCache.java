@@ -74,6 +74,11 @@ public class ReferralCache {
         public String getTargetPath() {
             return targetPath;
         }
+
+        @Override
+        public String toString() {
+            return "TargetSetEntry[" + targetPath + ",targetSetBoundary=" + targetSetBoundary + "]";
+        }
     }
 
     public ReferralCacheEntry lookup(DFSPath dfsPath) {
@@ -174,7 +179,7 @@ public class ReferralCache {
 
         @Override
         public String toString() {
-            return dfsPathPrefix + "->" + targetHint.targetPath + ", " + targetList;
+            return dfsPathPrefix + "->" + targetHint.targetPath  + "(" +  rootOrLink + "), " + targetList;
         }
 
     }

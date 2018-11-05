@@ -96,14 +96,10 @@ public class SMB2Writer {
         return bytesWritten;
     }
 
-    public OutputStream getOutputStream() {
-        return getOutputStream(null);
-    }
-
-    public OutputStream getOutputStream(ProgressListener listener) {
+    public OutputStream getOutputStream(ProgressListener listener, long offset) {
         return new FileOutputStream(
             this,
-            share.getWriteBufferSize(),
+            share.getWriteBufferSize(),offset,
             listener
         );
     }

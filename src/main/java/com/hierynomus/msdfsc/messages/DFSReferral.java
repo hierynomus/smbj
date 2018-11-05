@@ -41,6 +41,7 @@ public abstract class DFSReferral {
 
     }
 
+    @SuppressWarnings("squid:S00115")
     public enum ReferralEntryFlags implements EnumWithValue<ReferralEntryFlags> {
         NameListReferral(0x02),
         TargetSetBoundary(0x04);

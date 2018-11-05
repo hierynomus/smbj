@@ -28,12 +28,33 @@ public interface PathResolver {
         }
 
         @Override
+        public SmbPath resolve(Session session, SmbPath smbPath) {
+            return smbPath;
+        }
+
         public StatusHandler statusHandler() {
             return StatusHandler.SUCCESS;
         }
     };
 
+    /**
+     * Reactive path resolution based on response packet
+     * @param session
+     * @param responsePacket
+     * @param smbPath
+     * @return
+     * @throws PathResolveException
+     */
     SmbPath resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath) throws PathResolveException;
+
+    /**
+     * Proactive path resolution based on response packet
+     * @param session
+     * @param smbPath
+     * @return
+     * @throws PathResolveException
+     */
+    SmbPath resolve(Session session, SmbPath smbPath) throws PathResolveException;
 
     StatusHandler statusHandler();
 }

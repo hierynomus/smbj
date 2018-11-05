@@ -98,11 +98,19 @@ public class File extends DiskEntry {
     }
 
     public OutputStream getOutputStream() {
-        return writer.getOutputStream();
+        return getOutputStream(false);
+    }
+
+    public OutputStream getOutputStream(boolean append) {
+        return getOutputStream(null, append);
     }
 
     public OutputStream getOutputStream(ProgressListener listener) {
-        return writer.getOutputStream(listener);
+        return getOutputStream(listener, false);
+    }
+
+    public OutputStream getOutputStream(ProgressListener listener, boolean append) {
+        return writer.getOutputStream(listener, append ? getFileInformation(FileStandardInformation.class).getEndOfFile() : 0l);
     }
 
     /**
@@ -157,7 +165,7 @@ public class File extends DiskEntry {
 
     /**
      * Performs a remote file copy of this file to the given file.
-     *
+     * <p>
      * This method is equivalent to calling {@link #remoteCopyTo(File) remoteCopyTo(0, destination, 0, sourceFileSize)}.
      *
      * @param destination the destination file
@@ -193,7 +201,7 @@ public class File extends DiskEntry {
 
         // Somewhat arbitrary defaults. If these exceed the server limitations STATUS_INVALID_PARAMETER will
         // be returned and the parameters will be adjusted.
-        long maxChunkSize = 1 * 1024 * 1024;
+        long maxChunkSize = 1024L * 1024;
         long maxChunkCount = 16;
         long maxRequestSize = maxChunkCount * maxChunkSize;
 
@@ -250,11 +258,11 @@ public class File extends DiskEntry {
     /**
      * Creates the list of copy chunks to copy <code>length</code> bytes from <code>srcOffset</code> to <code>dstOffset</code>
      *
-     * @param srcOffset the source file offset at which to start reading
-     * @param dstOffset the destination file offset at which to start writing
-     * @param length the total number of bytes to copy
-     * @param maxChunkCount the maximum number of chunks that may be create
-     * @param maxChunkSize the maximum size of each individual chunk
+     * @param srcOffset      the source file offset at which to start reading
+     * @param dstOffset      the destination file offset at which to start writing
+     * @param length         the total number of bytes to copy
+     * @param maxChunkCount  the maximum number of chunks that may be create
+     * @param maxChunkSize   the maximum size of each individual chunk
      * @param maxRequestSize the maximum total size of all chunks combined
      * @return a list of copy chunks
      */
@@ -267,7 +275,7 @@ public class File extends DiskEntry {
         long srcOff = srcOffset;
         long dstOff = dstOffset;
 
-        while(remaining > 0 && chunkCount < maxChunkCount && totalSize < maxRequestSize) {
+        while (remaining > 0 && chunkCount < maxChunkCount && totalSize < maxRequestSize) {
             long chunkSize = Math.min(remaining, maxChunkSize);
 
             chunks.add(new CopyChunkRequest.Chunk(

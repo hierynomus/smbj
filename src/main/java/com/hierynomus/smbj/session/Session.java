@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.session;
 
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.SMBApiException;
@@ -204,7 +205,7 @@ public class Session implements AutoCloseable {
             nestedSessions.add(session);
             return session;
         } catch (IOException e) {
-            throw new SMBRuntimeException("Could not connect to DFS root " + resolvedSharePath, e);
+            throw new SMBApiException(NtStatus.STATUS_OTHER.getValue(), SMB2MessageCommandCode.SMB2_NEGOTIATE, "Could not connect to DFS root " + resolvedSharePath, e);
         }
     }
 
@@ -232,7 +233,7 @@ public class Session implements AutoCloseable {
                 try {
                     nestedSession.logoff();
                 } catch (TransportException te) {
-                    logger.error("Caught exception while logging off nested session {}");
+                    logger.error("Caught exception while logging off nested session {}", nestedSession.getSessionId());
                 }
             }
             SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);

@@ -15,12 +15,25 @@
  */
 package com.hierynomus.spnego;
 
+import com.hierynomus.asn1.ASN1InputStream;
+import com.hierynomus.asn1.ASN1OutputStream;
+import com.hierynomus.asn1.encodingrules.der.DERDecoder;
+import com.hierynomus.asn1.encodingrules.der.DEREncoder;
+import com.hierynomus.asn1.types.ASN1Object;
+import com.hierynomus.asn1.types.ASN1Tag;
+import com.hierynomus.asn1.types.constructed.ASN1Sequence;
+import com.hierynomus.asn1.types.constructed.ASN1TaggedObject;
+import com.hierynomus.asn1.types.primitive.ASN1Enumerated;
+import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
+import com.hierynomus.asn1.types.string.ASN1OctetString;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
-import org.bouncycastle.asn1.*;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class can encode and decode the SPNEGO negTokenInit Token.
@@ -62,29 +75,32 @@ public class NegTokenTarg extends SpnegoToken {
     }
 
     // Override writeGss for NTLMSSP_AUTH since Samba does not like putting the OID for SPNEGO
-    protected void writeGss(Buffer<?> buffer, ASN1EncodableVector negToken) throws IOException {
-        DERTaggedObject negotiationToken = new DERTaggedObject(true, 0x01, new DERSequence(negToken));
-
-        buffer.putRawBytes(negotiationToken.getEncoded());
+    protected void writeGss(Buffer<?> buffer, ASN1Object negToken) throws IOException {
+        ASN1TaggedObject negotiationToken = new ASN1TaggedObject(ASN1Tag.contextSpecific(0x01).constructed(), negToken, true);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ASN1OutputStream out = new ASN1OutputStream(new DEREncoder(), baos)) {
+            out.writeObject(negotiationToken);
+        }
+        buffer.putRawBytes(baos.toByteArray());
     }
 
     public void write(Buffer<?> buffer) throws SpnegoException {
+        List<ASN1Object> negTokenTarg = new ArrayList<>();
         try {
-            ASN1EncodableVector negTokenTarg = new ASN1EncodableVector();
             if (negotiationResult != null) {
-                negTokenTarg.add(new DERTaggedObject(0x0, new ASN1Enumerated(negotiationResult)));
+                negTokenTarg.add(new ASN1TaggedObject(ASN1Tag.contextSpecific(0x0).constructed(), new ASN1Enumerated(negotiationResult)));
             }
             if (supportedMech != null) {
-                negTokenTarg.add(new DERTaggedObject(0x01, supportedMech));
+                negTokenTarg.add(new ASN1TaggedObject(ASN1Tag.contextSpecific(0x01).constructed(), supportedMech));
             }
             if (responseToken != null && responseToken.length > 0) {
-                negTokenTarg.add(new DERTaggedObject(0x02, new DEROctetString(responseToken)));
+                negTokenTarg.add(new ASN1TaggedObject(ASN1Tag.contextSpecific(0x02).constructed(), new ASN1OctetString(responseToken)));
             }
             if (mechListMic != null && mechListMic.length > 0) {
-                negTokenTarg.add(new DERTaggedObject(0x03, new DEROctetString(mechListMic)));
+                negTokenTarg.add(new ASN1TaggedObject(ASN1Tag.contextSpecific(0x03).constructed(), new ASN1OctetString(mechListMic)));
             }
 
-            writeGss(buffer, negTokenTarg);
+            writeGss(buffer, new ASN1Sequence(negTokenTarg));
         } catch (IOException e) {
             throw new SpnegoException("Could not write NegTokenTarg to buffer", e);
         }
@@ -96,8 +112,8 @@ public class NegTokenTarg extends SpnegoToken {
     }
 
     private NegTokenTarg read(Buffer<?> buffer) throws SpnegoException {
-        try (ASN1InputStream is = new ASN1InputStream(buffer.asInputStream())) {
-            ASN1Primitive instance = is.readObject();
+        try (ASN1InputStream is = new ASN1InputStream(new DERDecoder(), buffer.asInputStream())) {
+            ASN1Object instance = is.readObject();
             parseSpnegoToken(instance);
         } catch (IOException e) {
             throw new SpnegoException("Could not read NegTokenTarg from buffer", e);
@@ -126,23 +142,23 @@ public class NegTokenTarg extends SpnegoToken {
 
     }
 
-    private void readResponseToken(ASN1Primitive responseToken) throws SpnegoException {
+    private void readResponseToken(ASN1Object responseToken) throws SpnegoException {
         if (!(responseToken instanceof ASN1OctetString)) {
             throw new SpnegoException("Expected the responseToken (OCTET_STRING) contents, not: " + responseToken);
         }
-        this.responseToken = ((ASN1OctetString) responseToken).getOctets();
+        this.responseToken = ((ASN1OctetString) responseToken).getValue();
 
     }
 
-    private void readMechListMIC(ASN1Primitive mic) throws SpnegoException {
+    private void readMechListMIC(ASN1Object mic) throws SpnegoException {
         if (!(mic instanceof ASN1OctetString)) {
             throw new SpnegoException("Expected the responseToken (OCTET_STRING) contents, not: " + mic);
         }
-        this.mechListMic = ((ASN1OctetString) mic).getOctets();
+        this.mechListMic = ((ASN1OctetString) mic).getValue();
 
     }
 
-    private void readSupportedMech(ASN1Primitive supportedMech) throws SpnegoException {
+    private void readSupportedMech(ASN1Object supportedMech) throws SpnegoException {
         if (!(supportedMech instanceof ASN1ObjectIdentifier)) {
             throw new SpnegoException("Expected the supportedMech (OBJECT IDENTIFIER) contents, not: " + supportedMech);
         }
@@ -150,7 +166,7 @@ public class NegTokenTarg extends SpnegoToken {
 
     }
 
-    private void readNegResult(ASN1Primitive object) throws SpnegoException {
+    private void readNegResult(ASN1Object object) throws SpnegoException {
         if (!(object instanceof ASN1Enumerated)) {
             throw new SpnegoException("Expected the negResult (ENUMERATED) contents, not: " + supportedMech);
         }

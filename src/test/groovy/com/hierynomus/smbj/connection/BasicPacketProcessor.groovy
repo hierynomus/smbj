@@ -23,28 +23,44 @@ import com.hierynomus.mssmb2.SMB2ShareCapabilities
 import com.hierynomus.mssmb2.messages.*
 
 class BasicPacketProcessor {
-  private Closure<SMB2Packet> processPacket
+  private Closure<SMB2Packet> processPacket = { SMB2Packet req ->
+    def resp = null
+    if (req instanceof SMB2NegotiateRequest) {
+      resp = negotiateResponse()
+    } else if (req instanceof SMB2SessionSetup) {
+      resp = sessionSetupResponse()
+    } else if (req instanceof SMB2Logoff) {
+      resp = logoffResponse()
+    } else if (req instanceof SMB2TreeConnectRequest) {
+      resp = connectResponse()
+    } else if (req instanceof SMB2TreeDisconnect) {
+      resp = disconnectResponse()
+    }
+    return resp
+  }
 
   BasicPacketProcessor(Closure<SMB2Packet> processPacket) {
-    this.processPacket = processPacket
+    addBehaviour(processPacket)
   }
 
   SMB2Packet processPacket(SMB2Packet req) {
     def resp = processPacket.call(req)
     if (resp == null) {
-      if (req instanceof SMB2NegotiateRequest)
-        resp = negotiateResponse()
-      if (req instanceof SMB2SessionSetup)
-        resp = sessionSetupResponse()
-      if (req instanceof SMB2Logoff)
-        resp = logoffResponse()
-      if (req instanceof SMB2TreeConnectRequest)
-        resp = connectResponse()
-      if (req instanceof SMB2TreeDisconnect)
-        resp = disconnectResponse()
+      throw new RuntimeException("COuld not find pre-recorded response for ${req}")
     }
     resp.header.message = req.header.message
     return resp
+  }
+
+  def addBehaviour(Closure<SMB2Packet> processPacket) {
+    def originalProcessor = this.processPacket
+    this.processPacket = { SMB2Packet packet ->
+      def resp = processPacket.call(packet)
+      if (resp == null) {
+        resp = originalProcessor.call(packet)
+      }
+      return resp
+    }
   }
 
   private static SMB2Packet negotiateResponse() {

@@ -42,15 +42,16 @@ class FileReadSpec extends Specification {
   private MessageDigest digest
   private File file
   private Connection connection
+  private BasicPacketProcessor responder
 
   def setup() {
     fileData = randomData(42, 12345)
 
-    def responder = new BasicPacketProcessor({ req ->
+    responder = new BasicPacketProcessor({ req ->
       if (req instanceof SMB2CreateRequest)
         return createResponse()
       if (req instanceof SMB2ReadRequest)
-        return read(req, fileData)
+        return read(req, fileData, false)
 
       null
     })
@@ -119,6 +120,27 @@ class FileReadSpec extends Specification {
 
   def "should read entire file contents via input stream"() {
     when:
+    def out = new DigestOutputStream(new ByteArrayOutputStream(), digest)
+    def buffer = new byte[10]
+
+    def input = file.getInputStream(null)
+    def bytesRead
+    while ((bytesRead = input.read(buffer)) != -1) {
+      out.write(buffer, 0, bytesRead)
+    }
+
+    then:
+    ByteArrayUtils.printHex(digest.digest()) == ByteArrayUtils.printHex(expectedDigest)
+  }
+
+  def "should read entire file contents via input stream in IBM mode"() {
+    when:
+    responder.addBehaviour { SMB2Packet req ->
+      if (req instanceof SMB2ReadRequest)
+        return read(req, fileData, true)
+
+      null
+    }
     def out = new DigestOutputStream(new ByteArrayOutputStream(), digest)
     def buffer = new byte[10]
 
@@ -202,7 +224,7 @@ class FileReadSpec extends Specification {
     response
   }
 
-  SMB2Packet read(SMB2ReadRequest req, byte[] data) {
+  SMB2Packet read(SMB2ReadRequest req, byte[] data, boolean ibmMode) {
     def offset = req.offset as int
     def length = req.getPayloadSize()
 
@@ -212,12 +234,12 @@ class FileReadSpec extends Specification {
 
     def response = new SMB2ReadResponse()
 
-    if (length <= 0) {
+    if (length <= 0 && !ibmMode) {
       response.header.statusCode = NtStatus.STATUS_END_OF_FILE.value
     } else {
       response.header.statusCode = NtStatus.STATUS_SUCCESS.value
       response.data = Arrays.copyOfRange(data, offset, offset + length)
-      response.dataLength = length
+      response.dataLength = Math.max(length, 0)
     }
     response
   }

@@ -34,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * identifies a DC host name from DCList that is the DC that was last
  * successfully used by the DFS client.
  */
+@SuppressWarnings("squid:S00116")
 public class DomainCache {
     private Map<String, DomainCacheEntry> cache = new ConcurrentHashMap<>();
 

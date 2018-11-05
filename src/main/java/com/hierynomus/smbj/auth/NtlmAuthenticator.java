@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.auth;
 
+import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.ntlm.messages.*;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
@@ -28,7 +29,6 @@ import com.hierynomus.smbj.session.Session;
 import com.hierynomus.spnego.NegTokenInit;
 import com.hierynomus.spnego.NegTokenTarg;
 import com.hierynomus.spnego.SpnegoException;
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +51,7 @@ public class NtlmAuthenticator implements Authenticator {
     public static class Factory implements com.hierynomus.protocol.commons.Factory.Named<Authenticator> {
         @Override
         public String getName() {
-            return NTLMSSP.getId();
+            return NTLMSSP.getValue();
         }
 
         @Override

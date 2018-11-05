@@ -75,6 +75,12 @@ class AceType2 extends ACE {
         sid.write(buffer);
     }
 
+    /**
+     * Read the body of the AceType2
+     * @param buffer
+     * @param aceStartPos The start position of the ACE in the buffer.
+     * @throws Buffer.BufferException
+     */
     void readBody(SMBBuffer buffer, int aceStartPos) throws Buffer.BufferException {
         accessMask = buffer.readUInt32();
 

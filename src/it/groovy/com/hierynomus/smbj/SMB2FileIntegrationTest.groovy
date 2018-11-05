@@ -184,6 +184,79 @@ class SMB2FileIntegrationTest extends Specification {
     cleanup:
     share.rm("bigfile")
   }
+  def "should append to the file"() {
+    given:
+    def file = share.openFile("appendfile", EnumSet.of(AccessMask.FILE_WRITE_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN_IF, null)
+    def bytes = new byte[1024 * 1024]
+    Random.newInstance().nextBytes(bytes)
+    def istream = new ByteArrayInputStream(bytes)
+
+    when:
+    def ostream = file.getOutputStream(new LoggingProgressListener())
+    try {
+      byte[] buffer = new byte[4096]
+      int len
+      while ((len = istream.read(buffer)) != -1) {
+        ostream.write(buffer, 0, len)
+      }
+    } finally {
+      istream.close()
+      ostream.close()
+      file.close()
+    }
+
+    then:
+    share.fileExists("appendfile")
+
+    when:
+    def appendfile = share.openFile("appendfile", EnumSet.of(AccessMask.FILE_WRITE_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN_IF, null)
+    def bytes2 = new byte[1024 * 1024]
+    Random.newInstance().nextBytes(bytes2)
+    def istream2 = new ByteArrayInputStream(bytes2)
+    ostream = appendfile.getOutputStream(new LoggingProgressListener(),true)
+    try {
+      byte[] buffer = new byte[4096]
+      int len
+      while ((len = istream2.read(buffer)) != -1) {
+        ostream.write(buffer, 0, len)
+      }
+    } finally {
+      istream2.close()
+      ostream.close()
+      appendfile.close()
+    }
+
+    then:
+    share.fileExists("appendfile")
+
+    when:
+    def readBytes = new byte[2* 1024 * 1024]
+    def readFile = share.openFile("appendfile", EnumSet.of(AccessMask.FILE_READ_DATA), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    try {
+      def remoteIs = readFile.getInputStream(new LoggingProgressListener())
+      try {
+        def offset = 0
+        while (offset < readBytes.length) {
+          def read = remoteIs.read(readBytes, offset, readBytes.length - offset)
+          if (read > 0) {
+            offset += read
+          } else {
+            break
+          }
+        }
+      } finally {
+        remoteIs.close()
+      }
+    } finally {
+      readFile.close()
+    }
+
+    then:
+    readBytes == [bytes,bytes2].flatten()
+
+    cleanup:
+    share.rm("appendfile")
+  }
 
   def "should be able to copy files remotely"() {
     given:
@@ -216,4 +289,26 @@ class SMB2FileIntegrationTest extends Specification {
       // Ignored
     }
   }
+
+  def "should correctly detect file and folder existence"() {
+    given:
+    share.mkdir("im_a_directory")
+    def src = share.openFile("im_a_file", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_OVERWRITE_IF, null)
+    src.write(new ArrayByteChunkProvider("Hello World!".getBytes(StandardCharsets.UTF_8), 0))
+    src.close()
+
+    expect:
+    share.fileExists("im_a_file")
+    share.folderExists("im_a_directory")
+    !share.folderExists("im_a_file")
+    !share.fileExists("im_a_directory")
+    !share.fileExists("i_do_not_exist")
+    !share.folderExists("i_do_not_exist")
+
+    cleanup:
+    share.rm("im_a_file")
+    share.rmdir("im_a_directory", false)
+  }
+
+  def noexcept
 }

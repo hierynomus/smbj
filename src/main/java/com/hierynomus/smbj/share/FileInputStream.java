@@ -127,7 +127,10 @@ class FileInputStream extends InputStream {
             }
         }
 
-        if (res.getHeader().getStatusCode() == NtStatus.STATUS_END_OF_FILE.getValue()) {
+        // According to MS-SMB2 2.2.20 and 3.3.5.12 the server should terminate the last SMB2 READ Response with STATUS_END_OF_FILE,
+        // however at least the IBM implementation does not do that and only returns a '0' data length on the response.
+        // Treat this corner case as an EOF marker to fix unbounded loops.
+        if (res.getHeader().getStatusCode() == NtStatus.STATUS_END_OF_FILE.getValue() || res.getDataLength() == 0) {
             logger.debug("EOF, {} bytes read", offset);
             isClosed = true;
             return;

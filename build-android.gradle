@@ -22,6 +22,7 @@ dependencies {
   implementation SLF4J_API
   implementation BCPROV_JDK15ON
   implementation MBASSADOR
+  implementation ASN_ONE
   testImplementation GROOVY_ALL
   testRuntimeOnly CGLIB_NODEP
   testRuntimeOnly OBJENESIS
