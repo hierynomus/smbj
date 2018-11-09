@@ -42,12 +42,15 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
         if (outputBufferOffset > 0 && length > 0) {
             fileNotifyInfoList = readFileNotifyInfo(buffer, outputBufferOffset);
         }
+        // Ensure we're set the read position to the end of this packet.
+        // The FileNotifyInfo blocks have padding to align them on 4 byte boundaries.
+        buffer.rpos(header.getHeaderStartPosition() + outputBufferOffset + length);
     }
 
     private List<FileNotifyInfo> readFileNotifyInfo(SMBBuffer buffer, int outputBufferOffset)
         throws Buffer.BufferException {
         List<FileNotifyInfo> notifyInfoList = new ArrayList<>();
-        buffer.rpos(outputBufferOffset);
+        buffer.rpos(header.getHeaderStartPosition() + outputBufferOffset); // Ensure that we move relative to the header position
         int currentPos = buffer.rpos();
         int nextEntryOffset;
         long fileNameLen;
