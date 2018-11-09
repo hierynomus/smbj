@@ -64,6 +64,7 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
                 buffer.rpos(currentPos);
             }
         } while (nextEntryOffset != 0);
+        buffer.rpos(buffer.wpos());
 
         return notifyInfoList;
     }
