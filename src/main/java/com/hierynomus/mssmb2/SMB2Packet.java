@@ -163,6 +163,15 @@ public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2Header> {
         return error;
     }
 
+    /**
+     * Method that can be overridden by Packet Wrappers to ensure that the original (typed) packet is obtainable.
+     *
+     * @return this
+     */
+    public SMB2Packet getPacket() {
+        return this;
+    }
+
     @Override
     public String toString() {
         return header.getMessage() + " with message id << " + header.getMessageId() + " >>";

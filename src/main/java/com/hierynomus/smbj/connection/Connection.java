@@ -272,7 +272,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
             logger.debug("Granted {} (out of {}) credits to {}", grantCredits, availableCredits, packet);
             packet.getHeader().setCreditRequest(Math.max(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits, grantCredits));
 
-            Request request = new Request(packet, messageIds[0], UUID.randomUUID());
+            Request request = new Request(packet.getPacket(), messageIds[0], UUID.randomUUID());
             outstandingRequests.registerOutstanding(request);
             transport.write(packet);
             return request.getFuture(new CancelRequest(request));

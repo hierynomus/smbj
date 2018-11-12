@@ -176,5 +176,14 @@ public class PacketSignatory {
         public String toString() {
             return wrappedPacket.toString();
         }
+
+        /**
+         * Return the result of the {@link #getPacket()} call on the wrapped packet.
+         * @return The unwrapped wrapppedPacket
+         */
+        @Override
+        public SMB2Packet getPacket() {
+            return wrappedPacket.getPacket();
+        }
     }
 }
