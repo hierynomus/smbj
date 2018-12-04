@@ -215,10 +215,11 @@ check {
   dependsOn += ['jdependReport']
 }
 
-// KRB5 depends on com.sun.security.jgss classes, but those should normally not be accessed,
+// java.lang.invoke.MethodHandle.invokeExact(Object[]) has a @PolymorphicSignature
+// (see https://github.com/mojohaus/animal-sniffer/issues/18),
 // so we ignore them from the sniffer
 animalsniffer {
-  ignore 'com.sun.security.jgss.*'
+  ignore 'java.lang.invoke.MethodHandle'
 }
 
 jacocoTestReport {
