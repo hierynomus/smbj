@@ -55,6 +55,7 @@ android {
     main.java {
       exclude(
         'com/hierynomus/smbj/auth/SpnegoAuthenticator.java',
+        'com/hierynomus/smbj/auth/ExtendedGSSContext.java',
         'com/hierynomus/smbj/auth/GSSAuthenticationContext.java',
         'com/hierynomus/smbj/transport/tcp/async/**/*.java'
       )
