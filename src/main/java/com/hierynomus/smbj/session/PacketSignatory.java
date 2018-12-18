@@ -79,7 +79,9 @@ public class PacketSignatory {
             byte[] receivedSignature = packet.getHeader().getSignature();
             for (int i = 0; i < SIGNATURE_SIZE; i++) {
                 if (signature[i] != receivedSignature[i]) {
-                    logger.error("Signatures for packet {} do not match (received: {}, calculated: {})", packet, Arrays.toString(receivedSignature), Arrays.toString(signature));
+                    logger.error("Signatures for packet {} do not match (received: {}, calculated: {})", packet,
+                            Arrays.toString(receivedSignature), Arrays.toString(signature));
+                    logger.error("Packet {} has header: {}", packet, packet.getHeader());
                     return false;
                 }
             }
