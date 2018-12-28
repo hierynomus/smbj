@@ -261,21 +261,28 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
         lock.lock();
+        Future<T> f = null;
         try {
-            int availableCredits = sequenceWindow.available();
-            int grantCredits = calculateGrantedCredits(packet, availableCredits);
-            if (availableCredits == 0) {
-                logger.warn("There are no credits left to send {}, will block until there are more credits available.", packet.getHeader().getMessage());
-            }
-            long[] messageIds = sequenceWindow.get(grantCredits);
-            packet.getHeader().setMessageId(messageIds[0]);
-            logger.debug("Granted {} (out of {}) credits to {}", grantCredits, availableCredits, packet);
-            packet.getHeader().setCreditRequest(Math.max(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits, grantCredits));
+            if (!(packet.getPacket() instanceof SMB2CancelRequest)) {
+                int availableCredits = sequenceWindow.available();
+                int grantCredits = calculateGrantedCredits(packet, availableCredits);
+                if (availableCredits == 0) {
+                    logger.warn(
+                            "There are no credits left to send {}, will block until there are more credits available.",
+                            packet.getHeader().getMessage());
+                }
+                long[] messageIds = sequenceWindow.get(grantCredits);
+                packet.getHeader().setMessageId(messageIds[0]);
+                logger.debug("Granted {} (out of {}) credits to {}", grantCredits, availableCredits, packet);
+                packet.getHeader().setCreditRequest(Math
+                        .max(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits, grantCredits));
 
-            Request request = new Request(packet.getPacket(), messageIds[0], UUID.randomUUID());
-            outstandingRequests.registerOutstanding(request);
+                Request request = new Request(packet.getPacket(), messageIds[0], UUID.randomUUID());
+                outstandingRequests.registerOutstanding(request);
+                f = request.getFuture(new CancelRequest(request, packet.getHeader().getSessionId()));
+            }
             transport.write(packet);
-            return request.getFuture(new CancelRequest(request));
+            return f;
         } finally {
             lock.unlock();
         }
@@ -500,9 +507,11 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
 
     private class CancelRequest implements CancellableFuture.CancelCallback {
         private Request request;
+        private long sessionId;
 
-        public CancelRequest(Request request) {
+        public CancelRequest(Request request, long sessionId) {
             this.request = request;
+            this.sessionId = sessionId;
         }
 
         /**
@@ -514,7 +523,8 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
                 request.getMessageId(),
                 request.getAsyncId());
             try {
-                transport.write(cancel);
+                sessionTable.find(sessionId).send(cancel);
+                // transport.write(cancel);
             } catch (TransportException e) {
                 logger.error("Failed to send {}", cancel);
             }
