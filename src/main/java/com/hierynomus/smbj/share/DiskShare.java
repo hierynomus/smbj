@@ -334,6 +334,13 @@ public class DiskShare extends Share {
         }
     }
 
+    private static StatusHandler ALREADY_DELETED_STATUS_HANDLER = new StatusHandler() {
+        @Override
+        public boolean isSuccess(long statusCode) {
+            return statusCode == STATUS_DELETE_PENDING.getValue();
+        }
+    };
+
     /**
      * Remove the directory at the given path.
      */
@@ -362,6 +369,11 @@ public class DiskShare extends Share {
                 of(FILE_DIRECTORY_FILE)
             )) {
                 e.deleteOnClose();
+            } catch (SMBApiException sae) {
+                if (ALREADY_DELETED_STATUS_HANDLER.isSuccess(sae.getStatusCode())) {
+                    return;
+                }
+                throw sae;
             }
         }
     }
@@ -379,6 +391,11 @@ public class DiskShare extends Share {
             of(FILE_NON_DIRECTORY_FILE)
         )) {
             e.deleteOnClose();
+        } catch (SMBApiException sae) {
+            if (ALREADY_DELETED_STATUS_HANDLER.isSuccess(sae.getStatusCode())) {
+                return;
+            }
+            throw sae;
         }
     }
 

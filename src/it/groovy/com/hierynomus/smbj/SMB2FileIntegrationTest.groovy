@@ -310,5 +310,32 @@ class SMB2FileIntegrationTest extends Specification {
     share.rmdir("im_a_directory", false)
   }
 
-  def noexcept
+  def "should not fail if rm response is DELETE_PENDING"() {
+    given:
+    def textFile = share.openFile("test.txt", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_CREATE, null)
+    textFile.write(new ArrayByteChunkProvider("Hello World!".getBytes(StandardCharsets.UTF_8), 0))
+    textFile.close()
+    textFile = share.openFile("test.txt", EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    textFile.deleteOnClose()
+
+    when:
+    share.rm("test.txt")
+
+    then:
+    noExceptionThrown()
+  }
+
+  def "should not fail if rmdir response is DELETE_PENDING"() {
+    given:
+    def dir = share.openDirectory("to_be_removed", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_CREATE, null)
+    dir.close()
+    dir = share.openDirectory("to_be_removed", EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    dir.deleteOnClose()
+
+    when:
+    share.rmdir("to_be_removed", false)
+
+    then:
+    noExceptionThrown()
+  }
 }
