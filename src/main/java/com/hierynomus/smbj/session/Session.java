@@ -20,9 +20,12 @@ import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.SMBApiException;
+import com.hierynomus.mssmb2.Smb2EncryptionCipher;
 import com.hierynomus.mssmb2.messages.*;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.security.MessageDigest;
+import com.hierynomus.security.SecurityException;
 import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.SMBRuntimeException;
@@ -44,6 +47,7 @@ import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import static com.hierynomus.security.DigestUtil.concatenatePreviousUpdateDigest;
 import static java.lang.String.format;
 
 /**
@@ -54,28 +58,38 @@ public class Session implements AutoCloseable {
     private long sessionId;
 
     private PacketSignatory packetSignatory;
+    private PacketEncryptor packetEncryptor;
     private boolean signingRequired;
     private boolean encryptData; // SMB3.x
 
     private Connection connection;
-    private SMBEventBus bus;
+    private final SMBEventBus bus;
     private final PathResolver pathResolver;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
     private List<Session> nestedSessions = new ArrayList<>();
     private AuthenticationContext userCredentials;
+    private byte[] preauthIntegrityHashValue;
 
     private boolean guest;
     private boolean anonymous;
 
+    @Deprecated
     public Session(Connection connection, AuthenticationContext userCredentials, SMBEventBus bus, PathResolver pathResolver, SecurityProvider securityProvider) {
+        this(connection, userCredentials, bus, pathResolver, securityProvider, Smb2EncryptionCipher.AES_128_CCM);
+    }
+
+    public Session(Connection connection, AuthenticationContext userCredentials, SMBEventBus bus, PathResolver pathResolver, SecurityProvider securityProvider, Smb2EncryptionCipher encryptionCipher) {
         this.connection = connection;
         this.userCredentials = userCredentials;
         this.bus = bus;
         this.pathResolver = pathResolver;
         this.packetSignatory = new PacketSignatory(connection.getNegotiatedProtocol().getDialect(), securityProvider);
+        this.packetEncryptor = new PacketEncryptor(connection.getNegotiatedProtocol().getDialect(), securityProvider, encryptionCipher);
         if (bus != null) {
             bus.subscribe(this);
         }
+        // 3.2.5.3.1 Handling a New Authentication, Set Session.PreauthIntegrityHashValue to Connection.PreauthIntegrityHashValue.
+        this.preauthIntegrityHashValue = connection.getConnectionInfo().getPreauthIntegrityHashValue();
     }
 
     public void init(SMB2SessionSetup setup) {
@@ -108,7 +122,9 @@ public class Session implements AutoCloseable {
         } else if (guest) {
             signingRequired = false;
         }
-        if (connection.getNegotiatedProtocol().getDialect().isSmb3x() && setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_ENCRYPT_DATA)) {
+        if (connection.getNegotiatedProtocol().getDialect().isSmb3x()
+            && connection.getConnectionInfo().isConnectionSupportEncrypt()
+            && setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_ENCRYPT_DATA)) {
             encryptData = true;
             signingRequired = false;
         }
@@ -178,7 +194,7 @@ public class Session implements AutoCloseable {
             }
 
             long treeId = response.getHeader().getTreeId();
-            TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), connection, bus, response.getMaximalAccess());
+            TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), connection, bus, response.getMaximalAccess(), response.getShareFlagsSet());
 
             Share share;
             if (response.isDiskShare()) {
@@ -259,7 +275,16 @@ public class Session implements AutoCloseable {
     }
 
     public void setSigningKey(byte[] signingKeyBytes) {
-        packetSignatory.init(signingKeyBytes);
+        setSigningKey(signingKeyBytes, null);
+    }
+
+    public void setSigningKey(byte[] signingKeyBytes, byte[] sessionPreauthIntegrityHashValue) {
+        packetSignatory.init(signingKeyBytes, sessionPreauthIntegrityHashValue);
+        if (connection.getNegotiatedProtocol().getDialect().isSmb3x()
+            && connection.getConnectionInfo().isConnectionSupportEncrypt()) {
+            // Only generate the key when it is needed
+            packetEncryptor.init(signingKeyBytes, sessionPreauthIntegrityHashValue);
+        }
     }
 
     @Override
@@ -282,7 +307,22 @@ public class Session implements AutoCloseable {
         if (signingRequired && !packetSignatory.isInitialized()) {
             throw new TransportException("Message signing is required, but no signing key is negotiated");
         }
-        return connection.send(packetSignatory.sign(packet));
+        if (encryptData || connection.isClientDecidedEncrypt()) {
+            packet.setRequireEncrypt(true);
+        }
+        if (packet.isRequireEncrypt() && !packetEncryptor.isInitialized()) {
+            throw new TransportException("Message encryption is required, but no encryption key is negotiated");
+        }
+
+        // 3.2.4.1.1 Signing the Message
+        // If the client encrypts the message, as specified in section 3.1.4.3,
+        // then the client MUST set the Signature field of the SMB2 header to zero
+        if (packet.isRequireEncrypt()) {
+            // not wrapped by SignedPacketWrapper to ensure signature field is zero
+            return connection.send(packetEncryptor.encrypt(packet));
+        } else {
+            return connection.send(packetSignatory.sign(packet));
+        }
     }
 
     public <T extends SMB2Packet> T processSendResponse(SMB2CreateRequest packet) throws TransportException {
@@ -296,5 +336,47 @@ public class Session implements AutoCloseable {
 
     public PacketSignatory getPacketSignatory() {
         return packetSignatory;
+    }
+
+    public boolean isEncryptData() {
+        return encryptData;
+    }
+
+    public byte[] getPreauthIntegrityHashValue() {
+        return preauthIntegrityHashValue;
+    }
+
+    public void updatePreauthIntegrityHashValue(boolean isMoreProcessRequired, byte[] requestBytes, byte[] responseBytes) throws SecurityException {
+
+        if (isMoreProcessRequired) {
+            // STATUS_MORE_PROCESSING_REQUIRED case
+
+            if (requestBytes == null || responseBytes == null) {
+                logger.error("null byteArray received for requestBytes/responseBytes when updatePreauthIntegrityHashValue during Session setup.");
+                throw new IllegalStateException("null byteArray received when updatePreauthIntegrityHashValue");
+            }
+
+            this.preauthIntegrityHashValue = internalUpdateDigest(requestBytes);
+
+            this.preauthIntegrityHashValue = internalUpdateDigest(responseBytes);
+
+        } else {
+            // STATUS_SUCCESS case (?)
+
+            if (requestBytes == null) {
+                logger.error("null byteArray received for requestBytes when updatePreauthIntegrityHashValue during Session setup.");
+                throw new IllegalStateException("null byteArray received when updatePreauthIntegrityHashValue");
+            }
+
+            this.preauthIntegrityHashValue = internalUpdateDigest(requestBytes);
+
+        }
+    }
+
+    private byte[] internalUpdateDigest(byte[] updateBytes) throws SecurityException {
+        MessageDigest messageDigest =
+            connection.getConfig().getSecurityProvider().getDigest(connection.getConnectionInfo().getPreauthIntegrityHashId().getAlgorithmName());
+
+        return concatenatePreviousUpdateDigest(messageDigest, this.preauthIntegrityHashValue, updateBytes);
     }
 }

@@ -351,6 +351,10 @@ public class Share implements AutoCloseable {
             throw new SMBRuntimeException(getClass().getSimpleName() + " has already been closed");
         }
 
+        if (treeConnect.isEncryptData() || session.isEncryptData() || session.getConnection().isClientDecidedEncrypt()) {
+            request.setRequireEncrypt(true);
+        }
+
         try {
             return session.send(request);
         } catch (TransportException e) {

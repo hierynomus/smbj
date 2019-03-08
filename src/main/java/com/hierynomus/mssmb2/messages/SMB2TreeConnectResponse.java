@@ -18,12 +18,14 @@ package com.hierynomus.mssmb2.messages;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
+import com.hierynomus.mssmb2.SMB2ShareFlags;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 
 import java.util.Set;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
+import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toLong;
 
 /**
  * [MS-SMB2].pdf 2.2.10 SMB2 TREE_CONNECT Response
@@ -33,7 +35,7 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 public class SMB2TreeConnectResponse extends SMB2Packet {
 
     private byte shareType;
-    private long shareFlags;
+    private Set<SMB2ShareFlags> shareFlags;
     private Set<SMB2ShareCapabilities> capabilities;
     private Set<AccessMask> maximalAccess;
 
@@ -42,7 +44,7 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
         buffer.skip(2); // StructureSize (2 bytes)
         shareType = buffer.readByte(); // ShareType (1 byte)
         buffer.readByte(); // Reserved (1 byte)
-        shareFlags = buffer.readUInt32(); // ShareFlags (4 bytes)
+        shareFlags = toEnumSet(buffer.readUInt32(), SMB2ShareFlags.class); // ShareFlags (4 bytes)
         capabilities = toEnumSet(buffer.readUInt32(), SMB2ShareCapabilities.class); // Capabilities (4 bytes)
         maximalAccess = toEnumSet(buffer.readUInt32(), AccessMask.class); // MaximalAccess (4 bytes)
     }
@@ -75,6 +77,10 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
     }
 
     public long getShareFlags() {
+        return toLong(shareFlags);
+    }
+
+    public Set<SMB2ShareFlags> getShareFlagsSet() {
         return shareFlags;
     }
 

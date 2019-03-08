@@ -16,6 +16,7 @@
 package com.hierynomus.smbj;
 
 import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.mssmb2.SMB2GlobalCapability;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.socket.ProxySocketFactory;
 import com.hierynomus.security.SecurityProvider;
@@ -74,6 +75,8 @@ public final class SmbConfig {
     private TransportLayerFactory<SMBPacketData<?>, SMBPacket<?, ?>> transportLayerFactory;
     private long transactTimeout;
     private GSSContextConfig clientGSSContextConfig;
+    private Set<SMB2GlobalCapability> clientCapabilities;
+    private boolean encryptData;
 
     private int soTimeout;
 
@@ -97,7 +100,9 @@ public final class SmbConfig {
             // order is important.  The authenticators listed first will be selected
             .withAuthenticators(getDefaultAuthenticators())
             .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
-            .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig());
+            .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig())
+            .withCapabilities(SMB2GlobalCapability.SMB2_GLOBAL_CAP_DFS)
+            .withEncryptData(false);
     }
 
     private static SecurityProvider getDefaultSecurityProvider() {
@@ -126,6 +131,7 @@ public final class SmbConfig {
 
     private SmbConfig() {
         dialects = EnumSet.noneOf(SMB2Dialect.class);
+        clientCapabilities = EnumSet.noneOf(SMB2GlobalCapability.class);
         authenticators = new ArrayList<>();
     }
 
@@ -149,6 +155,8 @@ public final class SmbConfig {
         soTimeout = other.soTimeout;
         useMultiProtocolNegotiate = other.useMultiProtocolNegotiate;
         clientGSSContextConfig = other.clientGSSContextConfig;
+        clientCapabilities.addAll(other.clientCapabilities);
+        encryptData = other.encryptData;
     }
 
     public Random getRandomProvider() {
@@ -225,6 +233,14 @@ public final class SmbConfig {
 
     public GSSContextConfig getClientGSSContextConfig() {
         return clientGSSContextConfig;
+    }
+
+    public Set<SMB2GlobalCapability> getClientCapabilities() {
+        return clientCapabilities;
+    }
+
+    public boolean isEncryptData() {
+        return encryptData;
     }
 
     public static class Builder {
@@ -393,6 +409,21 @@ public final class SmbConfig {
             if (config.dialects.isEmpty()) {
                 throw new IllegalStateException("At least one SMB dialect should be specified");
             }
+            // if the adding encryption capability without any Smb3x dialect, remove it.
+            if (config.clientCapabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION)) {
+                if (!SMB2Dialect.supportsSmb3x(config.dialects)) {
+                    config.clientCapabilities.remove(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION);
+                }
+            }
+            // if decided to encryptData but not Smb3x supported or no encryption capability, remove it.
+            if (config.encryptData) {
+                if (!config.clientCapabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION)) {
+                    config.encryptData = false;
+                }
+                if (!SMB2Dialect.supportsSmb3x(config.dialects)) {
+                    config.encryptData = false;
+                }
+            }
             return new SmbConfig(config);
         }
 
@@ -413,5 +444,32 @@ public final class SmbConfig {
             config.clientGSSContextConfig = clientGSSContextConfig;
             return this;
         }
+
+        public Builder withCapabilities(SMB2GlobalCapability... capabilities) {
+            return withCapabilities(Arrays.asList(capabilities));
+        }
+
+        public Builder withCapabilities(Iterable<SMB2GlobalCapability> capabilities) {
+            if (capabilities == null) {
+                // if set, then clear all capabilities and return
+                config.clientCapabilities.clear();
+                return this;
+            }
+
+            config.clientCapabilities.clear();
+            for (SMB2GlobalCapability capability : capabilities) {
+                if (capability == null) {
+                    throw new IllegalArgumentException("capability may not be null");
+                }
+                config.clientCapabilities.add(capability);
+            }
+            return this;
+        }
+
+        public Builder withEncryptData(boolean encryptData) {
+            config.encryptData = encryptData;
+            return this;
+        }
+
     }
 }

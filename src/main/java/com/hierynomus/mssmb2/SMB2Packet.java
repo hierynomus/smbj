@@ -29,6 +29,8 @@ public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2Header> {
     private SMBBuffer buffer;
     private SMB2Error error;
     private int messageEndPos;
+    private boolean isRequireEncrypt = false;
+    private boolean isFromDecrypt = false;
 
     protected SMB2Packet() {
         super(new SMB2Header());
@@ -170,6 +172,22 @@ public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2Header> {
      */
     public SMB2Packet getPacket() {
         return this;
+    }
+
+    public boolean isRequireEncrypt() {
+        return isRequireEncrypt;
+    }
+
+    public void setRequireEncrypt(boolean requireEncrypt) {
+        isRequireEncrypt = requireEncrypt;
+    }
+
+    public boolean isFromDecrypt() {
+        return isFromDecrypt;
+    }
+
+    public void setFromDecrypt(boolean fromDecrypt) {
+        isFromDecrypt = fromDecrypt;
     }
 
     @Override

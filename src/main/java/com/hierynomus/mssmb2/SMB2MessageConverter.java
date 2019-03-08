@@ -21,6 +21,9 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBPacket;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class SMB2MessageConverter {
 
     private static final long FSCTL_PIPE_PEEK = 0x0011400cL;
@@ -28,6 +31,7 @@ public class SMB2MessageConverter {
     private static final long FSCTL_DFS_GET_REFERRALS = 0x00060194L;
     private static final long FSCTL_SRV_COPYCHUNK = 0x001440F2L;
     private static final long FSCTL_SRV_COPYCHUNK_WRITE = 0x001480F2L;
+    private static final Logger logger = LoggerFactory.getLogger(SMB2MessageConverter.class);
 
     private SMB2Packet getPacketInstance(SMB2PacketData packetData) {
         SMB2MessageCommandCode command = packetData.getHeader().getMessage();
@@ -68,6 +72,7 @@ public class SMB2MessageConverter {
             case SMB2_CANCEL:
             case SMB2_OPLOCK_BREAK:
             default:
+                logger.error("Unknown SMB2 Message Command type: " + command);
                 throw new SMBRuntimeException("Unknown SMB2 Message Command type: " + command);
 
         }
@@ -75,6 +80,8 @@ public class SMB2MessageConverter {
 
     public SMB2Packet readPacket(SMBPacket requestPacket, SMB2PacketData packetData) throws Buffer.BufferException {
         SMB2Packet responsePacket = getPacketInstance(packetData);
+        // Pass the from decryption info to the packet
+        responsePacket.setFromDecrypt(packetData.isFromDecrypt());
         if (isSuccess(requestPacket, packetData)) {
             responsePacket.read(packetData);
         } else {

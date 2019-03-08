@@ -73,7 +73,6 @@ public class SMB2Header implements SMBHeader {
         if (dialect.isSmb3x()) {
             buffer.putRawBytes(new byte[]{0x0, 0x0}); // ChannelSequence (2 bytes)
             buffer.putReserved(2); // Reserved (2 bytes)
-            throw new UnsupportedOperationException("SMB 3.x not yet implemented");
         } else {
             buffer.putReserved4(); // Status (4 bytes) (reserved on request)
         }

@@ -19,6 +19,8 @@ import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.security.Mac;
 import org.bouncycastle.crypto.digests.MD5Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.bouncycastle.crypto.engines.AESEngine;
+import org.bouncycastle.crypto.macs.CMac;
 import org.bouncycastle.crypto.macs.HMac;
 import org.bouncycastle.crypto.params.KeyParameter;
 
@@ -41,6 +43,13 @@ public class BCMac implements Mac {
                 return new HMac(new MD5Digest());
             }
         });
+        lookup.put("AESCMAC", new Factory<org.bouncycastle.crypto.Mac>() {
+            @Override
+            public org.bouncycastle.crypto.Mac create() {
+                return new CMac(new AESEngine());
+            }
+        });
+
     }
 
     private final org.bouncycastle.crypto.Mac mac;

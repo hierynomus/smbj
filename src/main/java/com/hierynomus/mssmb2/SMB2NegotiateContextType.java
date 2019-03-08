@@ -13,14 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.security;
+package com.hierynomus.mssmb2;
 
-public interface MessageDigest {
-    void update(byte[] bytes);
+import com.hierynomus.protocol.commons.EnumWithValue;
 
-    byte[] digest();
+public enum SMB2NegotiateContextType implements EnumWithValue<SMB2NegotiateContextType> {
+    SMB2_PREAUTH_INTEGRITY_CAPABILITIES(0x00000001L),
+    SMB2_ENCRYPTION_CAPABILITIES(0x00000002L);
 
-    void reset();
+    private long value;
 
-    int getDigestLength();
+    SMB2NegotiateContextType(long value) {
+        this.value = value;
+    }
+
+    public long getValue() {
+        return value;
+    }
 }

@@ -19,13 +19,18 @@ import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2Header;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.security.CryptographicKeysGenerator;
 import com.hierynomus.security.SecurityException;
 import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smb.SMBBuffer;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.security.Key;
 import java.util.Arrays;
+
+import javax.crypto.spec.SecretKeySpec;
 
 import static com.hierynomus.mssmb2.SMB2Header.*;
 import static com.hierynomus.mssmb2.SMB2MessageFlag.SMB2_FLAGS_SIGNED;
@@ -34,32 +39,75 @@ public class PacketSignatory {
     private static final Logger logger = LoggerFactory.getLogger(PacketSignatory.class);
 
     private static final String HMAC_SHA256_ALGORITHM = "HmacSHA256";
+    private static final String AES_128_CMAC_ALGORITHM = "AesCmac";
 
     private SMB2Dialect dialect;
     private SecurityProvider securityProvider;
     private String algorithm;
-    private byte[] secretKey;
+    private Key sessionKey = null;
+    private Key signingKey = null;
 
     PacketSignatory(SMB2Dialect dialect, SecurityProvider securityProvider) {
         this.dialect = dialect;
         this.securityProvider = securityProvider;
     }
 
-    void init(byte[] secretKey) {
+    void init(byte[] sessionKey) {
+        init(sessionKey, null);
+    }
+
+    void init(byte[] sessionKey, byte[] sessionPreauthIntegrityHashValue) {
         if (dialect.isSmb3x()) {
-            throw new IllegalStateException("Cannot set a signing key (yet) for SMB3.x");
+            algorithm = AES_128_CMAC_ALGORITHM;
+            if (sessionKey != null) {
+                this.sessionKey = new SecretKeySpec(sessionKey, "");
+                if (dialect == SMB2Dialect.SMB_3_1_1) {
+                    if (sessionPreauthIntegrityHashValue == null) {
+                        // dialect 3.1.1 with null for sessionPreauthIntegrityHashValue case,
+
+                        logger.error("sessionPreauthIntegrityHashValue is null when generating signing key for SMB3.1.1");
+                        throw new IllegalStateException("sessionPreauthIntegrityHashValue is null when generating signing key for SMB3.1.1");
+                    }
+
+                    // dialect 3.1.1 with non-null value for sessionPreauthIntegrityHashValue case,
+                    this.signingKey = CryptographicKeysGenerator.generateKey(
+                        this.sessionKey,
+                        CryptographicKeysGenerator.Smb311SigningLabelByteArray,
+                        sessionPreauthIntegrityHashValue,
+                        algorithm
+                    );
+                } else {
+                    // remaining dialect 3.0.x case,
+
+                    this.signingKey = CryptographicKeysGenerator.generateKey(
+                        this.sessionKey,
+                        CryptographicKeysGenerator.Smb30xSigningLabelByteArray,
+                        CryptographicKeysGenerator.Smb30xSigningContextByteArray,
+                        algorithm
+                    );
+                }
+            } else {
+                this.sessionKey = null;
+                this.signingKey = null;
+            }
         } else {
             algorithm = HMAC_SHA256_ALGORITHM;
-            this.secretKey = secretKey;
+            if (sessionKey != null) {
+                this.sessionKey = new SecretKeySpec(sessionKey, "");
+                this.signingKey = new SecretKeySpec(sessionKey, algorithm);
+            } else {
+                this.sessionKey = null;
+                this.signingKey = null;
+            }
         }
     }
 
     boolean isInitialized() {
-        return secretKey != null;
+        return sessionKey != null && signingKey != null;
     }
 
     SMB2Packet sign(SMB2Packet packet) {
-        if (secretKey != null) {
+        if (isInitialized()) {
             return new SignedPacketWrapper(packet);
         } else {
             logger.debug("Not wrapping {} as signed, as no key is set.", packet.getHeader().getMessage());
@@ -69,9 +117,17 @@ public class PacketSignatory {
 
     // TODO make session a packet handler which wraps the incoming packets
     public boolean verify(SMB2Packet packet) {
+        // 3.2.5.1.3 Verifying the Signature
+        // If the client implements the SMB 3.x dialect family
+        // and if the decryption in section 3.2.5.1.1 succeeds,
+        // the client MUST skip the processing in this section.
+        if (packet.isFromDecrypt()) {
+            // always return true when the packet is from decrypt
+            return true;
+        }
         try {
             SMBBuffer buffer = packet.getBuffer();
-            com.hierynomus.security.Mac mac = getMac(secretKey, algorithm, securityProvider);
+            com.hierynomus.security.Mac mac = getMac(signingKey.getEncoded(), algorithm, securityProvider);
             mac.update(buffer.array(), packet.getMessageStartPos(), SIGNATURE_OFFSET);
             mac.update(EMPTY_SIGNATURE);
             mac.update(buffer.array(), STRUCTURE_SIZE, packet.getMessageEndPos() - STRUCTURE_SIZE);
@@ -80,7 +136,7 @@ public class PacketSignatory {
             for (int i = 0; i < SIGNATURE_SIZE; i++) {
                 if (signature[i] != receivedSignature[i]) {
                     logger.error("Signatures for packet {} do not match (received: {}, calculated: {})", packet,
-                            Arrays.toString(receivedSignature), Arrays.toString(signature));
+                                 Arrays.toString(receivedSignature), Arrays.toString(signature));
                     logger.error("Packet {} has header: {}", packet, packet.getHeader());
                     return false;
                 }
@@ -92,9 +148,9 @@ public class PacketSignatory {
         }
     }
 
-    private static com.hierynomus.security.Mac getMac(byte[] secretKey, String algorithm, SecurityProvider securityProvider) throws SecurityException {
+    private static com.hierynomus.security.Mac getMac(byte[] signingKey, String algorithm, SecurityProvider securityProvider) throws SecurityException {
         com.hierynomus.security.Mac mac = securityProvider.getMac(algorithm);
-        mac.init(secretKey);
+        mac.init(signingKey);
         return mac;
     }
 
@@ -134,7 +190,7 @@ public class PacketSignatory {
 
             SigningBuffer(SMBBuffer wrappedBuffer) throws SecurityException {
                 this.wrappedBuffer = wrappedBuffer;
-                mac = getMac(PacketSignatory.this.secretKey, PacketSignatory.this.algorithm, PacketSignatory.this.securityProvider);
+                mac = getMac(signingKey.getEncoded(), PacketSignatory.this.algorithm, PacketSignatory.this.securityProvider);
             }
 
             @Override
