@@ -121,8 +121,8 @@ public class NtlmAuthenticator implements Authenticator {
                 Object msvAvFlags = challenge.getAvPairObject(AvId.MsvAvFlags);
                 if (msvAvFlags instanceof Long && ((long) msvAvFlags & 0x00000002) > 0) {
                     // MIC should be calculated
-                    NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
-                        context.getUsername(), context.getDomain(), null, sessionkey, EnumWithValue.EnumUtils.toLong(negotiateFlags),
+                    NtlmAuthenticate resp = new NtlmAuthenticate(new byte[24], ntlmv2Response,
+                        context.getUsername(), context.getDomain(), "SMBJHOST", sessionkey, EnumWithValue.EnumUtils.toLong(negotiateFlags),
                         true
                     );
 
@@ -138,8 +138,8 @@ public class NtlmAuthenticator implements Authenticator {
                     response.setNegToken(negTokenTarg(resp, negTokenTarg.getResponseToken()));
                     return response;
                 } else {
-                    NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
-                        context.getUsername(), context.getDomain(), null, sessionkey, EnumWithValue.EnumUtils.toLong(negotiateFlags),
+                    NtlmAuthenticate resp = new NtlmAuthenticate(new byte[24], ntlmv2Response,
+                        context.getUsername(), context.getDomain(), "SMBJHOST", sessionkey, EnumWithValue.EnumUtils.toLong(negotiateFlags),
                         false
                     );
                     response.setNegToken(negTokenTarg(resp, negTokenTarg.getResponseToken()));
