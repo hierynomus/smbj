@@ -74,6 +74,7 @@ public final class SmbConfig {
     private TransportLayerFactory<SMBPacketData<?>, SMBPacket<?, ?>> transportLayerFactory;
     private long transactTimeout;
     private GSSContextConfig clientGSSContextConfig;
+    private String workStationName;
 
     private int soTimeout;
 
@@ -149,6 +150,7 @@ public final class SmbConfig {
         soTimeout = other.soTimeout;
         useMultiProtocolNegotiate = other.useMultiProtocolNegotiate;
         clientGSSContextConfig = other.clientGSSContextConfig;
+        workStationName = other.workStationName;
     }
 
     public Random getRandomProvider() {
@@ -225,6 +227,10 @@ public final class SmbConfig {
 
     public GSSContextConfig getClientGSSContextConfig() {
         return clientGSSContextConfig;
+    }
+
+    public String getWorkStationName() {
+        return workStationName;
     }
 
     public static class Builder {
@@ -411,6 +417,11 @@ public final class SmbConfig {
                 throw new IllegalArgumentException("Client GSSContext Config may not be null");
             }
             config.clientGSSContextConfig = clientGSSContextConfig;
+            return this;
+        }
+
+        public Builder withWorkStationName(String workStationName) {
+            config.workStationName = workStationName;
             return this;
         }
     }
