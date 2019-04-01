@@ -44,6 +44,7 @@ import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.spnego.NegTokenInit;
+import com.hierynomus.spnego.NegTokenInit2;
 import com.hierynomus.spnego.SpnegoException;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
@@ -236,7 +237,8 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
         List<Factory.Named<Authenticator>> supportedAuthenticators = new ArrayList<>(config.getSupportedAuthenticators());
         List<ASN1ObjectIdentifier> mechTypes = new ArrayList<>();
         if (connectionInfo.getGssNegotiateToken().length > 0) {
-            NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
+            // The response NegTokenInit is a NegTokenInit2 according to MS-SPNG.
+            NegTokenInit negTokenInit = new NegTokenInit2().read(connectionInfo.getGssNegotiateToken());
             mechTypes = negTokenInit.getSupportedMechTypes();
         }
 
