@@ -96,6 +96,7 @@ public class NegTokenInit2 extends NegTokenInit {
                 break;
             case 4:
                 // Ignore mechListMIC for now...
+                break;
             default:
                 throw new SpnegoException("Unknown Object Tag " + asn1TaggedObject.getTagNo() + " encountered.");
         }

@@ -196,30 +196,30 @@ public class DiskShare extends Share {
     }
 
     /**
-     * Equivalent to calling {@link #list(String, Class, String) list(path, FileIdBothDirectoryInformation.class, null)}.
+     * Equivalent to calling {@link #list(String, Class, String, EnumSet<AccessMask>) list(path, FileIdBothDirectoryInformation.class, null, null)}.
      *
-     * @see #list(String, Class, String)
+     * @see #list(String, Class, String, EnumSet<AccessMask>)
      */
     public List<FileIdBothDirectoryInformation> list(String path) throws SMBApiException {
-        return list(path, FileIdBothDirectoryInformation.class, null);
+        return list(path, FileIdBothDirectoryInformation.class, null, null);
     }
 
     /**
-     * Equivalent to calling {@link #list(String, Class, String) list(path, FileIdBothDirectoryInformation.class, searchPattern)}.
+     * Equivalent to calling {@link #list(String, Class, String, EnumSet<AccessMask>) list(path, FileIdBothDirectoryInformation.class, searchPattern, null)}.
      *
-     * @see #list(String, Class, String)
+     * @see #list(String, Class, String, EnumSet<AccessMask>)
      */
     public List<FileIdBothDirectoryInformation> list(String path, String searchPattern) throws SMBApiException {
-        return list(path, FileIdBothDirectoryInformation.class, searchPattern);
+        return list(path, FileIdBothDirectoryInformation.class, searchPattern, null);
     }
 
     /**
-     * Equivalent to calling {@link #list(String, Class, String) list(path, informationClass, null)}.
+     * Equivalent to calling {@link #list(String, Class, String, EnumSet<AccessMask>) list(path, informationClass, null, null)}.
      *
-     * @see #list(String, Class, String)
+     * @see #list(String, Class, String, EnumSet<AccessMask>)
      */
     public <I extends FileDirectoryQueryableInformation> List<I> list(String path, Class<I> informationClass) {
-        return list(path, informationClass, null);
+        return list(path, informationClass, null, null);
     }
 
     /**
@@ -227,9 +227,16 @@ public class DiskShare extends Share {
      *
      * @see Directory#iterator(Class, String)
      */
-    public <I extends FileDirectoryQueryableInformation> List<I> list(String path, Class<I> informationClass, String searchPattern) {
-        try (Directory d = openDirectory(path, of(FILE_LIST_DIRECTORY, FILE_READ_ATTRIBUTES, FILE_READ_EA), null, ALL, FILE_OPEN, null)) {
+    public <I extends FileDirectoryQueryableInformation> List<I> list(String path, Class<I> informationClass, String searchPattern, EnumSet<AccessMask> accessMask) {
+        Directory d = openDirectory(path,
+                accessMask == null ? of(FILE_LIST_DIRECTORY, FILE_READ_ATTRIBUTES, FILE_READ_EA) : accessMask,
+            null, ALL, FILE_OPEN, null);
+        try {
             return d.list(informationClass, searchPattern);
+        } finally {
+            if (d != null) {
+                d.closeSilently();
+            }
         }
     }
 
