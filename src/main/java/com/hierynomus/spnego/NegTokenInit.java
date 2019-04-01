@@ -26,8 +26,6 @@ import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
 import com.hierynomus.asn1.types.string.ASN1OctetString;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -84,8 +82,6 @@ import static com.hierynomus.spnego.ObjectIdentifiers.SPNEGO;
  * </ul>
  */
 public class NegTokenInit extends SpnegoToken {
-
-    private static final Logger logger = LoggerFactory.getLogger(NegTokenInit.class);
 
     private static final String ADS_IGNORE_PRINCIPAL = "not_defined_in_RFC4178@please_ignore";
 
@@ -152,7 +148,7 @@ public class NegTokenInit extends SpnegoToken {
                 // Ignore mechListMIC for now...
                 break;
             default:
-                logger.warn("Unknown Object Tag {}/{} encountered.. Ignoring", asn1TaggedObject.getTagNo(), asn1TaggedObject.getObject());
+                throw new SpnegoException("Unknown Object Tag " + asn1TaggedObject.getTagNo() + " encountered.");
         }
     }
 
