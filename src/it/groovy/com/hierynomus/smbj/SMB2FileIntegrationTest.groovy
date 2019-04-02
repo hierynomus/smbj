@@ -310,7 +310,28 @@ class SMB2FileIntegrationTest extends Specification {
     share.rmdir("im_a_directory", false)
   }
 
-  def "should not fail if rm response is DELETE_PENDING"() {
+  @Unroll
+  def "should not fail if #method response is DELETE_PENDING for directory"() {
+    given:
+    def dir = share.openDirectory("to_be_removed", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_CREATE, null)
+    dir.close()
+    dir = share.openDirectory("to_be_removed", EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    dir.deleteOnClose()
+
+    when:
+    func(share)
+
+    then:
+    noExceptionThrown()
+
+    where:
+    method | func
+    "rmdir" | { s -> s.rmdir("to_be_removed", false) }
+    "folderExists" | { s -> s.folderExists("to_be_removed") }
+  }
+
+  @Unroll
+  def "should not fail if #method response is DELETE_PENDING for file"() {
     given:
     def textFile = share.openFile("test.txt", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_CREATE, null)
     textFile.write(new ArrayByteChunkProvider("Hello World!".getBytes(StandardCharsets.UTF_8), 0))
@@ -319,24 +340,15 @@ class SMB2FileIntegrationTest extends Specification {
     textFile.deleteOnClose()
 
     when:
-    share.rm("test.txt")
+    func(share)
 
     then:
     noExceptionThrown()
-  }
 
-  def "should not fail if rmdir response is DELETE_PENDING"() {
-    given:
-    def dir = share.openDirectory("to_be_removed", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_CREATE, null)
-    dir.close()
-    dir = share.openDirectory("to_be_removed", EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
-    dir.deleteOnClose()
-
-    when:
-    share.rmdir("to_be_removed", false)
-
-    then:
-    noExceptionThrown()
+    where:
+    method | func
+    "rm" | { s -> s.rm("test.txt") }
+    "fileExists" | { s -> s.fileExists("test.txt") }
   }
 
   def "should not fail if folderExists response is DELETE_PENDING"() {
