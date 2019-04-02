@@ -338,4 +338,33 @@ class SMB2FileIntegrationTest extends Specification {
     then:
     noExceptionThrown()
   }
+
+  def "should not fail if folderExists response is DELETE_PENDING"() {
+    given:
+    def dir = share.openDirectory("to_be_removed", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_CREATE, null)
+    dir.close()
+    dir = share.openDirectory("to_be_removed", EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    dir.deleteOnClose()
+
+    when:
+    share.folderExists("to_be_removed")
+
+    then:
+    noExceptionThrown()
+  }
+
+  def "should not fail if fileExists response is DELETE_PENDING"() {
+    given:
+    def textFile = share.openFile("test.txt", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_CREATE, null)
+    textFile.write(new ArrayByteChunkProvider("Hello World!".getBytes(StandardCharsets.UTF_8), 0))
+    textFile.close()
+    textFile = share.openFile("test.txt", EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    textFile.deleteOnClose()
+
+    when:
+    share.fileExists("test.txt")
+
+    then:
+    noExceptionThrown()
+  }
 }

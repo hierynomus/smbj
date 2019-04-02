@@ -158,7 +158,10 @@ public class DiskShare extends Share {
     private static StatusHandler FILE_EXISTS_STATUS_HANDLER = new StatusHandler() {
         @Override
         public boolean isSuccess(long statusCode) {
-            return statusCode == STATUS_OBJECT_NAME_NOT_FOUND.getValue() || statusCode == STATUS_OBJECT_PATH_NOT_FOUND.getValue() || statusCode == STATUS_FILE_IS_A_DIRECTORY.getValue();
+            return statusCode == STATUS_OBJECT_NAME_NOT_FOUND.getValue()
+                || statusCode == STATUS_OBJECT_PATH_NOT_FOUND.getValue()
+                || statusCode == STATUS_FILE_IS_A_DIRECTORY.getValue()
+                || statusCode == STATUS_DELETE_PENDING.getValue();
         }
     };
 
@@ -172,7 +175,10 @@ public class DiskShare extends Share {
     private static StatusHandler FOLDER_EXISTS_STATUS_HANDLER = new StatusHandler() {
         @Override
         public boolean isSuccess(long statusCode) {
-            return statusCode == STATUS_OBJECT_NAME_NOT_FOUND.getValue() || statusCode == STATUS_OBJECT_PATH_NOT_FOUND.getValue() || statusCode == STATUS_NOT_A_DIRECTORY.getValue();
+            return statusCode == STATUS_OBJECT_NAME_NOT_FOUND.getValue()
+                || statusCode == STATUS_OBJECT_PATH_NOT_FOUND.getValue()
+                || statusCode == STATUS_NOT_A_DIRECTORY.getValue()
+                || statusCode == STATUS_DELETE_PENDING.getValue();
         }
     };
 
