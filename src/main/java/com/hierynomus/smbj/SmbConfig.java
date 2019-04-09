@@ -242,7 +242,7 @@ public final class SmbConfig {
     }
 
     public Set<SMB2GlobalCapability> getClientCapabilities() {
-        EnumSet<SMB2GlobalCapability> set = EnumSet.noneOf(SMB2GlobalCapability.class);
+        EnumSet<SMB2GlobalCapability> set = EnumSet.of(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU);
         if (isDfsEnabled()) {
             set.add(SMB2GlobalCapability.SMB2_GLOBAL_CAP_DFS);
         }
