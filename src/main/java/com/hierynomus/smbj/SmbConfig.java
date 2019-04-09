@@ -77,6 +77,7 @@ public final class SmbConfig {
     private GSSContextConfig clientGSSContextConfig;
     private Set<SMB2GlobalCapability> clientCapabilities;
     private boolean encryptData;
+    private String workStationName;
 
     private int soTimeout;
 
@@ -157,6 +158,7 @@ public final class SmbConfig {
         clientGSSContextConfig = other.clientGSSContextConfig;
         clientCapabilities.addAll(other.clientCapabilities);
         encryptData = other.encryptData;
+        workStationName = other.workStationName;
     }
 
     public Random getRandomProvider() {
@@ -241,6 +243,9 @@ public final class SmbConfig {
 
     public boolean isEncryptData() {
         return encryptData;
+    }
+    public String getWorkStationName() {
+        return workStationName;
     }
 
     public static class Builder {
@@ -471,5 +476,9 @@ public final class SmbConfig {
             return this;
         }
 
+        public Builder withWorkStationName(String workStationName) {
+            config.workStationName = workStationName;
+            return this;
+        }
     }
 }
