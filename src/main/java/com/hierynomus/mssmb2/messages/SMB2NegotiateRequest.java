@@ -25,13 +25,11 @@ import com.hierynomus.mssmb2.Smb2EncryptionCipher;
 import com.hierynomus.mssmb2.Smb2HashAlgorithm;
 import com.hierynomus.mssmb2.messages.submodule.SMB2EncryptionCapabilitiesRequest;
 import com.hierynomus.mssmb2.messages.submodule.SMB2PreauthIntegrityCapabilitiesRequest;
+import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smb.SMBBuffer;
 
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * [MS-SMB2].pdf 2.2.3 SMB2 Negotiate
@@ -136,13 +134,7 @@ public class SMB2NegotiateRequest extends SMB2Packet {
     private void putCapabilities(SMBBuffer buffer) {
         if (SMB2Dialect.supportsSmb3x(dialects)) {
             // If the client implements the SMB 3.x dialect family, the Capabilities field MUST be constructed
-
-            long clientCapabilitiesFlags = 0L;
-            // convert all the capability to flag values
-            for (SMB2GlobalCapability capability: clientCapabilities) {
-                clientCapabilitiesFlags += capability.getValue();
-            }
-            buffer.putUInt32(clientCapabilitiesFlags); // Capabilities (4 bytes)
+            buffer.putUInt32(EnumWithValue.EnumUtils.toLong(this.clientCapabilities)); // Capabilities (4 bytes)
         } else {
             // Otherwise, this field MUST be set to 0
             buffer.putReserved4(); // Capabilities (4 bytes)

@@ -75,7 +75,6 @@ public final class SmbConfig {
     private TransportLayerFactory<SMBPacketData<?>, SMBPacket<?, ?>> transportLayerFactory;
     private long transactTimeout;
     private GSSContextConfig clientGSSContextConfig;
-    private Set<SMB2GlobalCapability> clientCapabilities;
     private boolean encryptData;
     private String workStationName;
 
@@ -102,7 +101,6 @@ public final class SmbConfig {
             .withAuthenticators(getDefaultAuthenticators())
             .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
             .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig())
-            .withCapabilities(SMB2GlobalCapability.SMB2_GLOBAL_CAP_DFS)
             .withEncryptData(false);
     }
 
@@ -132,7 +130,6 @@ public final class SmbConfig {
 
     private SmbConfig() {
         dialects = EnumSet.noneOf(SMB2Dialect.class);
-        clientCapabilities = EnumSet.noneOf(SMB2GlobalCapability.class);
         authenticators = new ArrayList<>();
     }
 
@@ -156,7 +153,6 @@ public final class SmbConfig {
         soTimeout = other.soTimeout;
         useMultiProtocolNegotiate = other.useMultiProtocolNegotiate;
         clientGSSContextConfig = other.clientGSSContextConfig;
-        clientCapabilities.addAll(other.clientCapabilities);
         encryptData = other.encryptData;
         workStationName = other.workStationName;
     }
@@ -237,15 +233,23 @@ public final class SmbConfig {
         return clientGSSContextConfig;
     }
 
-    public Set<SMB2GlobalCapability> getClientCapabilities() {
-        return clientCapabilities;
-    }
-
     public boolean isEncryptData() {
         return encryptData;
     }
+
     public String getWorkStationName() {
         return workStationName;
+    }
+
+    public Set<SMB2GlobalCapability> getClientCapabilities() {
+        EnumSet<SMB2GlobalCapability> set = EnumSet.noneOf(SMB2GlobalCapability.class);
+        if (isDfsEnabled()) {
+            set.add(SMB2GlobalCapability.SMB2_GLOBAL_CAP_DFS);
+        }
+        if (isEncryptData()) {
+            set.add(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION);
+        }
+        return set;
     }
 
     public static class Builder {
@@ -414,21 +418,11 @@ public final class SmbConfig {
             if (config.dialects.isEmpty()) {
                 throw new IllegalStateException("At least one SMB dialect should be specified");
             }
-            // if the adding encryption capability without any Smb3x dialect, remove it.
-            if (config.clientCapabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION)) {
-                if (!SMB2Dialect.supportsSmb3x(config.dialects)) {
-                    config.clientCapabilities.remove(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION);
-                }
+
+            if (config.encryptData && !SMB2Dialect.supportsSmb3x(config.dialects)) {
+                throw new IllegalStateException("If encryption is enabled, at least one dialect should be SMB3.x compatible");
             }
-            // if decided to encryptData but not Smb3x supported or no encryption capability, remove it.
-            if (config.encryptData) {
-                if (!config.clientCapabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION)) {
-                    config.encryptData = false;
-                }
-                if (!SMB2Dialect.supportsSmb3x(config.dialects)) {
-                    config.encryptData = false;
-                }
-            }
+
             return new SmbConfig(config);
         }
 
@@ -447,27 +441,6 @@ public final class SmbConfig {
                 throw new IllegalArgumentException("Client GSSContext Config may not be null");
             }
             config.clientGSSContextConfig = clientGSSContextConfig;
-            return this;
-        }
-
-        public Builder withCapabilities(SMB2GlobalCapability... capabilities) {
-            return withCapabilities(Arrays.asList(capabilities));
-        }
-
-        public Builder withCapabilities(Iterable<SMB2GlobalCapability> capabilities) {
-            if (capabilities == null) {
-                // if set, then clear all capabilities and return
-                config.clientCapabilities.clear();
-                return this;
-            }
-
-            config.clientCapabilities.clear();
-            for (SMB2GlobalCapability capability : capabilities) {
-                if (capability == null) {
-                    throw new IllegalArgumentException("capability may not be null");
-                }
-                config.clientCapabilities.add(capability);
-            }
             return this;
         }
 
