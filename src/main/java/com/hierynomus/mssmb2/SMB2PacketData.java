@@ -29,6 +29,8 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
  */
 public class SMB2PacketData extends SMBPacketData<SMB2Header> {
 
+    private boolean isFromDecrypt = false;
+
     public SMB2PacketData(byte[] data) throws Buffer.BufferException {
         super(new SMB2Header(), data);
     }
@@ -51,5 +53,13 @@ public class SMB2PacketData extends SMBPacketData<SMB2Header> {
      */
     public boolean isIntermediateAsyncResponse() {
         return isSet(getHeader().getFlags(), SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND) && getHeader().getStatusCode() == NtStatus.STATUS_PENDING.getValue();
+    }
+
+    public boolean isFromDecrypt() {
+        return isFromDecrypt;
+    }
+
+    public void setFromDecrypt(boolean fromDecrypt) {
+        isFromDecrypt = fromDecrypt;
     }
 }

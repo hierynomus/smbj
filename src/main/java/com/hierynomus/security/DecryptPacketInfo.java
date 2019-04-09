@@ -15,12 +15,24 @@
  */
 package com.hierynomus.security;
 
-public interface MessageDigest {
-    void update(byte[] bytes);
+import com.hierynomus.mssmb2.Smb2EncryptionCipher;
 
-    byte[] digest();
+import javax.crypto.spec.SecretKeySpec;
 
-    void reset();
+public class DecryptPacketInfo {
+    private final SecretKeySpec decryptionKey;
+    private final Smb2EncryptionCipher algorithm;
 
-    int getDigestLength();
+    public DecryptPacketInfo(SecretKeySpec decryptionKey, Smb2EncryptionCipher algorithm) {
+        this.decryptionKey = decryptionKey;
+        this.algorithm = algorithm;
+    }
+
+    public SecretKeySpec getDecryptionKey() {
+        return decryptionKey;
+    }
+
+    public Smb2EncryptionCipher getAlgorithm() {
+        return algorithm;
+    }
 }

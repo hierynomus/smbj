@@ -15,17 +15,38 @@
  */
 package com.hierynomus.smbj.connection;
 
+import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2GlobalCapability;
+import com.hierynomus.mssmb2.Smb2EncryptionCipher;
+import com.hierynomus.mssmb2.Smb2HashAlgorithm;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
+import com.hierynomus.mssmb2.messages.submodule.SMB2EncryptionCapabilitiesResponse;
+import com.hierynomus.mssmb2.messages.submodule.SMB2NegotiateContext;
+import com.hierynomus.mssmb2.messages.submodule.SMB2PreauthIntegrityCapabilitiesResponse;
 import com.hierynomus.ntlm.messages.WindowsVersion;
+import com.hierynomus.security.MessageDigest;
+import com.hierynomus.security.SecurityException;
+import com.hierynomus.smb.SMBPacket;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
+import static com.hierynomus.security.DigestUtil.concatenatePreviousUpdateDigest;
+import static com.hierynomus.security.DigestUtil.getRequestPacketBytes;
+import static com.hierynomus.security.DigestUtil.getResponsePacketBytes;
 
 public class ConnectionInfo {
+
+    // the corresponding connection
+    private final Connection connection;
+    private static final Logger logger = LoggerFactory.getLogger(ConnectionInfo.class);
 
     private WindowsVersion windowsVersion;
     private String netBiosName;
@@ -44,27 +65,112 @@ public class ConnectionInfo {
     private int clientSecurityMode;
     private int serverSecurityMode;
     private String server; // Reference to the server connected to?
+    private Smb2EncryptionCipher cipherId = null;
     // SMB 3.1.1
-    private String preauthIntegrityHashId;
-    private byte[] preauthIntegrityHashValue;
-    private String cipherId;
+    private Smb2HashAlgorithm preauthIntegrityHashId = null;
+    private byte[] preauthIntegrityHashValue = null;
 
-    ConnectionInfo(UUID clientGuid, String serverName) {
+    ConnectionInfo(Connection connection, UUID clientGuid, String serverName, Set<SMB2GlobalCapability> clientCapabilities) {
         // new SessionTable
         // new OutstandingRequests
+        this.connection = connection;
         this.clientGuid = clientGuid;
         this.gssNegotiateToken = new byte[0];
         this.serverName = serverName;
-        this.clientCapabilities = EnumSet.of(SMB2GlobalCapability.SMB2_GLOBAL_CAP_DFS);
+        this.clientCapabilities = EnumSet.copyOf(clientCapabilities);
     }
 
-    void negotiated(SMB2NegotiateResponse response) {
+    void negotiated(SMBPacket negotiateRequest, SMB2NegotiateResponse response) {
 //        gssNegotiateToken = response.getGssToken();
         serverGuid = response.getServerGuid();
         serverCapabilities = toEnumSet(response.getCapabilities(), SMB2GlobalCapability.class);
         this.negotiatedProtocol = new NegotiatedProtocol(response.getDialect(), response.getMaxTransactSize(), response.getMaxReadSize(), response.getMaxWriteSize(), serverCapabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU));
         serverSecurityMode = response.getSecurityMode();
+
+        // if dialect is 3.1.1, read the NegotiateContextList. Otherwise, using the default.
+        if (negotiatedProtocol.getDialect() == SMB2Dialect.SMB_3_1_1) {
+            List<SMB2NegotiateContext> negotiateContextList = response.getNegotiateContextList();
+            if (negotiateContextList != null) {
+                for (SMB2NegotiateContext negotiateContext: negotiateContextList) {
+                    switch (negotiateContext.getNegotiateContextType()) {
+                        case SMB2_PREAUTH_INTEGRITY_CAPABILITIES: {
+                            SMB2PreauthIntegrityCapabilitiesResponse
+                                preauthIntegrityCapabilitiesResponse = (SMB2PreauthIntegrityCapabilitiesResponse) negotiateContext;
+
+                            // get the requestBytes and responseBytes
+                            byte[] requestBytes = getRequestPacketBytes(negotiateRequest);
+                            byte[] responseBytes = getResponsePacketBytes(response);
+
+                            this.preauthIntegrityHashId = preauthIntegrityCapabilitiesResponse.getHashAlgorithm();
+
+                            if (this.preauthIntegrityHashId == null) {
+                                logger.error("Unable to read preauthIntegrityHashId from negotiate response.");
+                                throw new IllegalStateException("Unable to read preauthIntegrityHashId from negotiate response.");
+                            }
+
+                            try {
+                                // initialize with zero (length is depends on the digest algorithm)
+                                this.preauthIntegrityHashValue = initializePreauthIntegrityHashValue();
+                                // concatenating the initial value and negotiateRequestBytes then digest
+                                this.preauthIntegrityHashValue = internalUpdateDigest(requestBytes);
+                                // concatenating the previous value and negotiateResponseBytes then digest
+                                this.preauthIntegrityHashValue = internalUpdateDigest(responseBytes);
+                            } catch (SecurityException e) {
+                                logger.error("Unable to updatePreauthIntegrityHashValue cause by SecurityException, ", e);
+                                throw new IllegalStateException("Unable to updatePreauthIntegrityHashValue cause by SecurityException", e);
+                            }
+
+                            break;
+                        }
+                        case SMB2_ENCRYPTION_CAPABILITIES: {
+                            SMB2EncryptionCapabilitiesResponse
+                                encryptionCapabilitiesResponse = (SMB2EncryptionCapabilitiesResponse)negotiateContext;
+                            this.cipherId = encryptionCapabilitiesResponse.getEncryptionCipher();
+                            break;
+                        }
+                        default:
+                            throw new IllegalStateException("unknown negotiate context type");
+                    }
+                }
+            } else {
+                throw new IllegalStateException("negotiate context list is null for SMB 3.1.1 dialect");
+            }
+        } else {
+            // Set the cipherId for SMB 3.0.x dialect.
+            if (negotiatedProtocol.getDialect().isSmb3x()) {
+                cipherId = Smb2EncryptionCipher.AES_128_CCM;
+            }
+        }
     }
+
+    private byte[] initializePreauthIntegrityHashValue() throws SecurityException {
+        if (preauthIntegrityHashId == null) {
+            logger.error("Unable to initializePreauthIntegrityHashValue as preauthIntegrityHashId is null");
+            throw new IllegalStateException("Unable to initializePreauthIntegrityHashValue as preauthIntegrityHashId is null");
+        }
+
+        MessageDigest messageDigest =
+            connection.getConfig().getSecurityProvider().getDigest(preauthIntegrityHashId.getAlgorithmName());
+        // 3.2.5.2 Receiving an SMB2 NEGOTIATE Response, client MUST initialize Connection.PreauthIntegrityHashValue with zero
+        return new byte[messageDigest.getDigestLength()];
+    }
+
+    private byte[] internalUpdateDigest(byte[] updateBytes) throws SecurityException {
+        if (preauthIntegrityHashId == null) {
+            logger.error("Unable to updatePreauthIntegrityHashValue as preauthIntegrityHashId is null");
+            throw new IllegalStateException("Unable to updatePreauthIntegrityHashValue as preauthIntegrityHashId is null");
+        }
+        if (preauthIntegrityHashValue == null) {
+            logger.error("Unable to updatePreauthIntegrityHashValue as previous preauthIntegrityHashValue is null");
+            throw new IllegalStateException("Unable to updatePreauthIntegrityHashValue as previous preauthIntegrityHashValue is null");
+        }
+
+        MessageDigest messageDigest =
+            connection.getConfig().getSecurityProvider().getDigest(preauthIntegrityHashId.getAlgorithmName());
+
+        return concatenatePreviousUpdateDigest(messageDigest, this.preauthIntegrityHashValue, updateBytes);
+    }
+
 
     public UUID getClientGuid() {
         return clientGuid;
@@ -118,17 +224,43 @@ public class ConnectionInfo {
         this.netBiosName = netBiosName;
     }
 
+    public Smb2HashAlgorithm getPreauthIntegrityHashId() {
+        return preauthIntegrityHashId;
+    }
+
+    public byte[] getPreauthIntegrityHashValue() {
+        return preauthIntegrityHashValue;
+    }
+
+    public Smb2EncryptionCipher getEncryptionCipher() {
+        return cipherId;
+    }
+
+    public boolean isConnectionSupportEncrypt() {
+        SMB2Dialect dialect = negotiatedProtocol.getDialect();
+        boolean supportEncrypt = false;
+        if(dialect == SMB2Dialect.SMB_3_1_1) {
+            supportEncrypt = cipherId != null;
+        } else {
+            // if both the client and server support encrypt, return true
+            supportEncrypt = clientCapabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION)
+                             && supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION);
+        }
+
+        return supportEncrypt;
+    }
+
     @Override
     public String toString() {
         return "ConnectionInfo{\n" + "  serverGuid=" + serverGuid + ",\n" +
-            "  serverName='" + serverName + "',\n" +
-            "  negotiatedProtocol=" + negotiatedProtocol + ",\n" +
-            "  clientGuid=" + clientGuid + ",\n" +
-            "  clientCapabilities=" + clientCapabilities + ",\n" +
-            "  serverCapabilities=" + serverCapabilities + ",\n" +
-            "  clientSecurityMode=" + clientSecurityMode + ",\n" +
-            "  serverSecurityMode=" + serverSecurityMode + ",\n" +
-            "  server='" + server + "'\n" +
-            '}';
+               "  serverName='" + serverName + "',\n" +
+               "  negotiatedProtocol=" + negotiatedProtocol + ",\n" +
+               "  clientGuid=" + clientGuid + ",\n" +
+               "  clientCapabilities=" + clientCapabilities + ",\n" +
+               "  serverCapabilities=" + serverCapabilities + ",\n" +
+               "  clientSecurityMode=" + clientSecurityMode + ",\n" +
+               "  serverSecurityMode=" + serverSecurityMode + ",\n" +
+               "  server='" + server + "'\n" +
+               '}';
     }
 }

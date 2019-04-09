@@ -20,6 +20,7 @@ import com.hierynomus.security.MessageDigest;
 import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.MD4Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.bouncycastle.crypto.digests.SHA512Digest;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +29,12 @@ public class BCMessageDigest implements MessageDigest {
     private static Map<String, Factory<Digest>> lookup = new HashMap<>();
 
     static {
+        lookup.put("SHA-512", new Factory<Digest>() {
+            @Override
+            public Digest create() {
+                return new SHA512Digest();
+            }
+        });
         lookup.put("SHA256", new Factory<Digest>() {
             @Override
             public Digest create() {
@@ -71,5 +78,10 @@ public class BCMessageDigest implements MessageDigest {
     @Override
     public void reset() {
         digest.reset();
+    }
+
+    @Override
+    public int getDigestLength() {
+        return digest.getDigestSize();
     }
 }

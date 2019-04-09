@@ -17,10 +17,19 @@ package com.hierynomus.mssmb2.messages;
 
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.mssmb2.SMB2GlobalCapability;
+import com.hierynomus.mssmb2.SMB2Header;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.Smb2EncryptionCipher;
+import com.hierynomus.mssmb2.Smb2HashAlgorithm;
+import com.hierynomus.mssmb2.messages.submodule.SMB2EncryptionCapabilitiesRequest;
+import com.hierynomus.mssmb2.messages.submodule.SMB2PreauthIntegrityCapabilitiesRequest;
 import com.hierynomus.smb.SMBBuffer;
 
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -29,9 +38,13 @@ import java.util.UUID;
  */
 public class SMB2NegotiateRequest extends SMB2Packet {
 
+    public static final int DEFAULT_NEGOTIATE_CONTEXT_COUNT = 2;
+
     private Set<SMB2Dialect> dialects;
     private UUID clientGuid;
     private boolean clientSigningRequired;
+    private Set<SMB2GlobalCapability> clientCapabilities;
+    private byte[] salt = null;
 
     /**
      * Request constructor.
@@ -39,11 +52,12 @@ public class SMB2NegotiateRequest extends SMB2Packet {
      * @param dialects
      * @param clientGuid
      */
-    public SMB2NegotiateRequest(Set<SMB2Dialect> dialects, UUID clientGuid, boolean clientSigningRequired) {
+    public SMB2NegotiateRequest(Set<SMB2Dialect> dialects, UUID clientGuid, boolean clientSigningRequired, Set<SMB2GlobalCapability> clientCapabilities) {
         super(36, SMB2Dialect.UNKNOWN, SMB2MessageCommandCode.SMB2_NEGOTIATE, 0, 0);
         this.dialects = dialects;
         this.clientGuid = clientGuid;
         this.clientSigningRequired = clientSigningRequired;
+        this.clientCapabilities = clientCapabilities;
     }
 
     /**
@@ -57,15 +71,15 @@ public class SMB2NegotiateRequest extends SMB2Packet {
         buffer.putUInt16(dialects.size()); // DialectCount (2 bytes)
         buffer.putUInt16(securityMode()); // SecurityMode (2 bytes)
         buffer.putReserved(2); // Reserved (2 bytes)
-        putCapabilities(buffer); // Capabilities (2 bytes)
+        putCapabilities(buffer); // Capabilities (4 bytes)
         MsDataTypes.putGuid(clientGuid, buffer); // ClientGuid (16 bytes)
         putNegotiateStartTime(buffer); // (NegotiateContextOffset/NegotiateContextCount/Reserved2)/ClientStartTime (8 bytes)
         putDialects(buffer); // Dialects (x * 2 bytes)
-        int eightByteAlignment = (34 + dialects.size() * 2) % 8;
+        int eightByteAlignment = (structureSize + dialects.size() * 2) % 8;
         if (eightByteAlignment > 0) {
             buffer.putReserved(8 - eightByteAlignment); // Padding (variable) Ensure that the next field is 8-byte aligned
         }
-        putNegotiateContextList(); // NegotiateContextList (variable)
+        putNegotiateContextList(buffer); // NegotiateContextList (variable)
     }
 
     private int securityMode() {
@@ -76,9 +90,24 @@ public class SMB2NegotiateRequest extends SMB2Packet {
         }
     }
 
-    private void putNegotiateContextList() {
+    private void putNegotiateContextList(SMBBuffer buffer) {
         if (dialects.contains(SMB2Dialect.SMB_3_1_1)) {
-            throw new UnsupportedOperationException("SMB 3.x support is not yet implemented");
+            List<Smb2HashAlgorithm> hashAlgorithmList = new ArrayList<>();
+            hashAlgorithmList.add(Smb2HashAlgorithm.SHA_512);
+            if (this.salt == null) {
+                this.salt = initializeSalt(SMB2PreauthIntegrityCapabilitiesRequest.DEFAULT_SALT_LENGTH);
+            }
+            SMB2PreauthIntegrityCapabilitiesRequest preauthIntegrityCapabilitiesRequest = new SMB2PreauthIntegrityCapabilitiesRequest(hashAlgorithmList, salt);
+            preauthIntegrityCapabilitiesRequest.write(buffer);
+            List<Smb2EncryptionCipher> cipherList = new ArrayList<>();
+            // [MS-SMB2].pdf <104> Section 3.2.4.2.2.2: Windows 10, Windows Server 2016, and
+            // Windows Server operating system initialize with AES-128-GCM(0x0002)
+            // followed by AES-128-CCM(0x0001).
+            cipherList.add(Smb2EncryptionCipher.AES_128_GCM);
+            cipherList.add(Smb2EncryptionCipher.AES_128_CCM);
+            SMB2EncryptionCapabilitiesRequest
+                encryptionCapabilitiesRequest = new SMB2EncryptionCapabilitiesRequest(cipherList);
+            encryptionCapabilitiesRequest.write(buffer);
         }
     }
 
@@ -90,7 +119,14 @@ public class SMB2NegotiateRequest extends SMB2Packet {
 
     private void putNegotiateStartTime(SMBBuffer buffer) {
         if (dialects.contains(SMB2Dialect.SMB_3_1_1)) {
-            throw new UnsupportedOperationException("SMB 3.x support is not yet implemented");
+            // SMB2_PREAUTH_INTEGRITY_CAPABILITIES is always needed for 3.1.1, just depends on encryption support or not.
+            int trueEightByteAlignment = 8 - ((structureSize + dialects.size() * 2) % 8);
+            long negotiateContextOffset = SMB2Header.STRUCTURE_SIZE + structureSize + dialects.size() * 2 + trueEightByteAlignment;
+
+            // put the values to buffer
+            buffer.putUInt32(negotiateContextOffset); // NegotiateContextOffset (4 bytes)
+            buffer.putUInt16(DEFAULT_NEGOTIATE_CONTEXT_COUNT); // NegotiateContextCount (2 bytes)
+            buffer.putReserved2(); // Reserved2 (2 bytes)
         } else {
             buffer.putReserved4();
             buffer.putReserved4();
@@ -99,9 +135,25 @@ public class SMB2NegotiateRequest extends SMB2Packet {
 
     private void putCapabilities(SMBBuffer buffer) {
         if (SMB2Dialect.supportsSmb3x(dialects)) {
-            throw new UnsupportedOperationException("SMB 3.x support is not yet implemented");
+            // If the client implements the SMB 3.x dialect family, the Capabilities field MUST be constructed
+
+            long clientCapabilitiesFlags = 0L;
+            // convert all the capability to flag values
+            for (SMB2GlobalCapability capability: clientCapabilities) {
+                clientCapabilitiesFlags += capability.getValue();
+            }
+            buffer.putUInt32(clientCapabilitiesFlags); // Capabilities (4 bytes)
         } else {
-            buffer.putReserved4();
+            // Otherwise, this field MUST be set to 0
+            buffer.putReserved4(); // Capabilities (4 bytes)
         }
     }
+
+    private byte[] initializeSalt(int saltLength) {
+        byte[] salt = new byte[saltLength];
+        SecureRandom secureRandom = new SecureRandom();
+        secureRandom.nextBytes(salt);
+        return salt;
+    }
+
 }

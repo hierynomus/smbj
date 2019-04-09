@@ -31,6 +31,9 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.*;
+import com.hierynomus.security.CryptographicKeysGenerator;
+import com.hierynomus.security.DecryptPacketInfo;
+import com.hierynomus.security.SecurityException;
 import com.hierynomus.smb.SMBPacket;
 import com.hierynomus.smb.SMBPacketData;
 import com.hierynomus.smbj.SMBClient;
@@ -56,12 +59,18 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.crypto.spec.SecretKeySpec;
+
 import static com.hierynomus.mssmb2.SMB2Packet.SINGLE_CREDIT_PAYLOAD_SIZE;
 import static com.hierynomus.mssmb2.messages.SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_ENABLED;
+import static com.hierynomus.security.DigestUtil.getRequestPacketBytes;
+import static com.hierynomus.security.DigestUtil.getResponsePacketBytes;
 import static java.lang.String.format;
 
 /**
@@ -69,13 +78,16 @@ import static java.lang.String.format;
  */
 public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
-    private static final DelegatingSMBMessageConverter converter = new DelegatingSMBMessageConverter(new SMB2PacketFactory(), new SMB1PacketFactory());
+    private static final SMB1PacketFactory smb1PacketFactory = new SMB1PacketFactory();
+    private static final SMB2PacketFactory smb2PacketFactory = new SMB2PacketFactory();
 
+    private final DelegatingSMBMessageConverter converter;
     private ConnectionInfo connectionInfo;
     private SessionTable sessionTable = new SessionTable();
     private SessionTable preauthSessionTable = new SessionTable();
     private OutstandingRequests outstandingRequests = new OutstandingRequests();
     private SequenceWindow sequenceWindow;
+    private ConcurrentMap<Session, DecryptPacketInfo> sessionDecryptInfoMap = new ConcurrentHashMap<>();
     private SMB2MessageConverter smb2Converter = new SMB2MessageConverter();
 
     private String remoteName;
@@ -95,6 +107,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
     public Connection(SmbConfig config, SMBClient client, SMBEventBus bus) {
         this.config = config;
         this.client = client;
+        converter = new DelegatingSMBMessageConverter(new SMB3EncryptedPacketFactory(smb2PacketFactory, config.getSecurityProvider()), smb2PacketFactory, smb1PacketFactory);
         this.transport = config.getTransportLayerFactory().createTransportLayer(new PacketHandlers<>(new SMBPacketSerializer(), this, converter), config);
         this.bus = bus;
         bus.subscribe(this);
@@ -103,6 +116,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
     public Connection(Connection connection) {
         this.client = connection.client;
         this.config = connection.config;
+        this.converter = connection.converter;
         this.transport = connection.transport;
         this.bus = connection.bus;
         bus.subscribe(this);
@@ -116,7 +130,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
         this.remotePort = port;
         transport.connect(new InetSocketAddress(hostname, port));
         this.sequenceWindow = new SequenceWindow();
-        this.connectionInfo = new ConnectionInfo(config.getClientGuid(), hostname);
+        this.connectionInfo = new ConnectionInfo(this, config.getClientGuid(), hostname, config.getClientCapabilities());
         negotiateDialect();
         logger.info("Successfully connected to: {}", getRemoteHostname());
     }
@@ -165,8 +179,14 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
             Authenticator authenticator = getAuthenticator(authContext);
             authenticator.init(config);
             Session session = getSession(authContext);
-            byte[] securityContext = processAuthenticationToken(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
-            SMB2SessionSetup receive = initiateSessionSetup(securityContext, 0L);
+            AuthenticateResponse authenticateResponse01 = processAuthenticationToken(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
+            byte[] securityContext = authenticateResponse01 == null ? null : authenticateResponse01.getNegToken();
+            byte[] sessionKey = authenticateResponse01 == null ? null : authenticateResponse01.getSigningKey();
+            SessionSetupRequestAndResponse requestAndResponse = initiateSessionSetup(securityContext, 0L);
+            updateSessionPreauthIntegrityHashValue(session, requestAndResponse);
+            // TODO Is the sessionKey is always null on here and postKeyGenerate not needed this line?
+            postKeyGenerate(session, sessionKey);
+            SMB2SessionSetup receive = requestAndResponse.response;
             long preauthSessionId = receive.getHeader().getSessionId();
             if (preauthSessionId != 0L) {
                 preauthSessionTable.registerSession(preauthSessionId, session);
@@ -174,8 +194,13 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
             try {
                 while (receive.getHeader().getStatusCode() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED.getValue()) {
                     logger.debug("More processing required for authentication of {} using {}", authContext.getUsername(), authenticator);
-                    securityContext = processAuthenticationToken(authenticator, authContext, receive.getSecurityBuffer(), session);
-                    receive = initiateSessionSetup(securityContext, preauthSessionId);
+                    AuthenticateResponse authenticateResponse02 = processAuthenticationToken(authenticator, authContext, receive.getSecurityBuffer(), session);
+                    securityContext = authenticateResponse02 == null ? null : authenticateResponse02.getNegToken();
+                    sessionKey = authenticateResponse02 == null ? null : authenticateResponse02.getSigningKey();
+                    requestAndResponse = initiateSessionSetup(securityContext, preauthSessionId);
+                    updateSessionPreauthIntegrityHashValue(session, requestAndResponse);
+                    postKeyGenerate(session, sessionKey);
+                    receive = requestAndResponse.response;
                 }
 
                 if (receive.getHeader().getStatusCode() != NtStatus.STATUS_SUCCESS.getValue()) {
@@ -188,7 +213,10 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
 
                 if (receive.getSecurityBuffer() != null) {
                     // process the last received buffer
-                    processAuthenticationToken(authenticator, authContext, receive.getSecurityBuffer(), session);
+                    AuthenticateResponse authenticateResponse03 = processAuthenticationToken(authenticator, authContext, receive.getSecurityBuffer(), session);
+                    sessionKey = authenticateResponse03 == null ? null : authenticateResponse03.getSigningKey();
+                    postKeyGenerate(session, sessionKey);
+
                 }
                 session.init(receive);
                 logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), remoteName, session.getSessionId());
@@ -205,31 +233,118 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
     }
 
     private Session getSession(AuthenticationContext authContext) {
-        return new Session(this, authContext, bus, client.getPathResolver(), config.getSecurityProvider());
+        return new Session(this, authContext, bus, client.getPathResolver(), config.getSecurityProvider(), connectionInfo.getEncryptionCipher());
     }
 
-    private byte[] processAuthenticationToken(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {
+    private AuthenticateResponse processAuthenticationToken(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {
         AuthenticateResponse resp = authenticator.authenticate(authContext, inputToken, session);
         if (resp == null) {
             return null;
         }
         connectionInfo.setWindowsVersion(resp.getWindowsVersion());
         connectionInfo.setNetBiosName(resp.getNetBiosName());
-        byte[] securityContext = resp.getNegToken();
-        if (resp.getSigningKey() != null) {
-            session.setSigningKey(resp.getSigningKey());
-        }
-        return securityContext;
+
+        return resp;
     }
 
-    private SMB2SessionSetup initiateSessionSetup(byte[] securityContext, long sessionId) throws TransportException {
+    private void updateSessionPreauthIntegrityHashValue(Session session, SessionSetupRequestAndResponse requestAndResponse) {
+        SMB2Dialect dialect = connectionInfo.getNegotiatedProtocol().getDialect();
+        // Always update for PreauthIntegrityHashValue for dialect 3.1.1
+        if (dialect == SMB2Dialect.SMB_3_1_1) {
+            SMB2SessionSetup request = requestAndResponse.getRequest();
+            SMB2SessionSetup response = requestAndResponse.getResponse();
+
+            final boolean isMoreProcessRequired = response.getHeader().getStatusCode() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED.getValue();
+
+            byte[] requestBytes;
+            byte[] responseBytes;
+
+            if (isMoreProcessRequired) {
+                // STATUS_MORE_PROCESSING_REQUIRED case
+                requestBytes = getRequestPacketBytes(request);
+                responseBytes = getResponsePacketBytes(response);
+            } else {
+                // STATUS_SUCCESS case
+                requestBytes = getRequestPacketBytes(request);
+                responseBytes = null;
+            }
+
+            try {
+                session.updatePreauthIntegrityHashValue(isMoreProcessRequired, requestBytes, responseBytes);
+            } catch (SecurityException e) {
+                logger.error("Update session PreauthIntegrityHashValue failed for SMB3.1.1", e);
+                throw new IllegalStateException(e);
+            }
+        }
+    }
+
+    private void postKeyGenerate(Session session, byte[] sessionKey) {
+        // only trying to generate the key when sessionKey is not null
+        if (sessionKey != null) {
+            SMB2Dialect dialect = connectionInfo.getNegotiatedProtocol().getDialect();
+
+            if (dialect == SMB2Dialect.SMB_3_1_1) {
+
+                session.setSigningKey(sessionKey, session.getPreauthIntegrityHashValue());
+
+                Smb2EncryptionCipher algorithm = connectionInfo.getEncryptionCipher();
+
+                if (algorithm != null) {
+                    byte[] labelByteArray = CryptographicKeysGenerator.Smb311DecryptLabelByteArray;
+                    byte[] contextByteArray = session.getPreauthIntegrityHashValue();
+
+                    SecretKeySpec decryptionKey = CryptographicKeysGenerator.generateKey(
+                        new SecretKeySpec(sessionKey, ""),
+                        labelByteArray,
+                        contextByteArray,
+                        algorithm.getAlgorithmName()
+                    );
+
+                    sessionDecryptInfoMap.put(session, new DecryptPacketInfo(decryptionKey, algorithm));
+
+                } else {
+                    logger.debug("algorithm is null when trying to generate decryptKey, can ignore if encryption is not supported.");
+                }
+
+            } else if (dialect.isSmb3x()) {
+                // other SMB 3.0.x dialect case
+                session.setSigningKey(sessionKey, session.getPreauthIntegrityHashValue());
+
+                Smb2EncryptionCipher algorithm = connectionInfo.getEncryptionCipher();
+
+                if (algorithm != null) {
+                    byte[] labelByteArray = CryptographicKeysGenerator.Smb30xDecryptLabelByteArray;
+                    byte[] contextByteArray = CryptographicKeysGenerator.Smb30xDecryptContextByteArray;
+
+                    SecretKeySpec decryptionKey = CryptographicKeysGenerator.generateKey(
+                        new SecretKeySpec(sessionKey, ""),
+                        labelByteArray,
+                        contextByteArray,
+                        algorithm.getAlgorithmName()
+                    );
+
+                    sessionDecryptInfoMap.put(session, new DecryptPacketInfo(decryptionKey, algorithm));
+
+                } else {
+                    logger.debug("algorithm is null when trying to generate decryptKey, can ignore if encryption is not supported.");
+                }
+
+            } else {
+                // SMB 2.x dialect case
+                session.setSigningKey(sessionKey, session.getPreauthIntegrityHashValue());
+            }
+        }
+    }
+
+    private SessionSetupRequestAndResponse initiateSessionSetup(byte[] securityContext, long sessionId) throws TransportException {
         SMB2SessionSetup req = new SMB2SessionSetup(
             connectionInfo.getNegotiatedProtocol().getDialect(),
             EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED),
             connectionInfo.getClientCapabilities());
         req.setSecurityBuffer(securityContext);
         req.getHeader().setSessionId(sessionId);
-        return sendAndReceive(req);
+        SMB2SessionSetup res = sendAndReceive(req);
+        return new SessionSetupRequestAndResponse(req, res);
     }
 
     private Authenticator getAuthenticator(AuthenticationContext context) throws SpnegoException {
@@ -312,12 +427,13 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
 
     private void negotiateDialect() throws TransportException {
         logger.debug("Negotiating dialects {} with server {}", config.getSupportedDialects(), getRemoteHostname());
-        SMB2Packet resp;
+        NegotiateRequestAndResponse negotiateRequestAndResponse;
         if (config.isUseMultiProtocolNegotiate()) {
-            resp = multiProtocolNegotiate();
+            negotiateRequestAndResponse = multiProtocolNegotiate();
         } else {
-            resp = smb2OnlyNegotiate();
+            negotiateRequestAndResponse = smb2OnlyNegotiate();
         }
+        SMB2Packet resp = negotiateRequestAndResponse.getResponse();
         if (!(resp instanceof SMB2NegotiateResponse)) {
             throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + resp);
         }
@@ -325,16 +441,17 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
         if (!NtStatus.isSuccess(negotiateResponse.getHeader().getStatusCode())) {
             throw new SMBApiException(negotiateResponse.getHeader(), "Failure during dialect negotiation");
         }
-        connectionInfo.negotiated(negotiateResponse);
+        connectionInfo.negotiated(negotiateRequestAndResponse.getRequest(), negotiateResponse);
         logger.debug("Negotiated the following connection settings: {}", connectionInfo);
     }
 
-    private SMB2Packet smb2OnlyNegotiate() throws TransportException {
-        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid(), config.isSigningRequired());
-        return sendAndReceive(negotiatePacket);
+    private NegotiateRequestAndResponse smb2OnlyNegotiate() throws TransportException {
+        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid(), config.isSigningRequired(), config.getClientCapabilities());
+        SMB2Packet response = sendAndReceive(negotiatePacket);
+        return new NegotiateRequestAndResponse(negotiatePacket, response);
     }
 
-    private SMB2Packet multiProtocolNegotiate() throws TransportException {
+    private NegotiateRequestAndResponse multiProtocolNegotiate() throws TransportException {
         SMB1Packet negotiatePacket = new SMB1ComNegotiateRequest(config.getSupportedDialects());
         long l = sequenceWindow.get();
         if (l != 0) {
@@ -353,7 +470,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
         if (negotiateResponse.getDialect() == SMB2Dialect.SMB_2XX) {
             return smb2OnlyNegotiate();
         }
-        return negotiateResponse;
+        return new NegotiateRequestAndResponse(negotiatePacket, negotiateResponse);
     }
 
     /**
@@ -376,6 +493,11 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
     public void handle(SMBPacketData uncheckedPacket) throws TransportException {
         if (!(uncheckedPacket instanceof SMB2PacketData)) {
             throw new SMB1NotSupportedException();
+        }
+
+        if (uncheckedPacket instanceof SMB2SafeIgnorePacketData) {
+            // this is a dummy response for invalid response checked is safe to ignore. Ignore it.
+            return;
         }
 
         SMB2PacketData packetData = (SMB2PacketData) uncheckedPacket;
@@ -441,7 +563,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
                     throw new TransportException("Packet signature for packet " + packet + " was not correct");
                 }
             }
-        } else if (session.isSigningRequired()) {
+        } else if (session.isSigningRequired() && !packet.isFromDecrypt()) {
             logger.warn("Illegal request, session requires message signing, but packet {} is not signed.", packet);
             throw new TransportException("Session requires signing, but packet " + packet + " was not signed");
         }
@@ -470,14 +592,21 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
         return connectionInfo;
     }
 
+    public boolean isClientDecidedEncrypt() {
+        return connectionInfo.getNegotiatedProtocol().getDialect().isSmb3x()
+               && connectionInfo.isConnectionSupportEncrypt()
+               && config.isEncryptData();
+    }
+
     @Handler
     @SuppressWarnings("unused")
     private void sessionLogoff(SessionLoggedOff loggedOff) {
+        sessionDecryptInfoMap.remove(sessionTable.find(loggedOff.getSessionId()));
         sessionTable.sessionClosed(loggedOff.getSessionId());
         logger.debug("Session << {} >> logged off", loggedOff.getSessionId());
     }
 
-    private static class DelegatingSMBMessageConverter implements PacketFactory<SMBPacketData<?>> {
+    private class DelegatingSMBMessageConverter implements PacketFactory<SMBPacketData<?>> {
         private PacketFactory<?>[] packetFactories;
 
         public DelegatingSMBMessageConverter(PacketFactory<?>... packetFactories) {
@@ -488,6 +617,28 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
         public SMBPacketData<?> read(byte[] data) throws Buffer.BufferException, IOException {
             for (PacketFactory<?> packetFactory : packetFactories) {
                 if (packetFactory.canHandle(data)) {
+                    if (packetFactory instanceof SMB3EncryptedPacketFactory) {
+
+                        SMB3EncryptedPacketFactory encryptedPacketFactory = (SMB3EncryptedPacketFactory) packetFactory;
+                        long sessionId = encryptedPacketFactory.readSessionId(data);
+                        Session session = sessionTable.find(sessionId);
+                        // 3.2.5.1.1 Decrypting the Message
+                        // The client MUST look up the session in the Connection.SessionTable
+                        // using the SessionId in theSMB2 TRANSFORM_HEADER of the response.
+                        // If the session is not found, the response MUST be discarded.
+                        if (session == null) {
+                            // the session is NOT found, discard the response base on SMB2 doc.
+                            logger.debug("Unable to find the session for sessionId {}, discard the response", sessionId);
+                            return new SMB2SafeIgnorePacketData();
+                        }
+                        DecryptPacketInfo decryptPacketInfo = sessionDecryptInfoMap.get(session);
+                        if (decryptPacketInfo == null) {
+                            // the session is found, should be internal handling error, throw exception
+                            logger.error("Unable to find the decryptKey for sessionId {}", sessionId);
+                            throw new TransportException("Unable to find the decryptKey for sessionId " + sessionId);
+                        }
+                        return encryptedPacketFactory.read(data, decryptPacketInfo);
+                    }
                     return (SMBPacketData<?>) packetFactory.read(data);
                 }
             }
@@ -520,14 +671,51 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
         @Override
         public void cancel() {
             SMB2CancelRequest cancel = new SMB2CancelRequest(connectionInfo.getNegotiatedProtocol().getDialect(),
-                request.getMessageId(),
-                request.getAsyncId());
+                                                             request.getMessageId(),
+                                                             sessionId,
+                                                             request.getAsyncId());
             try {
                 sessionTable.find(sessionId).send(cancel);
                 // transport.write(cancel);
             } catch (TransportException e) {
                 logger.error("Failed to send {}", cancel);
             }
+        }
+    }
+
+    private class NegotiateRequestAndResponse {
+        private SMBPacket request;
+        private SMB2Packet response;
+
+        NegotiateRequestAndResponse(SMBPacket request, SMB2Packet response) {
+            this.request = request;
+            this.response = response;
+        }
+
+        public SMBPacket getRequest() {
+            return request;
+        }
+
+        public SMB2Packet getResponse() {
+            return response;
+        }
+    }
+
+    private class SessionSetupRequestAndResponse {
+        private SMB2SessionSetup request;
+        private SMB2SessionSetup response;
+
+        SessionSetupRequestAndResponse(SMB2SessionSetup request, SMB2SessionSetup response) {
+            this.request = request;
+            this.response = response;
+        }
+
+        public SMB2SessionSetup getRequest() {
+            return request;
+        }
+
+        public SMB2SessionSetup getResponse() {
+            return response;
         }
     }
 }

@@ -26,8 +26,20 @@ import com.hierynomus.smb.SMBBuffer;
  */
 public class SMB2CancelRequest extends SMB2Packet {
 
+    /***
+     * Deprecated API for compability. Without sessionId, cancel will always failed/ignored by Server.
+     *
+     * @param dialect Dialect of the SMB2 Protocol
+     * @param messageId the messageId of the operation want to cancel
+     * @param asyncId the asyncId of the operation want to cancel
+     */
+    @Deprecated
     public SMB2CancelRequest(SMB2Dialect dialect, long messageId, long asyncId) {
-        super(4, dialect, SMB2MessageCommandCode.SMB2_CANCEL);
+        this(dialect, messageId, 0L, asyncId);
+    }
+
+    public SMB2CancelRequest(SMB2Dialect dialect, long messageId, long sessionId, long asyncId) {
+        super(4, dialect, SMB2MessageCommandCode.SMB2_CANCEL, sessionId);
         header.setMessageId(messageId);
         if (asyncId != 0) {
             header.setFlag(SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND);

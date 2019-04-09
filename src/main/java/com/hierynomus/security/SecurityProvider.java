@@ -33,4 +33,6 @@ public interface SecurityProvider {
     Mac getMac(String name) throws SecurityException;
 
     Cipher getCipher(String name) throws SecurityException;
+
+    AEADBlockCipher getAEADBlockCipher(String name) throws SecurityException;
 }

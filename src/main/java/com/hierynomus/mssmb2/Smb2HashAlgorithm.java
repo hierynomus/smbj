@@ -13,14 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.security;
+package com.hierynomus.mssmb2;
 
-public interface MessageDigest {
-    void update(byte[] bytes);
+import com.hierynomus.protocol.commons.EnumWithValue;
 
-    byte[] digest();
+/***
+ * [MS-SMB2].pdf 2.2.3.1.2 SMB2_ENCRYPTION_CAPABILITIES -- Cipher
+ */
+public enum Smb2HashAlgorithm implements EnumWithValue<Smb2HashAlgorithm> {
+    SHA_512(0x00000001L);
 
-    void reset();
+    private long value;
 
-    int getDigestLength();
+    Smb2HashAlgorithm(long value) {
+        this.value = value;
+    }
+
+    public long getValue() {
+        return value;
+    }
+
+    public String getAlgorithmName() {
+        switch (this) {
+            case SHA_512:
+                return "SHA-512";
+            default:
+                return "";
+        }
+    }
+
 }

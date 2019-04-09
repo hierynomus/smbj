@@ -18,10 +18,18 @@ package com.hierynomus.mssmb2.messages;
 import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.mssmb2.SMB2NegotiateContextType;
 import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.messages.submodule.SMB2EncryptionCapabilitiesResponse;
+import com.hierynomus.mssmb2.messages.submodule.SMB2NegotiateContext;
+import com.hierynomus.mssmb2.messages.submodule.SMB2PreauthIntegrityCapabilitiesResponse;
+import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -39,6 +47,7 @@ public class SMB2NegotiateResponse extends SMB2Packet {
     private FileTime systemTime;
     private FileTime serverStartTime;
     private byte[] gssToken;
+    private List<SMB2NegotiateContext> negotiateContextList;
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
@@ -57,14 +66,56 @@ public class SMB2NegotiateResponse extends SMB2Packet {
         int securityBufferLength = buffer.readUInt16(); // SecurityBufferLength (2 bytes)
         int negotiateContextOffset = readNegotiateContextOffset(buffer); // NegotiateContextOffset/Reserved (2 bytes)
         gssToken = readSecurityBuffer(buffer, securityBufferOffset, securityBufferLength);
-        readNegotiateContextList(buffer, negotiateContextOffset, negotiateContextCount);
+        negotiateContextList = readNegotiateContextList(buffer, negotiateContextOffset, negotiateContextCount);
     }
 
-    private void readNegotiateContextList(SMBBuffer buffer, int negotiateContextOffset, @SuppressWarnings("unused") int negotiateContextCount) {
+    private List<SMB2NegotiateContext> readNegotiateContextList(SMBBuffer buffer, int negotiateContextOffset, int negotiateContextCount) {
         if (dialect == SMB2Dialect.SMB_3_1_1) {
+            // seek the buffer to negotiate context start position
             buffer.rpos(negotiateContextOffset);
-            throw new UnsupportedOperationException("Cannot read NegotiateContextList yet");
+            try {
+                List<SMB2NegotiateContext> negotiateContextList = new ArrayList<>();
+                for (int i = 0; i < negotiateContextCount; i++) {
+                    // parse the negotiateContext
+                    SMB2NegotiateContext negotiateContext = parseSMB2NegotiateContext(buffer);
+                    // add the parsed negotiateContext to list
+                    negotiateContextList.add(negotiateContext);
+                }
+                return negotiateContextList;
+            } catch (Buffer.BufferException e) {
+                // FIXME fix this issue
+                throw new IllegalArgumentException("unknown error when parse negotiateContext", e);
+            }
+        } else {
+            return Collections.emptyList();
         }
+    }
+
+    private SMB2NegotiateContext parseSMB2NegotiateContext(SMBBuffer buffer)
+        throws Buffer.BufferException {
+        // record the start position
+        int contextStartPos = buffer.rpos();
+        // parse the negotiateContextType
+        SMB2NegotiateContextType
+            negotiateContextType = EnumWithValue.EnumUtils.valueOf(buffer.readUInt16(), SMB2NegotiateContextType.class, null); // HashAlgorithm (2 bytes);
+        // restore the start position
+        buffer.rpos(contextStartPos);
+
+        SMB2NegotiateContext negotiateContext;
+        switch (negotiateContextType) {
+            case SMB2_PREAUTH_INTEGRITY_CAPABILITIES: {
+                negotiateContext = new SMB2PreauthIntegrityCapabilitiesResponse();
+                break;
+            }
+            case SMB2_ENCRYPTION_CAPABILITIES: {
+                negotiateContext = new SMB2EncryptionCapabilitiesResponse();
+                break;
+            }
+            default:
+                throw new IllegalArgumentException("unknown negotiateContextType");
+        }
+        negotiateContext.read(buffer);
+        return negotiateContext;
     }
 
     private byte[] readSecurityBuffer(SMBBuffer buffer, int securityBufferOffset, int securityBufferLength) throws Buffer.BufferException {
@@ -133,5 +184,9 @@ public class SMB2NegotiateResponse extends SMB2Packet {
 
     public FileTime getServerStartTime() {
         return serverStartTime;
+    }
+
+    public List<SMB2NegotiateContext> getNegotiateContextList() {
+        return negotiateContextList;
     }
 }
