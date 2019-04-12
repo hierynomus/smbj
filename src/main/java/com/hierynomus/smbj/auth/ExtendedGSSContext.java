@@ -22,10 +22,10 @@ import java.lang.reflect.Method;
 import java.security.Key;
 
 class ExtendedGSSContext {
-    private static final Method krb5GetSessionKey = getKrb5GetSessionKeyFunction();
-    private static Object getSessionKeyConst;
+    private static final Method inquireSecContext = getInquireSecContextMethod();
+    private static Object krb5GetSessionKeyConst;
 
-    private static Method getKrb5GetSessionKeyFunction() {
+    private static Method getInquireSecContextMethod() {
         Class<?> extendedContextClass;
         Class<?> inquireTypeClass;
         try {
@@ -42,7 +42,7 @@ class ExtendedGSSContext {
                 throw exception;
             }
         }
-        getSessionKeyConst = Enum.valueOf(inquireTypeClass.asSubclass(Enum.class), "KRB5_GET_SESSION_KEY");
+        krb5GetSessionKeyConst = Enum.valueOf(inquireTypeClass.asSubclass(Enum.class), "KRB5_GET_SESSION_KEY");
         try {
             return extendedContextClass.getDeclaredMethod("inquireSecContext", inquireTypeClass);
         } catch (NoSuchMethodException e) {
@@ -52,7 +52,7 @@ class ExtendedGSSContext {
 
     public static Key krb5GetSessionKey(GSSContext gssContext) throws TransportException {
         try {
-            return (Key) krb5GetSessionKey.invoke(gssContext, getSessionKeyConst);
+            return (Key) inquireSecContext.invoke(gssContext, krb5GetSessionKeyConst);
         } catch (Throwable e) {
             throw new TransportException(e);
         }
