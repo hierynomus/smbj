@@ -245,17 +245,17 @@ task buildItestImage(type: DockerBuildImage) {
 
 task createItestContainer(type: DockerCreateContainer) {
   dependsOn buildItestImage
-  targetImageId { buildItestImage.getImageId() }
+  targetImageId buildItestImage.getImageId() 
   portBindings = ['445:445']
 }
 
 task startItestContainer(type: DockerStartContainer) {
   dependsOn createItestContainer
-  targetContainerId { createItestContainer.getContainerId() }
+  targetContainerId createItestContainer.getContainerId()
 }
 
 task stopItestContainer(type: DockerStopContainer) {
-  targetContainerId { createItestContainer.getContainerId() }
+  targetContainerId createItestContainer.getContainerId()
 }
 
 project.tasks.integrationTest.dependsOn(startItestContainer)
