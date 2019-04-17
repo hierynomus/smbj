@@ -82,10 +82,10 @@ import static com.hierynomus.spnego.ObjectIdentifiers.SPNEGO;
  * </ul>
  */
 public class NegTokenInit extends SpnegoToken {
-    private static final String ADS_IGNORE_PRINCIPAL = "not_defined_in_RFC4178@please_ignore";
+    static final String ADS_IGNORE_PRINCIPAL = "not_defined_in_RFC4178@please_ignore";
 
     private List<ASN1ObjectIdentifier> mechTypes = new ArrayList<>();
-    private byte[] mechToken;
+    protected byte[] mechToken;
 
     public NegTokenInit() {
         super(0x0, "NegTokenInit");
@@ -151,14 +151,14 @@ public class NegTokenInit extends SpnegoToken {
         }
     }
 
-    private void readMechToken(ASN1Object mechToken) throws SpnegoException {
+    void readMechToken(ASN1Object mechToken) throws SpnegoException {
         if (!(mechToken instanceof ASN1OctetString)) {
             throw new SpnegoException("Expected the MechToken (OCTET_STRING) contents, not: " + mechToken);
         }
         this.mechToken = ((ASN1OctetString) mechToken).getValue();
     }
 
-    private void readMechTypeList(ASN1Object sequence) throws SpnegoException {
+    void readMechTypeList(ASN1Object sequence) throws SpnegoException {
         if (!(sequence instanceof ASN1Sequence)) {
             throw new SpnegoException("Expected the MechTypeList (SEQUENCE) contents, not: " + sequence);
         }

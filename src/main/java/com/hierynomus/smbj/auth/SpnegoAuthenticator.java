@@ -22,8 +22,6 @@ import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smbj.GSSContextConfig;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.session.Session;
-import com.sun.security.jgss.ExtendedGSSContext;
-import com.sun.security.jgss.InquireType;
 import org.ietf.jgss.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,8 +93,7 @@ public class SpnegoAuthenticator implements Authenticator {
 
             AuthenticateResponse response = new AuthenticateResponse(newToken);
             if (gssContext.isEstablished()) {
-                ExtendedGSSContext e = (ExtendedGSSContext) gssContext;
-                Key key = (Key) e.inquireSecContext(InquireType.KRB5_GET_SESSION_KEY);
+                Key key = ExtendedGSSContext.krb5GetSessionKey(gssContext);
                 if (key != null) {
                     // if a session key was negotiated, save it.
                     response.setSigningKey(adjustSessionKeyLength(key.getEncoded()));
