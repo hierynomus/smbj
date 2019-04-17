@@ -15,12 +15,18 @@
  */
 package com.hierynomus.security;
 
-public interface MessageDigest {
-    void update(byte[] bytes);
+import javax.crypto.spec.GCMParameterSpec;
 
-    byte[] digest();
+public interface AEADBlockCipher {
+
+    void init(Cipher.CryptMode cryptMode, byte[] bytes, GCMParameterSpec gcmParameterSpec) throws SecurityException;
+
+    void updateAAD(byte[] aad, int aadOffset, int aadLength) throws SecurityException;
+
+    byte[] update(byte[] in, int inOffset, int inLength) throws SecurityException;
+
+    byte[] doFinal(byte[] in, int inOffset, int inLength) throws SecurityException;
 
     void reset();
 
-    int getDigestLength();
 }

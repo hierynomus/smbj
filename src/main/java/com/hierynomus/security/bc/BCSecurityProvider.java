@@ -38,4 +38,10 @@ public class BCSecurityProvider implements SecurityProvider {
     public Cipher getCipher(String name) {
         return BCCipherFactory.create(name);
     }
+
+    @Override
+    public AEADBlockCipher getAEADBlockCipher(String name) throws SecurityException {
+        return BCAEADCipherFactory.create(name);
+    }
+
 }
