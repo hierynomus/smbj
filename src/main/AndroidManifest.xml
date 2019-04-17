@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="com.hierynomus.smbj"
+          android:versionCode="1"
+          android:versionName="1.0" >
+    <uses-sdk
+            android:minSdkVersion="${minSdkVersion}"
+            android:targetSdkVersion="${targetSdkVersion}" />
+</manifest>

@@ -46,6 +46,7 @@ public enum NtStatus implements EnumWithValue<NtStatus> {
     STATUS_OBJECT_PATH_NOT_FOUND(0xC000003AL),
     STATUS_SHARING_VIOLATION(0xC0000043L),
     STATUS_DELETE_PENDING(0xC0000056L),
+    STATUS_PRIVILEGE_NOT_HELD(0xC0000061L),
     STATUS_LOGON_FAILURE(0xC000006DL),
     STATUS_PASSWORD_EXPIRED(0xC0000071L),
     STATUS_ACCOUNT_DISABLED(0xC0000072L),
@@ -89,12 +90,16 @@ public enum NtStatus implements EnumWithValue<NtStatus> {
     STATUS_VOLUME_DISMOUNTED(0xC000026EL),
     STATUS_FILE_ENCRYPTED(0xC0000293L),
     STATUS_NETWORK_SESSION_EXPIRED(0xC000035CL),
-    UNKNOWN(0xFFFFFFFFL);
+    STATUS_OTHER(0xFFFFFFFFL);
 
     private long value;
 
     NtStatus(long val) {
         value = val;
+    }
+
+    public static NtStatus valueOf(long statusCode) {
+        return EnumUtils.valueOf(statusCode, NtStatus.class, STATUS_OTHER);
     }
 
     @Override
@@ -108,7 +113,16 @@ public enum NtStatus implements EnumWithValue<NtStatus> {
      * @return
      */
     public boolean isSuccess() {
-        return (value >>> 30) == 0;
+        return isSuccess(value);
+    }
+
+    /**
+     * Check whether the 'Sev' bits are set to 0x0.
+     *
+     * @return
+     */
+    public static boolean isSuccess(long statusCode) {
+        return (statusCode >>> 30) == 0;
     }
 
     /**
@@ -135,6 +149,15 @@ public enum NtStatus implements EnumWithValue<NtStatus> {
      * @return
      */
     public boolean isError() {
-        return (value >>> 30) == 0x03;
+        return isError(this.value);
+    }
+
+    /**
+     * Check whether the 'Sev' bits are set to 0x03.
+     *
+     * @return
+     */
+    public static boolean isError(long statusCode) {
+        return (statusCode >>> 30) == 0x03;
     }
 }

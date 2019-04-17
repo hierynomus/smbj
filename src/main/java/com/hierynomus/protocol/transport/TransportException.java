@@ -37,4 +37,8 @@ public class TransportException extends IOException {
     public TransportException(String s) {
         super(s);
     }
+
+    public TransportException(String s, Throwable throwable) {
+        super(s, throwable);
+    }
 }

@@ -18,10 +18,14 @@ package com.hierynomus.smbj;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
+import com.hierynomus.smbj.paths.DFSPathResolver;
+import com.hierynomus.smbj.paths.PathResolver;
+import com.hierynomus.smbj.paths.SymlinkPathResolver;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,7 +35,7 @@ import static com.hierynomus.protocol.commons.IOUtils.closeSilently;
 /**
  * Server Message Block Client API.
  */
-public class SMBClient {
+public class SMBClient implements Closeable {
     /**
      * The default TCP port for SMB
      */
@@ -42,6 +46,7 @@ public class SMBClient {
     private SmbConfig config;
 
     private SMBEventBus bus;
+    private PathResolver pathResolver;
 
     public SMBClient() {
         this(SmbConfig.createDefaultConfig());
@@ -55,6 +60,10 @@ public class SMBClient {
         this.config = config;
         this.bus = bus;
         bus.subscribe(this);
+        this.pathResolver = new SymlinkPathResolver(PathResolver.LOCAL);
+        if (config.isDfsEnabled()) {
+            this.pathResolver = new DFSPathResolver(this.pathResolver);
+        }
     }
 
     /**
@@ -78,6 +87,10 @@ public class SMBClient {
      */
     public Connection connect(String hostname, int port) throws IOException {
         return getEstablishedOrConnect(hostname, port);
+    }
+
+    public PathResolver getPathResolver() {
+        return pathResolver;
     }
 
     private Connection getEstablishedOrConnect(String hostname, int port) throws IOException {
@@ -105,9 +118,22 @@ public class SMBClient {
         synchronized (this) {
             String hostPort = event.getHostname() + ":" + event.getPort();
             connectionTable.remove(hostPort);
-            log.debug("Connection to << {} >> closed", hostPort);
+            logger.debug("Connection to << {} >> closed", hostPort);
         }
     }
 
-    private static final Logger log = LoggerFactory.getLogger(SMBClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(SMBClient.class);
+
+    @Override
+    public void close() {
+        logger.info("Going to close all remaining connections");
+        for (Connection connection : connectionTable.values()) {
+            try {
+                connection.close();
+            } catch (Exception e) {
+                logger.debug("Error closing connection to host {}", connection.getRemoteHostname());
+                logger.debug("Exception was: ", e);
+            }
+        }
+    }
 }

@@ -18,11 +18,11 @@ package com.hierynomus.mssmb2.messages;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileNotifyAction;
 import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,24 +42,15 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
         if (outputBufferOffset > 0 && length > 0) {
             fileNotifyInfoList = readFileNotifyInfo(buffer, outputBufferOffset);
         }
-    }
-
-    /**
-     * [MS-SMB2].pdf 3.3.4.4
-     * STATUS_NOTIFY_ENUM_DIR should be treated as a success code.
-     *
-     * @param status The status to verify
-     * @return
-     */
-    @Override
-    protected boolean isSuccess(NtStatus status) {
-        return super.isSuccess(status) || status == NtStatus.STATUS_NOTIFY_ENUM_DIR;
+        // Ensure the read position is set to the end of this packet.
+        // The FileNotifyInfo blocks have padding to align them on 4 byte boundaries.
+        buffer.rpos(header.getHeaderStartPosition() + outputBufferOffset + length);
     }
 
     private List<FileNotifyInfo> readFileNotifyInfo(SMBBuffer buffer, int outputBufferOffset)
         throws Buffer.BufferException {
         List<FileNotifyInfo> notifyInfoList = new ArrayList<>();
-        buffer.rpos(outputBufferOffset);
+        buffer.rpos(header.getHeaderStartPosition() + outputBufferOffset); // Ensure that we move relative to the header position
         int currentPos = buffer.rpos();
         int nextEntryOffset;
         long fileNameLen;
@@ -69,7 +60,7 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
             nextEntryOffset = (int) buffer.readUInt32();
             FileNotifyAction action = EnumWithValue.EnumUtils.valueOf(buffer.readUInt32(), FileNotifyAction.class, null);
             fileNameLen = buffer.readUInt32();
-            fileName = buffer.readString(StandardCharsets.UTF_16LE, (int) fileNameLen / 2);
+            fileName = buffer.readString(Charsets.UTF_16LE, (int) fileNameLen / 2);
             notifyInfoList.add(new FileNotifyInfo(action, fileName));
             if (nextEntryOffset != 0) {
                 currentPos += nextEntryOffset;

@@ -17,8 +17,8 @@ package com.hierynomus.smbj.connection;
 
 import com.hierynomus.mssmb2.SMB2GlobalCapability;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
-
 import com.hierynomus.ntlm.messages.WindowsVersion;
+
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.UUID;
@@ -28,6 +28,7 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 public class ConnectionInfo {
 
     private WindowsVersion windowsVersion;
+    private String netBiosName;
     // All SMB2 Dialect
     private byte[] gssNegotiateToken;
     private UUID serverGuid;
@@ -109,19 +110,25 @@ public class ConnectionInfo {
         this.windowsVersion = windowsVersion;
     }
 
+    public String getNetBiosName() {
+        return netBiosName;
+    }
+
+    public void setNetBiosName(String netBiosName) {
+        this.netBiosName = netBiosName;
+    }
+
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("ConnectionInfo{\n");
-        sb.append("  serverGuid=").append(serverGuid).append(",\n");
-        sb.append("  serverName='").append(serverName).append("',\n");
-        sb.append("  negotiatedProtocol=").append(negotiatedProtocol).append(",\n");
-        sb.append("  clientGuid=").append(clientGuid).append(",\n");
-        sb.append("  clientCapabilities=").append(clientCapabilities).append(",\n");
-        sb.append("  serverCapabilities=").append(serverCapabilities).append(",\n");
-        sb.append("  clientSecurityMode=").append(clientSecurityMode).append(",\n");
-        sb.append("  serverSecurityMode=").append(serverSecurityMode).append(",\n");
-        sb.append("  server='").append(server).append("'\n");
-        sb.append('}');
-        return sb.toString();
+        return "ConnectionInfo{\n" + "  serverGuid=" + serverGuid + ",\n" +
+            "  serverName='" + serverName + "',\n" +
+            "  negotiatedProtocol=" + negotiatedProtocol + ",\n" +
+            "  clientGuid=" + clientGuid + ",\n" +
+            "  clientCapabilities=" + clientCapabilities + ",\n" +
+            "  serverCapabilities=" + serverCapabilities + ",\n" +
+            "  clientSecurityMode=" + clientSecurityMode + ",\n" +
+            "  serverSecurityMode=" + serverSecurityMode + ",\n" +
+            "  server='" + server + "'\n" +
+            '}';
     }
 }

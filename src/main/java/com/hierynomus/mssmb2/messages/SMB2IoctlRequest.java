@@ -69,4 +69,8 @@ public class SMB2IoctlRequest extends SMB2MultiCreditPacket {
             inputData.writeChunk(smbBuffer);
         }
     }
+
+    public long getControlCode() {
+        return controlCode;
+    }
 }

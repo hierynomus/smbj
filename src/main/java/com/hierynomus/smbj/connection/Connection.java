@@ -15,19 +15,24 @@
  */
 package com.hierynomus.smbj.connection;
 
+import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.mssmb.SMB1MessageConverter;
+import com.hierynomus.mssmb.SMB1PacketFactory;
 import com.hierynomus.mssmb.SMB1NotSupportedException;
 import com.hierynomus.mssmb.SMB1Packet;
 import com.hierynomus.mssmb.messages.SMB1ComNegotiateRequest;
 import com.hierynomus.mssmb2.*;
-import com.hierynomus.mssmb2.messages.*;
+import com.hierynomus.mssmb2.messages.SMB2CancelRequest;
+import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
+import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
+import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.*;
 import com.hierynomus.smb.SMBPacket;
+import com.hierynomus.smb.SMBPacketData;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticateResponse;
@@ -39,9 +44,9 @@ import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.spnego.NegTokenInit;
+import com.hierynomus.spnego.NegTokenInit2;
 import com.hierynomus.spnego.SpnegoException;
 import net.engio.mbassy.listener.Handler;
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,15 +68,16 @@ import static java.lang.String.format;
 /**
  * A connection to a server.
  */
-public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
+public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
-    private static final DelegatingSMBMessageConverter converter = new DelegatingSMBMessageConverter(new SMB2MessageConverter(), new SMB1MessageConverter());
+    private static final DelegatingSMBMessageConverter converter = new DelegatingSMBMessageConverter(new SMB2PacketFactory(), new SMB1PacketFactory());
 
     private ConnectionInfo connectionInfo;
     private SessionTable sessionTable = new SessionTable();
     private SessionTable preauthSessionTable = new SessionTable();
     private OutstandingRequests outstandingRequests = new OutstandingRequests();
     private SequenceWindow sequenceWindow;
+    private SMB2MessageConverter smb2Converter = new SMB2MessageConverter();
 
     private String remoteName;
 
@@ -82,7 +88,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
     }
 
     private SmbConfig config;
-    private TransportLayer<SMBPacket<?>> transport;
+    private TransportLayer<SMBPacket<?, ?>> transport;
     private final SMBEventBus bus;
     private final ReentrantLock lock = new ReentrantLock();
     private int remotePort;
@@ -158,23 +164,28 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
     public Session authenticate(AuthenticationContext authContext) {
         try {
             Authenticator authenticator = getAuthenticator(authContext);
-            authenticator.init(config.getSecurityProvider(), config.getRandomProvider());
+            authenticator.init(config);
             Session session = getSession(authContext);
             byte[] securityContext = processAuthenticationToken(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
-            SMB2SessionSetup receive = initiateSessionSetup(securityContext, session);
-            long sessionId = receive.getHeader().getSessionId();
-            session.setSessionId(sessionId);
-            preauthSessionTable.registerSession(sessionId, session);
+            SMB2SessionSetup receive = initiateSessionSetup(securityContext, 0L);
+            long preauthSessionId = receive.getHeader().getSessionId();
+            if (preauthSessionId != 0L) {
+                preauthSessionTable.registerSession(preauthSessionId, session);
+            }
             try {
-                while (receive.getHeader().getStatus() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED) {
+                while (receive.getHeader().getStatusCode() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED.getValue()) {
                     logger.debug("More processing required for authentication of {} using {}", authContext.getUsername(), authenticator);
                     securityContext = processAuthenticationToken(authenticator, authContext, receive.getSecurityBuffer(), session);
-                    receive = initiateSessionSetup(securityContext, session);
+                    receive = initiateSessionSetup(securityContext, preauthSessionId);
                 }
 
-                if (receive.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+                if (receive.getHeader().getStatusCode() != NtStatus.STATUS_SUCCESS.getValue()) {
                     throw new SMBApiException(receive.getHeader(), format("Authentication failed for '%s' using %s", authContext.getUsername(), authenticator));
                 }
+
+                // Some devices only allocate the sessionId on the STATUS_SUCCESS message, not while authenticating.
+                // So we need to set it on the session once we're completely authenticated.
+                session.setSessionId(receive.getHeader().getSessionId());
 
                 if (receive.getSecurityBuffer() != null) {
                     // process the last received buffer
@@ -185,7 +196,9 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
                 sessionTable.registerSession(session.getSessionId(), session);
                 return session;
             } finally {
-                preauthSessionTable.sessionClosed(sessionId);
+                if (preauthSessionId != 0L) {
+                    preauthSessionTable.sessionClosed(preauthSessionId);
+                }
             }
         } catch (SpnegoException | IOException e) {
             throw new SMBRuntimeException(e);
@@ -193,7 +206,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
     }
 
     private Session getSession(AuthenticationContext authContext) {
-        return new Session(this, authContext, bus, config.isDfsEnabled(), config.getSecurityProvider());
+        return new Session(this, authContext, bus, client.getPathResolver(), config.getSecurityProvider());
     }
 
     private byte[] processAuthenticationToken(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {
@@ -202,6 +215,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
             return null;
         }
         connectionInfo.setWindowsVersion(resp.getWindowsVersion());
+        connectionInfo.setNetBiosName(resp.getNetBiosName());
         byte[] securityContext = resp.getNegToken();
         if (resp.getSigningKey() != null) {
             session.setSigningKey(resp.getSigningKey());
@@ -209,21 +223,22 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
         return securityContext;
     }
 
-    private SMB2SessionSetup initiateSessionSetup(byte[] securityContext, Session session) throws TransportException {
+    private SMB2SessionSetup initiateSessionSetup(byte[] securityContext, long sessionId) throws TransportException {
         SMB2SessionSetup req = new SMB2SessionSetup(
             connectionInfo.getNegotiatedProtocol().getDialect(),
             EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED),
             connectionInfo.getClientCapabilities());
         req.setSecurityBuffer(securityContext);
-        req.getHeader().setSessionId(session.getSessionId());
+        req.getHeader().setSessionId(sessionId);
         return sendAndReceive(req);
     }
 
-    private Authenticator getAuthenticator(AuthenticationContext context) throws IOException, SpnegoException {
+    private Authenticator getAuthenticator(AuthenticationContext context) throws SpnegoException {
         List<Factory.Named<Authenticator>> supportedAuthenticators = new ArrayList<>(config.getSupportedAuthenticators());
         List<ASN1ObjectIdentifier> mechTypes = new ArrayList<>();
         if (connectionInfo.getGssNegotiateToken().length > 0) {
-            NegTokenInit negTokenInit = new NegTokenInit().read(connectionInfo.getGssNegotiateToken());
+            // The response NegTokenInit is a NegTokenInit2 according to MS-SPNG.
+            NegTokenInit negTokenInit = new NegTokenInit2().read(connectionInfo.getGssNegotiateToken());
             mechTypes = negTokenInit.getSupportedMechTypes();
         }
 
@@ -248,21 +263,28 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
         lock.lock();
+        Future<T> f = null;
         try {
-            int availableCredits = sequenceWindow.available();
-            int grantCredits = calculateGrantedCredits(packet, availableCredits);
-            if (availableCredits == 0) {
-                logger.warn("There are no credits left to send {}, will block until there are more credits available.", packet.getHeader().getMessage());
-            }
-            long[] messageIds = sequenceWindow.get(grantCredits);
-            packet.getHeader().setMessageId(messageIds[0]);
-            logger.debug("Granted {} (out of {}) credits to {}", grantCredits, availableCredits, packet);
-            packet.getHeader().setCreditRequest(Math.max(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits, grantCredits));
+            if (!(packet.getPacket() instanceof SMB2CancelRequest)) {
+                int availableCredits = sequenceWindow.available();
+                int grantCredits = calculateGrantedCredits(packet, availableCredits);
+                if (availableCredits == 0) {
+                    logger.warn(
+                            "There are no credits left to send {}, will block until there are more credits available.",
+                            packet.getHeader().getMessage());
+                }
+                long[] messageIds = sequenceWindow.get(grantCredits);
+                packet.getHeader().setMessageId(messageIds[0]);
+                logger.debug("Granted {} (out of {}) credits to {}", grantCredits, availableCredits, packet);
+                packet.getHeader().setCreditRequest(Math
+                        .max(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits, grantCredits));
 
-            Request request = new Request(packet.getHeader().getMessageId(), UUID.randomUUID());
-            outstandingRequests.registerOutstanding(request);
+                Request request = new Request(packet.getPacket(), messageIds[0], UUID.randomUUID());
+                outstandingRequests.registerOutstanding(request);
+                f = request.getFuture(new CancelRequest(request, packet.getHeader().getSessionId()));
+            }
             transport.write(packet);
-            return request.getFuture(new CancelRequest(request));
+            return f;
         } finally {
             lock.unlock();
         }
@@ -302,7 +324,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
             throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + resp);
         }
         SMB2NegotiateResponse negotiateResponse = (SMB2NegotiateResponse) resp;
-        if (!negotiateResponse.getHeader().getStatus().isSuccess()) {
+        if (!NtStatus.isSuccess(negotiateResponse.getHeader().getStatusCode())) {
             throw new SMBApiException(negotiateResponse.getHeader(), "Failure during dialect negotiation");
         }
         connectionInfo.negotiated(negotiateResponse);
@@ -320,7 +342,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
         if (l != 0) {
             throw new IllegalStateException("The SMBv1 SMB_COM_NEGOTIATE packet needs to be the first packet sent.");
         }
-        Request request = new Request(l, UUID.randomUUID());
+        Request request = new Request(negotiatePacket, l, UUID.randomUUID());
         outstandingRequests.registerOutstanding(request);
         transport.write(negotiatePacket);
         Future<SMB2Packet> future = request.getFuture(null);
@@ -353,50 +375,57 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
     }
 
     @Override
-    public void handle(SMBPacket uncheckedPacket) throws TransportException {
-        if (!(uncheckedPacket instanceof SMB2Packet)) {
+    public void handle(SMBPacketData uncheckedPacket) throws TransportException {
+        if (!(uncheckedPacket instanceof SMB2PacketData)) {
             throw new SMB1NotSupportedException();
         }
 
-        SMB2Packet packet = (SMB2Packet) uncheckedPacket;
-        long messageId = packet.getSequenceNumber();
+        SMB2PacketData packetData = (SMB2PacketData) uncheckedPacket;
+        long messageId = packetData.getSequenceNumber();
 
         if (!outstandingRequests.isOutstanding(messageId)) {
             throw new TransportException("Received response with unknown sequence number <<" + messageId + ">>");
         }
 
         // [MS-SMB2].pdf 3.2.5.1.4 Granting Message Credits
-        sequenceWindow.creditsGranted(packet.getHeader().getCreditResponse());
-        logger.debug("Server granted us {} credits for {}, now available: {} credits", packet.getHeader().getCreditResponse(), packet, sequenceWindow.available());
+        sequenceWindow.creditsGranted(packetData.getHeader().getCreditResponse());
+        logger.debug("Server granted us {} credits for {}, now available: {} credits", packetData.getHeader().getCreditResponse(), packetData, sequenceWindow.available());
 
         Request request = outstandingRequests.getRequestByMessageId(messageId);
-        logger.trace("Send/Recv of packet {} took << {} ms >>", packet, System.currentTimeMillis() - request.getTimestamp().getTime());
+        logger.trace("Send/Recv of packet {} took << {} ms >>", packetData, System.currentTimeMillis() - request.getTimestamp().getTime());
 
         // [MS-SMB2].pdf 3.2.5.1.5 Handling Asynchronous Responses
-        if (packet.isIntermediateAsyncResponse()) {
-            logger.debug("Received ASYNC packet {} with AsyncId << {} >>", packet, packet.getHeader().getAsyncId());
-            request.setAsyncId(packet.getHeader().getAsyncId());
+        if (packetData.isIntermediateAsyncResponse()) {
+            logger.debug("Received ASYNC packet {} with AsyncId << {} >>", packetData, packetData.getHeader().getAsyncId());
+            request.setAsyncId(packetData.getHeader().getAsyncId());
             // TODO Expiration timer
             return;
         }
 
         // [MS-SMB2].pdf 3.2.5.1.6 Handling Session Expiration
-        if (packet.getHeader().getStatus() == NtStatus.STATUS_NETWORK_SESSION_EXPIRED) {
+        // if (packet.getHeader().getStatus() == NtStatus.STATUS_NETWORK_SESSION_EXPIRED) {
             // TODO reauthenticate session!
-            return;
-        }
+        // }
 
-        if (packet.getHeader().getSessionId() != 0 && (packet.getHeader().getMessage() != SMB2MessageCommandCode.SMB2_SESSION_SETUP)) {
-            Session session = sessionTable.find(packet.getHeader().getSessionId());
+        SMB2Packet packet = null;
+        try {
+            packet = smb2Converter.readPacket(request.getPacket(), packetData);
+        } catch (Buffer.BufferException e) {
+            throw new TransportException("Unable to deserialize SMB2 Packet Data.", e);
+        }
+        long sessionId = packetData.getHeader().getSessionId();
+        if (sessionId != 0L && (packetData.getHeader().getMessage() != SMB2MessageCommandCode.SMB2_SESSION_SETUP)) {
+            Session session = sessionTable.find(sessionId);
             if (session == null) {
                 // check for a not-yet-authenticated session
-                session = preauthSessionTable.find(packet.getHeader().getSessionId());
+                session = preauthSessionTable.find(sessionId);
                 if (session == null) {
-                    logger.warn("Illegal request, no session matching the sessionId: {}", packet.getHeader().getSessionId());
+                    logger.warn("Illegal request, no session matching the sessionId: {}", sessionId);
                     //TODO maybe tear down the connection?
                     return;
                 }
             }
+
 
             // check packet signature. Drop the packet if it is not correct.
             verifyPacketSignature(packet, session);
@@ -450,7 +479,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
         logger.debug("Session << {} >> logged off", loggedOff.getSessionId());
     }
 
-    private static class DelegatingSMBMessageConverter implements PacketFactory<SMBPacket<?>> {
+    private static class DelegatingSMBMessageConverter implements PacketFactory<SMBPacketData<?>> {
         private PacketFactory<?>[] packetFactories;
 
         public DelegatingSMBMessageConverter(PacketFactory<?>... packetFactories) {
@@ -458,10 +487,10 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
         }
 
         @Override
-        public SMBPacket<?> read(byte[] data) throws Buffer.BufferException, IOException {
+        public SMBPacketData<?> read(byte[] data) throws Buffer.BufferException, IOException {
             for (PacketFactory<?> packetFactory : packetFactories) {
                 if (packetFactory.canHandle(data)) {
-                    return (SMBPacket<?>) packetFactory.read(data);
+                    return (SMBPacketData<?>) packetFactory.read(data);
                 }
             }
             throw new IOException("Unknown packet format received.");
@@ -480,9 +509,11 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
 
     private class CancelRequest implements CancellableFuture.CancelCallback {
         private Request request;
+        private long sessionId;
 
-        public CancelRequest(Request request) {
+        public CancelRequest(Request request, long sessionId) {
             this.request = request;
+            this.sessionId = sessionId;
         }
 
         /**
@@ -494,7 +525,8 @@ public class Connection implements Closeable, PacketReceiver<SMBPacket<?>> {
                 request.getMessageId(),
                 request.getAsyncId());
             try {
-                transport.write(cancel);
+                sessionTable.find(sessionId).send(cancel);
+                // transport.write(cancel);
             } catch (TransportException e) {
                 logger.error("Failed to send {}", cancel);
             }

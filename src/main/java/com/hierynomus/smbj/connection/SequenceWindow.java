@@ -53,7 +53,8 @@ class SequenceWindow {
                 return range(lowest, lowest + credits);
             }
         } catch (InterruptedException e) {
-            //ignore
+            Thread.currentThread().interrupt();
+            throw new SMBRuntimeException("Got interrupted waiting for " + credits + " to be available. Credits available at this moment: " + available.availablePermits());
         }
         throw new SMBRuntimeException("Not enough credits (" + available.availablePermits() + " available) to hand out " + credits + " sequence numbers");
     }

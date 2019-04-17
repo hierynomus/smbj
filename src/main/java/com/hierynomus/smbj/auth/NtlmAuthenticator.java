@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.auth;
 
+import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.ntlm.messages.*;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
@@ -22,13 +23,12 @@ import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.security.SecurityProvider;
+import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.spnego.NegTokenInit;
 import com.hierynomus.spnego.NegTokenTarg;
 import com.hierynomus.spnego.SpnegoException;
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.asn1.microsoft.MicrosoftObjectIdentifiers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,15 +43,16 @@ import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
 public class NtlmAuthenticator implements Authenticator {
     private static final Logger logger = LoggerFactory.getLogger(NtlmAuthenticator.class);
 
-    private static final ASN1ObjectIdentifier NTLMSSP = MicrosoftObjectIdentifiers.microsoft.branch("2.2.10");
+    // The OID for NTLMSSP
+    private static final ASN1ObjectIdentifier NTLMSSP = new ASN1ObjectIdentifier("1.3.6.1.4.1.311.2.2.10");
     private SecurityProvider securityProvider;
     private Random random;
+    private String workStationName;
 
     public static class Factory implements com.hierynomus.protocol.commons.Factory.Named<Authenticator> {
         @Override
         public String getName() {
-            // The OID for NTLMSSP
-            return "1.3.6.1.4.1.311.2.2.10";
+            return NTLMSSP.getValue();
         }
 
         @Override
@@ -89,6 +90,8 @@ public class NtlmAuthenticator implements Authenticator {
                 logger.debug("Received NTLM challenge from: {}", challenge.getTargetName());
 
                 response.setWindowsVersion(challenge.getVersion());
+                response.setNetBiosName(challenge.getAvPairString(AvId.MsvAvNbComputerName));
+
                 byte[] serverChallenge = challenge.getServerChallenge();
                 byte[] responseKeyNT = ntlmFunctions.NTOWFv2(String.valueOf(context.getPassword()), context.getUsername(), context.getDomain());
                 byte[] ntlmv2ClientChallenge = ntlmFunctions.getNTLMv2ClientChallenge(challenge.getTargetInfo());
@@ -120,7 +123,7 @@ public class NtlmAuthenticator implements Authenticator {
                 if (msvAvFlags instanceof Long && ((long) msvAvFlags & 0x00000002) > 0) {
                     // MIC should be calculated
                     NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
-                        context.getUsername(), context.getDomain(), null, sessionkey, EnumWithValue.EnumUtils.toLong(negotiateFlags),
+                        context.getUsername(), context.getDomain(), workStationName, sessionkey, EnumWithValue.EnumUtils.toLong(negotiateFlags),
                         true
                     );
 
@@ -137,7 +140,7 @@ public class NtlmAuthenticator implements Authenticator {
                     return response;
                 } else {
                     NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
-                        context.getUsername(), context.getDomain(), null, sessionkey, EnumWithValue.EnumUtils.toLong(negotiateFlags),
+                        context.getUsername(), context.getDomain(), workStationName, sessionkey, EnumWithValue.EnumUtils.toLong(negotiateFlags),
                         false
                     );
                     response.setNegToken(negTokenTarg(resp, negTokenTarg.getResponseToken()));
@@ -172,9 +175,10 @@ public class NtlmAuthenticator implements Authenticator {
     }
 
     @Override
-    public void init(SecurityProvider securityProvider, Random random) {
-        this.securityProvider = securityProvider;
-        this.random = random;
+    public void init(SmbConfig config) {
+        this.securityProvider = config.getSecurityProvider();
+        this.random = config.getRandomProvider();
+        this.workStationName = config.getWorkStationName();
     }
 
     @Override

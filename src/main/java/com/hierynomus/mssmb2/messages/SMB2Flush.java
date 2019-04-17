@@ -32,8 +32,8 @@ public class SMB2Flush extends SMB2Packet {
         super();
     }
 
-    public SMB2Flush(SMB2Dialect smbDialect, SMB2FileId fileId) {
-        super(24, smbDialect, SMB2MessageCommandCode.SMB2_FLUSH);
+    public SMB2Flush(SMB2Dialect smbDialect, SMB2FileId fileId, long sessionId, long treeId) {
+        super(24, smbDialect, SMB2MessageCommandCode.SMB2_FLUSH, sessionId, treeId);
         this.fileId = fileId;
     }
 

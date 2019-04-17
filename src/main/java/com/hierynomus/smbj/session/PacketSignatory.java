@@ -79,7 +79,9 @@ public class PacketSignatory {
             byte[] receivedSignature = packet.getHeader().getSignature();
             for (int i = 0; i < SIGNATURE_SIZE; i++) {
                 if (signature[i] != receivedSignature[i]) {
-                    logger.error("Signatures for packet {} do not match (received: {}, calculated: {})", packet, Arrays.toString(receivedSignature), Arrays.toString(signature));
+                    logger.error("Signatures for packet {} do not match (received: {}, calculated: {})", packet,
+                            Arrays.toString(receivedSignature), Arrays.toString(signature));
+                    logger.error("Packet {} has header: {}", packet, packet.getHeader());
                     return false;
                 }
             }
@@ -175,6 +177,15 @@ public class PacketSignatory {
         @Override
         public String toString() {
             return wrappedPacket.toString();
+        }
+
+        /**
+         * Return the result of the {@link #getPacket()} call on the wrapped packet.
+         * @return The unwrapped wrapppedPacket
+         */
+        @Override
+        public SMB2Packet getPacket() {
+            return wrappedPacket.getPacket();
         }
     }
 }

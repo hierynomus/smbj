@@ -44,7 +44,7 @@ public class PromiseBackedFuture<V> extends AFuture<V> {
     }
 
     @Override
-    public V get() throws InterruptedException, ExecutionException {
+    public V get() throws ExecutionException {
         try {
             return promise.retrieve();
         } catch (Throwable t) {
@@ -53,7 +53,7 @@ public class PromiseBackedFuture<V> extends AFuture<V> {
     }
 
     @Override
-    public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public V get(long timeout, TimeUnit unit) throws ExecutionException {
         try {
             return promise.retrieve(timeout, unit);
         } catch (Throwable t) {

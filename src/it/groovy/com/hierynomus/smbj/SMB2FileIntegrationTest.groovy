@@ -17,10 +17,10 @@ package com.hierynomus.smbj
 
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mserref.NtStatus
+import com.hierynomus.msfscc.fileinformation.FileStandardInformation
 import com.hierynomus.mssmb2.SMB2CreateDisposition
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.mssmb2.SMBApiException
-import com.hierynomus.smb.SMBPacket
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.io.ArrayByteChunkProvider
@@ -32,8 +32,7 @@ import spock.lang.Unroll
 
 import java.nio.charset.StandardCharsets
 
-import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_CREATE
-import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_OPEN
+import static com.hierynomus.mssmb2.SMB2CreateDisposition.*
 
 class SMB2FileIntegrationTest extends Specification {
 
@@ -42,12 +41,6 @@ class SMB2FileIntegrationTest extends Specification {
   Connection connection
   SMBClient client
 
-//  def setupSpec() {
-//    if (!Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)) {
-//      Security.addProvider(new BouncyCastleProvider())
-//    }
-//  }
-
   def setup() {
     def config = SmbConfig
       .builder()
@@ -55,9 +48,9 @@ class SMB2FileIntegrationTest extends Specification {
     .withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>())
       .withSigningRequired(true).build()
     client = new SMBClient(config)
-    connection = client.connect("172.16.93.241")
-    session = connection.authenticate(new AuthenticationContext("jeroen", "jeroen".toCharArray(), null))
-    share = session.connectShare("NewShare") as DiskShare
+    connection = client.connect("127.0.0.1")
+    session = connection.authenticate(new AuthenticationContext("smbj", "smbj".toCharArray(), null))
+    share = session.connectShare("user") as DiskShare
   }
 
   def cleanup() {
@@ -65,10 +58,10 @@ class SMB2FileIntegrationTest extends Specification {
   }
 
   def "should list contents of empty share"() {
-    given:
+    when:
     def list = share.list("")
 
-    expect:
+    then:
     list.size() == 2
     list.get(0).fileName == "."
     list.get(1).fileName == ".."
@@ -131,7 +124,7 @@ class SMB2FileIntegrationTest extends Specification {
 
     then:
     def e = thrown(SMBApiException.class)
-    e.status == NtStatus.STATUS_SHARING_VIOLATION
+    e.statusCode == NtStatus.STATUS_SHARING_VIOLATION.value
     share.list("").collect { it.fileName } contains "locked"
 
     cleanup:
@@ -149,10 +142,10 @@ class SMB2FileIntegrationTest extends Specification {
     when:
     def ostream = file.getOutputStream(new LoggingProgressListener())
     try {
-      byte[] buffer = new byte[4096];
-      int len;
+      byte[] buffer = new byte[4096]
+      int len
       while ((len = istream.read(buffer)) != -1) {
-        ostream.write(buffer, 0, len);
+        ostream.write(buffer, 0, len)
       }
     } finally {
       istream.close()
@@ -190,5 +183,200 @@ class SMB2FileIntegrationTest extends Specification {
 
     cleanup:
     share.rm("bigfile")
+  }
+  def "should append to the file"() {
+    given:
+    def file = share.openFile("appendfile", EnumSet.of(AccessMask.FILE_WRITE_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN_IF, null)
+    def bytes = new byte[1024 * 1024]
+    Random.newInstance().nextBytes(bytes)
+    def istream = new ByteArrayInputStream(bytes)
+
+    when:
+    def ostream = file.getOutputStream(new LoggingProgressListener())
+    try {
+      byte[] buffer = new byte[4096]
+      int len
+      while ((len = istream.read(buffer)) != -1) {
+        ostream.write(buffer, 0, len)
+      }
+    } finally {
+      istream.close()
+      ostream.close()
+      file.close()
+    }
+
+    then:
+    share.fileExists("appendfile")
+
+    when:
+    def appendfile = share.openFile("appendfile", EnumSet.of(AccessMask.FILE_WRITE_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN_IF, null)
+    def bytes2 = new byte[1024 * 1024]
+    Random.newInstance().nextBytes(bytes2)
+    def istream2 = new ByteArrayInputStream(bytes2)
+    ostream = appendfile.getOutputStream(new LoggingProgressListener(),true)
+    try {
+      byte[] buffer = new byte[4096]
+      int len
+      while ((len = istream2.read(buffer)) != -1) {
+        ostream.write(buffer, 0, len)
+      }
+    } finally {
+      istream2.close()
+      ostream.close()
+      appendfile.close()
+    }
+
+    then:
+    share.fileExists("appendfile")
+
+    when:
+    def readBytes = new byte[2* 1024 * 1024]
+    def readFile = share.openFile("appendfile", EnumSet.of(AccessMask.FILE_READ_DATA), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    try {
+      def remoteIs = readFile.getInputStream(new LoggingProgressListener())
+      try {
+        def offset = 0
+        while (offset < readBytes.length) {
+          def read = remoteIs.read(readBytes, offset, readBytes.length - offset)
+          if (read > 0) {
+            offset += read
+          } else {
+            break
+          }
+        }
+      } finally {
+        remoteIs.close()
+      }
+    } finally {
+      readFile.close()
+    }
+
+    then:
+    readBytes == [bytes,bytes2].flatten()
+
+    cleanup:
+    share.rm("appendfile")
+  }
+
+  def "should be able to copy files remotely"() {
+    given:
+    def src = share.openFile("srcFile", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_OVERWRITE_IF, null)
+    src.write(new ArrayByteChunkProvider("Hello World!".getBytes(StandardCharsets.UTF_8), 0))
+    src.close()
+
+    src = share.openFile("srcFile", EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    def dst = share.openFile("dstFile", EnumSet.of(AccessMask.FILE_WRITE_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OVERWRITE_IF, null)
+
+    when:
+    src.remoteCopyTo(dst)
+
+    then:
+    share.fileExists("dstFile")
+    def srcSize = src.getFileInformation(FileStandardInformation.class).endOfFile
+    def dstSize = dst.getFileInformation(FileStandardInformation.class).endOfFile
+    srcSize == dstSize
+
+    cleanup:
+    try {
+      share.rm("srcFile")
+    } catch (SMBApiException e) {
+      // Ignored
+    }
+
+    try {
+      share.rm("dstFile")
+    } catch (SMBApiException e) {
+      // Ignored
+    }
+  }
+
+  def "should correctly detect file and folder existence"() {
+    given:
+    share.mkdir("im_a_directory")
+    def src = share.openFile("im_a_file", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_OVERWRITE_IF, null)
+    src.write(new ArrayByteChunkProvider("Hello World!".getBytes(StandardCharsets.UTF_8), 0))
+    src.close()
+
+    expect:
+    share.fileExists("im_a_file")
+    share.folderExists("im_a_directory")
+    !share.folderExists("im_a_file")
+    !share.fileExists("im_a_directory")
+    !share.fileExists("i_do_not_exist")
+    !share.folderExists("i_do_not_exist")
+
+    cleanup:
+    share.rm("im_a_file")
+    share.rmdir("im_a_directory", false)
+  }
+
+  @Unroll
+  def "should not fail if #method response is DELETE_PENDING for directory"() {
+    given:
+    def dir = share.openDirectory("to_be_removed", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_CREATE, null)
+    dir.close()
+    dir = share.openDirectory("to_be_removed", EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    dir.deleteOnClose()
+
+    when:
+    func(share)
+
+    then:
+    noExceptionThrown()
+
+    where:
+    method | func
+    "rmdir" | { s -> s.rmdir("to_be_removed", false) }
+    "folderExists" | { s -> s.folderExists("to_be_removed") }
+  }
+
+  @Unroll
+  def "should not fail if #method response is DELETE_PENDING for file"() {
+    given:
+    def textFile = share.openFile("test.txt", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_CREATE, null)
+    textFile.write(new ArrayByteChunkProvider("Hello World!".getBytes(StandardCharsets.UTF_8), 0))
+    textFile.close()
+    textFile = share.openFile("test.txt", EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    textFile.deleteOnClose()
+
+    when:
+    func(share)
+
+    then:
+    noExceptionThrown()
+
+    where:
+    method | func
+    "rm" | { s -> s.rm("test.txt") }
+    "fileExists" | { s -> s.fileExists("test.txt") }
+  }
+
+  def "should not fail if folderExists response is DELETE_PENDING"() {
+    given:
+    def dir = share.openDirectory("to_be_removed", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_CREATE, null)
+    dir.close()
+    dir = share.openDirectory("to_be_removed", EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    dir.deleteOnClose()
+
+    when:
+    share.folderExists("to_be_removed")
+
+    then:
+    noExceptionThrown()
+  }
+
+  def "should not fail if fileExists response is DELETE_PENDING"() {
+    given:
+    def textFile = share.openFile("test.txt", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_CREATE, null)
+    textFile.write(new ArrayByteChunkProvider("Hello World!".getBytes(StandardCharsets.UTF_8), 0))
+    textFile.close()
+    textFile = share.openFile("test.txt", EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    textFile.deleteOnClose()
+
+    when:
+    share.fileExists("test.txt")
+
+    then:
+    noExceptionThrown()
   }
 }

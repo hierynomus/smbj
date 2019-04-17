@@ -15,12 +15,11 @@
  */
 package com.hierynomus.mssmb2;
 
-import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smb.SMBHeader;
+import com.hierynomus.smbj.common.Check;
 
-import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 
 /**
@@ -41,14 +40,16 @@ public class SMB2Header implements SMBHeader {
     private long asyncId;
     private long sessionId;
     private long treeId;
-    private NtStatus status;
     private long statusCode;
     private long flags;
     private long nextCommandOffset; // TODO Message Compounding
     private byte[] signature;
+    // We need to keep track of where the header is in the buffer, for both signature verification as well as compounding.
+    private int headerStartPosition;
 
     @Override
     public void writeTo(SMBBuffer buffer) {
+        this.headerStartPosition = buffer.wpos(); // Set the current start position of the header.
         buffer.putRawBytes(new byte[]{(byte) 0xFE, 'S', 'M', 'B'}); // ProtocolId (4 byte)
         buffer.putUInt16(STRUCTURE_SIZE); // StructureSize (2 byte)
         writeCreditCharge(buffer); // CreditCharge (2 byte)
@@ -160,11 +161,12 @@ public class SMB2Header implements SMBHeader {
 
     @Override
     public void readFrom(Buffer<?> buffer) throws Buffer.BufferException {
-        buffer.skip(4); // ProtocolId (4 bytes) (already verified)
+        this.headerStartPosition = buffer.rpos(); // Keep track of the header start position.
+        byte[] protocolId = buffer.readRawBytes(4); // ProtocolId (4 bytes) (already verified)
+        Check.ensureEquals(protocolId, new byte[]{(byte) 0xFE, 'S', 'M', 'B'}, "Could not find SMB2 Packet header");
         buffer.skip(2); // StructureSize (2 bytes)
         buffer.readUInt16(); // CreditCharge (2 bytes)
-        statusCode = buffer.readUInt32();
-        status = EnumUtils.valueOf(statusCode, NtStatus.class, NtStatus.UNKNOWN); // Status (4 bytes)
+        statusCode = buffer.readUInt32(); // Status (4 bytes)
         message = SMB2MessageCommandCode.lookup(buffer.readUInt16()); // Command (2 bytes)
         creditResponse = buffer.readUInt16(); // CreditRequest/CreditResponse (2 bytes)
         flags = buffer.readUInt32(); // Flags (4 bytes)
@@ -180,12 +182,8 @@ public class SMB2Header implements SMBHeader {
         signature = buffer.readRawBytes(16); // Signature (16 bytes)
     }
 
-    public void setStatus(NtStatus status) {
-        this.status = status;
-    }
-
-    public NtStatus getStatus() {
-        return status;
+    public void setStatusCode(long statusCode) {
+        this.statusCode = statusCode;
     }
 
     public long getStatusCode() {
@@ -214,7 +212,7 @@ public class SMB2Header implements SMBHeader {
 
     public String toString() {
         return String.format(
-            "dialect=%s, creditCharge=%s, creditRequest=%s, creditResponse=%s, message=%s, messageId=%s, asyncId=%s, sessionId=%s, treeId=%s, status=%s, statusCode=%s, flags=%s, nextCommandOffset=%s",
+            "dialect=%s, creditCharge=%s, creditRequest=%s, creditResponse=%s, message=%s, messageId=%s, asyncId=%s, sessionId=%s, treeId=%s, status=0x%08x, flags=%s, nextCommandOffset=%s",
             dialect,
             creditCharge,
             creditRequest,
@@ -224,7 +222,6 @@ public class SMB2Header implements SMBHeader {
             asyncId,
             sessionId,
             treeId,
-            status,
             statusCode,
             flags,
             nextCommandOffset);
@@ -237,5 +234,9 @@ public class SMB2Header implements SMBHeader {
 
     public byte[] getSignature() {
         return signature;
+    }
+
+    public int getHeaderStartPosition() {
+        return headerStartPosition;
     }
 }

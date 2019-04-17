@@ -15,9 +15,10 @@
  */
 package com.hierynomus.protocol.commons.buffer;
 
+import com.hierynomus.protocol.commons.Charsets;
+
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 
 /**
  * Buffer helper class to read/write bytes in correct endian order.
@@ -148,17 +149,17 @@ public abstract class Endian {
 
         @Override
         public <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException {
-            return readUtf16String(buffer, length, StandardCharsets.UTF_16BE);
+            return readUtf16String(buffer, length, Charsets.UTF_16BE);
         }
 
         @Override
         public <T extends Buffer<T>> String readNullTerminatedUtf16String(Buffer<T> buffer) throws Buffer.BufferException {
-            return readNullTerminatedUtf16String(buffer, StandardCharsets.UTF_16BE);
+            return readNullTerminatedUtf16String(buffer, Charsets.UTF_16BE);
         }
 
         @Override
         public <T extends Buffer<T>> void writeUtf16String(Buffer<T> buffer, String string) {
-            byte[] bytes = string.getBytes(StandardCharsets.UTF_16BE);
+            byte[] bytes = string.getBytes(Charsets.UTF_16BE);
             buffer.putRawBytes(bytes);
         }
 
@@ -273,17 +274,17 @@ public abstract class Endian {
 
         @Override
         public <T extends Buffer<T>> String readUtf16String(Buffer<T> buffer, int length) throws Buffer.BufferException {
-            return readUtf16String(buffer, length, StandardCharsets.UTF_16LE);
+            return readUtf16String(buffer, length, Charsets.UTF_16LE);
         }
 
         @Override
         public <T extends Buffer<T>> String readNullTerminatedUtf16String(Buffer<T> buffer) throws Buffer.BufferException {
-            return readNullTerminatedUtf16String(buffer, StandardCharsets.UTF_16LE);
+            return readNullTerminatedUtf16String(buffer, Charsets.UTF_16LE);
         }
 
         @Override
         public <T extends Buffer<T>> void writeUtf16String(Buffer<T> buffer, String string) {
-            byte[] bytes = string.getBytes(StandardCharsets.UTF_16LE);
+            byte[] bytes = string.getBytes(Charsets.UTF_16LE);
             buffer.putRawBytes(bytes);
         }
 

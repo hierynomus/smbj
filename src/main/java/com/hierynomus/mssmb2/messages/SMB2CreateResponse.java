@@ -18,8 +18,10 @@ package com.hierynomus.mssmb2.messages;
 import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.msfscc.FileAttributes;
+import com.hierynomus.mssmb2.SMB2CreateAction;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 
@@ -32,6 +34,7 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
  */
 public class SMB2CreateResponse extends SMB2Packet {
 
+    private SMB2CreateAction createAction;
     private FileTime creationTime;
     private FileTime lastAccessTime;
     private FileTime lastWriteTime;
@@ -44,7 +47,7 @@ public class SMB2CreateResponse extends SMB2Packet {
         buffer.readUInt16(); // StructureSize (2 bytes)
         buffer.readByte(); // OpLockLevel (1 byte) - Not used yet
         buffer.readByte(); // Flags (1 byte) - Only for 3.x else Reserved
-        buffer.readUInt32(); // CreateAction (4 bytes) - Ignored for now
+        createAction = EnumWithValue.EnumUtils.valueOf(buffer.readUInt32(), SMB2CreateAction.class, null); // CreateAction (4 bytes)
         creationTime = MsDataTypes.readFileTime(buffer); // CreationTime (8 bytes)
         lastAccessTime = MsDataTypes.readFileTime(buffer); // LastAccessTime (8 bytes)
         lastWriteTime = MsDataTypes.readFileTime(buffer); // LastWriteTime (8 bytes)
@@ -58,6 +61,10 @@ public class SMB2CreateResponse extends SMB2Packet {
         // Ignore create contexts and the buffer.
         buffer.readUInt32();// CreateContextsOffset (4 bytes)
         buffer.readUInt32();// CreateContextsLength (4 bytes)
+    }
+
+    public SMB2CreateAction getCreateAction() {
+        return createAction;
     }
 
     public FileTime getCreationTime() {

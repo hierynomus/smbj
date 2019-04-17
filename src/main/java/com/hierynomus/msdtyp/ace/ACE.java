@@ -23,7 +23,7 @@ import com.hierynomus.smb.SMBBuffer;
  * [MS-DTYP].pdf 2.4.4 ACE
  */
 public abstract class ACE {
-    private static int HEADER_STRUCTURE_SIZE = 4;
+    private static final int HEADER_STRUCTURE_SIZE = 4;
 
     AceHeader aceHeader = new AceHeader();
 
@@ -31,7 +31,7 @@ public abstract class ACE {
         this.aceHeader = header;
     }
 
-    protected ACE() {
+    private ACE() {
     }
 
     public final void write(SMBBuffer buffer) {

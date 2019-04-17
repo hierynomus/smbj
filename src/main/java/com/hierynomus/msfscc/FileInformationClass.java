@@ -21,6 +21,7 @@ import com.hierynomus.protocol.commons.EnumWithValue;
  * [MS-FSCC].pdf 2.4 File Information Classes
  * [MS-SMB2].pdf 2.2.33 SMB2 QUERY_DIRECTORY - FileInformationClass
  */
+@SuppressWarnings("squid:S00115")
 public enum FileInformationClass implements EnumWithValue<FileInformationClass> {
 
     FileDirectoryInformation(0x01),

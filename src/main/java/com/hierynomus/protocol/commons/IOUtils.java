@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 public class IOUtils {
 
-    private static final Logger LOG = LoggerFactory.getLogger(IOUtils.class);
+    private static final Logger logger = LoggerFactory.getLogger(IOUtils.class);
 
     public static void closeQuietly(AutoCloseable... closeables) {
         for (AutoCloseable c : closeables) {
@@ -29,7 +29,7 @@ public class IOUtils {
                     c.close();
                 }
             } catch (Exception logged) {
-                LOG.warn("Error closing {} - {}", c, logged);
+                logger.warn("Error closing {} - {}", c, logged);
             }
         }
     }

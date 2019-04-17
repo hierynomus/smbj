@@ -15,6 +15,9 @@
  */
 package com.hierynomus.smbj.common;
 
+import com.hierynomus.protocol.commons.Objects;
+import com.hierynomus.utils.Strings;
+
 public class SmbPath {
     private final String hostname;
     private final String shareName;
@@ -31,33 +34,37 @@ public class SmbPath {
     public SmbPath(String hostname, String shareName, String path) {
         this.shareName = shareName;
         this.hostname = hostname;
-        this.path = path;
+        this.path = rewritePath(path);
+    }
+
+    private static String rewritePath(String path) {
+        return Strings.isNotBlank(path) ? path.replace('/', '\\') : path;
     }
 
     public SmbPath(SmbPath parent, String path) {
         this.hostname = parent.hostname;
-        if (parent.shareName != null) {
+        if (Strings.isNotBlank(parent.shareName)) {
             this.shareName = parent.shareName;
         } else {
             throw new IllegalArgumentException("Can only make child SmbPath of fully specified SmbPath");
         }
-        if (parent.path != null) {
-            this.path = parent.path + "\\" + path;
+        if (Strings.isNotBlank(parent.path)) {
+            this.path = parent.path + "\\" + rewritePath(path);
         } else {
-            this.path = path;
+            this.path = rewritePath(path);
         }
     }
 
     public String toUncPath() {
         StringBuilder b = new StringBuilder("\\\\");
         b.append(hostname);
-        if (shareName != null) {
+        if (shareName != null && !shareName.isEmpty()) {
             // Clients can either pass \share or share
             if (shareName.charAt(0) != '\\') {
                 b.append("\\");
             }
             b.append(shareName);
-            if (path != null) {
+            if (Strings.isNotBlank(path)) {
                 b.append("\\").append(path);
             }
         }
@@ -70,12 +77,13 @@ public class SmbPath {
     }
 
     public static SmbPath parse(String path) {
-        String splitPath = path;
-        if (path.charAt(0) == '\\') {
-            if (path.charAt(1) == '\\') {
-                splitPath = path.substring(2);
+        String rewritten = rewritePath(path);
+        String splitPath = rewritten;
+        if (rewritten.charAt(0) == '\\') {
+            if (rewritten.charAt(1) == '\\') {
+                splitPath = rewritten.substring(2);
             } else {
-                splitPath = path.substring(1);
+                splitPath = rewritten.substring(1);
             }
         }
 
@@ -89,6 +97,22 @@ public class SmbPath {
         return new SmbPath(split[0], split[1], split[2]);
     }
 
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SmbPath smbPath = (SmbPath) o;
+        return Objects.equals(hostname, smbPath.hostname) &&
+            Objects.equals(shareName, smbPath.shareName) &&
+            Objects.equals(path, smbPath.path);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(hostname, shareName, path);
+    }
+
     public String getHostname() {
         return hostname;
     }
@@ -99,5 +123,13 @@ public class SmbPath {
 
     public String getPath() {
         return path;
+    }
+
+    public boolean isOnSameHost(SmbPath other) {
+        return other != null && Objects.equals(this.hostname, other.hostname);
+    }
+
+    public boolean isOnSameShare(SmbPath other) {
+        return isOnSameHost(other) && Objects.equals(this.shareName, other.shareName);
     }
 }

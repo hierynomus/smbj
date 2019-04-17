@@ -18,16 +18,19 @@ package com.hierynomus.msfscc.fileinformation;
 import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.msfscc.FileInformationClass;
+import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class FileInformationFactory {
     private static final Map<Class, FileInformation.Encoder> encoders;
     private static final Map<Class, FileInformation.Decoder> decoders;
+
+    private FileInformationFactory() {
+    }
 
     static {
         encoders = new HashMap<>();
@@ -77,12 +80,13 @@ public class FileInformationFactory {
 
             @Override
             public FileAllocationInformation read(Buffer inputBuffer) throws Buffer.BufferException {
-                return parseFileAllocationInformation(inputBuffer);
+                long allocationSize = ((Buffer<?>) inputBuffer).readLong();
+                return new FileAllocationInformation(allocationSize);
             }
 
             @Override
             public void write(FileAllocationInformation info, Buffer outputBuffer) {
-                writeFileAllocationInformation(info, outputBuffer);
+                outputBuffer.putLong(info.getAllocationSize());
             }
         };
         decoders.put(FileAllocationInformation.class, allocationCodec);
@@ -101,7 +105,12 @@ public class FileInformationFactory {
 
             @Override
             public void write(FileBasicInformation info, Buffer outputBuffer) {
-                writeFileBasicInformation(info, outputBuffer);
+                MsDataTypes.putFileTime(info.getCreationTime(), outputBuffer);
+                MsDataTypes.putFileTime(info.getLastAccessTime(), outputBuffer);
+                MsDataTypes.putFileTime(info.getLastWriteTime(), outputBuffer);
+                MsDataTypes.putFileTime(info.getChangeTime(), outputBuffer);
+                ((Buffer<?>) outputBuffer).putUInt32(info.getFileAttributes());
+                ((Buffer<?>) outputBuffer).putUInt32(0); // Reserved (4 bytes)
             }
         };
         decoders.put(FileBasicInformation.class, basicCodec);
@@ -115,7 +124,7 @@ public class FileInformationFactory {
 
             @Override
             public void write(FileDispositionInformation info, Buffer outputBuffer) {
-                writeFileDispositionInformation(info, outputBuffer);
+                ((Buffer<?>) outputBuffer).putBoolean(info.isDeleteOnClose());
             }
         };
         encoders.put(FileDispositionInformation.class, dispositionCodec);
@@ -132,6 +141,18 @@ public class FileInformationFactory {
             }
         });
 
+        decoders.put(FileStreamInformation.class, new FileInformation.Decoder<FileStreamInformation>() {
+            @Override
+            public FileInformationClass getInformationClass() {
+                return FileInformationClass.FileStreamInformation;
+            }
+
+            @Override
+            public FileStreamInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+                return parseFileStreamInformation(inputBuffer);
+            }
+        });
+
         FileInformation.Encoder<FileEndOfFileInformation> endOfFileCodec = new FileInformation.Encoder<FileEndOfFileInformation>() {
             @Override
             public FileInformationClass getInformationClass() {
@@ -140,7 +161,7 @@ public class FileInformationFactory {
 
             @Override
             public void write(FileEndOfFileInformation info, Buffer outputBuffer) {
-                writeFileEndOfFileInformation(info, outputBuffer);
+                ((Buffer<?>) outputBuffer).putLong(info.getEndOfFile());
             }
         };
         encoders.put(FileEndOfFileInformation.class, endOfFileCodec);
@@ -170,7 +191,7 @@ public class FileInformationFactory {
 
             @Override
             public void write(FileModeInformation info, Buffer outputBuffer) {
-                writeFileModeInformation(info, outputBuffer);
+                outputBuffer.putUInt32(info.getMode() & 0xFFFFFFFFL);
             }
         };
         decoders.put(FileModeInformation.class, modeCodec);
@@ -285,6 +306,19 @@ public class FileInformationFactory {
         };
         encoders.put(FileRenameInformation.class, renameCodec);
 
+        FileInformation.Encoder<FileLinkInformation> linkCodec = new FileInformation.Encoder<FileLinkInformation>() {
+            @Override
+            public FileInformationClass getInformationClass() {
+                return FileInformationClass.FileLinkInformation;
+            }
+
+            @Override
+            public void write(FileLinkInformation info, Buffer outputBuffer) {
+                writeFileRenameInformation(info, outputBuffer);
+            }
+        };
+        encoders.put(FileLinkInformation.class, linkCodec);
+        
     }
 
     @SuppressWarnings("unchecked")
@@ -318,11 +352,9 @@ public class FileInformationFactory {
      * @param data
      * @param decoder
      * @return
-     * @throws Buffer.BufferException
      */
     public static <F extends FileDirectoryQueryableInformation> List<F> parseFileInformationList(
-        byte[] data, FileInformation.Decoder<F> decoder)
-        throws Buffer.BufferException {
+        byte[] data, FileInformation.Decoder<F> decoder) {
 
         List<F> _fileInfoList = new ArrayList<>();
         Iterator<F> iterator = createFileInformationIterator(data, decoder);
@@ -367,9 +399,9 @@ public class FileInformationFactory {
 
         private F prepareNext() {
             try {
-                F next = null;
+                F nxt = null;
 
-                while (next == null && offsetStart != -1) {
+                while (nxt == null && offsetStart != -1) {
                     buffer.rpos(offsetStart);
                     F fileInfo = decoder.read(buffer);
                     int nextOffset = (int) fileInfo.getNextOffset();
@@ -380,10 +412,10 @@ public class FileInformationFactory {
                         offsetStart += nextOffset;
                     }
 
-                    next = fileInfo;
+                    nxt = fileInfo;
                 }
 
-                return next;
+                return nxt;
             } catch (Buffer.BufferException e) {
                 throw new SMBRuntimeException(e);
             }
@@ -411,7 +443,7 @@ public class FileInformationFactory {
         FileAlignmentInformation alignmentInformation = parseFileAlignmentInformation(buffer);
         String nameInformation = parseFileNameInformation(buffer);
 
-        FileAllInformation fi = new FileAllInformation(
+        return new FileAllInformation(
             basicInformation,
             standardInformation,
             internalInformation,
@@ -422,13 +454,11 @@ public class FileInformationFactory {
             alignmentInformation,
             nameInformation
         );
-        return fi;
     }
 
     private static String parseFileNameInformation(Buffer<?> buffer) throws Buffer.BufferException {
         long fileNameLen = buffer.readUInt32(); // File name length
-        String fileName = buffer.readString(StandardCharsets.UTF_16LE, (int) fileNameLen / 2);
-        return fileName;
+        return buffer.readString(Charsets.UTF_16LE, (int) fileNameLen / 2);
     }
 
     private static FileBasicInformation parseFileBasicInformation(Buffer<?> buffer) throws Buffer.BufferException {
@@ -440,19 +470,6 @@ public class FileInformationFactory {
         buffer.skip(4); // Reserved (4 bytes)
 
         return new FileBasicInformation(creationTime, lastAccessTime, lastWriteTime, changeTime, fileAttributes);
-    }
-
-    private static void writeFileBasicInformation(FileBasicInformation information, Buffer<?> buffer) {
-        MsDataTypes.putFileTime(information.getCreationTime(), buffer);
-        MsDataTypes.putFileTime(information.getLastAccessTime(), buffer);
-        MsDataTypes.putFileTime(information.getLastWriteTime(), buffer);
-        MsDataTypes.putFileTime(information.getChangeTime(), buffer);
-        buffer.putUInt32(information.getFileAttributes());
-        buffer.putUInt32(0); // Reserved (4 bytes)
-    }
-
-    private static void writeFileDispositionInformation(FileDispositionInformation information, Buffer<?> buffer) {
-        buffer.putBoolean(information.isDeleteOnClose());
     }
 
     private static FileStandardInformation parseFileStandardInformation(Buffer<?> buffer) throws Buffer.BufferException {
@@ -476,24 +493,33 @@ public class FileInformationFactory {
     }
 
     /**
-     * [MS-FSCC] 2.4.13 FileEndOfFileInformation
+     * 2.4.40 FileStreamInformation
      */
-    private static void writeFileEndOfFileInformation(FileEndOfFileInformation information, Buffer<?> buffer) {
-        buffer.putLong(information.getEndOfFile());
+    private static FileStreamInformation parseFileStreamInformation(Buffer<?> buffer) throws Buffer.BufferException {
+
+        List<FileStreamInformationItem> streamList = new ArrayList<>();
+        long currEntry = 0;
+        long nextEntry = 0;
+
+        do {
+            currEntry += nextEntry;
+            buffer.rpos((int) currEntry);
+
+            nextEntry = buffer.readUInt32(); //Unsigned 32
+            long nameLen = buffer.readUInt32(); //Unsigned 32
+            long size = buffer.readLong(); //Signed 64
+            long allocSize = buffer.readLong(); //Signed 64
+
+            String name = buffer.readString(Charsets.UTF_16LE, (int) nameLen / 2);
+            streamList.add(new FileStreamInformationItem(size, allocSize, name));
+        } while (nextEntry != 0);
+
+        return new FileStreamInformation(streamList);
     }
 
     private static FileAccessInformation parseFileAccessInformation(Buffer<?> buffer) throws Buffer.BufferException {
         int accessFlags = (int) buffer.readUInt32();
         return new FileAccessInformation(accessFlags);
-    }
-
-    private static FileAllocationInformation parseFileAllocationInformation(Buffer<?> buffer) throws Buffer.BufferException {
-        long allocationSize = buffer.readLong();
-        return new FileAllocationInformation(allocationSize);
-    }
-
-    private static void writeFileAllocationInformation(FileAllocationInformation info, Buffer outputBuffer) {
-        outputBuffer.putLong(info.getAllocationSize());
     }
 
     private static FilePositionInformation parseFilePositionInformation(Buffer<?> buffer) throws Buffer.BufferException {
@@ -504,10 +530,6 @@ public class FileInformationFactory {
     private static FileModeInformation parseFileModeInformation(Buffer<?> buffer) throws Buffer.BufferException {
         int mode = (int) buffer.readUInt32();
         return new FileModeInformation(mode);
-    }
-
-    private static void writeFileModeInformation(FileModeInformation info, Buffer outputBuffer) {
-        outputBuffer.putUInt32(info.getMode() & 0xFFFFFFFFL);
     }
 
     private static FileAlignmentInformation parseFileAlignmentInformation(Buffer<?> buffer) throws Buffer.BufferException {
@@ -533,9 +555,8 @@ public class FileInformationFactory {
         byte shortNameLen = buffer.readByte();
         buffer.readByte(); // Reserved1 (1)
         byte[] shortNameBytes = buffer.readRawBytes(24);// Shortname
-        String shortName = new String(shortNameBytes, 0, shortNameLen, StandardCharsets.UTF_16LE);
-        buffer.readUInt16(); // Reserved2
-        String fileName = buffer.readString(StandardCharsets.UTF_16LE, (int) fileNameLen / 2);
+        String shortName = new String(shortNameBytes, 0, shortNameLen, Charsets.UTF_16LE);
+        String fileName = buffer.readString(Charsets.UTF_16LE, (int) fileNameLen / 2);
         FileBothDirectoryInformation fi = new FileBothDirectoryInformation(
             nextOffset, fileIndex, fileName,
             creationTime, lastAccessTime, lastWriteTime, changeTime,
@@ -560,8 +581,7 @@ public class FileInformationFactory {
         long endOfFile = buffer.readUInt64();
         long allocationSize = buffer.readUInt64();
         long fileAttributes = buffer.readUInt32();
-        long fileNameLen = buffer.readUInt32();
-        String fileName = buffer.readString(StandardCharsets.UTF_16LE, (int) fileNameLen / 2);
+        String fileName = parseFileNameInformation(buffer);
         FileDirectoryInformation fi = new FileDirectoryInformation(
             nextOffset, fileIndex, fileName,
             creationTime, lastAccessTime, lastWriteTime, changeTime,
@@ -586,7 +606,7 @@ public class FileInformationFactory {
         long fileAttributes = buffer.readUInt32();
         long fileNameLen = buffer.readUInt32();
         long eaSize = buffer.readUInt32();
-        String fileName = buffer.readString(StandardCharsets.UTF_16LE, (int) fileNameLen / 2);
+        String fileName = buffer.readString(Charsets.UTF_16LE, (int) fileNameLen / 2);
         FileFullDirectoryInformation fi = new FileFullDirectoryInformation(
             nextOffset, fileIndex, fileName,
             creationTime, lastAccessTime, lastWriteTime, changeTime,
@@ -614,11 +634,11 @@ public class FileInformationFactory {
         long eaSize = buffer.readUInt32();
         byte shortNameLen = buffer.readByte();
         buffer.readByte(); // Reserved1 (1)
-        byte[] shortNameBytes = buffer.readRawBytes(24);// Shortname
-        String shortName = new String(shortNameBytes, 0, shortNameLen, StandardCharsets.UTF_16LE);
+        byte[] shortNameBytes = buffer.readRawBytes(24); // Shortname
+        String shortName = new String(shortNameBytes, 0, shortNameLen, Charsets.UTF_16LE);
         buffer.readUInt16(); // Reserved2
         byte[] fileId = buffer.readRawBytes(8);
-        String fileName = buffer.readString(StandardCharsets.UTF_16LE, (int) fileNameLen / 2);
+        String fileName = buffer.readString(Charsets.UTF_16LE, (int) fileNameLen / 2);
         FileIdBothDirectoryInformation fi = new FileIdBothDirectoryInformation(
             nextOffset, fileIndex, fileName,
             creationTime, lastAccessTime, lastWriteTime, changeTime,
@@ -648,7 +668,7 @@ public class FileInformationFactory {
         long eaSize = buffer.readUInt32();
         buffer.skip(4); // Reserved
         byte[] fileId = buffer.readRawBytes(8);
-        String fileName = buffer.readString(StandardCharsets.UTF_16LE, (int) fileNameLen / 2);
+        String fileName = buffer.readString(Charsets.UTF_16LE, (int) fileNameLen / 2);
         FileIdFullDirectoryInformation fi = new FileIdFullDirectoryInformation(
             nextOffset, fileIndex, fileName,
             creationTime, lastAccessTime, lastWriteTime, changeTime,
@@ -667,11 +687,8 @@ public class FileInformationFactory {
         long nextOffset = buffer.readUInt32();
         long fileIndex = buffer.readUInt32();
         long fileNameLen = buffer.readUInt32();
-        String fileName = buffer.readString(StandardCharsets.UTF_16LE, (int) fileNameLen / 2);
-        FileNamesInformation fi = new FileNamesInformation(
-            nextOffset, fileIndex, fileName
-        );
-        return fi;
+        String fileName = buffer.readString(Charsets.UTF_16LE, (int) fileNameLen / 2);
+        return new FileNamesInformation(nextOffset, fileIndex, fileName);
     }
 
     /**
@@ -681,8 +698,8 @@ public class FileInformationFactory {
         buffer.putByte((byte) (information.isReplaceIfExists() ? 1 : 0));
         buffer.putRawBytes(new byte[]{0, 0, 0, 0, 0, 0, 0});    // reserved
         buffer.putUInt64(information.getRootDirectory());
-        buffer.putUInt32(information.getFileNameLength() * 2); // unicode
-        buffer.putRawBytes(information.getFileName().getBytes(StandardCharsets.UTF_16LE));
+        buffer.putUInt32(information.getFileNameLength() * 2L); // unicode
+        buffer.putRawBytes(information.getFileName().getBytes(Charsets.UTF_16LE));
     }
 
 }
