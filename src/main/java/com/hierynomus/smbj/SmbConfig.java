@@ -74,6 +74,7 @@ public final class SmbConfig {
     private TransportLayerFactory<SMBPacketData<?>, SMBPacket<?, ?>> transportLayerFactory;
     private long transactTimeout;
     private GSSContextConfig clientGSSContextConfig;
+    private boolean nestedSessionsDisabled;
     private String workStationName;
 
     private int soTimeout;
@@ -98,7 +99,8 @@ public final class SmbConfig {
             // order is important.  The authenticators listed first will be selected
             .withAuthenticators(getDefaultAuthenticators())
             .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
-            .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig());
+            .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig())
+            .withNestedSessionsDisabled(false);
     }
 
     private static SecurityProvider getDefaultSecurityProvider() {
@@ -150,6 +152,7 @@ public final class SmbConfig {
         soTimeout = other.soTimeout;
         useMultiProtocolNegotiate = other.useMultiProtocolNegotiate;
         clientGSSContextConfig = other.clientGSSContextConfig;
+        nestedSessionsDisabled = other.nestedSessionsDisabled;
         workStationName = other.workStationName;
     }
 
@@ -227,6 +230,10 @@ public final class SmbConfig {
 
     public GSSContextConfig getClientGSSContextConfig() {
         return clientGSSContextConfig;
+    }
+    
+    public boolean isNestedSessionsDisabled() {
+        return nestedSessionsDisabled;
     }
 
     public String getWorkStationName() {
@@ -422,6 +429,11 @@ public final class SmbConfig {
 
         public Builder withWorkStationName(String workStationName) {
             config.workStationName = workStationName;
+            return this;
+        }
+        
+        public Builder withNestedSessionsDisabled(boolean nestedSessionsDisabled) {
+            config.nestedSessionsDisabled = nestedSessionsDisabled;
             return this;
         }
     }
