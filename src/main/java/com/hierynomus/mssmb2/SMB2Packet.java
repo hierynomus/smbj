@@ -26,9 +26,7 @@ public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2Header> {
 
     public static final int SINGLE_CREDIT_PAYLOAD_SIZE = 64 * 1024;
     protected int structureSize;
-    private SMBBuffer buffer;
     private SMB2Error error;
-    private int messageEndPos;
 
     protected SMB2Packet() {
         super(new SMB2Header());
@@ -68,29 +66,12 @@ public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2Header> {
         return buffer;
     }
 
-    /**
-     * The start position of this packet in the {@link #getBuffer()}. Normally this is 0, except
-     * when this packet was compounded.
-     *
-     * @return The start position of this received packet in the buffer
-     */
-    public int getMessageStartPos() {
-        return header.getHeaderStartPosition();
-    }
-
-    /**
-     * THe end position of this packet in the {@link #getBuffer()}. Normally this is the last written position,
-     * except when this packet was compounded.
-     *
-     * @return The end position of this received packet in the buffer
-     */
-    public int getMessageEndPos() {
-        return messageEndPos;
-    }
 
     public void write(SMBBuffer buffer) {
+        this.buffer = buffer; // Keep track of the buffer
         header.writeTo(buffer);
         writeTo(buffer);
+        this.messageEndPos = buffer.wpos();
     }
 
     /**

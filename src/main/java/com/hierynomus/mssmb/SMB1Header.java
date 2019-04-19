@@ -25,8 +25,11 @@ import com.hierynomus.smb.SMBHeader;
  * This class is currently hardcoded to SMB_COM_NEGOTIATE
  */
 public class SMB1Header implements SMBHeader {
+    private int headerStartPosition;
+
     @Override
     public void writeTo(SMBBuffer buffer) {
+        this.headerStartPosition = buffer.wpos(); // Keep track of header start
         buffer.putRawBytes(new byte[]{(byte) 0xFF, 'S', 'M', 'B'}); // Protocol (4 bytes)
         buffer.putByte((byte) 0x72); // Command (1 byte)
         buffer.putUInt32(0x0); // Status (4 bytes)
@@ -44,5 +47,10 @@ public class SMB1Header implements SMBHeader {
     @Override
     public void readFrom(Buffer<?> buffer) {
         throw new UnsupportedOperationException("Receiving SMBv1 Messages not supported in SMBJ");
+    }
+
+    @Override
+    public int getHeaderStartPosition() {
+        return headerStartPosition;
     }
 }

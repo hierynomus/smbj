@@ -13,14 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smb;
+package com.hierynomus.mssmb2;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.EnumWithValue;
 
-public interface SMBHeader {
-    void writeTo(SMBBuffer buffer);
+public enum SMB3CompressionAlgorithm implements EnumWithValue<SMB3CompressionAlgorithm> {
+    NONE(0x0000),
+    LZNT1(0x0001),
+    LZ77(0x0002),
+    LZ77_HUFFMAN(0x0003);
 
-    void readFrom(Buffer<?> buffer) throws Buffer.BufferException;
+    private long value;
 
-    int getHeaderStartPosition();
+    SMB3CompressionAlgorithm(long value) {
+        this.value = value;
+    }
+
+    @Override
+    public long getValue() {
+        return 0;
+    }
 }

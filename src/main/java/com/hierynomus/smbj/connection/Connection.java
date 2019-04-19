@@ -19,12 +19,8 @@ import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb.SMB1PacketFactory;
 import com.hierynomus.mssmb.SMB1NotSupportedException;
-import com.hierynomus.mssmb.SMB1Packet;
-import com.hierynomus.mssmb.messages.SMB1ComNegotiateRequest;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.SMB2CancelRequest;
-import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
-import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.buffer.Buffer;
@@ -75,8 +71,8 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
     private ConnectionInfo connectionInfo;
     private SessionTable sessionTable = new SessionTable();
     private SessionTable preauthSessionTable = new SessionTable();
-    private OutstandingRequests outstandingRequests = new OutstandingRequests();
-    private SequenceWindow sequenceWindow;
+    OutstandingRequests outstandingRequests = new OutstandingRequests();
+    SequenceWindow sequenceWindow;
     private SMB2MessageConverter smb2Converter = new SMB2MessageConverter();
 
     private String remoteName;
@@ -88,7 +84,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
     }
 
     private SmbConfig config;
-    private TransportLayer<SMBPacket<?, ?>> transport;
+    TransportLayer<SMBPacket<?, ?>> transport;
     private final SMBEventBus bus;
     private final ReentrantLock lock = new ReentrantLock();
     private int remotePort;
@@ -117,8 +113,8 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
         this.remotePort = port;
         transport.connect(new InetSocketAddress(hostname, port));
         this.sequenceWindow = new SequenceWindow();
-        this.connectionInfo = new ConnectionInfo(config.getClientGuid(), hostname);
-        negotiateDialect();
+        this.connectionInfo = new ConnectionInfo(config.getClientGuid(), hostname, config);
+        new SMBProtocolNegotiator(this).negotiateDialect();
         logger.info("Successfully connected to: {}", getRemoteHostname());
     }
 
@@ -290,7 +286,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
         }
     }
 
-    private <T extends SMB2Packet> T sendAndReceive(SMB2Packet packet) throws TransportException {
+    <T extends SMB2Packet> T sendAndReceive(SMB2Packet packet) throws TransportException {
         return Futures.get(this.<T>send(packet), getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
     }
 
@@ -310,52 +306,6 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
         }
         packet.setCreditsAssigned(grantCredits);
         return grantCredits;
-    }
-
-    private void negotiateDialect() throws TransportException {
-        logger.debug("Negotiating dialects {} with server {}", config.getSupportedDialects(), getRemoteHostname());
-        SMB2Packet resp;
-        if (config.isUseMultiProtocolNegotiate()) {
-            resp = multiProtocolNegotiate();
-        } else {
-            resp = smb2OnlyNegotiate();
-        }
-        if (!(resp instanceof SMB2NegotiateResponse)) {
-            throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response, but got: " + resp);
-        }
-        SMB2NegotiateResponse negotiateResponse = (SMB2NegotiateResponse) resp;
-        if (!NtStatus.isSuccess(negotiateResponse.getHeader().getStatusCode())) {
-            throw new SMBApiException(negotiateResponse.getHeader(), "Failure during dialect negotiation");
-        }
-        connectionInfo.negotiated(negotiateResponse);
-        logger.debug("Negotiated the following connection settings: {}", connectionInfo);
-    }
-
-    private SMB2Packet smb2OnlyNegotiate() throws TransportException {
-        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid(), config.isSigningRequired());
-        return sendAndReceive(negotiatePacket);
-    }
-
-    private SMB2Packet multiProtocolNegotiate() throws TransportException {
-        SMB1Packet negotiatePacket = new SMB1ComNegotiateRequest(config.getSupportedDialects());
-        long l = sequenceWindow.get();
-        if (l != 0) {
-            throw new IllegalStateException("The SMBv1 SMB_COM_NEGOTIATE packet needs to be the first packet sent.");
-        }
-        Request request = new Request(negotiatePacket, l, UUID.randomUUID());
-        outstandingRequests.registerOutstanding(request);
-        transport.write(negotiatePacket);
-        Future<SMB2Packet> future = request.getFuture(null);
-        SMB2Packet packet = Futures.get(future, getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
-        if (!(packet instanceof SMB2NegotiateResponse)) {
-            throw new IllegalStateException("Expected a SMB2 NEGOTIATE Response to our SMB_COM_NEGOTIATE, but got: " + packet);
-        }
-        SMB2NegotiateResponse negotiateResponse = (SMB2NegotiateResponse) packet;
-
-        if (negotiateResponse.getDialect() == SMB2Dialect.SMB_2XX) {
-            return smb2OnlyNegotiate();
-        }
-        return negotiateResponse;
     }
 
     /**

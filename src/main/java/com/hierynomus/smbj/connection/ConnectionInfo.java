@@ -15,9 +15,13 @@
  */
 package com.hierynomus.smbj.connection;
 
+import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2GlobalCapability;
+import com.hierynomus.mssmb2.SMB3EncryptionCipher;
+import com.hierynomus.mssmb2.SMB3HashAlgorithm;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.ntlm.messages.WindowsVersion;
+import com.hierynomus.smbj.SmbConfig;
 
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -45,25 +49,29 @@ public class ConnectionInfo {
     private int serverSecurityMode;
     private String server; // Reference to the server connected to?
     // SMB 3.1.1
-    private String preauthIntegrityHashId;
+    private SMB3HashAlgorithm preauthIntegrityHashId;
     private byte[] preauthIntegrityHashValue;
-    private String cipherId;
+    private SMB3EncryptionCipher cipherId;
 
-    ConnectionInfo(UUID clientGuid, String serverName) {
+    ConnectionInfo(UUID clientGuid, String serverName, SmbConfig config) {
         // new SessionTable
         // new OutstandingRequests
         this.clientGuid = clientGuid;
         this.gssNegotiateToken = new byte[0];
         this.serverName = serverName;
-        this.clientCapabilities = EnumSet.of(SMB2GlobalCapability.SMB2_GLOBAL_CAP_DFS);
+        this.clientCapabilities = EnumSet.copyOf(config.getClientCapabilities());
     }
 
-    void negotiated(SMB2NegotiateResponse response) {
+    void negotiated(SMBProtocolNegotiator.NegotiationContext negotiationContext) {
 //        gssNegotiateToken = response.getGssToken();
+        SMB2NegotiateResponse response = negotiationContext.getNegotiationResponse();
         serverGuid = response.getServerGuid();
-        serverCapabilities = toEnumSet(response.getCapabilities(), SMB2GlobalCapability.class);
+        serverCapabilities = EnumSet.copyOf(response.getCapabilities());
         this.negotiatedProtocol = new NegotiatedProtocol(response.getDialect(), response.getMaxTransactSize(), response.getMaxReadSize(), response.getMaxWriteSize(), serverCapabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU));
         serverSecurityMode = response.getSecurityMode();
+        this.cipherId = negotiationContext.getCipher();
+        this.preauthIntegrityHashId = negotiationContext.getPreauthIntegrityHashId();
+        this.preauthIntegrityHashValue = negotiationContext.getPreauthIntegrityHashValue();
     }
 
     public UUID getClientGuid() {
@@ -116,6 +124,16 @@ public class ConnectionInfo {
 
     public void setNetBiosName(String netBiosName) {
         this.netBiosName = netBiosName;
+    }
+
+    public boolean supportsEncryption() {
+        SMB2Dialect dialect = negotiatedProtocol.getDialect();
+        if (dialect == SMB2Dialect.SMB_3_1_1) {
+            return cipherId != null;
+        } else {
+            return clientCapabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION)
+                && supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION);
+        }
     }
 
     @Override

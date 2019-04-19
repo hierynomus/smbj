@@ -13,14 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smb;
+package com.hierynomus.smbj.utils;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.security.MessageDigest;
 
-public interface SMBHeader {
-    void writeTo(SMBBuffer buffer);
+public class DigestUtil {
 
-    void readFrom(Buffer<?> buffer) throws Buffer.BufferException;
-
-    int getHeaderStartPosition();
+    public static byte[] digest(MessageDigest digest, byte[] previous, byte[] extra) {
+        digest.reset();
+        digest.update(previous);
+        digest.update(extra);
+        return digest.digest();
+    }
 }
