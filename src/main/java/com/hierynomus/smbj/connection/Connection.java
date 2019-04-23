@@ -158,96 +158,12 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
      * @return a (new) Session that is authenticated for the user.
      */
     public Session authenticate(AuthenticationContext authContext) {
-        try {
-            Authenticator authenticator = getAuthenticator(authContext);
-            authenticator.init(config);
-            Session session = getSession(authContext);
-            byte[] securityContext = processAuthenticationToken(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
-            SMB2SessionSetup receive = initiateSessionSetup(securityContext, 0L);
-            long preauthSessionId = receive.getHeader().getSessionId();
-            if (preauthSessionId != 0L) {
-                preauthSessionTable.registerSession(preauthSessionId, session);
+        return new SMBSessionBuilder(this, new SMBSessionBuilder.SessionFactory() {
+            @Override
+            public Session createSession(AuthenticationContext context) {
+                return new Session(Connection.this, context, bus, client.getPathResolver(), config.getSecurityProvider());
             }
-            try {
-                while (receive.getHeader().getStatusCode() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED.getValue()) {
-                    logger.debug("More processing required for authentication of {} using {}", authContext.getUsername(), authenticator);
-                    securityContext = processAuthenticationToken(authenticator, authContext, receive.getSecurityBuffer(), session);
-                    receive = initiateSessionSetup(securityContext, preauthSessionId);
-                }
-
-                if (receive.getHeader().getStatusCode() != NtStatus.STATUS_SUCCESS.getValue()) {
-                    throw new SMBApiException(receive.getHeader(), format("Authentication failed for '%s' using %s", authContext.getUsername(), authenticator));
-                }
-
-                // Some devices only allocate the sessionId on the STATUS_SUCCESS message, not while authenticating.
-                // So we need to set it on the session once we're completely authenticated.
-                session.setSessionId(receive.getHeader().getSessionId());
-
-                if (receive.getSecurityBuffer() != null) {
-                    // process the last received buffer
-                    processAuthenticationToken(authenticator, authContext, receive.getSecurityBuffer(), session);
-                }
-                session.init(receive);
-                logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), remoteName, session.getSessionId());
-                sessionTable.registerSession(session.getSessionId(), session);
-                return session;
-            } finally {
-                if (preauthSessionId != 0L) {
-                    preauthSessionTable.sessionClosed(preauthSessionId);
-                }
-            }
-        } catch (SpnegoException | IOException e) {
-            throw new SMBRuntimeException(e);
-        }
-    }
-
-    private Session getSession(AuthenticationContext authContext) {
-        return new Session(this, authContext, bus, client.getPathResolver(), config.getSecurityProvider());
-    }
-
-    private byte[] processAuthenticationToken(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {
-        AuthenticateResponse resp = authenticator.authenticate(authContext, inputToken, session);
-        if (resp == null) {
-            return null;
-        }
-        connectionInfo.setWindowsVersion(resp.getWindowsVersion());
-        connectionInfo.setNetBiosName(resp.getNetBiosName());
-        byte[] securityContext = resp.getNegToken();
-        if (resp.getSigningKey() != null) {
-            session.setSigningKey(resp.getSigningKey());
-        }
-        return securityContext;
-    }
-
-    private SMB2SessionSetup initiateSessionSetup(byte[] securityContext, long sessionId) throws TransportException {
-        SMB2SessionSetup req = new SMB2SessionSetup(
-            connectionInfo.getNegotiatedProtocol().getDialect(),
-            EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED),
-            connectionInfo.getClientCapabilities());
-        req.setSecurityBuffer(securityContext);
-        req.getHeader().setSessionId(sessionId);
-        return sendAndReceive(req);
-    }
-
-    private Authenticator getAuthenticator(AuthenticationContext context) throws SpnegoException {
-        List<Factory.Named<Authenticator>> supportedAuthenticators = new ArrayList<>(config.getSupportedAuthenticators());
-        List<ASN1ObjectIdentifier> mechTypes = new ArrayList<>();
-        if (connectionInfo.getGssNegotiateToken().length > 0) {
-            // The response NegTokenInit is a NegTokenInit2 according to MS-SPNG.
-            NegTokenInit negTokenInit = new NegTokenInit2().read(connectionInfo.getGssNegotiateToken());
-            mechTypes = negTokenInit.getSupportedMechTypes();
-        }
-
-        for (Factory.Named<Authenticator> factory : new ArrayList<>(supportedAuthenticators)) {
-            if (mechTypes.isEmpty() || mechTypes.contains(new ASN1ObjectIdentifier(factory.getName()))) {
-                Authenticator authenticator = factory.create();
-                if (authenticator.supports(context)) {
-                    return authenticator;
-                }
-            }
-        }
-
-        throw new SMBRuntimeException("Could not find a configured authenticator for mechtypes: " + mechTypes + " and authentication context: " + context);
+        }).establish(authContext);
     }
 
     /**
@@ -481,5 +397,13 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
                 logger.error("Failed to send {}", cancel);
             }
         }
+    }
+
+    SessionTable getSessionTable() {
+        return sessionTable;
+    }
+
+    SessionTable getPreauthSessionTable() {
+        return preauthSessionTable;
     }
 }
