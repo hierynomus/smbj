@@ -51,6 +51,9 @@ class SMBProtocolNegotiator {
     private final ConnectionInfo connectionInfo;
     private Connection connection;
     private NegotiationContext negotiationContext = new NegotiationContext();
+    // [MS-SMB2].pdf <103> Section 3.2.4.2.2.2: Windows 10, Windows Server 2016, and Windows Server operating
+    // system use 32 bytes of Salt.
+    private static final int SALT_LENGTH = 32;
 
     public SMBProtocolNegotiator(Connection connection) {
         this.connection = connection;
@@ -155,7 +158,9 @@ class SMBProtocolNegotiator {
 
 
     private SMB2NegotiateResponse smb2OnlyNegotiate() throws TransportException {
-        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid(), config.isSigningRequired(), config.getClientCapabilities());
+        byte[] salt = new byte[32];
+        config.getRandomProvider().nextBytes(salt);
+        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid(), config.isSigningRequired(), config.getClientCapabilities(), salt);
         this.negotiationContext.negotiationRequest = negotiatePacket;
         return connection.sendAndReceive(negotiatePacket);
     }
@@ -189,7 +194,7 @@ class SMBProtocolNegotiator {
      * @return
      * @throws Buffer.BufferException
      */
-    private byte[] getPacketBytes(SMBPacket packet) {
+    private byte[] getPacketBytes(SMBPacket<?, ?> packet) {
         SMBBuffer buffer = packet.getBuffer();
         int originalPos = buffer.rpos();
         buffer.rpos(packet.getMessageStartPos());

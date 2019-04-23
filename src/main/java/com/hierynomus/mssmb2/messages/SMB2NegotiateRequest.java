@@ -38,27 +38,24 @@ public class SMB2NegotiateRequest extends SMB2Packet {
 
     /**
      * Request constructor.
-     *
-     * @param dialects
+     *  @param dialects
      * @param clientGuid
+     * @param salt
      */
-    public SMB2NegotiateRequest(Set<SMB2Dialect> dialects, UUID clientGuid, boolean clientSigningRequired, Set<SMB2GlobalCapability> capabilities) {
+    public SMB2NegotiateRequest(Set<SMB2Dialect> dialects, UUID clientGuid, boolean clientSigningRequired, Set<SMB2GlobalCapability> capabilities, byte[] salt) {
         super(36, SMB2Dialect.UNKNOWN, SMB2MessageCommandCode.SMB2_NEGOTIATE, 0, 0);
         this.dialects = dialects;
         this.clientGuid = clientGuid;
         this.clientSigningRequired = clientSigningRequired;
         this.capabilities = capabilities;
-        this.negotiateContextList = buildNegotiateContextList();
+        this.negotiateContextList = buildNegotiateContextList(salt);
     }
 
-    private List<SMB2NegotiateContext> buildNegotiateContextList() {
+    private List<SMB2NegotiateContext> buildNegotiateContextList(byte[] salt) {
         if (dialects.contains(SMB2Dialect.SMB_3_1_1)) {
             List<SMB2NegotiateContext> contexts = new ArrayList<>();
             List<SMB3HashAlgorithm> hashAlgorithmList = Arrays.asList(SMB3HashAlgorithm.SHA_512);
-//            if (this.salt == null) {
-//                this.salt = initializeSalt(SMB2PreauthIntegrityCapabilities.DEFAULT_SALT_LENGTH);
-//            }
-            contexts.add(new SMB2PreauthIntegrityCapabilities(hashAlgorithmList, new byte[0])); // TODO
+            contexts.add(new SMB2PreauthIntegrityCapabilities(hashAlgorithmList, salt));
             // [MS-SMB2].pdf <104> Section 3.2.4.2.2.2: Windows 10, Windows Server 2016, and
             // Windows Server operating system initialize with AES-128-GCM(0x0002)
             // followed by AES-128-CCM(0x0001).
