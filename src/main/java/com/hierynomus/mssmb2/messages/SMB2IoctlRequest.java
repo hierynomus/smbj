@@ -50,7 +50,7 @@ public class SMB2IoctlRequest extends SMB2MultiCreditPacket {
         smbBuffer.putUInt32(controlCode); // CtlCode (4 bytes)
         fileId.write(smbBuffer);  // FileId (16 bytes)
 
-        int offset = SMB2Header.STRUCTURE_SIZE + 56;
+        int offset = SMB2PacketHeader.STRUCTURE_SIZE + 56;
         int inputDataSize = inputData.bytesLeft();
         if (inputDataSize > 0) {
             smbBuffer.putUInt32(offset); // InputOffset (4 bytes)

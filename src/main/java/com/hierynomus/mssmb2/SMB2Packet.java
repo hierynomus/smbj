@@ -22,14 +22,14 @@ import com.hierynomus.smb.SMBPacket;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 
-public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2Header> {
+public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2PacketHeader> {
 
     public static final int SINGLE_CREDIT_PAYLOAD_SIZE = 64 * 1024;
     protected int structureSize;
     private SMB2Error error;
 
     protected SMB2Packet() {
-        super(new SMB2Header());
+        super(new SMB2PacketHeader());
     }
 
     protected SMB2Packet(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType) {
@@ -41,7 +41,7 @@ public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2Header> {
     }
 
     protected SMB2Packet(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType, long sessionId, long treeId) {
-        super(new SMB2Header());
+        super(new SMB2PacketHeader());
         this.structureSize = structureSize;
         header.setDialect(dialect);
         header.setMessageType(messageType);

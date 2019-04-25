@@ -27,10 +27,10 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
  * The SMB2 Header is always present and has a fixed layout. The packet data itself varies based on the {@link SMB2MessageCommandCode} in the header,
  * together with the {@link com.hierynomus.mserref.NtStatus}.
  */
-public class SMB2PacketData extends SMBPacketData<SMB2Header> {
+public class SMB2PacketData extends SMBPacketData<SMB2PacketHeader> {
 
     public SMB2PacketData(byte[] data) throws Buffer.BufferException {
-        super(new SMB2Header(), data);
+        super(new SMB2PacketHeader(), data);
     }
 
     public long getSequenceNumber() {

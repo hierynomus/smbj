@@ -55,6 +55,7 @@ public class Session implements AutoCloseable {
 
     private PacketSignatory packetSignatory;
     private boolean signingRequired;
+    // SMB3.x If set, indicates that all message for this session MUST be encrypted
     private boolean encryptData; // SMB3.x
 
     private Connection connection;
@@ -108,7 +109,9 @@ public class Session implements AutoCloseable {
         } else if (guest) {
             signingRequired = false;
         }
-        if (connection.getNegotiatedProtocol().getDialect().isSmb3x() && setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_ENCRYPT_DATA)) {
+        if (connection.getNegotiatedProtocol().getDialect().isSmb3x()
+            && connection.getConnectionInfo().supportsEncryption()
+            && setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_ENCRYPT_DATA)) {
             encryptData = true;
             signingRequired = false;
         }

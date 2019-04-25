@@ -35,6 +35,9 @@ import com.hierynomus.smbj.auth.AuthenticateResponse;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.connection.packet.IncomingPacketHandler;
+import com.hierynomus.smbj.connection.packet.SMB1PacketHandler;
+import com.hierynomus.smbj.connection.packet.SMB2PacketHandler;
 import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
@@ -49,10 +52,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -242,8 +242,11 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
 
     @Override
     public void handle(SMBPacketData uncheckedPacket) throws TransportException {
-        if (!(uncheckedPacket instanceof SMB2PacketData)) {
-            throw new SMB1NotSupportedException();
+        List<IncomingPacketHandler> handlers = Arrays.asList(new SMB2PacketHandler(), new SMB1PacketHandler());
+        for (IncomingPacketHandler handler : handlers) {
+            if (handler.canHandle(uncheckedPacket)) {
+                handler.handle(uncheckedPacket);
+            }
         }
 
         SMB2PacketData packetData = (SMB2PacketData) uncheckedPacket;

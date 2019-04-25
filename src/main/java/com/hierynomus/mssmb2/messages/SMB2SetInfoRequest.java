@@ -56,7 +56,7 @@ public class SMB2SetInfoRequest extends SMB2Packet {
         smbBuffer.putUInt16(structureSize); // StructureSize (2 bytes)
         smbBuffer.putByte((byte) infoType.getValue()); // InfoType (1 byte)
         smbBuffer.putByte(fileInfoClass == null ? 0 : (byte) fileInfoClass.getValue()); // FileInfoClass (1 byte)
-        int offset = SMB2Header.STRUCTURE_SIZE + 32;
+        int offset = SMB2PacketHeader.STRUCTURE_SIZE + 32;
         smbBuffer.putUInt32(buffer.length); // BufferLength (4 bytes)
         smbBuffer.putUInt16(offset); // BufferOffset (2 bytes)
         smbBuffer.putReserved2(); // Reserved (2 bytes)

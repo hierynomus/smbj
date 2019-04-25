@@ -38,7 +38,7 @@ public class SMB2WriteRequest extends SMB2MultiCreditPacket {
     @Override
     protected void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(structureSize); // StructureSize (2 bytes)
-        short dataOffset = SMB2Header.STRUCTURE_SIZE + 48;
+        short dataOffset = SMB2PacketHeader.STRUCTURE_SIZE + 48;
         buffer.putUInt16(dataOffset); // DataOffSet (2 bytes)
         buffer.putUInt32(getPayloadSize()); // Length (4 bytes)
         buffer.putUInt64(byteProvider.getOffset()); // Offset (8 bytes)

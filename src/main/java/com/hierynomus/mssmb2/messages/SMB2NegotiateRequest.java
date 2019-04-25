@@ -118,7 +118,7 @@ public class SMB2NegotiateRequest extends SMB2Packet {
     private void putNegotiateContextOrStartTime(SMBBuffer buffer) {
         if (dialects.contains(SMB2Dialect.SMB_3_1_1)) {
             int trueEightByteAlignment = 8 - ((structureSize + dialects.size() * 2) % 8);
-            long negotiateContextOffset = SMB2Header.STRUCTURE_SIZE + structureSize + dialects.size() * 2 + trueEightByteAlignment;
+            long negotiateContextOffset = SMB2PacketHeader.STRUCTURE_SIZE + structureSize + dialects.size() * 2 + trueEightByteAlignment;
             buffer.putUInt32(negotiateContextOffset); // NegotiateContextOffset (4 bytes)
             buffer.putUInt16(negotiateContextList.size()); // NegotiateContextCount (2 bytes)
             buffer.putReserved2(); // Reserved2 (2 bytes)

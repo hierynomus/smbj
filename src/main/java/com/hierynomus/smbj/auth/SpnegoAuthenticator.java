@@ -15,10 +15,9 @@
  */
 package com.hierynomus.smbj.auth;
 
-import com.hierynomus.mssmb2.SMB2Header;
+import com.hierynomus.mssmb2.SMB2PacketHeader;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.transport.TransportException;
-import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smbj.GSSContextConfig;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.session.Session;
@@ -32,7 +31,6 @@ import java.security.Key;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
-import java.util.Random;
 
 
 public class SpnegoAuthenticator implements Authenticator {
@@ -116,12 +114,12 @@ public class SpnegoAuthenticator implements Authenticator {
      */
     private byte[] adjustSessionKeyLength(byte[] key) {
         byte[] newKey;
-        if (key.length > SMB2Header.SIGNATURE_SIZE) {
-            newKey = Arrays.copyOfRange(key, 0, SMB2Header.SIGNATURE_SIZE);
-        } else if (key.length < SMB2Header.SIGNATURE_SIZE) {
+        if (key.length > SMB2PacketHeader.SIGNATURE_SIZE) {
+            newKey = Arrays.copyOfRange(key, 0, SMB2PacketHeader.SIGNATURE_SIZE);
+        } else if (key.length < SMB2PacketHeader.SIGNATURE_SIZE) {
             newKey = new byte[16];
             System.arraycopy(key, 0, newKey, 0, key.length);
-            Arrays.fill(newKey, key.length, SMB2Header.SIGNATURE_SIZE - 1, (byte) 0);
+            Arrays.fill(newKey, key.length, SMB2PacketHeader.SIGNATURE_SIZE - 1, (byte) 0);
         } else {
             newKey = key;
         }

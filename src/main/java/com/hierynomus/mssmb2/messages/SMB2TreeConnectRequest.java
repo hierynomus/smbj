@@ -16,7 +16,7 @@
 package com.hierynomus.mssmb2.messages;
 
 import com.hierynomus.mssmb2.SMB2Dialect;
-import com.hierynomus.mssmb2.SMB2Header;
+import com.hierynomus.mssmb2.SMB2PacketHeader;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.smb.SMBBuffer;
@@ -41,7 +41,7 @@ public class SMB2TreeConnectRequest extends SMB2Packet {
     protected void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         putFlags(buffer); // Flags (2 bytes)
-        buffer.putUInt16(SMB2Header.STRUCTURE_SIZE + 8); // PathOffset (2 bytes) (header structure size + msg structure size)
+        buffer.putUInt16(SMB2PacketHeader.STRUCTURE_SIZE + 8); // PathOffset (2 bytes) (header structure size + msg structure size)
         String pathString = smbPath.toString();
         buffer.putStringLengthUInt16(pathString); // PathLength (2 bytes)
         buffer.putString(pathString); // Buffer (variable)

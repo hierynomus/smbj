@@ -16,7 +16,7 @@
 package com.hierynomus.smbj.session;
 
 import com.hierynomus.mssmb2.SMB2Dialect;
-import com.hierynomus.mssmb2.SMB2Header;
+import com.hierynomus.mssmb2.SMB2PacketHeader;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.security.SecurityException;
@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 
-import static com.hierynomus.mssmb2.SMB2Header.*;
+import static com.hierynomus.mssmb2.SMB2PacketHeader.*;
 import static com.hierynomus.mssmb2.SMB2MessageFlag.SMB2_FLAGS_SIGNED;
 
 public class PacketSignatory {
@@ -160,7 +160,7 @@ public class PacketSignatory {
         }
 
         @Override
-        public SMB2Header getHeader() {
+        public SMB2PacketHeader getHeader() {
             return wrappedPacket.getHeader();
         }
 
