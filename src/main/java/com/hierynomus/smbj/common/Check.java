@@ -23,4 +23,10 @@ public class Check {
             throw new IllegalArgumentException(errorMessage);
         }
     }
+
+    public static void ensure(boolean condition, String errorMessage) {
+        if (!condition) {
+            throw new IllegalStateException(errorMessage);
+        }
+    }
 }
