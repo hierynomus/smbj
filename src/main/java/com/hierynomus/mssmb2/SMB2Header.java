@@ -42,7 +42,7 @@ public class SMB2Header implements SMBHeader {
     private long treeId;
     private long statusCode;
     private long flags;
-    private long nextCommandOffset; // TODO Message Compounding
+    private int nextCommandOffset; // TODO Message Compounding
     private byte[] signature;
     // We need to keep track of where the header is in the buffer, for both signature verification as well as compounding.
     private int headerStartPosition;
@@ -171,7 +171,7 @@ public class SMB2Header implements SMBHeader {
         message = SMB2MessageCommandCode.lookup(buffer.readUInt16()); // Command (2 bytes)
         creditResponse = buffer.readUInt16(); // CreditRequest/CreditResponse (2 bytes)
         flags = buffer.readUInt32(); // Flags (4 bytes)
-        nextCommandOffset = buffer.readUInt32(); // NextCommand (4 bytes)
+        nextCommandOffset = buffer.readUInt32AsInt(); // NextCommand (4 bytes)
         messageId = buffer.readLong(); // MessageId (4 bytes)
         if (isSet(flags, SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND)) {
             asyncId = buffer.readLong();
@@ -199,11 +199,11 @@ public class SMB2Header implements SMBHeader {
         this.flags = flags;
     }
 
-    public long getNextCommandOffset() {
+    public int getNextCommandOffset() {
         return nextCommandOffset;
     }
 
-    public void setNextCommandOffset(long nextCommandOffset) {
+    public void setNextCommandOffset(int nextCommandOffset) {
         this.nextCommandOffset = nextCommandOffset;
     }
 
