@@ -13,20 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.connection.packet;
+package com.hierynomus.mssmb2;
 
-import com.hierynomus.protocol.PacketData;
-import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.smb.SMBHeader;
 import com.hierynomus.smb.SMBPacketData;
 
-public interface IncomingPacketHandler {
-
-    void handle(SMBPacketData<?> packetData) throws TransportException;
-
-    /**
-     * Adds the given IncomingPacketHandler to the handling chain, and returns it, so that this call can be chained.
-     * @param handler
-     * @return The handler that was added to the chain
-     */
-    IncomingPacketHandler setNext(IncomingPacketHandler handler);
+/**
+ * Ignore this packet...
+ */
+public class DeadLetterPacketData extends SMBPacketData<SMBHeader> {
+    public DeadLetterPacketData(SMBHeader header) {
+        super(header);
+    }
 }

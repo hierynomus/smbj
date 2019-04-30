@@ -16,27 +16,11 @@
 package com.hierynomus.mssmb2;
 
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smb.SMBBuffer;
-import com.hierynomus.smb.SMBHeader;
+import com.hierynomus.smb.SMBPacketData;
 
-public class SMB3EncryptedPacketHeader implements SMBHeader {
-    @Override
-    public void writeTo(SMBBuffer buffer) {
-
+public class SMB3CompressedPacketData extends SMBPacketData<SMB2CompressionTransformHeader> {
+    public SMB3CompressedPacketData(byte[] data) throws Buffer.BufferException {
+        super(new SMB2CompressionTransformHeader(), data);
     }
 
-    @Override
-    public void readFrom(Buffer<?> buffer) throws Buffer.BufferException {
-
-    }
-
-    @Override
-    public int getHeaderStartPosition() {
-        return 0;
-    }
-
-    @Override
-    public int getMessageEndPosition() {
-        return 0;
-    }
 }

@@ -15,7 +15,7 @@
  */
 package com.hierynomus.smbj.connection.packet;
 
-import com.hierynomus.mssmb2.SMB2DeadLetterPacketData;
+import com.hierynomus.mssmb2.DeadLetterPacketData;
 import com.hierynomus.mssmb2.SMB2PacketData;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.connection.OutstandingRequests;
@@ -49,7 +49,7 @@ public class SMB2IsOutstandingPacketHandler extends SMB2PacketHandler {
 
         if (!outstandingRequests.isOutstanding(messageId) && !packetData.isOplockBreakNotification()) {
             logger.error("Received response with unknown sequence number << {} >>", messageId);
-            next.handle(new SMB2DeadLetterPacketData(packetData.getHeader()));
+            next.handle(new DeadLetterPacketData(packetData.getHeader()));
         } else {
             next.handle(packetData);
         }

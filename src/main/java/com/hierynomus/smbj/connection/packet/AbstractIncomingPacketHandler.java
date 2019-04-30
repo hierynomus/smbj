@@ -15,14 +15,14 @@
  */
 package com.hierynomus.smbj.connection.packet;
 
-import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.smb.SMBPacketData;
 
 public abstract class AbstractIncomingPacketHandler implements IncomingPacketHandler {
     protected IncomingPacketHandler next;
 
     @Override
-    public void handle(PacketData<?> packetData) throws TransportException {
+    public void handle(SMBPacketData<?> packetData) throws TransportException {
         if (canHandle(packetData)) {
             doHandle(packetData);
         } else {
@@ -36,7 +36,7 @@ public abstract class AbstractIncomingPacketHandler implements IncomingPacketHan
         return this;
     }
 
-    protected abstract boolean canHandle(PacketData<?> packetData);
+    protected abstract boolean canHandle(SMBPacketData<?> packetData);
 
-    protected abstract void doHandle(PacketData<?> packetData) throws TransportException;
+    protected abstract void doHandle(SMBPacketData<?> packetData) throws TransportException;
 }

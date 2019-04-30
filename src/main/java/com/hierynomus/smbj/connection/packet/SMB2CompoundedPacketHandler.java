@@ -16,9 +16,9 @@
 package com.hierynomus.smbj.connection.packet;
 
 import com.hierynomus.mssmb2.SMB2PacketData;
-import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.smb.SMBPacketData;
 
 /**
  * [MS-SMB2] 3.2.5.1.9 Handling Compounded Responses
@@ -36,7 +36,7 @@ import com.hierynomus.protocol.transport.TransportException;
  */
 public class SMB2CompoundedPacketHandler extends SMB2PacketHandler {
     @Override
-    public boolean canHandle(PacketData<?> packetData) {
+    public boolean canHandle(SMBPacketData<?> packetData) {
         return super.canHandle(packetData) && ((SMB2PacketData) packetData).isCompounded();
     }
 

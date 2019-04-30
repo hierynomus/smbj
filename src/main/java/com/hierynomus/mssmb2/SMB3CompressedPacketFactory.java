@@ -16,13 +16,18 @@
 package com.hierynomus.mssmb2;
 
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smb.SMBPacketData;
+import com.hierynomus.protocol.transport.PacketFactory;
 
-/**
- * Ignore this packet...
- */
-public class SMB2DeadLetterPacketData extends SMBPacketData<SMB2PacketHeader> {
-    public SMB2DeadLetterPacketData(SMB2PacketHeader header) {
-        super(header);
+import java.io.IOException;
+
+public class SMB3CompressedPacketFactory implements PacketFactory<SMB3CompressedPacketData> {
+    @Override
+    public SMB3CompressedPacketData read(byte[] data) throws Buffer.BufferException, IOException {
+        return new SMB3CompressedPacketData(data);
+    }
+
+    @Override
+    public boolean canHandle(byte[] data) {
+        return data[0] == (byte) 0xFC && data[1] == 'S' && data[2] == 'M' && data[3] == 'B';
     }
 }

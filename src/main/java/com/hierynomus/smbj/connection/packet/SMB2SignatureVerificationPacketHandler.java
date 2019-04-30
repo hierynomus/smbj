@@ -15,8 +15,7 @@
  */
 package com.hierynomus.smbj.connection.packet;
 
-import com.hierynomus.mssmb2.SMB2DeadLetterPacketData;
-import com.hierynomus.mssmb2.SMB2MessageCommandCode;
+import com.hierynomus.mssmb2.DeadLetterPacketData;
 import com.hierynomus.mssmb2.SMB2PacketData;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.connection.PacketSignatory;
@@ -68,12 +67,10 @@ import static com.hierynomus.mssmb2.SMB2MessageFlag.SMB2_FLAGS_SIGNED;
 public class SMB2SignatureVerificationPacketHandler extends SMB2PacketHandler {
     private static final Logger logger = LoggerFactory.getLogger(SMB2SignatureVerificationPacketHandler.class);
     private SessionTable sessionTable;
-//    private SessionTable preauthSessionTable;
     private PacketSignatory signatory;
 
-    public SMB2SignatureVerificationPacketHandler(SessionTable sessionTable, /*SessionTable preauthSessionTable, */PacketSignatory signatory) {
+    public SMB2SignatureVerificationPacketHandler(SessionTable sessionTable, PacketSignatory signatory) {
         this.sessionTable = sessionTable;
-//        this.preauthSessionTable = preauthSessionTable;
         this.signatory = signatory;
     }
 
@@ -93,13 +90,10 @@ public class SMB2SignatureVerificationPacketHandler extends SMB2PacketHandler {
                 return;
             }
             Session session = sessionTable.find(sessionId);
-//            if (session == null) {
-//                session = preauthSessionTable.find(sessionId);
-//            }
 
             if (session == null) {
                 logger.error("Could not find session << {} >> for packet {}.", sessionId, packetData);
-                next.handle(new SMB2DeadLetterPacketData(packetData.getHeader()));
+                next.handle(new DeadLetterPacketData(packetData.getHeader()));
                 return;
             }
 
@@ -107,18 +101,22 @@ public class SMB2SignatureVerificationPacketHandler extends SMB2PacketHandler {
                 logger.debug("Signature for packet {} verified.", packetData);
                 next.handle(packetData);
                 return;
+            } else {
+                logger.warn("Invalid packet signature for packet {}", packetData);
+                next.handle(new DeadLetterPacketData(packetData.getHeader()));
+                return;
             }
         }
 
         if (!packetData.getHeader().isFlagSet(SMB2_FLAGS_SIGNED)) {
             if (packetData.isIntermediateAsyncResponse() || packetData.isOplockBreakNotification()) {
-                 // ok
+                // ok
             } else {
                 long sessionId = packetData.getHeader().getSessionId();
                 Session session = sessionTable.find(sessionId);
                 if (session != null && session.isSigningRequired()) {
                     logger.warn("Illegal request, session requires message signing, but packet {} is not signed.", packetData);
-                    next.handle(new SMB2DeadLetterPacketData(packetData.getHeader()));
+                    next.handle(new DeadLetterPacketData(packetData.getHeader()));
                     return;
                 }
             }

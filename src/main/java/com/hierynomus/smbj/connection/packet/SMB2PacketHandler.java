@@ -16,19 +16,18 @@
 package com.hierynomus.smbj.connection.packet;
 
 
-import com.hierynomus.mssmb.SMB1NotSupportedException;
 import com.hierynomus.mssmb2.SMB2PacketData;
-import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.smb.SMBPacketData;
 
 public abstract class SMB2PacketHandler extends AbstractIncomingPacketHandler {
     @Override
-    public boolean canHandle(PacketData<?> packetData) {
+    public boolean canHandle(SMBPacketData<?> packetData) {
         return packetData instanceof SMB2PacketData;
     }
 
     @Override
-    protected void doHandle(PacketData<?> packetData) throws TransportException {
+    protected void doHandle(SMBPacketData<?> packetData) throws TransportException {
         doSMB2Handle((SMB2PacketData) packetData);
     }
 

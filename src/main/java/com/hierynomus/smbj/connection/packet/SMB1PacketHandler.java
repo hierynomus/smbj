@@ -17,17 +17,17 @@ package com.hierynomus.smbj.connection.packet;
 
 import com.hierynomus.mssmb.SMB1NotSupportedException;
 import com.hierynomus.mssmb.SMB1PacketData;
-import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.smb.SMBPacketData;
 
 public class SMB1PacketHandler extends AbstractIncomingPacketHandler {
     @Override
-    public boolean canHandle(PacketData<?> packetData) {
+    public boolean canHandle(SMBPacketData<?> packetData) {
         return packetData instanceof SMB1PacketData;
     }
 
     @Override
-    protected void doHandle(PacketData<?> packetData) throws TransportException {
+    protected void doHandle(SMBPacketData<?> packetData) throws TransportException {
         throw new SMB1NotSupportedException();
     }
 
