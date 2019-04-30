@@ -72,11 +72,11 @@ public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2PacketHeader> {
         this.buffer = buffer; // Keep track of the buffer
         header.writeTo(buffer);
         writeTo(buffer);
-        this.messageEndPos = buffer.wpos();
+        header.setMessageEndPosition(buffer.wpos());
     }
 
     /**
-     * Write the message fields into the buffer, as specified in the [MS-SMB2].pdf specification.
+     * Write the message fields into the buffer, as specified in the [MS-SMB2] specification.
      *
      * @param buffer
      */
@@ -88,24 +88,14 @@ public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2PacketHeader> {
         this.buffer = packetData.getDataBuffer(); // remember the buffer we read it from
         this.header = packetData.getHeader();
         readMessage(buffer);
-        this.messageEndPos = buffer.rpos();
+        buffer.rpos(this.header.getMessageEndPosition());
     }
 
     final void readError(SMB2PacketData packetData) throws Buffer.BufferException {
         this.buffer = packetData.getDataBuffer(); // remember the buffer we read it from
         this.header = packetData.getHeader();
         this.error = new SMB2Error().read(header, buffer);
-        if (this.header.getNextCommandOffset() != 0L) {
-            // This packet was Compounded, It's end position (including padding is determined by the NextCommandOffset
-            this.messageEndPos = this.header.getHeaderStartPosition() + this.header.getNextCommandOffset();
-        } else {
-            // Else the message end position is determined by the packet size (which is the write position of the buffer)
-            this.messageEndPos = buffer.wpos();
-        }
-        Check.ensure(this.messageEndPos >= buffer.rpos(), "The message end position should be at or beyond the buffer read position");
-        // Set the buffer's rpos to the end position of the message. In case of Compounding the buffer is then ready to read
-        // the next packet.
-        buffer.rpos(this.messageEndPos);
+        buffer.rpos(this.header.getMessageEndPosition());
     }
 
     /**

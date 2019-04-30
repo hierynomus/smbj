@@ -29,7 +29,6 @@ public class SMB1Packet extends SMBPacket<SMB1PacketData, SMB1Header> {
         this.buffer = buffer;
         header.writeTo(buffer);
         writeTo(buffer);
-        this.messageEndPos = buffer.wpos();
     }
 
 

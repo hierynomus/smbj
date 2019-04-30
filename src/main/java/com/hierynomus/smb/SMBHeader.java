@@ -23,4 +23,6 @@ public interface SMBHeader {
     void readFrom(Buffer<?> buffer) throws Buffer.BufferException;
 
     int getHeaderStartPosition();
+
+    int getMessageEndPosition();
 }

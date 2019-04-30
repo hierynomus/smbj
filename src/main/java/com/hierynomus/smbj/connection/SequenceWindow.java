@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * [MS-SMB2].pdf 3.2.4.1.6 Algorithm for Handling Available Message Sequence Numbers by the Client.
+ * [MS-SMB2] 3.2.4.1.6 Algorithm for Handling Available Message Sequence Numbers by the Client.
  * <p/>
  * The client MUST implement an algorithm to manage message sequence numbers.
  * <p/>
@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * <li>For a multi-credit request as specified in section 3.2.4.1.5, the client MUST use the lowest available range of consecutive sequence numbers.</li>
  * </ul>
  */
-class SequenceWindow {
+public class SequenceWindow {
     static final int PREFERRED_MINIMUM_CREDITS = 512;
     private AtomicLong lowestAvailable = new AtomicLong(0);
     private Semaphore available = new Semaphore(1);
@@ -63,11 +63,11 @@ class SequenceWindow {
         this.available = new NoopSemaphore();
     }
 
-    int available() {
+    public int available() {
         return available.availablePermits();
     }
 
-    void creditsGranted(int credits) {
+    public void creditsGranted(int credits) {
         available.release(credits);
     }
 

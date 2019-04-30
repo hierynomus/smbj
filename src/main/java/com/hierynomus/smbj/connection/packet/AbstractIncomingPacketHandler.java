@@ -15,20 +15,28 @@
  */
 package com.hierynomus.smbj.connection.packet;
 
-import com.hierynomus.mssmb.SMB1NotSupportedException;
-import com.hierynomus.mssmb.SMB1PacketData;
 import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.transport.TransportException;
 
-public class SMB1PacketHandler extends AbstractIncomingPacketHandler {
+public abstract class AbstractIncomingPacketHandler implements IncomingPacketHandler {
+    protected IncomingPacketHandler next;
+
     @Override
-    public boolean canHandle(PacketData<?> packetData) {
-        return packetData instanceof SMB1PacketData;
+    public void handle(PacketData<?> packetData) throws TransportException {
+        if (canHandle(packetData)) {
+            doHandle(packetData);
+        } else {
+            next.handle(packetData);
+        }
     }
 
     @Override
-    protected void doHandle(PacketData<?> packetData) throws TransportException {
-        throw new SMB1NotSupportedException();
+    public IncomingPacketHandler setNext(IncomingPacketHandler handler) {
+        this.next = handler;
+        return this;
     }
 
+    protected abstract boolean canHandle(PacketData<?> packetData);
+
+    protected abstract void doHandle(PacketData<?> packetData) throws TransportException;
 }

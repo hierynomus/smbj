@@ -23,7 +23,7 @@ import com.hierynomus.smbj.common.Check;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 
 /**
- * [MS-SMB2].pdf 2.2.1 SMB2 Packet Header
+ * [MS-SMB2] 2.2.1 SMB2 Packet Header
  */
 public class SMB2PacketHeader implements SMBHeader {
     public static final byte[] EMPTY_SIGNATURE = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
@@ -46,6 +46,7 @@ public class SMB2PacketHeader implements SMBHeader {
     private byte[] signature;
     // We need to keep track of where the header is in the buffer, for both signature verification as well as compounding.
     private int headerStartPosition;
+    private int messageEndPosition;
 
     @Override
     public void writeTo(SMBBuffer buffer) {
@@ -79,7 +80,7 @@ public class SMB2PacketHeader implements SMBHeader {
     }
 
     /**
-     * [MS-SMB2].pdf 3.2.4.1.2 Requesting Credits from the Server
+     * [MS-SMB2] 3.2.4.1.2 Requesting Credits from the Server
      * <p>
      * We should at least request the number of credits this request consumes, but we can request more (by calling {@link #setCreditRequest(int)}).
      */
@@ -180,6 +181,14 @@ public class SMB2PacketHeader implements SMBHeader {
         }
         sessionId = buffer.readLong(); // SessionId (8 bytes)
         signature = buffer.readRawBytes(16); // Signature (16 bytes)
+
+        if (nextCommandOffset != 0L) {
+            // This packet was Compounded, It's end position (including padding is determined by the NextCommandOffset
+            this.messageEndPosition = headerStartPosition + nextCommandOffset;
+        } else {
+            // Else the message end position is determined by the packet size (which is the write position of the buffer)
+            this.messageEndPosition = buffer.wpos();
+        }
     }
 
     public void setStatusCode(long statusCode) {
@@ -238,5 +247,13 @@ public class SMB2PacketHeader implements SMBHeader {
 
     public int getHeaderStartPosition() {
         return headerStartPosition;
+    }
+
+    public int getMessageEndPosition() {
+        return messageEndPosition;
+    }
+
+    public void setMessageEndPosition(int messageEndPosition) {
+        this.messageEndPosition = messageEndPosition;
     }
 }

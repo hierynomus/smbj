@@ -23,12 +23,12 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-class OutstandingRequests {
+public class OutstandingRequests {
     private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private Map<Long, Request> lookup = new HashMap<>();
     private Map<UUID, Request> cancelLookup = new HashMap<>();
 
-    boolean isOutstanding(Long messageId) {
+    public boolean isOutstanding(Long messageId) {
         lock.readLock().lock();
         try {
             return lookup.containsKey(messageId);
@@ -37,7 +37,7 @@ class OutstandingRequests {
         }
     }
 
-    Request getRequestByMessageId(Long messageId) {
+    public Request getRequestByMessageId(Long messageId) {
         lock.readLock().lock();
         try {
             return lookup.get(messageId);
@@ -55,7 +55,7 @@ class OutstandingRequests {
         }
     }
 
-    Request receivedResponseFor(Long messageId) {
+    public Request receivedResponseFor(Long messageId) {
         lock.writeLock().lock();
         try {
             Request r = lookup.remove(messageId);

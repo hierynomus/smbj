@@ -15,20 +15,21 @@
  */
 package com.hierynomus.smbj.connection.packet;
 
-import com.hierynomus.mssmb.SMB1NotSupportedException;
-import com.hierynomus.mssmb.SMB1PacketData;
+import com.hierynomus.mssmb2.SMB2PacketData;
 import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.transport.TransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class SMB1PacketHandler extends AbstractIncomingPacketHandler {
+public class DeadLetterPacketHandler extends AbstractIncomingPacketHandler {
+    private static final Logger logger = LoggerFactory.getLogger(DeadLetterPacketHandler.class);
     @Override
-    public boolean canHandle(PacketData<?> packetData) {
-        return packetData instanceof SMB1PacketData;
+    protected boolean canHandle(PacketData<?> packetData) {
+        return true;
     }
 
     @Override
     protected void doHandle(PacketData<?> packetData) throws TransportException {
-        throw new SMB1NotSupportedException();
+        logger.warn("Packet << {} >> ended up in dead letters", packetData);
     }
-
 }

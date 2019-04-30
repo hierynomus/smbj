@@ -26,6 +26,7 @@ import com.hierynomus.smb.SMBHeader;
  */
 public class SMB1Header implements SMBHeader {
     private int headerStartPosition;
+    private int messageEndPosition;
 
     @Override
     public void writeTo(SMBBuffer buffer) {
@@ -52,5 +53,14 @@ public class SMB1Header implements SMBHeader {
     @Override
     public int getHeaderStartPosition() {
         return headerStartPosition;
+    }
+
+    @Override
+    public int getMessageEndPosition() {
+        return messageEndPosition;
+    }
+
+    public void setMessageEndPosition(int messageEndPosition) {
+        this.messageEndPosition = messageEndPosition;
     }
 }

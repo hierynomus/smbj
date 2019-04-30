@@ -21,7 +21,6 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 public abstract class SMBPacket<D extends SMBPacketData<H>, H extends SMBHeader> implements Packet<SMBBuffer> {
     protected H header;
     protected SMBBuffer buffer;
-    protected int messageEndPos;
 
     public SMBPacket(H header) {
         this.header = header;
@@ -36,26 +35,6 @@ public abstract class SMBPacket<D extends SMBPacketData<H>, H extends SMBHeader>
     @Override
     public final void read(SMBBuffer buffer) throws Buffer.BufferException {
         throw new UnsupportedOperationException("Call read(D extends PacketData<H>) instead of this method");
-    }
-
-    /**
-     * The start position of this packet in the {@link #getBuffer()}. Normally this is 0, except
-     * when this packet was compounded.
-     *
-     * @return The start position of this received packet in the buffer
-     */
-    public int getMessageStartPos() {
-        return header.getHeaderStartPosition();
-    }
-
-    /**
-     * THe end position of this packet in the {@link #getBuffer()}. Normally this is the last written position,
-     * except when this packet was compounded.
-     *
-     * @return The end position of this received packet in the buffer
-     */
-    public int getMessageEndPos() {
-        return messageEndPos;
     }
 
     public SMBBuffer getBuffer() {

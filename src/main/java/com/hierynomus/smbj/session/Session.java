@@ -23,11 +23,11 @@ import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.*;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.TransportException;
-import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.connection.PacketSignatory;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.event.TreeDisconnected;
@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -53,7 +54,7 @@ public class Session implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(Session.class);
     private long sessionId;
 
-    private PacketSignatory packetSignatory;
+    //    private PacketSignatory packetSignatory;
     private boolean signingRequired;
     // SMB3.x If set, indicates that all message for this session MUST be encrypted
     private boolean encryptData; // SMB3.x
@@ -61,19 +62,21 @@ public class Session implements AutoCloseable {
     private Connection connection;
     private SMBEventBus bus;
     private final PathResolver pathResolver;
+    private PacketSignatory signatory;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
     private List<Session> nestedSessions = new ArrayList<>();
     private AuthenticationContext userCredentials;
 
     private boolean guest;
     private boolean anonymous;
+    private byte[] signingKey;
 
-    public Session(Connection connection, AuthenticationContext userCredentials, SMBEventBus bus, PathResolver pathResolver, SecurityProvider securityProvider) {
+    public Session(Connection connection, AuthenticationContext userCredentials, SMBEventBus bus, PathResolver pathResolver, PacketSignatory signatory) {
         this.connection = connection;
         this.userCredentials = userCredentials;
         this.bus = bus;
         this.pathResolver = pathResolver;
-        this.packetSignatory = new PacketSignatory(connection.getNegotiatedProtocol().getDialect(), securityProvider);
+        this.signatory = signatory;
         if (bus != null) {
             bus.subscribe(this);
         }
@@ -84,12 +87,13 @@ public class Session implements AutoCloseable {
         this.anonymous = setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_NULL);
         validateAndSetSigning(setup);
         if (guest || anonymous) {
-            packetSignatory.init(null); // De-initialize the signatory if it was initialized with a bogus key during the auth
+            this.signingKey = null;// De-initialize the signingKey if it was initialized with a bogus key during the auth
         }
     }
 
     /**
      * [MS-SMB2] 3.2.5.3.1 Handling a New Authentication
+     *
      * @param setup
      */
     private void validateAndSetSigning(SMB2SessionSetup setup) {
@@ -128,9 +132,9 @@ public class Session implements AutoCloseable {
     /**
      * Connect to a share on the remote machine over the authenticated session.
      * <p/>
-     * [MS-SMB2].pdf 3.2.4.2 Application Requests a Connection to a Share
-     * [MS-SMB2].pdf 3.2.4.2.4 Connecting to the Share
-     * [MS-SMB2].pdf 3.2.5.5 Receiving an SMB2 TREE_CONNECT Response
+     * [MS-SMB2] 3.2.4.2 Application Requests a Connection to a Share
+     * [MS-SMB2] 3.2.4.2.4 Connecting to the Share
+     * [MS-SMB2] 3.2.5.5 Receiving an SMB2 TREE_CONNECT Response
      *
      * @param shareName The name of the share to connect to.
      * @return the handle to the connected share.
@@ -262,7 +266,7 @@ public class Session implements AutoCloseable {
     }
 
     public void setSigningKey(byte[] signingKeyBytes) {
-        packetSignatory.init(signingKeyBytes);
+        this.signingKey = Arrays.copyOf(signingKeyBytes, signingKeyBytes.length);
     }
 
     @Override
@@ -282,10 +286,10 @@ public class Session implements AutoCloseable {
      * @throws TransportException
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
-        if (signingRequired && !packetSignatory.isInitialized()) {
+        if (signingRequired && signingKey == null) {
             throw new TransportException("Message signing is required, but no signing key is negotiated");
         }
-        return connection.send(packetSignatory.sign(packet));
+        return connection.send(signatory.sign(packet, this.signingKey));
     }
 
     public <T extends SMB2Packet> T processSendResponse(SMB2CreateRequest packet) throws TransportException {
@@ -293,11 +297,11 @@ public class Session implements AutoCloseable {
         return Futures.get(responseFuture, SMBRuntimeException.Wrapper);
     }
 
-    public AuthenticationContext getAuthenticationContext() {
-        return userCredentials;
+    public byte[] getSigningKey() {
+        return signingKey;
     }
 
-    public PacketSignatory getPacketSignatory() {
-        return packetSignatory;
+    public AuthenticationContext getAuthenticationContext() {
+        return userCredentials;
     }
 }

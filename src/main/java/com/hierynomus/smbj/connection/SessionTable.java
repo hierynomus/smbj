@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
-class SessionTable {
+public class SessionTable {
     private ReentrantLock lock = new ReentrantLock();
     private Map<Long, Session> lookup = new HashMap<>();
 
@@ -36,7 +36,7 @@ class SessionTable {
         }
     }
 
-    Session find(Long id) {
+    public Session find(Long id) {
         lock.lock();
         try {
             return lookup.get(id);

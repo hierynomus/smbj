@@ -51,7 +51,7 @@ class SMBProtocolNegotiator {
     private final ConnectionInfo connectionInfo;
     private Connection connection;
     private NegotiationContext negotiationContext = new NegotiationContext();
-    // [MS-SMB2].pdf <103> Section 3.2.4.2.2.2: Windows 10, Windows Server 2016, and Windows Server operating
+    // [MS-SMB2] <103> Section 3.2.4.2.2.2: Windows 10, Windows Server 2016, and Windows Server operating
     // system use 32 bytes of Salt.
     private static final int SALT_LENGTH = 32;
 
@@ -197,8 +197,8 @@ class SMBProtocolNegotiator {
     private byte[] getPacketBytes(SMBPacket<?, ?> packet) {
         SMBBuffer buffer = packet.getBuffer();
         int originalPos = buffer.rpos();
-        buffer.rpos(packet.getMessageStartPos());
-        byte[] packetBytes = new byte[packet.getMessageEndPos() - packet.getMessageStartPos()]; // Allocate large enough byte[] for message
+        buffer.rpos(packet.getHeader().getHeaderStartPosition());
+        byte[] packetBytes = new byte[packet.getHeader().getMessageEndPosition() - packet.getHeader().getHeaderStartPosition()]; // Allocate large enough byte[] for message
         try {
             buffer.readRawBytes(packetBytes);
         } catch (Buffer.BufferException be) {

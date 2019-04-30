@@ -15,14 +15,12 @@
  */
 package com.hierynomus.smbj.connection;
 
-import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
-import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb.SMB1PacketFactory;
-import com.hierynomus.mssmb.SMB1NotSupportedException;
-import com.hierynomus.mssmb2.*;
+import com.hierynomus.mssmb2.SMB2GlobalCapability;
+import com.hierynomus.mssmb2.SMB2MessageConverter;
+import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.SMB2PacketFactory;
 import com.hierynomus.mssmb2.messages.SMB2CancelRequest;
-import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
-import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
 import com.hierynomus.protocol.commons.concurrent.Futures;
@@ -31,20 +29,12 @@ import com.hierynomus.smb.SMBPacket;
 import com.hierynomus.smb.SMBPacketData;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
-import com.hierynomus.smbj.auth.AuthenticateResponse;
 import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.auth.Authenticator;
-import com.hierynomus.smbj.common.SMBRuntimeException;
-import com.hierynomus.smbj.connection.packet.IncomingPacketHandler;
-import com.hierynomus.smbj.connection.packet.SMB1PacketHandler;
-import com.hierynomus.smbj.connection.packet.SMB2PacketHandler;
+import com.hierynomus.smbj.connection.packet.*;
 import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.session.Session;
-import com.hierynomus.spnego.NegTokenInit;
-import com.hierynomus.spnego.NegTokenInit2;
-import com.hierynomus.spnego.SpnegoException;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,13 +42,12 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.*;
+import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static com.hierynomus.mssmb2.SMB2Packet.SINGLE_CREDIT_PAYLOAD_SIZE;
-import static com.hierynomus.mssmb2.messages.SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_ENABLED;
 import static java.lang.String.format;
 
 /**
@@ -78,6 +67,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
     private String remoteName;
 
     private SMBClient client;
+    private PacketSignatory signatory;
 
     public SMBClient getClient() {
         return client;
@@ -115,6 +105,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
         this.sequenceWindow = new SequenceWindow();
         this.connectionInfo = new ConnectionInfo(config.getClientGuid(), hostname, config);
         new SMBProtocolNegotiator(this).negotiateDialect();
+        this.signatory = new PacketSignatory(connectionInfo.getNegotiatedProtocol().getDialect(), config.getSecurityProvider());
         logger.info("Successfully connected to: {}", getRemoteHostname());
     }
 
@@ -161,7 +152,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
         return new SMBSessionBuilder(this, new SMBSessionBuilder.SessionFactory() {
             @Override
             public Session createSession(AuthenticationContext context) {
-                return new Session(Connection.this, context, bus, client.getPathResolver(), config.getSecurityProvider());
+                return new Session(Connection.this, context, bus, client.getPathResolver(), signatory);
             }
         }).establish(authContext);
     }
@@ -182,14 +173,14 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
                 int grantCredits = calculateGrantedCredits(packet, availableCredits);
                 if (availableCredits == 0) {
                     logger.warn(
-                            "There are no credits left to send {}, will block until there are more credits available.",
-                            packet.getHeader().getMessage());
+                        "There are no credits left to send {}, will block until there are more credits available.",
+                        packet.getHeader().getMessage());
                 }
                 long[] messageIds = sequenceWindow.get(grantCredits);
                 packet.getHeader().setMessageId(messageIds[0]);
                 logger.debug("Granted {} (out of {}) credits to {}", grantCredits, availableCredits, packet);
                 packet.getHeader().setCreditRequest(Math
-                        .max(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits, grantCredits));
+                    .max(SequenceWindow.PREFERRED_MINIMUM_CREDITS - availableCredits - grantCredits, grantCredits));
 
                 Request request = new Request(packet.getPacket(), messageIds[0], UUID.randomUUID());
                 outstandingRequests.registerOutstanding(request);
@@ -225,7 +216,7 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
     }
 
     /**
-     * [MS-SMB2].pdf 3.1.5.2 Calculating the CreditCharge
+     * [MS-SMB2] 3.1.5.2 Calculating the CreditCharge
      */
     private int creditsNeeded(int payloadSize) {
         return Math.abs((payloadSize - 1) / SINGLE_CREDIT_PAYLOAD_SIZE) + 1;
@@ -242,81 +233,23 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
 
     @Override
     public void handle(SMBPacketData uncheckedPacket) throws TransportException {
-        List<IncomingPacketHandler> handlers = Arrays.asList(new SMB2PacketHandler(), new SMB1PacketHandler());
-        for (IncomingPacketHandler handler : handlers) {
-            if (handler.canHandle(uncheckedPacket)) {
-                handler.handle(uncheckedPacket);
-            }
-        }
 
-        SMB2PacketData packetData = (SMB2PacketData) uncheckedPacket;
-        long messageId = packetData.getSequenceNumber();
+        IncomingPacketHandler chain = new SMB2CompoundedPacketHandler().setNext(
+            new SMB2IsOutstandingPacketHandler(outstandingRequests).setNext(
+                new SMB2SignatureVerificationPacketHandler(sessionTable, signatory).setNext(
+                    new SMB2CreditGrantingPacketHandler(sequenceWindow).setNext(
+                        new SMB2AsyncResponsePacketHandler(outstandingRequests).setNext(
+                            new SMB2ProcessResponsePacketHandler(smb2Converter, outstandingRequests).setNext(
+                                new SMB1PacketHandler().setNext(new DeadLetterPacketHandler())))))));
+        chain.handle(uncheckedPacket);
 
-        if (!outstandingRequests.isOutstanding(messageId)) {
-            throw new TransportException("Received response with unknown sequence number <<" + messageId + ">>");
-        }
-
-        // [MS-SMB2].pdf 3.2.5.1.4 Granting Message Credits
-        sequenceWindow.creditsGranted(packetData.getHeader().getCreditResponse());
-        logger.debug("Server granted us {} credits for {}, now available: {} credits", packetData.getHeader().getCreditResponse(), packetData, sequenceWindow.available());
-
-        Request request = outstandingRequests.getRequestByMessageId(messageId);
-        logger.trace("Send/Recv of packet {} took << {} ms >>", packetData, System.currentTimeMillis() - request.getTimestamp().getTime());
-
-        // [MS-SMB2].pdf 3.2.5.1.5 Handling Asynchronous Responses
-        if (packetData.isIntermediateAsyncResponse()) {
-            logger.debug("Received ASYNC packet {} with AsyncId << {} >>", packetData, packetData.getHeader().getAsyncId());
-            request.setAsyncId(packetData.getHeader().getAsyncId());
-            // TODO Expiration timer
-            return;
-        }
-
-        // [MS-SMB2].pdf 3.2.5.1.6 Handling Session Expiration
+        // [MS-SMB2] 3.2.5.1.6 Handling Session Expiration
         // if (packet.getHeader().getStatus() == NtStatus.STATUS_NETWORK_SESSION_EXPIRED) {
-            // TODO reauthenticate session!
+        // TODO reauthenticate session!
         // }
 
-        SMB2Packet packet = null;
-        try {
-            packet = smb2Converter.readPacket(request.getPacket(), packetData);
-        } catch (Buffer.BufferException e) {
-            throw new TransportException("Unable to deserialize SMB2 Packet Data.", e);
-        }
-        long sessionId = packetData.getHeader().getSessionId();
-        if (sessionId != 0L && (packetData.getHeader().getMessage() != SMB2MessageCommandCode.SMB2_SESSION_SETUP)) {
-            Session session = sessionTable.find(sessionId);
-            if (session == null) {
-                // check for a not-yet-authenticated session
-                session = preauthSessionTable.find(sessionId);
-                if (session == null) {
-                    logger.warn("Illegal request, no session matching the sessionId: {}", sessionId);
-                    //TODO maybe tear down the connection?
-                    return;
-                }
-            }
-
-
-            // check packet signature. Drop the packet if it is not correct.
-            verifyPacketSignature(packet, session);
-        }
-
-        // [MS-SMB2].pdf 3.2.5.1.8 Processing the Response
-        outstandingRequests.receivedResponseFor(messageId).getPromise().deliver(packet);
     }
 
-    private void verifyPacketSignature(SMB2Packet packet, Session session) throws TransportException {
-        if (packet.getHeader().isFlagSet(SMB2MessageFlag.SMB2_FLAGS_SIGNED)) {
-            if (!session.getPacketSignatory().verify(packet)) {
-                logger.warn("Invalid packet signature for packet {}", packet);
-                if (session.isSigningRequired()) {
-                    throw new TransportException("Packet signature for packet " + packet + " was not correct");
-                }
-            }
-        } else if (session.isSigningRequired()) {
-            logger.warn("Illegal request, session requires message signing, but packet {} is not signed.", packet);
-            throw new TransportException("Session requires signing, but packet " + packet + " was not signed");
-        }
-    }
 
     @Override
     public void handleError(Throwable t) {
