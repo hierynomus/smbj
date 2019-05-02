@@ -88,6 +88,34 @@ C - Adjusting Timeout and Socket Timeout
     }
 
 ```
+D - Reading a file 
+```java
+
+    SMBClient client = new SMBClient(config);
+
+    try (Connection connection = client.connect("SERVERNAME")) {
+        AuthenticationContext ac = new AuthenticationContext("USERNAME", "PASSWORD".toCharArray(), "DOMAIN");
+        Session session = connection.authenticate(ac);
+
+        // Connect to Share
+        try (DiskShare share = (DiskShare) session.connectShare("SHARENAME")) {
+            
+            //Opens the file
+            File smbFileRead = share.openFile("PATH\\FILENAME", EnumSet.of(AccessMask.FILE_READ_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null);
+            
+            //Creates a buffered reader
+            BufferedReader reader = new BufferedReader(new InputStreamReader(smbFileRead.getInputStream()));
+            
+            //Reads the content line by line
+            String content = reader.lines()
+                    .collect(Collectors.joining(System.lineSeparator()))
+                    
+            //'content' holds the file's content
+            return content;
+        }
+    }
+
+```
 
 == Frequently Asked Questions
 
