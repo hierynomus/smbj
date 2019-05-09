@@ -19,6 +19,7 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smb.SMBPacket;
+import com.hierynomus.smbj.common.Check;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 
@@ -113,7 +114,17 @@ public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2Header> {
         this.buffer = packetData.getDataBuffer(); // remember the buffer we read it from
         this.header = packetData.getHeader();
         this.error = new SMB2Error().read(header, buffer);
-        this.messageEndPos = buffer.rpos();
+        if (this.header.getNextCommandOffset() != 0L) {
+            // This packet was Compounded, It's end position (including padding is determined by the NextCommandOffset
+            this.messageEndPos = this.header.getHeaderStartPosition() + this.header.getNextCommandOffset();
+        } else {
+            // Else the message end position is determined by the packet size (which is the write position of the buffer)
+            this.messageEndPos = buffer.wpos();
+        }
+        Check.ensure(this.messageEndPos >= buffer.rpos(), "The message end position should be at or beyond the buffer read position");
+        // Set the buffer's rpos to the end position of the message. In case of Compounding the buffer is then ready to read
+        // the next packet.
+        buffer.rpos(this.messageEndPos);
     }
 
     /**

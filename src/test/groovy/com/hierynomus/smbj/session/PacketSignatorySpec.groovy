@@ -18,6 +18,7 @@ package com.hierynomus.smbj.session
 import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2MessageConverter
 import com.hierynomus.mssmb2.SMB2PacketData
+import com.hierynomus.protocol.commons.ByteArrayUtils
 import com.hierynomus.security.bc.BCSecurityProvider
 import spock.lang.Specification
 
@@ -35,5 +36,19 @@ class PacketSignatorySpec extends Specification {
     then:
     noExceptionThrown()
     verified
+  }
+
+  def "should verify signature of packet with padding"() {
+    def packet = new SMB2MessageConverter().readPacket(null, new SMB2PacketData(ByteArrayUtils.parseHex("fe534d4240000100030100c0050001000900000000000000ba9e62000000000000000000010000009103001c041400001FEDE330C927BC01F83C3C0E07DCB0BA09000000000000000000000000000000")))
+    def signatory = new PacketSignatory(SMB2Dialect.SMB_2_1, new BCSecurityProvider())
+    signatory.init([0x75, 0xc5, 0xcb, 0x91, 0x41, 0x9e, 0x3a, 0x45, 0xce, 0x9e, 0xf8, 0x69, 0xdf, 0xd3, 0xe2, 0xa8] as byte[])
+
+    when:
+    boolean verified = signatory.verify(packet)
+
+    then:
+    noExceptionThrown()
+    verified
+
   }
 }

@@ -15,20 +15,17 @@
  */
 package com.hierynomus.smbj.auth;
 
+import com.hierynomus.protocol.transport.TransportException;
 import org.ietf.jgss.GSSContext;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
+import java.lang.reflect.Method;
 import java.security.Key;
 
-
-import com.hierynomus.protocol.transport.TransportException;
-
 class ExtendedGSSContext {
-    private static final MethodHandle krb5GetSessionKey = getKrb5GetSessionKeyFunction();
+    private static final Method inquireSecContext = getInquireSecContextMethod();
+    private static Object krb5GetSessionKeyConst;
 
-    private static MethodHandle getKrb5GetSessionKeyFunction() {
+    private static Method getInquireSecContextMethod() {
         Class<?> extendedContextClass;
         Class<?> inquireTypeClass;
         try {
@@ -45,23 +42,22 @@ class ExtendedGSSContext {
                 throw exception;
             }
         }
-        @SuppressWarnings("unchecked")
-        Object getSessionKeyConst = Enum.valueOf(inquireTypeClass.asSubclass(Enum.class), "KRB5_GET_SESSION_KEY");
+        krb5GetSessionKeyConst = Enum.valueOf(inquireTypeClass.asSubclass(Enum.class), "KRB5_GET_SESSION_KEY");
         try {
-            MethodHandle handle = MethodHandles.lookup().findVirtual(extendedContextClass, "inquireSecContext", MethodType.methodType(Object.class, inquireTypeClass));
-            return MethodHandles.insertArguments(handle, 0, getSessionKeyConst).asType(MethodType.methodType(Key.class, GSSContext.class));
-        } catch (NoSuchMethodException | IllegalAccessException e) {
+            return extendedContextClass.getDeclaredMethod("inquireSecContext", inquireTypeClass);
+        } catch (NoSuchMethodException e) {
             throw new IllegalStateException(e);
         }
     }
 
     public static Key krb5GetSessionKey(GSSContext gssContext) throws TransportException {
         try {
-            return (Key) krb5GetSessionKey.invokeExact(gssContext);
+            return (Key) inquireSecContext.invoke(gssContext, krb5GetSessionKeyConst);
         } catch (Throwable e) {
             throw new TransportException(e);
         }
     }
 
-    private ExtendedGSSContext() {}
+    private ExtendedGSSContext() {
+    }
 }
