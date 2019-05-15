@@ -108,19 +108,12 @@ public abstract class Endian {
 
         @Override
         public <T extends Buffer<T>> void writeUInt64(Buffer<T> buffer, long uint64) {
-            if (uint64 < 0) {
-                throw new IllegalArgumentException("Invalid uint64 value: " + uint64);
-            }
             writeLong(buffer, uint64);
         }
 
         @Override
         public <T extends Buffer<T>> long readUInt64(Buffer<T> buffer) throws Buffer.BufferException {
-            long uint64 = (readUInt32(buffer) << 32) + (readUInt32(buffer) & 0xFFFFFFFFL);
-            if (uint64 < 0) {
-                throw new Buffer.BufferException("Cannot handle values > " + Long.MAX_VALUE);
-            }
-            return uint64;
+            return readLong(buffer);
         }
 
         @Override
@@ -232,19 +225,12 @@ public abstract class Endian {
 
         @Override
         public <T extends Buffer<T>> void writeUInt64(Buffer<T> buffer, long uint64) {
-            if (uint64 < 0) {
-                throw new IllegalArgumentException("Invalid uint64 value: " + uint64);
-            }
             writeLong(buffer, uint64);
         }
 
         @Override
         public <T extends Buffer<T>> long readUInt64(Buffer<T> buffer) throws Buffer.BufferException {
-            long uint64 = (readUInt32(buffer) & 0xFFFFFFFFL) + (readUInt32(buffer) << 32);
-            if (uint64 < 0) {
-                throw new Buffer.BufferException("Cannot handle values > " + Long.MAX_VALUE);
-            }
-            return uint64;
+            return readLong(buffer);
         }
 
         @Override
