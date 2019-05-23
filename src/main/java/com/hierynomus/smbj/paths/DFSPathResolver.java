@@ -301,7 +301,8 @@ public class DFSPathResolver implements PathResolver {
         DFSPath rootPath = new DFSPath(state.path.getPathComponents().subList(0, 2));
         ReferralCache.ReferralCacheEntry rootReferralCacheEntry = referralCache.lookup(rootPath);
         if (rootReferralCacheEntry == null) {
-            throw new IllegalStateException("Could not find referral cache entry for " + rootPath);
+            referralCache.clear(state.path);
+            return step1(session, state);
         }
         ReferralResult result = sendDfsReferralRequest(DfsRequestType.LINK, rootReferralCacheEntry.getTargetHint().getTargetPath(), session, state.path);
         if (!NtStatus.isSuccess(result.status)) {
