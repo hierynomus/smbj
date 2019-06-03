@@ -48,6 +48,8 @@ public class ConnectionInfo {
     private String preauthIntegrityHashId;
     private byte[] preauthIntegrityHashValue;
     private String cipherId;
+    // How much the SMB server clock is off from client clock
+    private Long timeOffsetMillis;
 
     ConnectionInfo(UUID clientGuid, String serverName) {
         // new SessionTable
@@ -64,6 +66,7 @@ public class ConnectionInfo {
         serverCapabilities = toEnumSet(response.getCapabilities(), SMB2GlobalCapability.class);
         this.negotiatedProtocol = new NegotiatedProtocol(response.getDialect(), response.getMaxTransactSize(), response.getMaxReadSize(), response.getMaxWriteSize(), serverCapabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU));
         serverSecurityMode = response.getSecurityMode();
+        timeOffsetMillis = System.currentTimeMillis() - response.getSystemTime().toEpochMillis();
     }
 
     public UUID getClientGuid() {
@@ -116,6 +119,10 @@ public class ConnectionInfo {
 
     public void setNetBiosName(String netBiosName) {
         this.netBiosName = netBiosName;
+    }
+
+    public Long getTimeOffsetMillis() {
+        return timeOffsetMillis;
     }
 
     @Override

@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.connection
 
+import com.hierynomus.msdtyp.FileTime
 import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2MessageCommandCode
@@ -68,6 +69,7 @@ class BasicPacketProcessor {
     response.header.message = SMB2MessageCommandCode.SMB2_NEGOTIATE
     response.header.statusCode = NtStatus.STATUS_SUCCESS.value
     response.dialect = SMB2Dialect.SMB_2_1
+    response.systemTime = FileTime.now();
     response
   }
 
