@@ -97,6 +97,10 @@ public class SMB2GetDFSReferralResponse {
         return referralEntries;
     }
 
+    public int getPathConsumed() {
+        return pathConsumed;
+    }
+
     /**
      * 3.1.5.4. If the NumberOfReferrals field is at least 1, the client MUST determine the
      * version number of the referral response by accessing the VersionNumber field of the first
