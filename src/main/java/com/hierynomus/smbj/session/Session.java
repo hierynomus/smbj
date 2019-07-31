@@ -40,7 +40,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -61,7 +63,7 @@ public class Session implements AutoCloseable {
     private SMBEventBus bus;
     private final PathResolver pathResolver;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
-    private List<Session> nestedSessions = new ArrayList<>();
+    private Map<String, Session> nestedSessions = new HashMap<>();
     private AuthenticationContext userCredentials;
 
     private boolean guest;
@@ -199,10 +201,15 @@ public class Session implements AutoCloseable {
     }
 
     public Session buildNestedSession(SmbPath resolvedSharePath) {
+        Session session = nestedSessions.get(resolvedSharePath.getHostname());
+        if (session != null) {
+            return session;
+        }
+
         try {
             Connection connection = getConnection().getClient().connect(resolvedSharePath.getHostname());
-            Session session = connection.authenticate(getAuthenticationContext());
-            nestedSessions.add(session);
+            session = connection.authenticate(getAuthenticationContext());
+            nestedSessions.put(resolvedSharePath.getHostname(), session);
             return session;
         } catch (IOException e) {
             throw new SMBApiException(NtStatus.STATUS_OTHER.getValue(), SMB2MessageCommandCode.SMB2_NEGOTIATE, "Could not connect to DFS root " + resolvedSharePath, e);
@@ -228,7 +235,7 @@ public class Session implements AutoCloseable {
                     logger.error("Caught exception while closing TreeConnect with id: {}", share.getTreeConnect().getTreeId(), e);
                 }
             }
-            for (Session nestedSession : nestedSessions) {
+            for (Session nestedSession : nestedSessions.values()) {
                 logger.info("Logging off nested session {} for session {}", nestedSession.getSessionId(), sessionId);
                 try {
                     nestedSession.logoff();
