@@ -47,20 +47,6 @@ public class JceMessageDigest implements MessageDigest {
         }
     }
 
-    /**
-     * Special case, MD4 is available on Oracle JDK, but not enabled by default.
-     *
-     * @throws SecurityException If the MD4 digest could not be loaded
-     */
-    private void tryMd4(NoSuchAlgorithmException originalException) throws SecurityException {
-        try {
-            Class<?> md4Class = Class.forName("sun.security.provider.MD4");
-            this.md = (java.security.MessageDigest) md4Class.getMethod("getInstance").invoke(null);
-        } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e1) {
-            throw new SecurityException(originalException);
-        }
-    }
-
     @Override
     public void update(byte[] bytes) {
         md.update(bytes);
