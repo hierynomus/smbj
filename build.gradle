@@ -54,7 +54,7 @@ license {
   mapping {
     java = 'SLASHSTAR_STYLE'
   }
-  excludes(['com/hierynomus/protocol/commons/Base64.java', '**/*.txt', '**/*.properties'])
+  excludes(['com/hierynomus/protocol/commons/Base64.java', '**/*.txt', '**/*.properties', "com/hierynomus/security/jce/messagedigest/MD4.java"])
 }
 
 scmVersion {
@@ -245,7 +245,7 @@ task buildItestImage(type: DockerBuildImage) {
 
 task createItestContainer(type: DockerCreateContainer) {
   dependsOn buildItestImage
-  targetImageId buildItestImage.getImageId() 
+  targetImageId buildItestImage.getImageId()
   portBindings = ['445:445']
 }
 

@@ -17,6 +17,7 @@ package com.hierynomus.security.jce;
 
 import com.hierynomus.security.MessageDigest;
 import com.hierynomus.security.SecurityException;
+import com.hierynomus.security.jce.messagedigest.MD4;
 
 import java.lang.reflect.InvocationTargetException;
 import java.security.NoSuchAlgorithmException;
@@ -37,7 +38,7 @@ public class JceMessageDigest implements MessageDigest {
             }
         } catch (NoSuchAlgorithmException e) {
             if ("MD4".equals(algorithm)) {
-                tryMd4(e);
+                this.md = new MD4();
             } else {
                 throw new SecurityException(e);
             }
