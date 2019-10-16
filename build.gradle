@@ -6,11 +6,10 @@ plugins {
   id "java"
   id "groovy"
   id "jacoco"
-  id "jdepend"
   id "maven-publish"
   id 'pl.allegro.tech.build.axion-release' version '1.10.1'
   id "com.github.hierynomus.license" version "0.15.0"
-  id "com.bmuschko.docker-remote-api" version "4.6.2"
+  id "com.bmuschko.docker-remote-api" version "5.2.0"
   id "com.jfrog.bintray" version "1.8.4"
   id 'ru.vyarus.java-lib' version '1.1.2'
   id 'ru.vyarus.github-info' version '1.1.0'
@@ -188,31 +187,6 @@ if (project.hasProperty("bintrayUsername") && project.hasProperty("bintrayApiKey
       }
     }
   }
-}
-
-jdepend {
-  toolVersion = "2.9.1"
-  sourceSets = [sourceSets.main]
-  ignoreFailures = true
-}
-
-jdependMain {
-  reports {
-    xml.enabled true
-    text.enabled false
-  }
-}
-
-task jdependReport(dependsOn: jdependMain, group: 'verification', description: 'Generates a HTML report after executing jdepend checks.')
-jdependReport.doLast {
-  ant.xslt(
-    in: "$reporting.baseDir/jdepend/main.xml",
-    style: "$rootDir/conf/jdepend/jdepend-report.xslt",
-    out: "$reporting.baseDir/jdepend/main.html")
-}
-
-check {
-  dependsOn += ['jdependReport']
 }
 
 // java.lang.invoke.MethodHandle.invokeExact(Object[]) has a @PolymorphicSignature
