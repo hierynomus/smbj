@@ -60,6 +60,7 @@ import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.hierynomus.mssmb2.SMB2Packet.SINGLE_CREDIT_PAYLOAD_SIZE;
 import static com.hierynomus.mssmb2.messages.SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_ENABLED;
@@ -92,20 +93,14 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
     private final SMBEventBus bus;
     private final ReentrantLock lock = new ReentrantLock();
     private int remotePort;
+    private final AtomicInteger usageCount;
 
     public Connection(SmbConfig config, SMBClient client, SMBEventBus bus) {
+        this.usageCount = new AtomicInteger(1);
         this.config = config;
         this.client = client;
         this.transport = config.getTransportLayerFactory().createTransportLayer(new PacketHandlers<>(new SMBPacketSerializer(), this, converter), config);
         this.bus = bus;
-        bus.subscribe(this);
-    }
-
-    public Connection(Connection connection) {
-        this.client = connection.client;
-        this.config = connection.config;
-        this.transport = connection.transport;
-        this.bus = connection.bus;
         bus.subscribe(this);
     }
 
@@ -122,33 +117,58 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
         logger.info("Successfully connected to: {}", getRemoteHostname());
     }
 
+    /**
+     * Share the connection (increments the usage count by one)
+     *
+     * @return the current connection if the connection was still viable
+     */
+    public Connection share() {
+        synchronized(usageCount) {
+            if(usageCount.incrementAndGet() > 1) {
+                return this;
+            } else {
+                return null;
+            }
+        }
+    }
+
     @Override
     public void close() throws IOException {
         close(false);
     }
 
     /**
-     * Close the Connection. If {@code force} is set to true, it forgoes the {@link Session#close()} operation on the open sessions, and it just
-     * calls the {@link TransportLayer#disconnect()}.
+     * Close the Connection. If {@code force} is set to true, it forgoes the
+     * {@link Session#close()} operation on the open sessions, and it just calls
+     * the {@link TransportLayer#disconnect()}.
+     *
+     * <p>If {@code force} is set to false, the usage count of the connection
+     * is reduced by one. If the usage count drops to zero the connection is
+     * really closed.</p>
      *
      * @param force if set, does not nicely terminate the open sessions.
      * @throws IOException If any error occurred during close-ing.
      */
     public void close(boolean force) throws IOException {
-        try {
-            if (!force) {
-                for (Session session : sessionTable.activeSessions()) {
-                    try {
-                        session.close();
-                    } catch (IOException e) {
-                        logger.warn("Exception while closing session {}", session.getSessionId(), e);
+        synchronized (usageCount) {
+            if((! force) && usageCount.decrementAndGet() > 0) {
+                return;
+            }
+            try {
+                if (!force) {
+                    for (Session session : sessionTable.activeSessions()) {
+                        try {
+                            session.close();
+                        } catch (IOException e) {
+                            logger.warn("Exception while closing session {}", session.getSessionId(), e);
+                        }
                     }
                 }
+            } finally {
+                transport.disconnect();
+                logger.info("Closed connection to {}", getRemoteHostname());
+                bus.publish(new ConnectionClosed(remoteName, remotePort));
             }
-        } finally {
-            transport.disconnect();
-            logger.info("Closed connection to {}", getRemoteHostname());
-            bus.publish(new ConnectionClosed(remoteName, remotePort));
         }
     }
 
