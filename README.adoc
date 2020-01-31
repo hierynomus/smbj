@@ -1,7 +1,7 @@
 = smbj - SMB2/SMB3 client library for Java
 Jeroen van Erp
 :smbj_groupid: com.hierynomus
-:smbj_version: 0.9.1
+:smbj_version: 0.10.0
 :source-highlighter: pygments
 
 To get started, have a look at one of the examples. Hopefully you will find the API pleasant to work with :)
