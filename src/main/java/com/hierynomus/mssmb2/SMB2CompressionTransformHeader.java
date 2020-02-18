@@ -28,6 +28,7 @@ import com.hierynomus.smbj.common.Check;
  * This optional header is only valid for the SMB 3.1.1 dialect<73>.
  */
 public class SMB2CompressionTransformHeader implements SMBHeader {
+    public static final byte[] COMPRESSED_PROTOCOL_ID = {(byte) 0xFC, 'S', 'M', 'B'};
     private int headerStartPosition;
     private int originalCompressedSegmentSize;
     private SMB3CompressionAlgorithm compressionAlgorithm;
@@ -43,7 +44,7 @@ public class SMB2CompressionTransformHeader implements SMBHeader {
     public void readFrom(Buffer<?> buffer) throws Buffer.BufferException {
         this.headerStartPosition = buffer.rpos(); // Keep track of the header start position.
         byte[] protocolId = buffer.readRawBytes(4); // ProtocolId (4 bytes) (already verified)
-        Check.ensureEquals(protocolId, new byte[]{(byte) 0xFC, 'S', 'M', 'B'}, "Could not find SMB2 Packet header");
+        Check.ensureEquals(protocolId, COMPRESSED_PROTOCOL_ID, "Could not find SMB2 Packet header");
         this.originalCompressedSegmentSize = buffer.readUInt32AsInt(); // OriginalCompressedSegmentSize (4 bytes)
         this.compressionAlgorithm = EnumWithValue.EnumUtils.valueOf(buffer.readUInt16(), SMB3CompressionAlgorithm.class, null);
         Check.ensure(compressionAlgorithm != null && compressionAlgorithm != SMB3CompressionAlgorithm.NONE, "The CompressionAlgorithm field of the SMB2_COMPRESSION_TRANSFORM_HEADER should contain a valid value.");

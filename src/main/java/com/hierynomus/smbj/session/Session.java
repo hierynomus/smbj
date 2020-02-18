@@ -70,6 +70,7 @@ public class Session implements AutoCloseable {
     private boolean guest;
     private boolean anonymous;
     private byte[] signingKey;
+    private byte[] decryptionKey;
 
     public Session(Connection connection, AuthenticationContext userCredentials, SMBEventBus bus, PathResolver pathResolver, PacketSignatory signatory) {
         this.connection = connection;
@@ -299,6 +300,10 @@ public class Session implements AutoCloseable {
 
     public byte[] getSigningKey() {
         return signingKey;
+    }
+
+    public byte[] getDecryptionKey() {
+        return decryptionKey;
     }
 
     public AuthenticationContext getAuthenticationContext() {

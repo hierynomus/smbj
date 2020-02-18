@@ -16,6 +16,7 @@
 package com.hierynomus.smbj
 
 import com.hierynomus.msdtyp.AccessMask
+import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.security.bc.BCSecurityProvider
 import com.hierynomus.smbj.auth.AuthenticationContext
@@ -35,7 +36,7 @@ class IntegrationTest extends Specification {
   static final def FOLDER_THAT_DOES_NOT_EXIST = "foo"
 
 
-  def config = SmbConfig.builder().withSigningRequired(true).withMultiProtocolNegotiate(true).withDfsEnabled(true).withSecurityProvider(new BCSecurityProvider()).build()
+  def config = SmbConfig.builder().withDialects(SMB2Dialect.SMB_3_0).withSigningRequired(true).withMultiProtocolNegotiate(true).withDfsEnabled(true).withSecurityProvider(new BCSecurityProvider()).build()
   def client = new SMBClient(config)
   def connection = _
 

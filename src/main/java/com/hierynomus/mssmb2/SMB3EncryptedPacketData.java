@@ -23,4 +23,7 @@ public class SMB3EncryptedPacketData extends SMBPacketData<SMB2TransformHeader> 
         super(new SMB2TransformHeader(), data);
     }
 
+    public byte[] getCipherText() throws Buffer.BufferException {
+        return getDataBuffer().readRawBytes(getHeader().getOriginalMessageSize());
+    }
 }

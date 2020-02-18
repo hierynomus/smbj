@@ -30,6 +30,7 @@ public class SMB2PacketHeader implements SMBHeader {
     public static final int STRUCTURE_SIZE = 64;
     public static final int SIGNATURE_OFFSET = 48;
     public static final int SIGNATURE_SIZE = 16;
+    public static final byte[] PROTOCOL_ID = {(byte) 0xFE, 'S', 'M', 'B'};
 
     private SMB2Dialect dialect;
     private int creditCharge = 1;
@@ -51,7 +52,7 @@ public class SMB2PacketHeader implements SMBHeader {
     @Override
     public void writeTo(SMBBuffer buffer) {
         this.headerStartPosition = buffer.wpos(); // Set the current start position of the header.
-        buffer.putRawBytes(new byte[]{(byte) 0xFE, 'S', 'M', 'B'}); // ProtocolId (4 byte)
+        buffer.putRawBytes(PROTOCOL_ID); // ProtocolId (4 byte)
         buffer.putUInt16(STRUCTURE_SIZE); // StructureSize (2 byte)
         writeCreditCharge(buffer); // CreditCharge (2 byte)
         writeChannelSequenceReserved(buffer); // (ChannelSequence/Reserved)/Status (4 bytes)
@@ -164,7 +165,7 @@ public class SMB2PacketHeader implements SMBHeader {
     public void readFrom(Buffer<?> buffer) throws Buffer.BufferException {
         this.headerStartPosition = buffer.rpos(); // Keep track of the header start position.
         byte[] protocolId = buffer.readRawBytes(4); // ProtocolId (4 bytes) (already verified)
-        Check.ensureEquals(protocolId, new byte[]{(byte) 0xFE, 'S', 'M', 'B'}, "Could not find SMB2 Packet header");
+        Check.ensureEquals(protocolId, PROTOCOL_ID, "Could not find SMB2 Packet header");
         buffer.skip(2); // StructureSize (2 bytes)
         buffer.readUInt16(); // CreditCharge (2 bytes)
         statusCode = buffer.readUInt32(); // Status (4 bytes)

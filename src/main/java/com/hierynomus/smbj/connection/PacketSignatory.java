@@ -20,6 +20,7 @@ import com.hierynomus.mssmb2.SMB2PacketData;
 import com.hierynomus.mssmb2.SMB2PacketHeader;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.security.Mac;
 import com.hierynomus.security.SecurityException;
 import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smb.SMBBuffer;
@@ -63,7 +64,7 @@ public class PacketSignatory {
     public boolean verify(SMB2PacketData packet, byte[] secretKey) {
         try {
             SMBBuffer buffer = packet.getDataBuffer();
-            com.hierynomus.security.Mac mac = getMac(secretKey, algorithm, securityProvider);
+            Mac mac = getMac(secretKey, algorithm, securityProvider);
             mac.update(buffer.array(), packet.getHeader().getHeaderStartPosition(), SIGNATURE_OFFSET);
             mac.update(EMPTY_SIGNATURE);
             mac.update(buffer.array(), STRUCTURE_SIZE, packet.getHeader().getMessageEndPosition() - STRUCTURE_SIZE);
@@ -84,8 +85,8 @@ public class PacketSignatory {
         }
     }
 
-    private static com.hierynomus.security.Mac getMac(byte[] secretKey, String algorithm, SecurityProvider securityProvider) throws SecurityException {
-        com.hierynomus.security.Mac mac = securityProvider.getMac(algorithm);
+    private static Mac getMac(byte[] secretKey, String algorithm, SecurityProvider securityProvider) throws SecurityException {
+        Mac mac = securityProvider.getMac(algorithm);
         mac.init(secretKey);
         return mac;
     }
@@ -124,7 +125,7 @@ public class PacketSignatory {
 
         private class SigningBuffer extends SMBBuffer {
             private SMBBuffer wrappedBuffer;
-            private final com.hierynomus.security.Mac mac;
+            private final Mac mac;
 
             SigningBuffer(SMBBuffer wrappedBuffer) throws SecurityException {
                 this.wrappedBuffer = wrappedBuffer;

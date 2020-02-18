@@ -126,6 +126,10 @@ public class ConnectionInfo {
         this.netBiosName = netBiosName;
     }
 
+    public SMB3EncryptionCipher getCipherId() {
+        return cipherId;
+    }
+
     public boolean supportsEncryption() {
         SMB2Dialect dialect = negotiatedProtocol.getDialect();
         if (dialect == SMB2Dialect.SMB_3_1_1) {
