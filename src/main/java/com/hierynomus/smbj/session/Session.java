@@ -95,20 +95,27 @@ public class Session implements AutoCloseable {
         boolean requireMessageSigning = connection.getConfig().isSigningRequired();
         boolean connectionSigningRequired = connection.getConnectionInfo().isServerRequiresSigning();
 
+        // If the global setting RequireMessageSigning is set to TRUE or
+        // Connection.RequireSigning is set to TRUE then Session.SigningRequired MUST be
+        // set to TRUE, otherwise Session.SigningRequired MUST be set to FALSE.
         if (requireMessageSigning || connectionSigningRequired) {
             signingRequired = true;
+        } else {
+            signingRequired = false;
         }
 
         if (anonymous) {
             // If the security subsystem indicates that the session was established by an anonymous user, Session.SigningRequired MUST be set to FALSE.
             signingRequired = false;
         }
-        if (guest && connection.getConfig().isSigningRequired()) {
+        if (guest && signingRequired) {
             throw new SMB2GuestSigningRequiredException();
-        } else if (guest) {
+        } else if (guest && !requireMessageSigning) {
             signingRequired = false;
         }
-        if (connection.getNegotiatedProtocol().getDialect().isSmb3x() && setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_ENCRYPT_DATA)) {
+
+        if (connection.getNegotiatedProtocol().getDialect().isSmb3x()
+            && setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_ENCRYPT_DATA)) {
             encryptData = true;
             signingRequired = false;
         }
