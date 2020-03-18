@@ -38,6 +38,7 @@ import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticateResponse;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
+import com.hierynomus.smbj.common.Pooled;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
@@ -68,7 +69,7 @@ import static java.lang.String.format;
 /**
  * A connection to a server.
  */
-public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
+public class Connection extends Pooled<Connection> implements Closeable, PacketReceiver<SMBPacketData<?>> {
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
     private static final DelegatingSMBMessageConverter converter = new DelegatingSMBMessageConverter(new SMB2PacketFactory(), new SMB1PacketFactory());
 
@@ -128,13 +129,23 @@ public class Connection implements Closeable, PacketReceiver<SMBPacketData<?>> {
     }
 
     /**
-     * Close the Connection. If {@code force} is set to true, it forgoes the {@link Session#close()} operation on the open sessions, and it just
-     * calls the {@link TransportLayer#disconnect()}.
+     * Close the Connection. If {@code force} is set to true, it forgoes the
+     * {@link Session#close()} operation on the open sessions, and it just calls the
+     * {@link TransportLayer#disconnect()}.
+     *
+     * <p>
+     * If {@code force} is set to false, the usage count of the connection is
+     * reduced by one. If the usage count drops to zero the connection is really
+     * closed.
+     * </p>
      *
      * @param force if set, does not nicely terminate the open sessions.
      * @throws IOException If any error occurred during close-ing.
      */
     public void close(boolean force) throws IOException {
+        if (!force && !release()) {
+            return;
+        }
         try {
             if (!force) {
                 for (Session session : sessionTable.activeSessions()) {

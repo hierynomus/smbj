@@ -42,7 +42,8 @@ public class SMB2ReadRequest extends SMB2MultiCreditPacket {
         buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putByte((byte) 0); // Padding (1 byte)
         buffer.putByte((byte) 0); // Flags (1 byte)
-        buffer.putUInt32(SINGLE_CREDIT_PAYLOAD_SIZE * (long) getCreditsAssigned()); // Length (4 bytes)
+        // fix read extra bytes and conflict with exclusive lock, use getPayloadSize() to handle multi credit issue
+        buffer.putUInt32(getPayloadSize()); // Length (4 bytes)
         buffer.putUInt64(offset); // Offset (8 bytes)
         fileId.write(buffer);  // FileId (16 bytes)
         buffer.putUInt32(1); // MinimumCount (4 bytes)
