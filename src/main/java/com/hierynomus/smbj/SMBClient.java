@@ -97,6 +97,9 @@ public class SMBClient implements Closeable {
         synchronized (this) {
             String hostPort = hostname + ":" + port;
             Connection cachedConnection = connectionTable.get(hostPort);
+            if (cachedConnection != null) {
+                cachedConnection = cachedConnection.lease();
+            }
             if (cachedConnection == null || !cachedConnection.isConnected()) {
                 Connection connection = new Connection(config, this, bus);
                 try {
@@ -108,7 +111,8 @@ public class SMBClient implements Closeable {
                 connectionTable.put(hostPort, connection);
                 return connection;
             }
-            return connectionTable.get(hostPort);
+
+            return cachedConnection;
         }
     }
 
