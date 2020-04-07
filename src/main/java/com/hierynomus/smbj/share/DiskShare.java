@@ -261,35 +261,6 @@ public class DiskShare extends Share {
     }
 
     /**
-     * Create a set of nested sub-directories in the given path, for example, 2345 \ 3456 \ 4453 \ 123123.txt
-     */
-    public void mkdirs(String path) throws SMBApiException {
-        String currPath = path;
-        StringBuilder currDir = new StringBuilder();
-        while (path.startsWith("\\"))
-            currPath = currPath.substring(1, currPath.length() - 1 );
-
-        if (currPath.indexOf( "\\") <= 0 && !folderExists(currPath)) {
-            mkdir(currPath);
-        }   else {
-            for (String dir: currPath.split(String.valueOf("\\\\"))) {
-                currDir = currDir.append(dir).append("\\");
-                if (currDir != null && currDir.length() > 0 && !folderExists(currDir.toString())) {
-                    Directory fileHandle = openDirectory(currDir.toString(),
-                        of(FILE_LIST_DIRECTORY, FILE_ADD_SUBDIRECTORY),
-                        of(FILE_ATTRIBUTE_DIRECTORY),
-                        ALL,
-                        FILE_CREATE,
-                        of(FILE_DIRECTORY_FILE)
-                    );
-                    fileHandle.close();
-                    //System.out.println("Dir " + currDir + " created.");
-                }
-            }
-        }
-    }
-
-    /**
      * Get information about the given path.
      **/
     public FileAllInformation getFileInformation(String path) throws SMBApiException {
