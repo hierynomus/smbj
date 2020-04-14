@@ -81,23 +81,15 @@ public class SmbFiles {
         String currPath = path;
         StringBuilder currDir = new StringBuilder();
         while (path.startsWith("\\"))
-            currPath = currPath.substring(1, currPath.length() - 1 );
+            currPath = currPath.substring(1);
 
         if (currPath.indexOf( "\\") <= 0 && !diskShare.folderExists(currPath)) {
             diskShare.mkdir(currPath);
         }   else {
-            for (String dir: currPath.split(String.valueOf("\\\\"))) {
+            for (String dir: currPath.split("\\\\")) {
                 currDir = currDir.append(dir).append("\\");
-                if (currDir != null && currDir.length() > 0 && !diskShare.folderExists(currDir.toString())) {
-                    Directory fileHandle = diskShare.openDirectory(currDir.toString(),
-                        of(FILE_LIST_DIRECTORY, FILE_ADD_SUBDIRECTORY),
-                        of(FILE_ATTRIBUTE_DIRECTORY),
-                        ALL,
-                        FILE_CREATE,
-                        of(FILE_DIRECTORY_FILE)
-                    );
-                    fileHandle.close();
-                }
+                if (currDir.length() > 1 && !diskShare.folderExists(currDir.toString()))
+                    diskShare.mkdir(currDir.toString() );
             }
         }
     }
