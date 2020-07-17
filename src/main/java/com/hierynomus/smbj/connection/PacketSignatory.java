@@ -45,7 +45,7 @@ public class PacketSignatory {
         this.dialect = dialect;
         this.securityProvider = securityProvider;
         if (dialect.isSmb3x()) {
-
+            algorithm = "AESCMAC";
         } else {
             algorithm = HMAC_SHA256_ALGORITHM;
         }

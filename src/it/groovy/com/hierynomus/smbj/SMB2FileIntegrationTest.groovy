@@ -19,6 +19,7 @@ import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mserref.NtStatus
 import com.hierynomus.msfscc.fileinformation.FileStandardInformation
 import com.hierynomus.mssmb2.SMB2CreateDisposition
+import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.mssmb2.SMBApiException
 import com.hierynomus.smbj.auth.AuthenticationContext
@@ -44,6 +45,8 @@ class SMB2FileIntegrationTest extends Specification {
   def setup() {
     def config = SmbConfig
       .builder()
+    .withEncryptData(true)
+    .withDialects(SMB2Dialect.SMB_3_0)
       .withMultiProtocolNegotiate(true)
     .withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>())
       .withSigningRequired(true).build()
