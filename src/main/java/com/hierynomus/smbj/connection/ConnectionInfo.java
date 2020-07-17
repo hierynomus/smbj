@@ -52,6 +52,8 @@ public class ConnectionInfo {
     private SMB3HashAlgorithm preauthIntegrityHashId;
     private byte[] preauthIntegrityHashValue;
     private SMB3EncryptionCipher cipherId;
+    // How much the SMB server clock is off from client clock
+    private Long timeOffsetMillis;
 
     ConnectionInfo(UUID clientGuid, String serverName, SmbConfig config) {
         // new SessionTable
@@ -72,6 +74,7 @@ public class ConnectionInfo {
         this.cipherId = negotiationContext.getCipher();
         this.preauthIntegrityHashId = negotiationContext.getPreauthIntegrityHashId();
         this.preauthIntegrityHashValue = negotiationContext.getPreauthIntegrityHashValue();
+        timeOffsetMillis = System.currentTimeMillis() - response.getSystemTime().toEpochMillis();
     }
 
     public UUID getClientGuid() {
@@ -138,6 +141,10 @@ public class ConnectionInfo {
             return clientCapabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION)
                 && supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION);
         }
+    }
+
+    public Long getTimeOffsetMillis() {
+        return timeOffsetMillis;
     }
 
     @Override
