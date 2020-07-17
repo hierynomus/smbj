@@ -45,8 +45,6 @@ class SMB2FileIntegrationTest extends Specification {
   def setup() {
     def config = SmbConfig
       .builder()
-    .withEncryptData(true)
-    .withDialects(SMB2Dialect.SMB_3_0)
       .withMultiProtocolNegotiate(true)
     .withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>())
       .withSigningRequired(true).build()

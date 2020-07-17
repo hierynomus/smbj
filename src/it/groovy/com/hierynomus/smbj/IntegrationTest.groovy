@@ -36,7 +36,7 @@ class IntegrationTest extends Specification {
   static final def FOLDER_THAT_DOES_NOT_EXIST = "foo"
 
 
-  def config = SmbConfig.builder().withDialects(SMB2Dialect.SMB_3_0).withSigningRequired(true).withMultiProtocolNegotiate(true).withDfsEnabled(true).withSecurityProvider(new BCSecurityProvider()).build()
+  def config = SmbConfig.builder().withDialects(SMB2Dialect.SMB_2_1).withSigningRequired(true).withMultiProtocolNegotiate(true).withDfsEnabled(true).withSecurityProvider(new BCSecurityProvider()).build()
   def client = new SMBClient(config)
   def connection = _
 
