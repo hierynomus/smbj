@@ -70,6 +70,7 @@ class BasicPacketProcessor {
     response.header.statusCode = NtStatus.STATUS_SUCCESS.value
     response.dialect = SMB2Dialect.SMB_2_1
     response.systemTime = FileTime.now();
+    response.serverGuid = UUID.fromString("00112233-4455-6677-8899-aabbccddeeff")
     response
   }
 

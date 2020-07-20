@@ -62,7 +62,7 @@ class SMBProtocolNegotiator {
     }
 
     void negotiateDialect() throws TransportException {
-        logger.debug("Negotiating dialects {} with server {}", config.getSupportedDialects(), connection.getRemoteHostname());
+        logger.debug("Negotiating dialects {}", config.getSupportedDialects());
         SMB2NegotiateResponse resp;
         if (config.isUseMultiProtocolNegotiate()) {
             resp = multiProtocolNegotiate();

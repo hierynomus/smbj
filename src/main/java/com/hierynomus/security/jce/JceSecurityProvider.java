@@ -59,4 +59,8 @@ public class JceSecurityProvider implements SecurityProvider {
         return new JceAEADCipher(name, jceProvider, providerName);
     }
 
+    @Override
+    public DerivationFunction getDerivationFunction(String name) throws SecurityException {
+        throw new UnsupportedOperationException();
+    }
 }

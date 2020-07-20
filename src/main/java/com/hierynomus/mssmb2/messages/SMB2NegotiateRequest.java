@@ -85,7 +85,7 @@ public class SMB2NegotiateRequest extends SMB2Packet {
         if (eightByteAlignment > 0) {
             buffer.putReserved(8 - eightByteAlignment); // Padding (variable) Ensure that the next field is 8-byte aligned
         }
-        putNegotiateContextList(); // NegotiateContextList (variable)
+        putNegotiateContextList(buffer); // NegotiateContextList (variable)
     }
 
     private int securityMode() {
@@ -96,7 +96,7 @@ public class SMB2NegotiateRequest extends SMB2Packet {
         }
     }
 
-    private void putNegotiateContextList() {
+    private void putNegotiateContextList(SMBBuffer buffer) {
         if (dialects.contains(SMB2Dialect.SMB_3_1_1)) {
             for (int i = 0; i < negotiateContextList.size(); i++) {
                 int bytesWritten = negotiateContextList.get(i).write(buffer);
@@ -105,7 +105,6 @@ public class SMB2NegotiateRequest extends SMB2Packet {
                     buffer.putReserved(8 - (bytesWritten % 8));
                 }
             }
-            throw new UnsupportedOperationException("SMB 3.x support is not yet implemented");
         }
     }
 

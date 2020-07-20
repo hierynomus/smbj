@@ -44,16 +44,19 @@ public class ConnectionInfo {
     // For SMB 3.x+ all capabilities supported
     private EnumSet<SMB2GlobalCapability> clientCapabilities;
     private EnumSet<SMB2GlobalCapability> serverCapabilities;
+
     // SMB 3.x+
     private int clientSecurityMode;
     private int serverSecurityMode;
     private String server; // Reference to the server connected to?
+
     // SMB 3.1.1
     private SMB3HashAlgorithm preauthIntegrityHashId;
     private byte[] preauthIntegrityHashValue;
     private SMB3EncryptionCipher cipherId;
     // How much the SMB server clock is off from client clock
     private Long timeOffsetMillis;
+
 
     ConnectionInfo(UUID clientGuid, String serverName, SmbConfig config) {
         // new SessionTable
@@ -69,8 +72,8 @@ public class ConnectionInfo {
         SMB2NegotiateResponse response = negotiationContext.getNegotiationResponse();
         serverGuid = response.getServerGuid();
         serverCapabilities = EnumSet.copyOf(response.getCapabilities());
-        this.negotiatedProtocol = new NegotiatedProtocol(response.getDialect(), response.getMaxTransactSize(), response.getMaxReadSize(), response.getMaxWriteSize(), serverCapabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU));
-        serverSecurityMode = response.getSecurityMode();
+        this.negotiatedProtocol = new NegotiatedProtocol(response.getDialect(), response.getMaxTransactSize(), response.getMaxReadSize(), response.getMaxWriteSize(), supportsMultiCredit());
+        this.serverSecurityMode = response.getSecurityMode();
         this.cipherId = negotiationContext.getCipher();
         this.preauthIntegrityHashId = negotiationContext.getPreauthIntegrityHashId();
         this.preauthIntegrityHashValue = negotiationContext.getPreauthIntegrityHashValue();
@@ -87,6 +90,14 @@ public class ConnectionInfo {
 
     public boolean isServerSigningEnabled() {
         return (serverSecurityMode & 0x01) > 0;
+    }
+
+    int getServerSecurityMode() {
+        return serverSecurityMode;
+    }
+
+    EnumSet<SMB2GlobalCapability> getServerCapabilities() {
+        return serverCapabilities;
     }
 
     public NegotiatedProtocol getNegotiatedProtocol() {
@@ -141,6 +152,42 @@ public class ConnectionInfo {
             return clientCapabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION)
                 && supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION);
         }
+    }
+
+    /**
+     * If the client implements SMB 2.1 or SMB 3.x dialect family, the client MUST perform the following:
+     * If SMB2_GLOBAL_CAP_LEASING is set in the Capabilities field of the SMB2 NEGOTIATE Response, the client MUST set Connection.SupportsFileLeasing to TRUE. Otherwise, it MUST be set to FALSE.
+     * @return
+     */
+    public boolean supportsFileLeasing() {
+        return supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LEASING);
+    }
+
+    /**
+     * If the client implements SMB 2.1 or SMB 3.x dialect family, the client MUST perform the following:
+     * If SMB2_GLOBAL_CAP_LARGE_MTU is set in the Capabilities field of the SMB2 NEGOTIATE Response, the client MUST set Connection.SupportsMultiCredit to TRUE. Otherwise, it MUST be set to FALSE.
+     * @return
+     */
+    public boolean supportsMultiCredit() {
+        return supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU);
+    }
+
+    /**
+     * If Connection.Dialect belongs to the SMB 3.x dialect family, the client MUST perform the following:
+     * If SMB2_GLOBAL_CAP_DIRECTORY_LEASING is set in the Capabilities field of the SMB2 NEGOTIATE Response, the client MUST set Connection.SupportsDirectoryLeasing to TRUE. Otherwise, it MUST be set to FALSE.
+     * @return
+     */
+    public boolean supportsDirectoryLeasing() {
+        return negotiatedProtocol.getDialect().isSmb3x() && supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_DIRECTORY_LEASING);
+    }
+
+    /**
+     * If Connection.Dialect belongs to the SMB 3.x dialect family, the client MUST perform the following:
+     * If SMB2_GLOBAL_CAP_MULTI_CHANNEL is set in the Capabilities field of the SMB2 NEGOTIATE Response, the client MUST set Connection.SupportsMultiChannel to TRUE. Otherwise, it MUST be set to FALSE.
+     * @return
+     */
+    public boolean supportsMultiChannel() {
+        return negotiatedProtocol.getDialect().isSmb3x() && supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_MULTI_CHANNEL);
     }
 
     public Long getTimeOffsetMillis() {

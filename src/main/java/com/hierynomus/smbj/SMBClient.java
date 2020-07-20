@@ -21,6 +21,7 @@ import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.paths.DFSPathResolver;
 import com.hierynomus.smbj.paths.PathResolver;
 import com.hierynomus.smbj.paths.SymlinkPathResolver;
+import com.hierynomus.smbj.server.ServerList;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,7 @@ public class SMBClient implements Closeable {
     public static final int DEFAULT_PORT = 445;
 
     private Map<String, Connection> connectionTable = new ConcurrentHashMap<>();
+    private ServerList serverList = new ServerList();
 
     private SmbConfig config;
 
@@ -101,7 +103,7 @@ public class SMBClient implements Closeable {
                 cachedConnection = cachedConnection.lease();
             }
             if (cachedConnection == null || !cachedConnection.isConnected()) {
-                Connection connection = new Connection(config, this, bus);
+                Connection connection = new Connection(config, this, bus, serverList);
                 try {
                     connection.connect(hostname, port);
                 } catch (IOException e) {

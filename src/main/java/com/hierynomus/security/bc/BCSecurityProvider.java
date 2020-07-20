@@ -40,8 +40,12 @@ public class BCSecurityProvider implements SecurityProvider {
     }
 
     @Override
-    public AEADBlockCipher getAEADBlockCipher(String name) throws SecurityException {
+    public AEADBlockCipher getAEADBlockCipher(String name) {
         return BCAEADCipherFactory.create(name);
     }
 
+    @Override
+    public DerivationFunction getDerivationFunction(String name) {
+        return BCDerivationFunctionFactory.create(name);
+    }
 }

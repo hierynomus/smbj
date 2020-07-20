@@ -30,13 +30,14 @@ import com.hierynomus.smb.SMBPacketData;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.connection.packet.*;
-import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.common.Pooled;
-import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.common.SMBException;
+import com.hierynomus.smbj.connection.packet.*;
 import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
+import com.hierynomus.smbj.server.Server;
+import com.hierynomus.smbj.server.ServerList;
 import com.hierynomus.smbj.session.Session;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
@@ -67,9 +68,9 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     SequenceWindow sequenceWindow;
     private SMB2MessageConverter smb2Converter = new SMB2MessageConverter();
 
-    private String remoteName;
+    private final SMBClient client;
+    final ServerList serverList;
 
-    private SMBClient client;
     private PacketSignatory signatory;
 
     public SMBClient getClient() {
@@ -80,13 +81,14 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     TransportLayer<SMBPacket<?, ?>> transport;
     private final SMBEventBus bus;
     private final ReentrantLock lock = new ReentrantLock();
-    private int remotePort;
+    private Server server;
 
-    public Connection(SmbConfig config, SMBClient client, SMBEventBus bus) {
+    public Connection(SmbConfig config, SMBClient client, SMBEventBus bus, ServerList serverList) {
         this.config = config;
         this.client = client;
         this.transport = config.getTransportLayerFactory().createTransportLayer(new PacketHandlers<>(new SMBPacketSerializer(), this, converter), config);
         this.bus = bus;
+        this.serverList = serverList;
         bus.subscribe(this);
     }
 
@@ -95,6 +97,8 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         this.config = connection.config;
         this.transport = connection.transport;
         this.bus = connection.bus;
+        this.serverList = connection.serverList;
+
         bus.subscribe(this);
     }
 
@@ -102,12 +106,22 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         if (isConnected()) {
             throw new IllegalStateException(format("This connection is already connected to %s", getRemoteHostname()));
         }
-        this.remoteName = hostname;
-        this.remotePort = port;
         transport.connect(new InetSocketAddress(hostname, port));
         this.sequenceWindow = new SequenceWindow();
         this.connectionInfo = new ConnectionInfo(config.getClientGuid(), hostname, config);
         new SMBProtocolNegotiator(this).negotiateDialect();
+        this.server = this.serverList.lookup(hostname);
+        if (this.server == null) {
+            this.server = new Server(hostname, port, connectionInfo.getServerGuid(), connectionInfo.getNegotiatedProtocol().getDialect(), connectionInfo.getServerSecurityMode(), connectionInfo.getServerCapabilities());
+            this.serverList.registerServer(this.server);
+        } else {
+            if (!this.server.getServerGUID().equals(connectionInfo.getServerGuid()) ||
+                !this.server.getDialectRevision().equals(connectionInfo.getNegotiatedProtocol().getDialect()) ||
+                this.server.getSecurityMode() != connectionInfo.getServerSecurityMode() ||
+                !this.server.getCapabilities().equals(connectionInfo.getServerCapabilities())) {
+                throw new SMBException("Different server found for same hostame, disconnecting...");
+            }
+        }
         this.signatory = new PacketSignatory(connectionInfo.getNegotiatedProtocol().getDialect(), config.getSecurityProvider());
         logger.info("Successfully connected to: {}", getRemoteHostname());
     }
@@ -148,7 +162,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         } finally {
             transport.disconnect();
             logger.info("Closed connection to {}", getRemoteHostname());
-            bus.publish(new ConnectionClosed(remoteName, remotePort));
+            bus.publish(new ConnectionClosed(server.getServerName(), server.getPort()));
         }
     }
 
@@ -276,7 +290,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     }
 
     public String getRemoteHostname() {
-        return remoteName;
+        return server.getServerName();
     }
 
     public boolean isConnected() {
@@ -338,6 +352,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         public void cancel() {
             SMB2CancelRequest cancel = new SMB2CancelRequest(connectionInfo.getNegotiatedProtocol().getDialect(),
                 request.getMessageId(),
+                this.sessionId,
                 request.getAsyncId());
             try {
                 sessionTable.find(sessionId).send(cancel);

@@ -35,4 +35,6 @@ public interface SecurityProvider {
     Cipher getCipher(String name) throws SecurityException;
 
     AEADBlockCipher getAEADBlockCipher(String name) throws SecurityException;
+
+    DerivationFunction getDerivationFunction(String name) throws SecurityException;
 }
