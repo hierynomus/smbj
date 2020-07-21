@@ -15,16 +15,15 @@
  */
 package com.hierynomus.smbj.connection;
 
-import com.hierynomus.mssmb2.SMB2Dialect;
-import com.hierynomus.mssmb2.SMB2GlobalCapability;
-import com.hierynomus.mssmb2.SMB3EncryptionCipher;
-import com.hierynomus.mssmb2.SMB3HashAlgorithm;
+import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.ntlm.messages.WindowsVersion;
 import com.hierynomus.smbj.SmbConfig;
+import com.hierynomus.smbj.server.Server;
 
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.Set;
 import java.util.UUID;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
@@ -35,46 +34,47 @@ public class ConnectionInfo {
     private String netBiosName;
     // All SMB2 Dialect
     private byte[] gssNegotiateToken;
-    private UUID serverGuid;
-    private String serverName;
     private NegotiatedProtocol negotiatedProtocol;
+    private Server server; // Reference to the server connected to?
+
     // SMB 2.1+
-    private UUID clientGuid = UUID.randomUUID();
+    private final UUID clientGuid;
+    // serverGUID embedded in Server object
+
     // For SMB 2.1+ only SMB2_GLOBAL_CAP_LEASING and SMB2_GLOBAL_CAP_LARGE_MTU
     // For SMB 3.x+ all capabilities supported
     private EnumSet<SMB2GlobalCapability> clientCapabilities;
-    private EnumSet<SMB2GlobalCapability> serverCapabilities;
+    // serverCapabilities embedded in Server object
 
     // SMB 3.x+
     private int clientSecurityMode;
-    private int serverSecurityMode;
-    private String server; // Reference to the server connected to?
+    // serverSecurityMode embedded in Server object
 
     // SMB 3.1.1
     private SMB3HashAlgorithm preauthIntegrityHashId;
     private byte[] preauthIntegrityHashValue;
     private SMB3EncryptionCipher cipherId;
+    private Set<SMB3CompressionAlgorithm> compressionIds;
     // How much the SMB server clock is off from client clock
     private Long timeOffsetMillis;
 
 
-    ConnectionInfo(UUID clientGuid, String serverName, SmbConfig config) {
+    ConnectionInfo(UUID clientGuid, String hostname, int port, SmbConfig config) {
         // new SessionTable
         // new OutstandingRequests
         this.clientGuid = clientGuid;
         this.gssNegotiateToken = new byte[0];
-        this.serverName = serverName;
         this.clientCapabilities = EnumSet.copyOf(config.getClientCapabilities());
+        this.server = new Server(hostname, port);
     }
 
     void negotiated(SMBProtocolNegotiator.NegotiationContext negotiationContext) {
 //        gssNegotiateToken = response.getGssToken();
         SMB2NegotiateResponse response = negotiationContext.getNegotiationResponse();
-        serverGuid = response.getServerGuid();
-        serverCapabilities = EnumSet.copyOf(response.getCapabilities());
+        this.server = negotiationContext.getServer();
         this.negotiatedProtocol = new NegotiatedProtocol(response.getDialect(), response.getMaxTransactSize(), response.getMaxReadSize(), response.getMaxWriteSize(), supportsMultiCredit());
-        this.serverSecurityMode = response.getSecurityMode();
         this.cipherId = negotiationContext.getCipher();
+        this.compressionIds = negotiationContext.getCompressionIds();
         this.preauthIntegrityHashId = negotiationContext.getPreauthIntegrityHashId();
         this.preauthIntegrityHashValue = negotiationContext.getPreauthIntegrityHashValue();
         timeOffsetMillis = System.currentTimeMillis() - response.getSystemTime().toEpochMillis();
@@ -85,19 +85,19 @@ public class ConnectionInfo {
     }
 
     public boolean isServerRequiresSigning() {
-        return (serverSecurityMode & 0x02) > 0;
+        return (server.getSecurityMode() & 0x02) > 0;
     }
 
     public boolean isServerSigningEnabled() {
-        return (serverSecurityMode & 0x01) > 0;
+        return (server.getSecurityMode() & 0x01) > 0;
     }
 
     int getServerSecurityMode() {
-        return serverSecurityMode;
+        return server.getSecurityMode();
     }
 
-    EnumSet<SMB2GlobalCapability> getServerCapabilities() {
-        return serverCapabilities;
+    Set<SMB2GlobalCapability> getServerCapabilities() {
+        return server.getCapabilities();
     }
 
     public NegotiatedProtocol getNegotiatedProtocol() {
@@ -109,15 +109,15 @@ public class ConnectionInfo {
     }
 
     public UUID getServerGuid() {
-        return serverGuid;
+        return server.getServerGUID();
     }
 
     public String getServerName() {
-        return serverName;
+        return server.getServerName();
     }
 
     public boolean supports(SMB2GlobalCapability capability) {
-        return serverCapabilities.contains(capability);
+        return server.getCapabilities().contains(capability);
     }
 
     public EnumSet<SMB2GlobalCapability> getClientCapabilities() {
@@ -196,15 +196,23 @@ public class ConnectionInfo {
 
     @Override
     public String toString() {
-        return "ConnectionInfo{\n" + "  serverGuid=" + serverGuid + ",\n" +
-            "  serverName='" + serverName + "',\n" +
+        return "ConnectionInfo{\n" + "  serverGuid=" + server.getServerGUID() + ",\n" +
+            "  serverName='" + server.getServerName() + "',\n" +
             "  negotiatedProtocol=" + negotiatedProtocol + ",\n" +
             "  clientGuid=" + clientGuid + ",\n" +
             "  clientCapabilities=" + clientCapabilities + ",\n" +
-            "  serverCapabilities=" + serverCapabilities + ",\n" +
+            "  serverCapabilities=" + server.getCapabilities() + ",\n" +
             "  clientSecurityMode=" + clientSecurityMode + ",\n" +
-            "  serverSecurityMode=" + serverSecurityMode + ",\n" +
+            "  serverSecurityMode=" + server.getSecurityMode() + ",\n" +
             "  server='" + server + "'\n" +
             '}';
+    }
+
+    public Server getServer() {
+        return server;
+    }
+
+    public void setServer(Server server) {
+        this.server = server;
     }
 }

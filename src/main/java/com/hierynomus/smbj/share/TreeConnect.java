@@ -23,8 +23,10 @@ import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2TreeDisconnect;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.connection.NegotiatedProtocol;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.TreeDisconnected;
 import com.hierynomus.smbj.session.Session;
@@ -42,29 +44,27 @@ public class TreeConnect {
     private SmbPath smbPath;
     private Session session;
     private final Set<SMB2ShareCapabilities> capabilities;
-    private Connection connection;
+    private final NegotiatedProtocol negotiatedProtocol;
+    private SmbConfig config;
     private final SMBEventBus bus;
     private final Set<AccessMask> maximalAccess;
 
-    public TreeConnect(long treeId, SmbPath smbPath, Session session, Set<SMB2ShareCapabilities> capabilities, Connection connection, SMBEventBus bus, Set<AccessMask> maximalAccess) {
+    public TreeConnect(long treeId, SmbPath smbPath, Session session, Set<SMB2ShareCapabilities> capabilities, SmbConfig config, NegotiatedProtocol negotiatedProtocol, SMBEventBus bus, Set<AccessMask> maximalAccess) {
         this.treeId = treeId;
         this.smbPath = smbPath;
         this.session = session;
         this.capabilities = capabilities;
-        this.connection = connection;
+        this.negotiatedProtocol = negotiatedProtocol;
+        this.config = config;
         this.bus = bus;
         this.maximalAccess = maximalAccess;
     }
 
-    Connection getConnection() {
-        return connection;
-    }
-
     void close() throws TransportException {
         try {
-            SMB2TreeDisconnect disconnect = new SMB2TreeDisconnect(connection.getNegotiatedProtocol().getDialect(), session.getSessionId(), treeId);
+            SMB2TreeDisconnect disconnect = new SMB2TreeDisconnect(negotiatedProtocol.getDialect(), session.getSessionId(), treeId);
             Future<SMB2Packet> send = session.send(disconnect);
-            SMB2Packet smb2Packet = Futures.get(send, connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
+            SMB2Packet smb2Packet = Futures.get(send, config.getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
             if (!NtStatus.isSuccess(smb2Packet.getHeader().getStatusCode())) {
                 throw new SMBApiException(smb2Packet.getHeader(), "Error closing connection to " + smbPath);
             }
@@ -99,6 +99,14 @@ public class TreeConnect {
 
     public boolean isScaleoutShare() {
         return capabilities.contains(SMB2ShareCapabilities.SMB2_SHARE_CAP_SCALEOUT);
+    }
+
+    public SmbConfig getConfig() {
+        return config;
+    }
+
+    public NegotiatedProtocol getNegotiatedProtocol() {
+        return negotiatedProtocol;
     }
 
     @Override

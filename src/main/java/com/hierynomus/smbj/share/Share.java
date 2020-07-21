@@ -95,10 +95,9 @@ public class Share implements AutoCloseable {
         this.smbPath = smbPath;
         this.treeConnect = treeConnect;
         session = treeConnect.getSession();
-        Connection connection = treeConnect.getConnection();
-        NegotiatedProtocol negotiatedProtocol = connection.getNegotiatedProtocol();
+        NegotiatedProtocol negotiatedProtocol = treeConnect.getNegotiatedProtocol();
         dialect = negotiatedProtocol.getDialect();
-        SmbConfig config = connection.getConfig();
+        SmbConfig config = treeConnect.getConfig();
         readBufferSize = Math.min(config.getReadBufferSize(), negotiatedProtocol.getMaxReadSize());
         readTimeout = config.getReadTimeout();
         writeBufferSize = Math.min(config.getWriteBufferSize(), negotiatedProtocol.getMaxWriteSize());

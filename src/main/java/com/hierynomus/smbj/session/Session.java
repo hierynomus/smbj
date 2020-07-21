@@ -23,6 +23,7 @@ import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.*;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
@@ -60,6 +61,7 @@ public class Session implements AutoCloseable {
     private boolean encryptData; // SMB3.x
 
     private Connection connection;
+    private final SmbConfig config;
     private SMBEventBus bus;
     private final PathResolver pathResolver;
     private PacketSignatory signatory;
@@ -72,8 +74,9 @@ public class Session implements AutoCloseable {
     private byte[] signingKey;
     private byte[] decryptionKey;
 
-    public Session(Connection connection, AuthenticationContext userCredentials, SMBEventBus bus, PathResolver pathResolver, PacketSignatory signatory) {
+    public Session(Connection connection, SmbConfig config, AuthenticationContext userCredentials, SMBEventBus bus, PathResolver pathResolver, PacketSignatory signatory) {
         this.connection = connection;
+        this.config = config;
         this.userCredentials = userCredentials;
         this.bus = bus;
         this.pathResolver = pathResolver;
@@ -98,7 +101,7 @@ public class Session implements AutoCloseable {
      * @param setup
      */
     private void validateAndSetSigning(SMB2SessionSetup setup) {
-        boolean requireMessageSigning = connection.getConfig().isSigningRequired();
+        boolean requireMessageSigning = config.isSigningRequired();
         boolean connectionSigningRequired = connection.getConnectionInfo().isServerRequiresSigning();
 
         // If the global setting RequireMessageSigning is set to TRUE or
@@ -166,7 +169,7 @@ public class Session implements AutoCloseable {
             SMB2TreeConnectRequest smb2TreeConnectRequest = new SMB2TreeConnectRequest(connection.getNegotiatedProtocol().getDialect(), smbPath, sessionId);
             smb2TreeConnectRequest.getHeader().setCreditRequest(256);
             Future<SMB2TreeConnectResponse> send = this.send(smb2TreeConnectRequest);
-            SMB2TreeConnectResponse response = Futures.get(send, connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
+            SMB2TreeConnectResponse response = Futures.get(send, config.getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
             try {
                 SmbPath resolvedSharePath = pathResolver.resolve(this, response, smbPath);
                 Session session = this;
@@ -191,7 +194,7 @@ public class Session implements AutoCloseable {
             }
 
             long treeId = response.getHeader().getTreeId();
-            TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), connection, bus, response.getMaximalAccess());
+            TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), config, connection.getNegotiatedProtocol(), bus, response.getMaximalAccess());
 
             Share share;
             if (response.isDiskShare()) {
@@ -250,7 +253,7 @@ public class Session implements AutoCloseable {
                 }
             }
             SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
-            SMB2Logoff response = Futures.get(this.<SMB2Logoff>send(logoff), connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
+            SMB2Logoff response = Futures.get(this.<SMB2Logoff>send(logoff), config.getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
             if (!NtStatus.isSuccess(response.getHeader().getStatusCode())) {
                 throw new SMBApiException(response.getHeader(), "Could not logoff session <<" + sessionId + ">>");
             }

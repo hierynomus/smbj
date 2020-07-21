@@ -46,14 +46,14 @@ public class SMBSessionBuilder {
     private static final Logger logger = LoggerFactory.getLogger(SMBSessionBuilder.class);
     private final SmbConfig config;
     private final ConnectionInfo connectionInfo;
-    private SessionFactory sessionFactory;
-    private SessionTable sessionTable;
-    private SessionTable preauthSessionTable;
-    private Connection connection;
+    private final SessionFactory sessionFactory;
+    private final SessionTable sessionTable;
+    private final SessionTable preauthSessionTable;
+    private final Connection connection;
 
-    public SMBSessionBuilder(Connection connection, SessionFactory sessionFactory) {
+    public SMBSessionBuilder(Connection connection, SmbConfig config, SessionFactory sessionFactory) {
         this.connection = connection;
-        this.config = connection.getConfig();
+        this.config = config;
         this.connectionInfo = connection.getConnectionInfo();
         this.sessionTable = connection.getSessionTable();
         this.preauthSessionTable = connection.getPreauthSessionTable();

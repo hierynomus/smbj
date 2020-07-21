@@ -67,7 +67,12 @@ public class SMB2PreauthIntegrityCapabilities extends SMB2NegotiateContext {
         int hashAlgorithmCount = buffer.readUInt16(); // HashAlgorithmCount (2 bytes)
         int saltLength = buffer.readUInt16(); // SaltLength (2 bytes)
         for (int i = 0; i < hashAlgorithmCount; i++) {
-            hashAlgorithms.add(EnumWithValue.EnumUtils.valueOf(buffer.readUInt16(), SMB3HashAlgorithm.class, null)); // HashAlgorithm (2 bytes)
+            int l = buffer.readUInt16();
+            SMB3HashAlgorithm alg = EnumWithValue.EnumUtils.valueOf(l, SMB3HashAlgorithm.class, null);
+            if (alg == null) {
+                throw new IllegalStateException(String.format("Unknown SMB3HashAlgorithm with value '%d'", l));
+            }
+            hashAlgorithms.add(alg); // HashAlgorithm (2 bytes)
         }
         this.salt = buffer.readRawBytes(saltLength); // Salt (variable)
     }

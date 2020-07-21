@@ -31,7 +31,6 @@ import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.Pooled;
-import com.hierynomus.smbj.common.SMBException;
 import com.hierynomus.smbj.connection.packet.*;
 import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
@@ -81,7 +80,6 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     TransportLayer<SMBPacket<?, ?>> transport;
     private final SMBEventBus bus;
     private final ReentrantLock lock = new ReentrantLock();
-    private Server server;
 
     public Connection(SmbConfig config, SMBClient client, SMBEventBus bus, ServerList serverList) {
         this.config = config;
@@ -108,20 +106,9 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         }
         transport.connect(new InetSocketAddress(hostname, port));
         this.sequenceWindow = new SequenceWindow();
-        this.connectionInfo = new ConnectionInfo(config.getClientGuid(), hostname, config);
-        new SMBProtocolNegotiator(this).negotiateDialect();
-        this.server = this.serverList.lookup(hostname);
-        if (this.server == null) {
-            this.server = new Server(hostname, port, connectionInfo.getServerGuid(), connectionInfo.getNegotiatedProtocol().getDialect(), connectionInfo.getServerSecurityMode(), connectionInfo.getServerCapabilities());
-            this.serverList.registerServer(this.server);
-        } else {
-            if (!this.server.getServerGUID().equals(connectionInfo.getServerGuid()) ||
-                !this.server.getDialectRevision().equals(connectionInfo.getNegotiatedProtocol().getDialect()) ||
-                this.server.getSecurityMode() != connectionInfo.getServerSecurityMode() ||
-                !this.server.getCapabilities().equals(connectionInfo.getServerCapabilities())) {
-                throw new SMBException("Different server found for same hostame, disconnecting...");
-            }
-        }
+        this.connectionInfo = new ConnectionInfo(config.getClientGuid(), hostname, port, config);
+        new SMBProtocolNegotiator(this, config, connectionInfo).negotiateDialect();
+
         this.signatory = new PacketSignatory(connectionInfo.getNegotiatedProtocol().getDialect(), config.getSecurityProvider());
         logger.info("Successfully connected to: {}", getRemoteHostname());
     }
@@ -162,12 +149,8 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         } finally {
             transport.disconnect();
             logger.info("Closed connection to {}", getRemoteHostname());
-            bus.publish(new ConnectionClosed(server.getServerName(), server.getPort()));
+            bus.publish(new ConnectionClosed(connectionInfo.getServer().getServerName(), connectionInfo.getServer().getPort()));
         }
-    }
-
-    public SmbConfig getConfig() {
-        return config;
     }
 
     /**
@@ -176,10 +159,10 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
      * @return a (new) Session that is authenticated for the user.
      */
     public Session authenticate(AuthenticationContext authContext) {
-        return new SMBSessionBuilder(this, new SMBSessionBuilder.SessionFactory() {
+        return new SMBSessionBuilder(this, config, new SMBSessionBuilder.SessionFactory() {
             @Override
             public Session createSession(AuthenticationContext context) {
-                return new Session(Connection.this, context, bus, client.getPathResolver(), signatory);
+                return new Session(Connection.this, config, context, bus, client.getPathResolver(), signatory);
             }
         }).establish(authContext);
     }
@@ -221,7 +204,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     }
 
     <T extends SMB2Packet> T sendAndReceive(SMB2Packet packet) throws TransportException {
-        return Futures.get(this.<T>send(packet), getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
+        return Futures.get(this.<T>send(packet), config.getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
     }
 
     private int calculateGrantedCredits(final SMB2Packet packet, final int availableCredits) {
@@ -290,7 +273,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     }
 
     public String getRemoteHostname() {
-        return server.getServerName();
+        return connectionInfo.getServer().getServerName();
     }
 
     public boolean isConnected() {

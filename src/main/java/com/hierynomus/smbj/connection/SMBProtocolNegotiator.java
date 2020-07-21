@@ -21,6 +21,7 @@ import com.hierynomus.mssmb.messages.SMB1ComNegotiateRequest;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
+import com.hierynomus.mssmb2.messages.negotiate.SMB2CompressionCapabilities;
 import com.hierynomus.mssmb2.messages.negotiate.SMB2EncryptionCapabilities;
 import com.hierynomus.mssmb2.messages.negotiate.SMB2NegotiateContext;
 import com.hierynomus.mssmb2.messages.negotiate.SMB2PreauthIntegrityCapabilities;
@@ -33,11 +34,14 @@ import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smb.SMBPacket;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.server.Server;
 import com.hierynomus.smbj.utils.DigestUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -55,10 +59,10 @@ class SMBProtocolNegotiator {
     // system use 32 bytes of Salt.
     private static final int SALT_LENGTH = 32;
 
-    public SMBProtocolNegotiator(Connection connection) {
+    public SMBProtocolNegotiator(Connection connection, SmbConfig config, ConnectionInfo connectionInfo) {
         this.connection = connection;
-        this.config = connection.getConfig();
-        this.connectionInfo = connection.getConnectionInfo();
+        this.config = config;
+        this.connectionInfo = connectionInfo;
     }
 
     void negotiateDialect() throws TransportException {
@@ -76,7 +80,7 @@ class SMBProtocolNegotiator {
         }
 
         initializeNegotiationContext();
-
+        initializeOrValidateServerDetails();
         connectionInfo.negotiated(negotiationContext);
         logger.debug("Negotiated the following connection settings: {}", connectionInfo);
     }
@@ -87,23 +91,32 @@ class SMBProtocolNegotiator {
         if (dialect == SMB2Dialect.SMB_3_1_1) {
             List<SMB2NegotiateContext> negotiateContextList = this.negotiationContext.negotiationResponse.getNegotiateContextList();
             if (negotiateContextList != null) {
+                boolean seenPreAuth = false;
+                boolean seenEncryption = false;
+                boolean seenCompression = false;
                 for (SMB2NegotiateContext negotiateContext: negotiateContextList) {
                     switch (negotiateContext.getNegotiateContextType()) {
-                        case SMB2_PREAUTH_INTEGRITY_CAPABILITIES: {
-                            negotiationContext.preauthIntegrityHashId = getHashAlgorithm((SMB2PreauthIntegrityCapabilities) negotiateContext);
-                            negotiationContext.preauthIntegrityHashValue = calculatePreauthHashValue();
-
-                            break;
-                        }
-                        case SMB2_ENCRYPTION_CAPABILITIES: {
-                            SMB2EncryptionCapabilities encryptionCapabilitiesResponse = (SMB2EncryptionCapabilities) negotiateContext;
-                            List<SMB3EncryptionCipher> cipherList = encryptionCapabilitiesResponse.getCipherList();
-                            if (cipherList.size() != 1) {
-                                throw new IllegalStateException("The SMB2EncryptionCapabilities NegotiateContext does not contain exactly 1 cipher");
+                        case SMB2_PREAUTH_INTEGRITY_CAPABILITIES:
+                            if (seenPreAuth) {
+                                throw new IllegalStateException("SMB2_PREAUTH_INTEGRITY_CAPABILITIES should only appear once in the NegotiateContextList");
                             }
-                            negotiationContext.cipher = cipherList.get(0);
+                            seenPreAuth = true;
+                            handlePreAuthNegotiateContext((SMB2PreauthIntegrityCapabilities) negotiateContext);
                             break;
-                        }
+                        case SMB2_ENCRYPTION_CAPABILITIES:
+                            if (seenEncryption) {
+                                throw new IllegalStateException("SMB2_ENCRYPTION_CAPABILITIES should only appear once in the NegotiateContextList");
+                            }
+                            seenEncryption = true;
+                            handleEncryptionNegotiateContext((SMB2EncryptionCapabilities) negotiateContext);
+                            break;
+                        case SMB2_COMPRESSION_CAPABILITIES:
+                            if (seenCompression) {
+                                throw new IllegalStateException("SMB2_COMPRESSION_CAPABILITIES should only appear once in the NegotiateContextList");
+                            }
+                            seenCompression = true;
+                            handleCompressionNegotiateContext((SMB2CompressionCapabilities) negotiateContext);
+                            break;
                         default:
                             throw new IllegalStateException("unknown negotiate context type");
                     }
@@ -117,20 +130,37 @@ class SMBProtocolNegotiator {
                 negotiationContext.cipher = SMB3EncryptionCipher.AES_128_CCM;
             }
         }
-
     }
 
-    private SMB3HashAlgorithm getHashAlgorithm(SMB2PreauthIntegrityCapabilities negotiateContext) {
+    private void handleCompressionNegotiateContext(SMB2CompressionCapabilities negotiateContext) {
+        List<SMB3CompressionAlgorithm> compressionAlgorithms = negotiateContext.getCompressionAlgorithms();
+        if (compressionAlgorithms.size() == 0) {
+            throw new IllegalStateException("The SMB2CompressionCapabilities NegotiateContext should contain at least 1 algorithm");
+        } else if (compressionAlgorithms.size() == 1 && compressionAlgorithms.get(0) == SMB3CompressionAlgorithm.NONE) {
+            logger.info("SMB3CompressionAlgorithm is 'NONE', continuing without compression");
+            return;
+        }
+
+        // TODO flags CHAINED
+        negotiationContext.compressionIds = EnumSet.copyOf(compressionAlgorithms);
+    }
+
+    private void handleEncryptionNegotiateContext(SMB2EncryptionCapabilities negotiateContext) {
+        List<SMB3EncryptionCipher> cipherList = negotiateContext.getCipherList();
+        if (cipherList.size() != 1) {
+            throw new IllegalStateException("The SMB2EncryptionCapabilities NegotiateContext does not contain exactly 1 cipher");
+        }
+        negotiationContext.cipher = cipherList.get(0);
+    }
+
+    private void handlePreAuthNegotiateContext(SMB2PreauthIntegrityCapabilities negotiateContext) {
         if (negotiateContext.getHashAlgorithms().size() != 1) {
-            throw new IllegalStateException("There should be exactly 1 hash algorithm set.");
+            throw new IllegalStateException("The SMB2PreauthIntegrityCapabilities NegotiateContext does not contain exactly 1 hash algorithm");
         }
         SMB3HashAlgorithm hashAlgorithm = negotiateContext.getHashAlgorithms().get(0);
 
-        if (hashAlgorithm == null) {
-            logger.error("Unable to read hashAlgorithm from SMB2PreauthIntegrityCapabilities in SMB2NegotiateResponse.");
-            throw new IllegalStateException("Unable to read hashAlgorithm from SMB2PreauthIntegrityCapabilities in SMB2NegotiateResponse.");
-        }
-        return hashAlgorithm;
+        negotiationContext.preauthIntegrityHashId = hashAlgorithm;
+        negotiationContext.preauthIntegrityHashValue = calculatePreauthHashValue();
     }
 
     private byte[] calculatePreauthHashValue() {
@@ -208,12 +238,30 @@ class SMBProtocolNegotiator {
         return packetBytes;
     }
 
+    private void initializeOrValidateServerDetails() throws TransportException {
+        Server temp = connectionInfo.getServer();
+        SMB2NegotiateResponse response = negotiationContext.negotiationResponse;
+        temp.init(response.getServerGuid(), response.getDialect(), response.getSecurityMode(), response.getCapabilities());
+
+        Server cachedServer = connection.serverList.lookup(temp.getServerName());
+        if (cachedServer == null) {
+            connection.serverList.registerServer(temp);
+            negotiationContext.server = temp;
+        } else if (temp.validate(cachedServer)) {
+            negotiationContext.server = cachedServer;
+        } else {
+            throw new TransportException(String.format("Different server found for same hostname '%s', disconnecting...", temp.getServerName()));
+        }
+    }
+
     public static class NegotiationContext {
         private SMBPacket negotiationRequest;
         private SMB2NegotiateResponse negotiationResponse;
         private SMB3EncryptionCipher cipher;
         private SMB3HashAlgorithm preauthIntegrityHashId;
+        private Set<SMB3CompressionAlgorithm> compressionIds = EnumSet.noneOf(SMB3CompressionAlgorithm.class);
         private byte[] preauthIntegrityHashValue;
+        private Server server;
 
         public SMBPacket getNegotiationRequest() {
             return negotiationRequest;
@@ -229,6 +277,14 @@ class SMBProtocolNegotiator {
 
         public SMB3HashAlgorithm getPreauthIntegrityHashId() {
             return preauthIntegrityHashId;
+        }
+
+        public Set<SMB3CompressionAlgorithm> getCompressionIds() {
+            return compressionIds;
+        }
+
+        public Server getServer() {
+            return server;
         }
 
         public byte[] getPreauthIntegrityHashValue() {

@@ -60,7 +60,16 @@ public class SMB2CompressionCapabilities extends SMB2NegotiateContext {
         buffer.skip(2); // Padding (2 bytes)
         buffer.skip(4); // Reserved (4 bytes)
         for (int i = 0; i < compressionAlgorithmCount; i++) {
-            compressionAlgorithms.add(EnumWithValue.EnumUtils.valueOf(buffer.readUInt16(), SMB3CompressionAlgorithm.class, null));
+            int l = buffer.readUInt16();
+            SMB3CompressionAlgorithm alg = EnumWithValue.EnumUtils.valueOf(l, SMB3CompressionAlgorithm.class, null);
+            if (alg == null) {
+                throw new IllegalStateException(String.format("Unknown SMB3CompressionAlgorithm with value '%d'", l));
+            }
+            compressionAlgorithms.add(alg);
         }
+    }
+
+    public List<SMB3CompressionAlgorithm> getCompressionAlgorithms() {
+        return compressionAlgorithms;
     }
 }
