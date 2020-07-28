@@ -20,7 +20,10 @@ import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.SMBApiException;
-import com.hierynomus.mssmb2.messages.*;
+import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
+import com.hierynomus.mssmb2.messages.SMB2Logoff;
+import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
+import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.SmbConfig;
@@ -39,9 +42,9 @@ import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -55,7 +58,6 @@ public class Session implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(Session.class);
     private long sessionId;
 
-    //    private PacketSignatory packetSignatory;
     private boolean signingRequired;
     // SMB3.x If set, indicates that all message for this session MUST be encrypted
     private boolean encryptData; // SMB3.x
@@ -68,11 +70,7 @@ public class Session implements AutoCloseable {
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
     private List<Session> nestedSessions = new ArrayList<>();
     private AuthenticationContext userCredentials;
-
-    private boolean guest;
-    private boolean anonymous;
-    private byte[] signingKey;
-    private byte[] decryptionKey;
+    private SessionContext sessionContext;
 
     public Session(Connection connection, SmbConfig config, AuthenticationContext userCredentials, SMBEventBus bus, PathResolver pathResolver, PacketSignatory signatory) {
         this.connection = connection;
@@ -81,52 +79,9 @@ public class Session implements AutoCloseable {
         this.bus = bus;
         this.pathResolver = pathResolver;
         this.signatory = signatory;
+        this.sessionContext = new SessionContext();
         if (bus != null) {
             bus.subscribe(this);
-        }
-    }
-
-    public void init(SMB2SessionSetup setup) {
-        this.guest = setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_GUEST);
-        this.anonymous = setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_NULL);
-        validateAndSetSigning(setup);
-        if (guest || anonymous) {
-            this.signingKey = null;// De-initialize the signingKey if it was initialized with a bogus key during the auth
-        }
-    }
-
-    /**
-     * [MS-SMB2] 3.2.5.3.1 Handling a New Authentication
-     *
-     * @param setup
-     */
-    private void validateAndSetSigning(SMB2SessionSetup setup) {
-        boolean requireMessageSigning = config.isSigningRequired();
-        boolean connectionSigningRequired = connection.getConnectionInfo().isServerRequiresSigning();
-
-        // If the global setting RequireMessageSigning is set to TRUE or
-        // Connection.RequireSigning is set to TRUE then Session.SigningRequired MUST be
-        // set to TRUE, otherwise Session.SigningRequired MUST be set to FALSE.
-        if (requireMessageSigning || connectionSigningRequired) {
-            signingRequired = true;
-        } else {
-            signingRequired = false;
-        }
-
-        if (anonymous) {
-            // If the security subsystem indicates that the session was established by an anonymous user, Session.SigningRequired MUST be set to FALSE.
-            signingRequired = false;
-        }
-        if (guest && signingRequired) {
-            throw new SMB2GuestSigningRequiredException();
-        } else if (guest && !requireMessageSigning) {
-            signingRequired = false;
-        }
-        if (connection.getNegotiatedProtocol().getDialect().isSmb3x()
-            && connection.getConnectionInfo().supportsEncryption()
-            && setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_ENCRYPT_DATA)) {
-            encryptData = true;
-            signingRequired = false;
         }
     }
 
@@ -267,15 +222,11 @@ public class Session implements AutoCloseable {
     }
 
     public boolean isGuest() {
-        return guest;
+        return sessionContext.isGuest();
     }
 
     public boolean isAnonymous() {
-        return anonymous;
-    }
-
-    public void setSigningKey(byte[] signingKeyBytes) {
-        this.signingKey = Arrays.copyOf(signingKeyBytes, signingKeyBytes.length);
+        return sessionContext.isAnonymous();
     }
 
     @Override
@@ -295,10 +246,10 @@ public class Session implements AutoCloseable {
      * @throws TransportException
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
-        if (signingRequired && signingKey == null) {
+        if (signingRequired && sessionContext.getSigningKey() == null) {
             throw new TransportException("Message signing is required, but no signing key is negotiated");
         }
-        return connection.send(signatory.sign(packet, this.signingKey));
+        return connection.send(signatory.sign(packet, sessionContext.getSigningKey()));
     }
 
     public <T extends SMB2Packet> T processSendResponse(SMB2CreateRequest packet) throws TransportException {
@@ -306,12 +257,12 @@ public class Session implements AutoCloseable {
         return Futures.get(responseFuture, SMBRuntimeException.Wrapper);
     }
 
-    public byte[] getSigningKey() {
-        return signingKey;
+    public SecretKey getSigningKey() {
+        return sessionContext.getSigningKey();
     }
 
-    public byte[] getDecryptionKey() {
-        return decryptionKey;
+    public SessionContext getSessionContext() {
+        return sessionContext;
     }
 
     public AuthenticationContext getAuthenticationContext() {

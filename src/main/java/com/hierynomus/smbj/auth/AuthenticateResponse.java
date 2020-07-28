@@ -19,7 +19,7 @@ import com.hierynomus.ntlm.messages.WindowsVersion;
 
 public class AuthenticateResponse {
     private byte[] negToken;
-    private byte[] signingKey;
+    private byte[] sessionKey;
     private WindowsVersion windowsVersion;
     private String netBiosName;
 
@@ -46,12 +46,12 @@ public class AuthenticateResponse {
         this.negToken = negToken;
     }
 
-    public byte[] getSigningKey() {
-        return signingKey;
+    public byte[] getSessionKey() {
+        return sessionKey;
     }
 
-    public void setSigningKey(byte[] signingKey) {
-        this.signingKey = signingKey;
+    public void setSessionKey(byte[] sessionKey) {
+        this.sessionKey = sessionKey;
     }
 
     public String getNetBiosName() {

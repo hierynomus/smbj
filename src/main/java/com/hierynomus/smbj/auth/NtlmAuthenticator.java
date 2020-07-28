@@ -25,6 +25,8 @@ import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.connection.ConnectionContext;
+import com.hierynomus.smbj.connection.SMBSessionBuilder;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.spnego.NegTokenInit;
 import com.hierynomus.spnego.NegTokenTarg;
@@ -65,7 +67,7 @@ public class NtlmAuthenticator implements Authenticator {
     private boolean completed = false;
 
     @Override
-    public AuthenticateResponse authenticate(final AuthenticationContext context, final byte[] gssToken, Session session) throws IOException {
+    public AuthenticateResponse authenticate(final AuthenticationContext context, final byte[] gssToken, ConnectionContext connectionContext) throws IOException {
         try {
             AuthenticateResponse response = new AuthenticateResponse();
             if (completed) {
@@ -108,10 +110,10 @@ public class NtlmAuthenticator implements Authenticator {
                     byte[] masterKey = new byte[16];
                     random.nextBytes(masterKey);
                     sessionkey = ntlmFunctions.encryptRc4(userSessionKey, masterKey);
-                    response.setSigningKey(masterKey);
+                    response.setSessionKey(masterKey);
                 } else {
                     sessionkey = userSessionKey;
-                    response.setSigningKey(sessionkey);
+                    response.setSessionKey(sessionkey);
                 }
 
                 completed = true;

@@ -28,6 +28,7 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import java.util.Arrays;
 
@@ -40,17 +41,17 @@ public class PacketEncryptor {
         this.securityProvider = securityProvider;
     }
 
-    void init(ConnectionInfo connectionInfo) {
+    void init(ConnectionContext connectionContext) {
         // The client MUST decrypt the message using Session.DecryptionKey. If Connection.Dialect is "3.1.1", the algorithm
         // specified by Connection.CipherId is used. Otherwise, the AES-128-CCM algorithm is used.
-        if (connectionInfo.getNegotiatedProtocol().getDialect().equals(SMB2Dialect.SMB_3_1_1)) {
-            cipher = connectionInfo.getCipherId();
+        if (connectionContext.getNegotiatedProtocol().getDialect().equals(SMB2Dialect.SMB_3_1_1)) {
+            cipher = connectionContext.getCipherId();
         } else {
             cipher = SMB3EncryptionCipher.AES_128_CCM;
         }
     }
 
-    public byte[] decrypt(SMB3EncryptedPacketData packetData, byte[] encryptionKey) {
+    public byte[] decrypt(SMB3EncryptedPacketData packetData, SecretKey encryptionKey) {
         byte[] realNonce = Arrays.copyOf(packetData.getHeader().getNonce(), cipher.getNonceLength());
         try {
             byte[] aad = createAAD(packetData);
@@ -58,7 +59,7 @@ public class PacketEncryptor {
             byte[] signature = packetData.getHeader().getSignature();
 
             AEADBlockCipher aeadBlockCipher = securityProvider.getAEADBlockCipher(cipher.getAlgorithmName());
-            aeadBlockCipher.init(Cipher.CryptMode.DECRYPT, encryptionKey, new GCMParameterSpec(128, realNonce));
+            aeadBlockCipher.init(Cipher.CryptMode.DECRYPT, encryptionKey.getEncoded(), new GCMParameterSpec(128, realNonce));
             aeadBlockCipher.updateAAD(aad, 0, aad.length);
             byte[] bytes = aeadBlockCipher.update(cipherText, 0, cipherText.length);
             byte[] bytes2 = aeadBlockCipher.doFinal(signature, 0, signature.length);

@@ -20,7 +20,7 @@ import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.GSSContextConfig;
 import com.hierynomus.smbj.SmbConfig;
-import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.connection.ConnectionContext;
 import org.ietf.jgss.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,12 +54,12 @@ public class SpnegoAuthenticator implements Authenticator {
     private GSSContext gssContext;
 
     @Override
-    public AuthenticateResponse authenticate(final AuthenticationContext context, final byte[] gssToken, final Session session) throws IOException {
+    public AuthenticateResponse authenticate(final AuthenticationContext context, final byte[] gssToken, final ConnectionContext connectionContext) throws IOException {
         final GSSAuthenticationContext gssAuthenticationContext = (GSSAuthenticationContext) context;
         try {
             return Subject.doAs(gssAuthenticationContext.getSubject(), new PrivilegedExceptionAction<AuthenticateResponse>() {
                 public AuthenticateResponse run() throws Exception {
-                    return authenticateSession(gssAuthenticationContext, gssToken, session);
+                    return authenticateSession(gssAuthenticationContext, gssToken, connectionContext);
                 }
             });
         } catch (PrivilegedActionException e) {
@@ -67,15 +67,15 @@ public class SpnegoAuthenticator implements Authenticator {
         }
     }
 
-    private AuthenticateResponse authenticateSession(GSSAuthenticationContext context, byte[] gssToken, Session session) throws TransportException {
+    private AuthenticateResponse authenticateSession(GSSAuthenticationContext context, byte[] gssToken, ConnectionContext connectionContext) throws TransportException {
         try {
-            logger.debug("Authenticating {} on {} using SPNEGO", context.getUsername(), session.getConnection().getRemoteHostname());
+            logger.debug("Authenticating {} on {} using SPNEGO", context.getUsername(), connectionContext.getServerName());
             if (gssContext == null) {
                 GSSManager gssManager = GSSManager.getInstance();
                 Oid spnegoOid = new Oid("1.3.6.1.5.5.2"); //SPNEGO
 
                 String service = "cifs";
-                String hostName = session.getConnection().getRemoteHostname();
+                String hostName = connectionContext.getServerName();
                 GSSName serverName = gssManager.createName(service + "@" + hostName, GSSName.NT_HOSTBASED_SERVICE);
                 gssContext = gssManager.createContext(serverName, spnegoOid, context.getCreds(), GSSContext.DEFAULT_LIFETIME);
                 gssContext.requestMutualAuth(gssContextConfig.isRequestMutualAuth());
@@ -94,7 +94,7 @@ public class SpnegoAuthenticator implements Authenticator {
                 Key key = ExtendedGSSContext.krb5GetSessionKey(gssContext);
                 if (key != null) {
                     // if a session key was negotiated, save it.
-                    response.setSigningKey(adjustSessionKeyLength(key.getEncoded()));
+                    response.setSessionKey(adjustSessionKeyLength(key.getEncoded()));
                 }
             }
             return response;

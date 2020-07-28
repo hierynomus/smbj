@@ -22,6 +22,7 @@ import com.hierynomus.mssmb2.SMB2CreateDisposition
 import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.mssmb2.SMBApiException
+import com.hierynomus.security.bc.BCSecurityProvider
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.io.ArrayByteChunkProvider
@@ -46,7 +47,9 @@ class SMB2FileIntegrationTest extends Specification {
     def config = SmbConfig
       .builder()
       .withMultiProtocolNegotiate(true)
-    .withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>())
+      .withDialects(SMB2Dialect.SMB_3_0)
+      .withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>())
+      .withSecurityProvider(new BCSecurityProvider())
       .withSigningRequired(true).build()
     client = new SMBClient(config)
     connection = client.connect("127.0.0.1")
@@ -185,6 +188,7 @@ class SMB2FileIntegrationTest extends Specification {
     cleanup:
     share.rm("bigfile")
   }
+
   def "should append to the file"() {
     given:
     def file = share.openFile("appendfile", EnumSet.of(AccessMask.FILE_WRITE_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN_IF, null)
@@ -214,7 +218,7 @@ class SMB2FileIntegrationTest extends Specification {
     def bytes2 = new byte[1024 * 1024]
     Random.newInstance().nextBytes(bytes2)
     def istream2 = new ByteArrayInputStream(bytes2)
-    ostream = appendfile.getOutputStream(new LoggingProgressListener(),true)
+    ostream = appendfile.getOutputStream(new LoggingProgressListener(), true)
     try {
       byte[] buffer = new byte[4096]
       int len
@@ -231,7 +235,7 @@ class SMB2FileIntegrationTest extends Specification {
     share.fileExists("appendfile")
 
     when:
-    def readBytes = new byte[2* 1024 * 1024]
+    def readBytes = new byte[2 * 1024 * 1024]
     def readFile = share.openFile("appendfile", EnumSet.of(AccessMask.FILE_READ_DATA), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
     try {
       def remoteIs = readFile.getInputStream(new LoggingProgressListener())
@@ -253,7 +257,7 @@ class SMB2FileIntegrationTest extends Specification {
     }
 
     then:
-    readBytes == [bytes,bytes2].flatten()
+    readBytes == [bytes, bytes2].flatten()
 
     cleanup:
     share.rm("appendfile")
@@ -326,8 +330,8 @@ class SMB2FileIntegrationTest extends Specification {
     noExceptionThrown()
 
     where:
-    method | func
-    "rmdir" | { s -> s.rmdir("to_be_removed", false) }
+    method         | func
+    "rmdir"        | { s -> s.rmdir("to_be_removed", false) }
     "folderExists" | { s -> s.folderExists("to_be_removed") }
   }
 
@@ -347,8 +351,8 @@ class SMB2FileIntegrationTest extends Specification {
     noExceptionThrown()
 
     where:
-    method | func
-    "rm" | { s -> s.rm("test.txt") }
+    method       | func
+    "rm"         | { s -> s.rm("test.txt") }
     "fileExists" | { s -> s.fileExists("test.txt") }
   }
 

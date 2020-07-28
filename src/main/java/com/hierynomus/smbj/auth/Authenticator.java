@@ -15,12 +15,10 @@
  */
 package com.hierynomus.smbj.auth;
 
-import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smbj.SmbConfig;
-import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.connection.ConnectionContext;
 
 import java.io.IOException;
-import java.util.Random;
 
 public interface Authenticator {
 
@@ -28,6 +26,5 @@ public interface Authenticator {
 
     boolean supports(AuthenticationContext context);
 
-    // TODO remove session parameter.
-    AuthenticateResponse authenticate(AuthenticationContext context, byte[] gssToken, Session session) throws IOException;
+    AuthenticateResponse authenticate(AuthenticationContext context, byte[] gssToken, ConnectionContext connectionContext) throws IOException;
 }

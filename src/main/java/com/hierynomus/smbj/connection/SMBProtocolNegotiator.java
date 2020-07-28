@@ -25,12 +25,10 @@ import com.hierynomus.mssmb2.messages.negotiate.SMB2CompressionCapabilities;
 import com.hierynomus.mssmb2.messages.negotiate.SMB2EncryptionCapabilities;
 import com.hierynomus.mssmb2.messages.negotiate.SMB2NegotiateContext;
 import com.hierynomus.mssmb2.messages.negotiate.SMB2PreauthIntegrityCapabilities;
-import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.security.MessageDigest;
 import com.hierynomus.security.SecurityException;
-import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smb.SMBPacket;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.common.SMBRuntimeException;
@@ -46,23 +44,25 @@ import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import static com.hierynomus.smb.Packets.getPacketBytes;
+
 /**
  * Handles the protocol negotiation.
  */
 class SMBProtocolNegotiator {
     private static final Logger logger = LoggerFactory.getLogger(SMBProtocolNegotiator.class);
     private final SmbConfig config;
-    private final ConnectionInfo connectionInfo;
+    private final ConnectionContext connectionContext;
     private Connection connection;
     private NegotiationContext negotiationContext = new NegotiationContext();
     // [MS-SMB2] <103> Section 3.2.4.2.2.2: Windows 10, Windows Server 2016, and Windows Server operating
     // system use 32 bytes of Salt.
     private static final int SALT_LENGTH = 32;
 
-    public SMBProtocolNegotiator(Connection connection, SmbConfig config, ConnectionInfo connectionInfo) {
+    public SMBProtocolNegotiator(Connection connection, SmbConfig config, ConnectionContext connectionContext) {
         this.connection = connection;
         this.config = config;
-        this.connectionInfo = connectionInfo;
+        this.connectionContext = connectionContext;
     }
 
     void negotiateDialect() throws TransportException {
@@ -81,8 +81,8 @@ class SMBProtocolNegotiator {
 
         initializeNegotiationContext();
         initializeOrValidateServerDetails();
-        connectionInfo.negotiated(negotiationContext);
-        logger.debug("Negotiated the following connection settings: {}", connectionInfo);
+        connectionContext.negotiated(negotiationContext);
+        logger.debug("Negotiated the following connection settings: {}", connectionContext);
     }
 
     private void initializeNegotiationContext() {
@@ -168,7 +168,6 @@ class SMBProtocolNegotiator {
         byte[] requestBytes = getPacketBytes(negotiationContext.negotiationRequest);
         byte[] responseBytes = getPacketBytes(negotiationContext.negotiationResponse);
 
-
         MessageDigest messageDigest;
         String algorithmName = negotiationContext.preauthIntegrityHashId.getAlgorithmName();
         try {
@@ -190,7 +189,7 @@ class SMBProtocolNegotiator {
     private SMB2NegotiateResponse smb2OnlyNegotiate() throws TransportException {
         byte[] salt = new byte[32];
         config.getRandomProvider().nextBytes(salt);
-        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionInfo.getClientGuid(), config.isSigningRequired(), config.getClientCapabilities(), salt);
+        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionContext.getClientGuid(), config.isSigningRequired(), config.getClientCapabilities(), salt);
         this.negotiationContext.negotiationRequest = negotiatePacket;
         return connection.sendAndReceive(negotiatePacket);
     }
@@ -218,28 +217,8 @@ class SMBProtocolNegotiator {
         return negotiateResponse;
     }
 
-    /**
-     * Get the serialized packet bytes.
-     * @param packet
-     * @return
-     * @throws Buffer.BufferException
-     */
-    private byte[] getPacketBytes(SMBPacket<?, ?> packet) {
-        SMBBuffer buffer = packet.getBuffer();
-        int originalPos = buffer.rpos();
-        buffer.rpos(packet.getHeader().getHeaderStartPosition());
-        byte[] packetBytes = new byte[packet.getHeader().getMessageEndPosition() - packet.getHeader().getHeaderStartPosition()]; // Allocate large enough byte[] for message
-        try {
-            buffer.readRawBytes(packetBytes);
-        } catch (Buffer.BufferException be) {
-            throw new SMBRuntimeException("Cannot read packet bytes from buffer", be);
-        }
-        buffer.rpos(originalPos);
-        return packetBytes;
-    }
-
     private void initializeOrValidateServerDetails() throws TransportException {
-        Server temp = connectionInfo.getServer();
+        Server temp = connectionContext.getServer();
         SMB2NegotiateResponse response = negotiationContext.negotiationResponse;
         temp.init(response.getServerGuid(), response.getDialect(), response.getSecurityMode(), response.getCapabilities());
 

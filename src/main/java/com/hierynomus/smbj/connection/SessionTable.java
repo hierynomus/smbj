@@ -45,7 +45,7 @@ public class SessionTable {
         }
     }
 
-    Session sessionClosed(Long id) {
+    public Session removeSession(Long id) {
         lock.lock();
         try {
             return lookup.remove(id);
@@ -63,7 +63,7 @@ public class SessionTable {
         }
     }
 
-    Collection<Session> activeSessions() {
+    public Collection<Session> activeSessions() {
         lock.lock();
         try {
             return new ArrayList<>(lookup.values());

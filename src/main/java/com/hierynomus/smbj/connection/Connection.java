@@ -16,7 +16,6 @@
 package com.hierynomus.smbj.connection;
 
 import com.hierynomus.mssmb.SMB1PacketFactory;
-import com.hierynomus.mssmb2.SMB2GlobalCapability;
 import com.hierynomus.mssmb2.SMB2MessageConverter;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2PacketFactory;
@@ -35,7 +34,6 @@ import com.hierynomus.smbj.connection.packet.*;
 import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
-import com.hierynomus.smbj.server.Server;
 import com.hierynomus.smbj.server.ServerList;
 import com.hierynomus.smbj.session.Session;
 import net.engio.mbassy.listener.Handler;
@@ -60,7 +58,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
     private static final DelegatingSMBMessageConverter converter = new DelegatingSMBMessageConverter(new SMB2PacketFactory(), new SMB1PacketFactory());
 
-    private ConnectionInfo connectionInfo;
+    private ConnectionContext connectionContext;
     private SessionTable sessionTable = new SessionTable();
     private SessionTable preauthSessionTable = new SessionTable();
     OutstandingRequests outstandingRequests = new OutstandingRequests();
@@ -106,10 +104,10 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         }
         transport.connect(new InetSocketAddress(hostname, port));
         this.sequenceWindow = new SequenceWindow();
-        this.connectionInfo = new ConnectionInfo(config.getClientGuid(), hostname, port, config);
-        new SMBProtocolNegotiator(this, config, connectionInfo).negotiateDialect();
+        this.connectionContext = new ConnectionContext(config.getClientGuid(), hostname, port, config);
+        new SMBProtocolNegotiator(this, config, connectionContext).negotiateDialect();
 
-        this.signatory = new PacketSignatory(connectionInfo.getNegotiatedProtocol().getDialect(), config.getSecurityProvider());
+        this.signatory = new PacketSignatory(connectionContext.getNegotiatedProtocol().getDialect(), config.getSecurityProvider());
         logger.info("Successfully connected to: {}", getRemoteHostname());
     }
 
@@ -149,7 +147,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         } finally {
             transport.disconnect();
             logger.info("Closed connection to {}", getRemoteHostname());
-            bus.publish(new ConnectionClosed(connectionInfo.getServer().getServerName(), connectionInfo.getServer().getPort()));
+            bus.publish(new ConnectionClosed(connectionContext.getServer().getServerName(), connectionContext.getServer().getPort()));
         }
     }
 
@@ -211,7 +209,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         final int grantCredits;
         int maxPayloadSize = packet.getMaxPayloadSize();
         int creditsNeeded = creditsNeeded(maxPayloadSize);
-        if (creditsNeeded > 1 && !connectionInfo.supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU)) {
+        if (creditsNeeded > 1 && !connectionContext.supportsMultiCredit()) {
             logger.trace("Connection to {} does not support multi-credit requests.", getRemoteHostname());
             grantCredits = 1;
         } else if (creditsNeeded < availableCredits) { // Scale the credits dynamically
@@ -238,7 +236,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
      * @return The negotiated protocol details
      */
     public NegotiatedProtocol getNegotiatedProtocol() {
-        return connectionInfo.getNegotiatedProtocol();
+        return connectionContext.getNegotiatedProtocol();
     }
 
     @Override
@@ -273,21 +271,21 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     }
 
     public String getRemoteHostname() {
-        return connectionInfo.getServer().getServerName();
+        return connectionContext.getServer().getServerName();
     }
 
     public boolean isConnected() {
         return transport.isConnected();
     }
 
-    public ConnectionInfo getConnectionInfo() {
-        return connectionInfo;
+    public ConnectionContext getConnectionContext() {
+        return connectionContext;
     }
 
     @Handler
     @SuppressWarnings("unused")
     private void sessionLogoff(SessionLoggedOff loggedOff) {
-        sessionTable.sessionClosed(loggedOff.getSessionId());
+        sessionTable.removeSession(loggedOff.getSessionId());
         logger.debug("Session << {} >> logged off", loggedOff.getSessionId());
     }
 
@@ -333,7 +331,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
          */
         @Override
         public void cancel() {
-            SMB2CancelRequest cancel = new SMB2CancelRequest(connectionInfo.getNegotiatedProtocol().getDialect(),
+            SMB2CancelRequest cancel = new SMB2CancelRequest(connectionContext.getNegotiatedProtocol().getDialect(),
                 request.getMessageId(),
                 this.sessionId,
                 request.getAsyncId());

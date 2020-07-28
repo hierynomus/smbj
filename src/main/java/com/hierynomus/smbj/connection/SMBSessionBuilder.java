@@ -17,35 +17,49 @@ package com.hierynomus.smbj.connection;
 
 import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.security.MessageDigest;
+import com.hierynomus.security.SecurityException;
+import com.hierynomus.smb.Packets;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticateResponse;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.session.SMB2GuestSigningRequiredException;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.session.SessionContext;
+import com.hierynomus.smbj.utils.DigestUtil;
 import com.hierynomus.spnego.NegTokenInit;
 import com.hierynomus.spnego.NegTokenInit2;
 import com.hierynomus.spnego.SpnegoException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
 import static com.hierynomus.mssmb2.messages.SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_ENABLED;
+import static com.hierynomus.mssmb2.messages.SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_REQUIRED;
 import static java.lang.String.format;
 
+/**
+ * [MS-SMB2] 3.2.5.3.1 Handling a New Authentication
+ *
+ */
 public class SMBSessionBuilder {
 
     private static final Logger logger = LoggerFactory.getLogger(SMBSessionBuilder.class);
     private final SmbConfig config;
-    private final ConnectionInfo connectionInfo;
+    private final ConnectionContext connectionContext;
     private final SessionFactory sessionFactory;
     private final SessionTable sessionTable;
     private final SessionTable preauthSessionTable;
@@ -54,7 +68,7 @@ public class SMBSessionBuilder {
     public SMBSessionBuilder(Connection connection, SmbConfig config, SessionFactory sessionFactory) {
         this.connection = connection;
         this.config = config;
-        this.connectionInfo = connection.getConnectionInfo();
+        this.connectionContext = connection.getConnectionContext();
         this.sessionTable = connection.getSessionTable();
         this.preauthSessionTable = connection.getPreauthSessionTable();
         this.sessionFactory = sessionFactory;
@@ -68,77 +82,104 @@ public class SMBSessionBuilder {
     public Session establish(AuthenticationContext authContext) {
         try {
             Authenticator authenticator = getAuthenticator(authContext);
+            BuilderContext ctx = newContext(authContext, authenticator);
+
             authenticator.init(config);
-            Session session = sessionFactory.createSession(authContext);
-            byte[] securityContext = processAuthenticationToken(authenticator, authContext, connectionInfo.getGssNegotiateToken(), session);
-            SMB2SessionSetup receive = initiateSessionSetup(securityContext, 0L);
-            long preauthSessionId = receive.getHeader().getSessionId();
-            if (preauthSessionId != 0L) {
-                preauthSessionTable.registerSession(preauthSessionId, session);
-            }
-            try {
-                while (receive.getHeader().getStatusCode() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED.getValue()) {
-                    logger.debug("More processing required for authentication of {} using {}", authContext.getUsername(), authenticator);
-                    securityContext = processAuthenticationToken(authenticator, authContext, receive.getSecurityBuffer(), session);
-                    receive = initiateSessionSetup(securityContext, preauthSessionId);
-                }
+            processAuthenticationToken(ctx, connectionContext.getGssNegotiateToken());
 
-                if (receive.getHeader().getStatusCode() != NtStatus.STATUS_SUCCESS.getValue()) {
-                    throw new SMBApiException(receive.getHeader(), format("Authentication failed for '%s' using %s", authContext.getUsername(), authenticator));
-                }
-
-                // Some devices only allocate the sessionId on the STATUS_SUCCESS message, not while authenticating.
-                // So we need to set it on the session once we're completely authenticated.
-                session.setSessionId(receive.getHeader().getSessionId());
-
-                if (receive.getSecurityBuffer() != null) {
-                    // process the last received buffer
-                    processAuthenticationToken(authenticator, authContext, receive.getSecurityBuffer(), session);
-                }
-                session.init(receive);
-                logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), connection.getRemoteHostname(), session.getSessionId());
-                sessionTable.registerSession(session.getSessionId(), session);
-                return session;
-            } finally {
-                if (preauthSessionId != 0L) {
-                    preauthSessionTable.sessionClosed(preauthSessionId);
-                }
-            }
+            Session session = setupSession(ctx);
+            logger.info("Successfully authenticated {} on {}, session is {}", authContext.getUsername(), connection.getRemoteHostname(), session.getSessionId());
+            sessionTable.registerSession(session.getSessionId(), session);
+            return session;
         } catch (SpnegoException | IOException e) {
             throw new SMBRuntimeException(e);
         }
     }
 
-    private byte[] processAuthenticationToken(Authenticator authenticator, AuthenticationContext authContext, byte[] inputToken, Session session) throws IOException {
-        AuthenticateResponse resp = authenticator.authenticate(authContext, inputToken, session);
-        if (resp == null) {
-            return null;
-        }
-        connectionInfo.setWindowsVersion(resp.getWindowsVersion());
-        connectionInfo.setNetBiosName(resp.getNetBiosName());
-        byte[] securityContext = resp.getNegToken();
-        if (resp.getSigningKey() != null) {
-            session.setSigningKey(resp.getSigningKey());
-        }
-        return securityContext;
+    private BuilderContext newContext(AuthenticationContext authContext, Authenticator authenticator) {
+        BuilderContext ctx = new BuilderContext();
+        ctx.authenticator = authenticator;
+        ctx.authContext = authContext;
+        return ctx;
     }
 
-    private SMB2SessionSetup initiateSessionSetup(byte[] securityContext, long sessionId) throws TransportException {
+    private Session setupSession(BuilderContext ctx) throws IOException {
+        initiateSessionSetup(ctx, ctx.securityContext);
+        SMB2SessionSetup response = ctx.response;
+        ctx.sessionId = response.getHeader().getSessionId();
+        if (response.getHeader().getStatusCode() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED.getValue()) {
+            if (connectionContext.getNegotiatedProtocol().getDialect() == SMB2Dialect.SMB_3_1_1) {
+                Session preauthSession = preauthSessionTable.find(ctx.sessionId);
+                if (preauthSession == null) {
+                    preauthSession = newSession(ctx);
+                    preauthSessionTable.registerSession(ctx.sessionId, preauthSession);
+                }
+                updatePreauthIntegrityValue(ctx, preauthSession.getSessionContext(), ctx.request);
+                updatePreauthIntegrityValue(ctx, preauthSession.getSessionContext(), ctx.response);
+            }
+            logger.debug("More processing required for authentication of {} using {}", ctx.authContext.getUsername(), ctx.authenticator);
+            processAuthenticationToken(ctx, response.getSecurityBuffer());
+            return setupSession(ctx);
+        } else if (response.getHeader().getStatusCode() != NtStatus.STATUS_SUCCESS.getValue()) {
+            throw new SMBApiException(response.getHeader(), format("Authentication failed for '%s' using %s", ctx.authContext.getUsername(), ctx.authenticator));
+        } else {
+            Session session = preauthSessionTable.find(ctx.sessionId);
+
+            if (connectionContext.getNegotiatedProtocol().getDialect() == SMB2Dialect.SMB_3_1_1 && session != null) {
+                preauthSessionTable.removeSession(session.getSessionId());
+            } else {
+                session = newSession(ctx);
+            }
+
+            processAuthenticationToken(ctx, response.getSecurityBuffer());
+            session.getSessionContext().setSessionKey(ctx.sessionKey);
+            if (connectionContext.getNegotiatedProtocol().getDialect() == SMB2Dialect.SMB_3_1_1) {
+                updatePreauthIntegrityValue(ctx, session.getSessionContext(), ctx.request);
+            }
+            validateAndSetSigning(ctx, session.getSessionContext());
+
+            return session;
+        }
+    }
+
+    private Session newSession(BuilderContext ctx) {
+        Session preauthSession;
+        preauthSession = sessionFactory.createSession(ctx.authContext);
+        preauthSession.setSessionId(ctx.sessionId);
+        preauthSession.getSessionContext().setPreauthIntegrityHashValue(connectionContext.getPreauthIntegrityHashValue());
+        return preauthSession;
+    }
+
+    private void processAuthenticationToken(BuilderContext ctx, byte[] inputToken) throws IOException {
+        AuthenticateResponse resp = ctx.authenticator.authenticate(ctx.authContext, inputToken, connectionContext);
+        if (resp == null) {
+            return;
+        }
+        connectionContext.setWindowsVersion(resp.getWindowsVersion());
+        connectionContext.setNetBiosName(resp.getNetBiosName());
+
+        ctx.sessionKey = resp.getSessionKey();
+        ctx.securityContext = resp.getNegToken();
+    }
+
+    private BuilderContext initiateSessionSetup(BuilderContext ctx, byte[] securityContext) throws TransportException {
         SMB2SessionSetup req = new SMB2SessionSetup(
-            connectionInfo.getNegotiatedProtocol().getDialect(),
-            EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED),
-            connectionInfo.getClientCapabilities());
+            connectionContext.getNegotiatedProtocol().getDialect(),
+            connectionContext.isServerRequiresSigning() ? EnumSet.of(SMB2_NEGOTIATE_SIGNING_REQUIRED) : EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED),
+            connectionContext.getClientCapabilities());
         req.setSecurityBuffer(securityContext);
-        req.getHeader().setSessionId(sessionId);
-        return connection.sendAndReceive(req);
+        req.getHeader().setSessionId(ctx.sessionId);
+        ctx.request = req;
+        ctx.response = connection.sendAndReceive(req);
+        return ctx;
     }
 
     private Authenticator getAuthenticator(AuthenticationContext context) throws SpnegoException {
         List<Factory.Named<Authenticator>> supportedAuthenticators = new ArrayList<>(config.getSupportedAuthenticators());
         List<ASN1ObjectIdentifier> mechTypes = new ArrayList<>();
-        if (connectionInfo.getGssNegotiateToken().length > 0) {
+        if (connectionContext.getGssNegotiateToken().length > 0) {
             // The response NegTokenInit is a NegTokenInit2 according to MS-SPNG.
-            NegTokenInit negTokenInit = new NegTokenInit2().read(connectionInfo.getGssNegotiateToken());
+            NegTokenInit negTokenInit = new NegTokenInit2().read(connectionContext.getGssNegotiateToken());
             mechTypes = negTokenInit.getSupportedMechTypes();
         }
 
@@ -154,7 +195,64 @@ public class SMBSessionBuilder {
         throw new SMBRuntimeException("Could not find a configured authenticator for mechtypes: " + mechTypes + " and authentication context: " + context);
     }
 
+    private void validateAndSetSigning(BuilderContext ctx, SessionContext context) {
+        boolean requireMessageSigning = config.isSigningRequired();
+        boolean connectionSigningRequired = connection.getConnectionContext().isServerRequiresSigning();
+
+        // If the global setting RequireMessageSigning is set to TRUE or
+        // Connection.RequireSigning is set to TRUE then Session.SigningRequired MUST be
+        // set to TRUE, otherwise Session.SigningRequired MUST be set to FALSE.
+        context.setSigningRequired(requireMessageSigning || connectionSigningRequired);
+
+        if (ctx.response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_NULL)) {
+            // If the security subsystem indicates that the session was established by an anonymous user, Session.SigningRequired MUST be set to FALSE.
+            context.setSigningRequired(false);
+        }
+
+        boolean guest = ctx.response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_GUEST);
+        if (guest && context.isSigningRequired()) {
+            throw new SMB2GuestSigningRequiredException();
+        } else if (guest && !requireMessageSigning) {
+            context.setSigningRequired(false);
+        }
+
+        if (connection.getNegotiatedProtocol().getDialect().isSmb3x()
+            && connection.getConnectionContext().supportsEncryption()
+            && ctx.response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_ENCRYPT_DATA)) {
+            context.setEncryptData(true);
+            context.setSigningRequired(false);
+        }
+    }
+
+    private void updatePreauthIntegrityValue(BuilderContext ctx, SessionContext sessionContext, SMB2Packet packet) {
+        if (ctx.digest == null) {
+            String algorithmName = connection.getConnectionContext().getPreauthIntegrityHashId().getAlgorithmName();
+            try {
+                ctx.digest = config.getSecurityProvider().getDigest(algorithmName);
+            } catch (SecurityException se) {
+                throw new SMBRuntimeException("Cannot get the message digest for " + algorithmName, se);
+            }
+        }
+
+        sessionContext.setPreauthIntegrityHashValue(DigestUtil.digest(ctx.digest, sessionContext.getPreauthIntegrityHashValue(), Packets.getPacketBytes(packet)));
+    }
+
+    private SecretKey deriveKey(BuilderContext ctx, SecretKey derivationKey, String label, int labelBufferSize, byte[] context) {
+        return derivationKey;
+    }
+
     public interface SessionFactory {
         Session createSession(AuthenticationContext context);
+    }
+
+    public static class BuilderContext {
+        private Authenticator authenticator;
+        private long sessionId;
+        private byte[] sessionKey;
+        private AuthenticationContext authContext;
+        private byte[] securityContext;
+        private SMB2SessionSetup request;
+        private SMB2SessionSetup response;
+        private MessageDigest digest;
     }
 }

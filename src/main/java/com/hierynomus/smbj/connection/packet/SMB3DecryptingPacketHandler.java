@@ -118,7 +118,7 @@ public class SMB3DecryptingPacketHandler extends AbstractIncomingPacketHandler {
             return;
         }
 
-        byte[] decrypted = encryptor.decrypt(data, session.getDecryptionKey());
+        byte[] decrypted = encryptor.decrypt(data, session.getSessionContext().getDecryptionKey());
 
         byte[] decryptedProtocolId = Arrays.copyOf(decrypted, 4);
         if (Arrays.equals(decryptedProtocolId, SMB2TransformHeader.ENCRYPTED_PROTOCOL_ID)) {

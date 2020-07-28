@@ -28,7 +28,7 @@ import java.util.UUID;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
-public class ConnectionInfo {
+public class ConnectionContext {
 
     private WindowsVersion windowsVersion;
     private String netBiosName;
@@ -59,7 +59,7 @@ public class ConnectionInfo {
     private Long timeOffsetMillis;
 
 
-    ConnectionInfo(UUID clientGuid, String hostname, int port, SmbConfig config) {
+    ConnectionContext(UUID clientGuid, String hostname, int port, SmbConfig config) {
         // new SessionTable
         // new OutstandingRequests
         this.clientGuid = clientGuid;
@@ -76,7 +76,7 @@ public class ConnectionInfo {
         this.cipherId = negotiationContext.getCipher();
         this.compressionIds = negotiationContext.getCompressionIds();
         this.preauthIntegrityHashId = negotiationContext.getPreauthIntegrityHashId();
-        this.preauthIntegrityHashValue = negotiationContext.getPreauthIntegrityHashValue();
+        this.preauthIntegrityHashValue = negotiationContext.getPreauthIntegrityHashValue() != null ? negotiationContext.getPreauthIntegrityHashValue() : new byte[0];
         timeOffsetMillis = System.currentTimeMillis() - response.getSystemTime().toEpochMillis();
     }
 
@@ -116,7 +116,7 @@ public class ConnectionInfo {
         return server.getServerName();
     }
 
-    public boolean supports(SMB2GlobalCapability capability) {
+    private boolean supports(SMB2GlobalCapability capability) {
         return server.getCapabilities().contains(capability);
     }
 
@@ -214,5 +214,17 @@ public class ConnectionInfo {
 
     public void setServer(Server server) {
         this.server = server;
+    }
+
+    public SMB3HashAlgorithm getPreauthIntegrityHashId() {
+        return preauthIntegrityHashId;
+    }
+
+    public byte[] getPreauthIntegrityHashValue() {
+        return preauthIntegrityHashValue;
+    }
+
+    public Set<SMB3CompressionAlgorithm> getCompressionIds() {
+        return compressionIds;
     }
 }
