@@ -30,7 +30,7 @@ jobs:
       run: ./gradlew check
   integration:
     name: Integration test
-    needs: [java1`1]
+    needs: [java11]
     runs-on: [ubuntu-latest]
     steps:
     - uses: actions/checkout@v2
