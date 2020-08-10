@@ -23,8 +23,10 @@ import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.security.DerivationFunction;
 import com.hierynomus.security.MessageDigest;
 import com.hierynomus.security.SecurityException;
+import com.hierynomus.security.jce.derivationfunction.CounterDerivationParameters;
 import com.hierynomus.smb.Packets;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticateResponse;
@@ -42,6 +44,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -53,9 +57,14 @@ import static java.lang.String.format;
 
 /**
  * [MS-SMB2] 3.2.5.3.1 Handling a New Authentication
- *
  */
 public class SMBSessionBuilder {
+
+    private static final byte[] SMB_3_1_1_ENC_KDF_LABEL = new byte[]{'S', 'M', 'B', 'C', '2', 'S', 'C', 'i', 'p', 'h', 'e', 'r', 'K', 'e', 'y', 0}; // SMBC2SCipherKey\0
+    private static final byte[] KDF_LABEL = new byte[]{'S', 'M', 'B', '2', 'A', 'E', 'S', 'C', 'C', 'M', 0}; // SMB2AESCCM\0
+    private static final byte[] ENC_KDF_CONTEXT = new byte[]{'S', 'e', 'r', 'v', 'e', 'r', 'I', 'n', ' ', 0}; // ServerIn \0
+    private static final byte[] SMB_3_1_1_DEC_KDF_LABEL = new byte[]{'S', 'M', 'B', 'S', '2', 'C', 'C', 'i', 'p', 'h', 'e', 'r', 'K', 'e', 'y', 0}; // SMBS2CCipherKey\0
+    private static final byte[] DEC_KDF_CONTEXT = new byte[]{'S', 'e', 'r', 'v', 'e', 'r', 'O', 'u', 't', 0}; // ServerOut\0
 
     private static final Logger logger = LoggerFactory.getLogger(SMBSessionBuilder.class);
     private final SmbConfig config;
@@ -107,8 +116,9 @@ public class SMBSessionBuilder {
         initiateSessionSetup(ctx, ctx.securityContext);
         SMB2SessionSetup response = ctx.response;
         ctx.sessionId = response.getHeader().getSessionId();
+        SMB2Dialect dialect = connectionContext.getNegotiatedProtocol().getDialect();
         if (response.getHeader().getStatusCode() == NtStatus.STATUS_MORE_PROCESSING_REQUIRED.getValue()) {
-            if (connectionContext.getNegotiatedProtocol().getDialect() == SMB2Dialect.SMB_3_1_1) {
+            if (dialect == SMB2Dialect.SMB_3_1_1) {
                 Session preauthSession = preauthSessionTable.find(ctx.sessionId);
                 if (preauthSession == null) {
                     preauthSession = newSession(ctx);
@@ -125,19 +135,32 @@ public class SMBSessionBuilder {
         } else {
             Session session = preauthSessionTable.find(ctx.sessionId);
 
-            if (connectionContext.getNegotiatedProtocol().getDialect() == SMB2Dialect.SMB_3_1_1 && session != null) {
+            if (dialect == SMB2Dialect.SMB_3_1_1 && session != null) {
                 preauthSessionTable.removeSession(session.getSessionId());
             } else {
                 session = newSession(ctx);
             }
 
+            SessionContext context = session.getSessionContext();
             processAuthenticationToken(ctx, response.getSecurityBuffer());
-            session.getSessionContext().setSessionKey(ctx.sessionKey);
-            if (connectionContext.getNegotiatedProtocol().getDialect() == SMB2Dialect.SMB_3_1_1) {
-                updatePreauthIntegrityValue(ctx, session.getSessionContext(), ctx.request);
+            context.setSessionKey(ctx.sessionKey);
+            if (dialect == SMB2Dialect.SMB_3_1_1) {
+                updatePreauthIntegrityValue(ctx, context, ctx.request);
             }
-            validateAndSetSigning(ctx, session.getSessionContext());
+            validateAndSetSigning(ctx, context);
 
+            if (dialect.isSmb3x() &&
+                !response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_NULL) &&
+                !response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_GUEST) &&
+                connectionContext.supportsEncryption()) {
+                if (dialect == SMB2Dialect.SMB_3_1_1) {
+                    context.setEncryptionKey(deriveKey(ctx, context.getSessionKey(), SMB_3_1_1_ENC_KDF_LABEL, context.getPreauthIntegrityHashValue()));
+                    context.setDecryptionKey(deriveKey(ctx, context.getSessionKey(), SMB_3_1_1_DEC_KDF_LABEL, context.getPreauthIntegrityHashValue()));
+                } else {
+                    context.setEncryptionKey(deriveKey(ctx, context.getSessionKey(), KDF_LABEL, ENC_KDF_CONTEXT));
+                    context.setDecryptionKey(deriveKey(ctx, context.getSessionKey(), KDF_LABEL, DEC_KDF_CONTEXT));
+                }
+            }
             return session;
         }
     }
@@ -237,8 +260,27 @@ public class SMBSessionBuilder {
         sessionContext.setPreauthIntegrityHashValue(DigestUtil.digest(ctx.digest, sessionContext.getPreauthIntegrityHashValue(), Packets.getPacketBytes(packet)));
     }
 
-    private SecretKey deriveKey(BuilderContext ctx, SecretKey derivationKey, String label, int labelBufferSize, byte[] context) {
-        return derivationKey;
+    private SecretKey deriveKey(BuilderContext ctx, SecretKey derivationKey, byte[] label, byte[] context) {
+        ByteArrayOutputStream fixedSuffixTemp = new ByteArrayOutputStream(25);
+        try {
+            fixedSuffixTemp.write(label);
+            fixedSuffixTemp.write(0);
+            fixedSuffixTemp.write(context);
+            fixedSuffixTemp.write(new byte[]{0x0, 0x0, 0x0, (byte) 0x80}); // 128 bits (BE byte order)
+        } catch (IOException e) {
+            logger.error("Unable to format suffix, error occur : ", e);
+            return null;
+        }
+        try {
+            DerivationFunction kdf = config.getSecurityProvider().getDerivationFunction("KDF/Counter/HMACSHA256");
+            byte[] fixedSuffix = fixedSuffixTemp.toByteArray();
+            kdf.init(new CounterDerivationParameters(derivationKey.getEncoded(), fixedSuffix, 32));
+            byte[] derived = new byte[16]; // 16 bytes = 128 bits
+            kdf.generateBytes(derived, 0, derived.length);
+            return new SecretKeySpec(derived, connectionContext.getCipherId().getAlgorithmName());
+        } catch (SecurityException se) {
+            throw new SMBRuntimeException(se);
+        }
     }
 
     public interface SessionFactory {

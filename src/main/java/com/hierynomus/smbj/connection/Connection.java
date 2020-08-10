@@ -57,6 +57,7 @@ import static java.lang.String.format;
 public class Connection extends Pooled<Connection> implements Closeable, PacketReceiver<SMBPacketData<?>> {
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
     private static final DelegatingSMBMessageConverter converter = new DelegatingSMBMessageConverter(new SMB2PacketFactory(), new SMB1PacketFactory());
+    private IncomingPacketHandler packetHandlerChain;
 
     private ConnectionContext connectionContext;
     private SessionTable sessionTable = new SessionTable();
@@ -69,6 +70,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     final ServerList serverList;
 
     private PacketSignatory signatory;
+    private PacketEncryptor encryptor;
 
     public SMBClient getClient() {
         return client;
@@ -85,7 +87,21 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         this.transport = config.getTransportLayerFactory().createTransportLayer(new PacketHandlers<>(new SMBPacketSerializer(), this, converter), config);
         this.bus = bus;
         this.serverList = serverList;
+    }
+
+    private void init() {
         bus.subscribe(this);
+        this.sequenceWindow = new SequenceWindow();
+        this.signatory = new PacketSignatory(config.getSecurityProvider());
+        this.encryptor = new PacketEncryptor(config.getSecurityProvider());
+
+        this.packetHandlerChain = new SMB2CompoundedPacketHandler().setNext(
+            new SMB2IsOutstandingPacketHandler(outstandingRequests).setNext(
+                new SMB2SignatureVerificationPacketHandler(sessionTable, signatory).setNext(
+                    new SMB2CreditGrantingPacketHandler(sequenceWindow).setNext(
+                        new SMB2AsyncResponsePacketHandler(outstandingRequests).setNext(
+                            new SMB2ProcessResponsePacketHandler(smb2Converter, outstandingRequests).setNext(
+                                new SMB1PacketHandler().setNext(new DeadLetterPacketHandler())))))));
     }
 
     public Connection(Connection connection) {
@@ -94,7 +110,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         this.transport = connection.transport;
         this.bus = connection.bus;
         this.serverList = connection.serverList;
-
+        this.packetHandlerChain = connection.packetHandlerChain;
         bus.subscribe(this);
     }
 
@@ -103,11 +119,10 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
             throw new IllegalStateException(format("This connection is already connected to %s", getRemoteHostname()));
         }
         transport.connect(new InetSocketAddress(hostname, port));
-        this.sequenceWindow = new SequenceWindow();
         this.connectionContext = new ConnectionContext(config.getClientGuid(), hostname, port, config);
         new SMBProtocolNegotiator(this, config, connectionContext).negotiateDialect();
-
-        this.signatory = new PacketSignatory(connectionContext.getNegotiatedProtocol().getDialect(), config.getSecurityProvider());
+        this.signatory.init(connectionContext.getNegotiatedProtocol().getDialect());
+        this.packetHandlerChain = new SMB3DecryptingPacketHandler(connectionContext.getNegotiatedProtocol().getDialect(), sessionTable, new PacketEncryptor(config.getSecurityProvider())).setNext(this.packetHandlerChain);
         logger.info("Successfully connected to: {}", getRemoteHostname());
     }
 
@@ -241,16 +256,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
 
     @Override
     public void handle(SMBPacketData uncheckedPacket) throws TransportException {
-
-        IncomingPacketHandler chain = new SMB2CompoundedPacketHandler().setNext(
-            new SMB2IsOutstandingPacketHandler(outstandingRequests).setNext(
-                new SMB2SignatureVerificationPacketHandler(sessionTable, signatory).setNext(
-                    new SMB2CreditGrantingPacketHandler(sequenceWindow).setNext(
-                        new SMB2AsyncResponsePacketHandler(outstandingRequests).setNext(
-                            new SMB2ProcessResponsePacketHandler(smb2Converter, outstandingRequests).setNext(
-                                new SMB1PacketHandler().setNext(new DeadLetterPacketHandler())))))));
-        chain.handle(uncheckedPacket);
-
+        this.packetHandlerChain.handle(uncheckedPacket);
         // [MS-SMB2] 3.2.5.1.6 Handling Session Expiration
         // if (packet.getHeader().getStatus() == NtStatus.STATUS_NETWORK_SESSION_EXPIRED) {
         // TODO reauthenticate session!

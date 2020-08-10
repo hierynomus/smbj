@@ -21,6 +21,7 @@ import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2MessageCommandCode
 import com.hierynomus.mssmb2.SMB2Packet
 import com.hierynomus.mssmb2.SMB2ShareCapabilities
+import com.hierynomus.mssmb2.SMB2ShareFlags
 import com.hierynomus.mssmb2.messages.*
 
 class BasicPacketProcessor {
@@ -95,6 +96,7 @@ class BasicPacketProcessor {
     def response = new SMB2TreeConnectResponse()
     response.header.statusCode = NtStatus.STATUS_SUCCESS.value
     response.capabilities = EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS)
+    response.shareFlags = EnumSet.noneOf(SMB2ShareFlags)
     response.shareType = 0x01 as byte
     response
   }

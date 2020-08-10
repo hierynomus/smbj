@@ -149,7 +149,7 @@ public class Session implements AutoCloseable {
             }
 
             long treeId = response.getHeader().getTreeId();
-            TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), config, connection.getNegotiatedProtocol(), bus, response.getMaximalAccess());
+            TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), config, connection.getConnectionContext(), bus, response.getMaximalAccess(), response.getShareFlags());
 
             Share share;
             if (response.isDiskShare()) {

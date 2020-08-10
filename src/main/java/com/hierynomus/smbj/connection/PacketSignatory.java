@@ -39,13 +39,14 @@ public class PacketSignatory {
     private static final String HMAC_SHA256_ALGORITHM = "HmacSHA256";
     private static final String AES_128_CMAC_ALGORITHM = "AesCmac";
 
-    private SMB2Dialect dialect;
     private SecurityProvider securityProvider;
     private String algorithm;
 
-    PacketSignatory(SMB2Dialect dialect, SecurityProvider securityProvider) {
-        this.dialect = dialect;
+    PacketSignatory(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
+    }
+
+    void init(SMB2Dialect dialect) {
         if (dialect.isSmb3x()) {
             algorithm = AES_128_CMAC_ALGORITHM;
         } else {

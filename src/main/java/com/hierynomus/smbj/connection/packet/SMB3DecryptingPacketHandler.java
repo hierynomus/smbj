@@ -104,9 +104,7 @@ public class SMB3DecryptingPacketHandler extends AbstractIncomingPacketHandler {
         SMB3EncryptedPacketData data = (SMB3EncryptedPacketData) packetData;
         logger.info("Decrypting packet {}", data);
 
-        if (!dialect.isSmb3x()
-            || data.getDataBuffer().available() == 0 // SMBPacketData eagerly reads the header, so if no data left, fail.
-            || data.getHeader().getFlagsEncryptionAlgorithm() != 0x01) {
+        if (!encryptor.canDecrypt(data)) {
             next.handle(new DeadLetterPacketData(packetData.getHeader()));
             return;
         }

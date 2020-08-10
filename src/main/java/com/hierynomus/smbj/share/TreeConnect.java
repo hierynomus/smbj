@@ -19,13 +19,16 @@ import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
+import com.hierynomus.mssmb2.SMB2ShareFlags;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2TreeDisconnect;
+import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.connection.ConnectionContext;
 import com.hierynomus.smbj.connection.NegotiatedProtocol;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.TreeDisconnected;
@@ -48,16 +51,18 @@ public class TreeConnect {
     private SmbConfig config;
     private final SMBEventBus bus;
     private final Set<AccessMask> maximalAccess;
+    private final boolean encryptData;
 
-    public TreeConnect(long treeId, SmbPath smbPath, Session session, Set<SMB2ShareCapabilities> capabilities, SmbConfig config, NegotiatedProtocol negotiatedProtocol, SMBEventBus bus, Set<AccessMask> maximalAccess) {
+    public TreeConnect(long treeId, SmbPath smbPath, Session session, Set<SMB2ShareCapabilities> capabilities, SmbConfig config, ConnectionContext connectionContext, SMBEventBus bus, Set<AccessMask> maximalAccess, Set<SMB2ShareFlags> shareFlags) {
         this.treeId = treeId;
         this.smbPath = smbPath;
         this.session = session;
         this.capabilities = capabilities;
-        this.negotiatedProtocol = negotiatedProtocol;
+        this.negotiatedProtocol = connectionContext.getNegotiatedProtocol();
         this.config = config;
         this.bus = bus;
         this.maximalAccess = maximalAccess;
+        this.encryptData = shareFlags.contains(SMB2ShareFlags.SMB2_SHAREFLAG_ENCRYPT_DATA) && negotiatedProtocol.getDialect().isSmb3x() && connectionContext.supportsEncryption();
     }
 
     void close() throws TransportException {

@@ -34,6 +34,7 @@ public class SessionContext {
     private SecretKey signingKey;
     // SMB 3.x
     private SecretKey decryptionKey;
+    private SecretKey encryptionKey;
 
     // SMB 3.1.1
     byte[] preauthIntegrityHashValue;
@@ -90,5 +91,13 @@ public class SessionContext {
 
     public SecretKey getDecryptionKey() {
         return decryptionKey;
+    }
+
+    public void setEncryptionKey(SecretKey encryptionKey) {
+        this.encryptionKey = encryptionKey;
+    }
+
+    public void setDecryptionKey(SecretKey decryptionKey) {
+        this.decryptionKey = decryptionKey;
     }
 }

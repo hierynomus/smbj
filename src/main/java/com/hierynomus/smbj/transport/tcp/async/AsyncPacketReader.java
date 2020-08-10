@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AsyncPacketReader<D extends PacketData<?>> {
-    private static final Logger logger = LoggerFactory.getLogger(PacketReader.class);
+    private static final Logger logger = LoggerFactory.getLogger(AsyncPacketReader.class);
 
     private final PacketFactory<D> packetFactory;
     private PacketReceiver<D> handler;
@@ -119,7 +119,8 @@ public class AsyncPacketReader<D extends PacketData<?>> {
             logger.trace("Channel to {} closed by other party, closing it locally.", remoteHost);
         } else {
             String excClass = exc.getClass().getSimpleName();
-            logger.trace("{} on channel to {}, closing channel: {}", excClass, remoteHost, exc.getMessage());
+            logger.error("{} on channel to {}, closing channel: {}", excClass, remoteHost, exc.getMessage());
+            logger.debug("Exception was: ", exc);
         }
         closeChannelQuietly();
     }

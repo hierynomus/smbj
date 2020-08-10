@@ -36,12 +36,14 @@ public class PacketEncryptor {
     private static final Logger logger = LoggerFactory.getLogger(PacketEncryptor.class);
     private SecurityProvider securityProvider;
     private SMB3EncryptionCipher cipher;
+    private SMB2Dialect dialect;
 
     public PacketEncryptor(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
     }
 
     void init(ConnectionContext connectionContext) {
+        this.dialect = connectionContext.getNegotiatedProtocol().getDialect();
         // The client MUST decrypt the message using Session.DecryptionKey. If Connection.Dialect is "3.1.1", the algorithm
         // specified by Connection.CipherId is used. Otherwise, the AES-128-CCM algorithm is used.
         if (connectionContext.getNegotiatedProtocol().getDialect().equals(SMB2Dialect.SMB_3_1_1)) {
@@ -51,7 +53,13 @@ public class PacketEncryptor {
         }
     }
 
-    public byte[] decrypt(SMB3EncryptedPacketData packetData, SecretKey encryptionKey) {
+    public boolean canDecrypt(SMB3EncryptedPacketData packetData) {
+        return dialect.isSmb3x()
+            && packetData.getDataBuffer().available() != 0 // SMBPacketData eagerly reads the header, so if no data left, fail.
+            && packetData.getHeader().getFlagsEncryptionAlgorithm() == 0x01;
+    }
+
+    public byte[] decrypt(SMB3EncryptedPacketData packetData, SecretKey decryptionKey) {
         byte[] realNonce = Arrays.copyOf(packetData.getHeader().getNonce(), cipher.getNonceLength());
         try {
             byte[] aad = createAAD(packetData);
@@ -59,7 +67,7 @@ public class PacketEncryptor {
             byte[] signature = packetData.getHeader().getSignature();
 
             AEADBlockCipher aeadBlockCipher = securityProvider.getAEADBlockCipher(cipher.getAlgorithmName());
-            aeadBlockCipher.init(Cipher.CryptMode.DECRYPT, encryptionKey.getEncoded(), new GCMParameterSpec(128, realNonce));
+            aeadBlockCipher.init(Cipher.CryptMode.DECRYPT, decryptionKey.getEncoded(), new GCMParameterSpec(128, realNonce));
             aeadBlockCipher.updateAAD(aad, 0, aad.length);
             byte[] bytes = aeadBlockCipher.update(cipherText, 0, cipherText.length);
             byte[] bytes2 = aeadBlockCipher.doFinal(signature, 0, signature.length);
@@ -78,7 +86,6 @@ public class PacketEncryptor {
             logger.error("Could not read cipherText from packet << {} >>", packetData);
             throw new SMBRuntimeException("Could not read cipherText from packet", be);
         }
-
     }
 
     private byte[] createAAD(SMB3EncryptedPacketData packetData) {
