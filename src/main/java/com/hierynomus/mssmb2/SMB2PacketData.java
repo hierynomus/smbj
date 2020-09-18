@@ -52,4 +52,9 @@ public class SMB2PacketData extends SMBPacketData<SMB2Header> {
     public boolean isIntermediateAsyncResponse() {
         return isSet(getHeader().getFlags(), SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND) && getHeader().getStatusCode() == NtStatus.STATUS_PENDING.getValue();
     }
+
+    @Override
+    public String toString() {
+        return "SMB2PacketData[" + getHeader().getMessage() + ", " + getHeader().getStatusCode() + "]";
+    }
 }

@@ -21,12 +21,16 @@ import com.hierynomus.msfscc.fileinformation.FileDirectoryQueryableInformation;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.msfscc.fileinformation.FileInformation;
 import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
+import com.hierynomus.mssmb2.SMB2ChangeNotifyFlags;
+import com.hierynomus.mssmb2.SMB2CompletionFilter;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMBApiException;
+import com.hierynomus.mssmb2.messages.SMB2ChangeNotifyResponse;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryRequest;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryResponse;
 
 import java.util.*;
+import java.util.concurrent.Future;
 
 public class Directory extends DiskEntry implements Iterable<FileIdBothDirectoryInformation> {
     Directory(SMB2FileId fileId, DiskShare diskShare, String fileName) {
@@ -105,6 +109,11 @@ public class Directory extends DiskEntry implements Iterable<FileIdBothDirectory
      */
     public <F extends FileDirectoryQueryableInformation> Iterator<F> iterator(Class<F> informationClass, String searchPattern) {
         return new DirectoryIterator<>(informationClass, searchPattern);
+    }
+
+    public Future<SMB2ChangeNotifyResponse> watchAsync(Set<SMB2CompletionFilter> completionFilter, boolean watchTree) {
+        Set<SMB2ChangeNotifyFlags> flags = watchTree ? EnumSet.of(SMB2ChangeNotifyFlags.WATCH_TREE) : EnumSet.noneOf(SMB2ChangeNotifyFlags.class);
+        return share.changeNotifyAsync(fileId, completionFilter, flags);
     }
 
     public SMB2FileId getFileId() {

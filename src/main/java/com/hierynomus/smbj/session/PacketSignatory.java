@@ -39,6 +39,7 @@ public class PacketSignatory {
     private SecurityProvider securityProvider;
     private String algorithm;
     private byte[] secretKey;
+    public byte[] getSecretKey() { return secretKey; } 
 
     PacketSignatory(SMB2Dialect dialect, SecurityProvider securityProvider) {
         this.dialect = dialect;
