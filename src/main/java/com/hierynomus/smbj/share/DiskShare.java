@@ -155,7 +155,7 @@ public class DiskShare extends Share {
         );
     }
 
-    private static StatusHandler FILE_EXISTS_STATUS_HANDLER = new StatusHandler() {
+    private static final StatusHandler FILE_EXISTS_STATUS_HANDLER = new StatusHandler() {
         @Override
         public boolean isSuccess(long statusCode) {
             return statusCode == STATUS_OBJECT_NAME_NOT_FOUND.getValue()
@@ -172,7 +172,7 @@ public class DiskShare extends Share {
         return exists(path, of(FILE_NON_DIRECTORY_FILE), FILE_EXISTS_STATUS_HANDLER);
     }
 
-    private static StatusHandler FOLDER_EXISTS_STATUS_HANDLER = new StatusHandler() {
+    private static final StatusHandler FOLDER_EXISTS_STATUS_HANDLER = new StatusHandler() {
         @Override
         public boolean isSuccess(long statusCode) {
             return statusCode == STATUS_OBJECT_NAME_NOT_FOUND.getValue()
