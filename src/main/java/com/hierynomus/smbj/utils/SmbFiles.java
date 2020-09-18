@@ -21,6 +21,7 @@ import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
 import com.hierynomus.mssmb2.SMBApiException;
+import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.io.InputStreamByteChunkProvider;
 import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
@@ -78,19 +79,18 @@ public class SmbFiles {
      * Create a set of nested sub-directories in the given path, for example, 2345 \ 3456 \ 4453 \ 123123.txt
      */
     public void mkdirs(DiskShare diskShare, String path) throws SMBApiException {
-        String currPath = path;
-        StringBuilder currDir = new StringBuilder();
-        while (path.startsWith("\\"))
-            currPath = currPath.substring(1);
+        SmbPath smbPath = new SmbPath(diskShare.getSmbPath(), path);
+        mkdirs(diskShare, smbPath);
+    }
 
-        if (currPath.indexOf( "\\") <= 0 && !diskShare.folderExists(currPath)) {
-            diskShare.mkdir(currPath);
-        }   else {
-            for (String dir: currPath.split("\\\\")) {
-                currDir = currDir.append(dir).append("\\");
-                if (currDir.length() > 1 && !diskShare.folderExists(currDir.toString()))
-                    diskShare.mkdir(currDir.toString() );
-            }
+    /**
+     * Create a set of nested sub-directories in the given path, for example, 2345 \ 3456 \ 4453 \ 123123.txt
+     */
+    public void mkdirs(DiskShare diskShare, SmbPath path) throws SMBApiException {
+        if (!diskShare.folderExists(path.getPath())) {
+            // Ensure the parent path exists
+            mkdirs(diskShare, path.getParent());
         }
+        diskShare.mkdir(path.getPath());
     }
 }
