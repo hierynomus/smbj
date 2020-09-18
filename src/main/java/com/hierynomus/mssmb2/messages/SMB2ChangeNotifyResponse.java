@@ -15,8 +15,8 @@
  */
 package com.hierynomus.mssmb2.messages;
 
-import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileNotifyAction;
+import com.hierynomus.msfscc.directory.FileNotifyInformation;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.EnumWithValue;
@@ -32,7 +32,7 @@ import java.util.List;
  */
 public class SMB2ChangeNotifyResponse extends SMB2Packet {
 
-    List<FileNotifyInfo> fileNotifyInfoList = new ArrayList<>();
+    List<FileNotifyInformation> fileNotifyInfoList = new ArrayList<>();
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
@@ -47,57 +47,29 @@ public class SMB2ChangeNotifyResponse extends SMB2Packet {
         buffer.rpos(header.getHeaderStartPosition() + outputBufferOffset + length);
     }
 
-    private List<FileNotifyInfo> readFileNotifyInfo(SMBBuffer buffer, int outputBufferOffset)
+    private List<FileNotifyInformation> readFileNotifyInfo(SMBBuffer buffer, int outputBufferOffset)
         throws Buffer.BufferException {
-        List<FileNotifyInfo> notifyInfoList = new ArrayList<>();
+        List<FileNotifyInformation> notifyInfoList = new ArrayList<>();
         buffer.rpos(header.getHeaderStartPosition() + outputBufferOffset); // Ensure that we move relative to the header position
-        int currentPos = buffer.rpos();
-        int nextEntryOffset;
-        long fileNameLen;
-        String fileName;
 
-        do {
-            nextEntryOffset = (int) buffer.readUInt32();
-            FileNotifyAction action = EnumWithValue.EnumUtils.valueOf(buffer.readUInt32(), FileNotifyAction.class, null);
-            fileNameLen = buffer.readUInt32();
-            fileName = buffer.readString(Charsets.UTF_16LE, (int) fileNameLen / 2);
-            notifyInfoList.add(new FileNotifyInfo(action, fileName));
-            if (nextEntryOffset != 0) {
-                currentPos += nextEntryOffset;
-                buffer.rpos(currentPos);
+        for (;;) {
+            int entryStartPos = buffer.rpos();
+            FileNotifyInformation info = new FileNotifyInformation();
+            info.read(buffer);
+            notifyInfoList.add(info);
+            if (info.getNextEntryOffset() == 0) {
+                break;
             }
-        } while (nextEntryOffset != 0);
+
+            entryStartPos += info.getNextEntryOffset();
+            buffer.rpos(entryStartPos);
+        }
 
         return notifyInfoList;
     }
 
-    public List<FileNotifyInfo> getFileNotifyInfoList() {
+    public List<FileNotifyInformation> getFileNotifyInfoList() {
         return fileNotifyInfoList;
     }
 
-    public class FileNotifyInfo {
-        FileNotifyAction action;
-        String fileName;
-
-        FileNotifyInfo(FileNotifyAction action, String fileName) {
-            this.action = action;
-            this.fileName = fileName;
-        }
-
-        public FileNotifyAction getAction() {
-            return action;
-        }
-
-        public String getFileName() {
-            return fileName;
-        }
-
-        @Override
-        public String toString() {
-            return "FileNotifyInfo{" +
-                "action=" + action +
-                ", fileName='" + fileName + '\'' +
-                '}';
-        }
-    }
 }
