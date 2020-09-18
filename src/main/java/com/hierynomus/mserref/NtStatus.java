@@ -74,6 +74,7 @@ public enum NtStatus implements EnumWithValue<NtStatus> {
     STATUS_FILES_OPEN(0xC0000107L),
     STATUS_CONNECTION_IN_USE(0xC0000108L),
     STATUS_TOO_MANY_OPENED_FILES(0xC000011FL),
+    STATUS_CANCELLED(0xC0000120L),
     STATUS_CANNOT_DELETE(0xC0000121L),
     STATUS_FILE_DELETED(0xC0000123L),
     STATUS_FILE_CLOSED(0xC0000128L),
@@ -99,6 +100,8 @@ public enum NtStatus implements EnumWithValue<NtStatus> {
     }
 
     public static NtStatus valueOf(long statusCode) {
+        long l = 0xc0000120L;
+
         return EnumUtils.valueOf(statusCode, NtStatus.class, STATUS_OTHER);
     }
 

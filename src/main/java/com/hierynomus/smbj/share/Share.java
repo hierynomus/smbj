@@ -347,8 +347,7 @@ public class Share implements AutoCloseable {
         return send(ioreq);
     }
 
-    Future<SMB2ChangeNotifyResponse> changeNotifyAsync(SMB2FileId fileId, Set<SMB2CompletionFilter> completionFilter, boolean watchTree) {
-        Set<SMB2ChangeNotifyFlags> flags = watchTree ? EnumSet.of(SMB2ChangeNotifyFlags.WATCH_TREE) : EnumSet.noneOf(SMB2ChangeNotifyFlags.class);
+    Future<SMB2ChangeNotifyResponse> changeNotifyAsync(SMB2FileId fileId, Set<SMB2CompletionFilter> completionFilter, Set<SMB2ChangeNotifyFlags> flags) {
         SMB2ChangeNotifyRequest cnreq = new SMB2ChangeNotifyRequest(dialect, sessionId, treeId, fileId, completionFilter, flags, transactBufferSize);
         return send(cnreq);
     }

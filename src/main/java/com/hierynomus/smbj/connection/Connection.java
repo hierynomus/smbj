@@ -533,6 +533,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         @Override
         public void cancel() {
             SMB2Cancel cancel = new SMB2Cancel(connectionInfo.getNegotiatedProtocol().getDialect(),
+                sessionId,
                 request.getMessageId(),
                 request.getAsyncId());
             try {

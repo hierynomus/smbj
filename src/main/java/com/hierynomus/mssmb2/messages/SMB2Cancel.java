@@ -30,8 +30,8 @@ public class SMB2Cancel extends SMB2Packet {
     public SMB2Cancel() {
     }
 
-    public SMB2Cancel(SMB2Dialect dialect, long messageId, long asyncId) {
-        super(4, dialect, SMB2MessageCommandCode.SMB2_CANCEL);
+    public SMB2Cancel(SMB2Dialect dialect, long sessionId, long messageId, long asyncId) {
+        super(4, dialect, SMB2MessageCommandCode.SMB2_CANCEL, sessionId);
         header.setMessageId(messageId);
         if (asyncId != 0) {
             header.setFlag(SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND);

@@ -21,6 +21,7 @@ import com.hierynomus.msfscc.fileinformation.FileDirectoryQueryableInformation;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.msfscc.fileinformation.FileInformation;
 import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
+import com.hierynomus.mssmb2.SMB2ChangeNotifyFlags;
 import com.hierynomus.mssmb2.SMB2CompletionFilter;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMBApiException;
@@ -110,8 +111,9 @@ public class Directory extends DiskEntry implements Iterable<FileIdBothDirectory
         return new DirectoryIterator<>(informationClass, searchPattern);
     }
 
-    public Future<SMB2ChangeNotifyResponse> changeNotifyAsync(Set<SMB2CompletionFilter> completionFilter, boolean watchTree) {
-        return share.changeNotifyAsync(fileId, completionFilter, watchTree);
+    public Future<SMB2ChangeNotifyResponse> watchAsync(Set<SMB2CompletionFilter> completionFilter, boolean watchTree) {
+        Set<SMB2ChangeNotifyFlags> flags = watchTree ? EnumSet.of(SMB2ChangeNotifyFlags.WATCH_TREE) : EnumSet.noneOf(SMB2ChangeNotifyFlags.class);
+        return share.changeNotifyAsync(fileId, completionFilter, flags);
     }
 
     public SMB2FileId getFileId() {
