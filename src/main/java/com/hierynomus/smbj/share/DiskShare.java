@@ -28,7 +28,6 @@ import com.hierynomus.mssmb2.messages.SMB2SetInfoRequest;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
-import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
@@ -155,7 +154,7 @@ public class DiskShare extends Share {
         );
     }
 
-    private static StatusHandler FILE_EXISTS_STATUS_HANDLER = new StatusHandler() {
+    private static final StatusHandler FILE_EXISTS_STATUS_HANDLER = new StatusHandler() {
         @Override
         public boolean isSuccess(long statusCode) {
             return statusCode == STATUS_OBJECT_NAME_NOT_FOUND.getValue()
@@ -172,7 +171,7 @@ public class DiskShare extends Share {
         return exists(path, of(FILE_NON_DIRECTORY_FILE), FILE_EXISTS_STATUS_HANDLER);
     }
 
-    private static StatusHandler FOLDER_EXISTS_STATUS_HANDLER = new StatusHandler() {
+    private static final StatusHandler FOLDER_EXISTS_STATUS_HANDLER = new StatusHandler() {
         @Override
         public boolean isSuccess(long statusCode) {
             return statusCode == STATUS_OBJECT_NAME_NOT_FOUND.getValue()

@@ -37,7 +37,7 @@ class SymlinkPathResolverSpec extends Specification {
     def target = pathResolver.resolve(null, resp, new SmbPath("localhost", "test", original))
 
     then:
-    target.path == "\\??\\D:\\DonHall\\MiscDocuments\\PDocs\\DailyDocs\\[MS-SMB].doc"
+    target.path == "??\\D:\\DonHall\\MiscDocuments\\PDocs\\DailyDocs\\[MS-SMB].doc"
   }
 
   def "should resolve relative symlinks correctly"() {

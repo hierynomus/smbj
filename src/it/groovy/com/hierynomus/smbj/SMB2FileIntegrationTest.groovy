@@ -17,13 +17,20 @@ package com.hierynomus.smbj
 
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mserref.NtStatus
+import com.hierynomus.msfscc.FileNotifyAction
 import com.hierynomus.msfscc.fileinformation.FileStandardInformation
+import com.hierynomus.mssmb2.SMB2ChangeNotifyFlags
+import com.hierynomus.mssmb2.SMB2CompletionFilter
 import com.hierynomus.mssmb2.SMB2CreateDisposition
 import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.mssmb2.SMBApiException
 import com.hierynomus.security.bc.BCSecurityProvider
+import com.hierynomus.mssmb2.messages.SMB2Cancel
+import com.hierynomus.mssmb2.messages.SMB2ChangeNotifyResponse
+import com.hierynomus.protocol.commons.concurrent.Futures
 import com.hierynomus.smbj.auth.AuthenticationContext
+import com.hierynomus.smbj.common.SMBRuntimeException
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.io.ArrayByteChunkProvider
 import com.hierynomus.smbj.session.Session
@@ -383,5 +390,22 @@ class SMB2FileIntegrationTest extends Specification {
 
     then:
     noExceptionThrown()
+  }
+
+  def "should cancel ChangeNotify request"() {
+    given:
+    share.mkdir("to_be_watched")
+    def dir = share.openDirectory("to_be_watched", EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    dir.deleteOnClose()
+
+    def watch = dir.watchAsync(EnumSet.of(SMB2CompletionFilter.FILE_NOTIFY_CHANGE_FILE_NAME), true)
+
+    when:
+    watch.cancel(true)
+    def cancel = Futures.get(watch, SMBRuntimeException.Wrapper)
+
+    then:
+    noExceptionThrown()
+    cancel.fileNotifyInfoList.size() == 0
   }
 }

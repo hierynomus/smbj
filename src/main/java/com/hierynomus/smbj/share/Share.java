@@ -36,6 +36,7 @@ import com.hierynomus.smbj.io.EmptyByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
 
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -343,6 +344,11 @@ public class Share implements AutoCloseable {
 
         SMB2IoctlRequest ioreq = new SMB2IoctlRequest(dialect, sessionId, treeId, ctlCode, fileId, inData, isFsCtl, maxResponse);
         return send(ioreq);
+    }
+
+    Future<SMB2ChangeNotifyResponse> changeNotifyAsync(SMB2FileId fileId, Set<SMB2CompletionFilter> completionFilter, Set<SMB2ChangeNotifyFlags> flags) {
+        SMB2ChangeNotifyRequest cnreq = new SMB2ChangeNotifyRequest(dialect, sessionId, treeId, fileId, completionFilter, flags, transactBufferSize);
+        return send(cnreq);
     }
 
     private <T extends SMB2Packet> T sendReceive(SMB2Packet request, String name, Object target, StatusHandler statusHandler, long timeout) {

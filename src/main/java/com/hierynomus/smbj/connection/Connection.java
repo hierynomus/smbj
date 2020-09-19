@@ -19,7 +19,15 @@ import com.hierynomus.mssmb.SMB1PacketFactory;
 import com.hierynomus.mssmb2.SMB2MessageConverter;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2PacketFactory;
-import com.hierynomus.mssmb2.messages.SMB2CancelRequest;
+import com.hierynomus.mssmb2.messages.SMB2Cancel;
+import com.hierynomus.mssmb.SMB1NotSupportedException;
+import com.hierynomus.mssmb.SMB1Packet;
+import com.hierynomus.mssmb.messages.SMB1ComNegotiateRequest;
+import com.hierynomus.mssmb2.*;
+import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
+import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
+import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
+import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
 import com.hierynomus.protocol.commons.concurrent.Futures;
@@ -191,7 +199,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         lock.lock();
         Future<T> f = null;
         try {
-            if (!(packet.getPacket() instanceof SMB2CancelRequest)) {
+            if (!(packet.getPacket() instanceof SMB2Cancel)) {
                 int availableCredits = sequenceWindow.available();
                 int grantCredits = calculateGrantedCredits(packet, availableCredits);
                 if (availableCredits == 0) {
@@ -337,9 +345,9 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
          */
         @Override
         public void cancel() {
-            SMB2CancelRequest cancel = new SMB2CancelRequest(connectionContext.getNegotiatedProtocol().getDialect(),
+            SMB2Cancel cancel = new SMB2Cancel(connectionContext.getNegotiatedProtocol().getDialect(),
+                sessionId,
                 request.getMessageId(),
-                this.sessionId,
                 request.getAsyncId());
             try {
                 sessionTable.find(sessionId).send(cancel);
