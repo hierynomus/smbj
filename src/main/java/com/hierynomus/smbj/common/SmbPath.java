@@ -41,7 +41,7 @@ public class SmbPath {
         if (Strings.isNotBlank(path)) {
             String replaced = path.replace('/', '\\');
             if (replaced.charAt(0) == '\\') {
-                if (replaced.charAt(1) == '\\') {
+                if (replaced.length() > 1 && replaced.charAt(1) == '\\') {
                     return replaced.substring(2);
                 } else {
                     return replaced.substring(1);
