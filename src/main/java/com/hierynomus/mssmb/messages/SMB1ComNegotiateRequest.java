@@ -16,6 +16,7 @@
 package com.hierynomus.mssmb.messages;
 
 import com.hierynomus.mssmb.SMB1Packet;
+import com.hierynomus.mssmb.SMB1PacketData;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.buffer.Buffer;
@@ -61,7 +62,7 @@ public class SMB1ComNegotiateRequest extends SMB1Packet {
     }
 
     @Override
-    public void read(SMBBuffer buffer) throws Buffer.BufferException {
+    public void read(SMB1PacketData packetData) throws Buffer.BufferException {
         throw new IllegalStateException("SMBv1 not implemented in SMBJ");
     }
 

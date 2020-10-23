@@ -15,9 +15,9 @@
  */
 package com.hierynomus.spnego;
 
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.asn1.iana.IANAObjectIdentifiers;
+
+import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
 
 public class ObjectIdentifiers {
-    public static final ASN1ObjectIdentifier SPNEGO = IANAObjectIdentifiers.security_mechanisms.branch("2");
+    public static final ASN1ObjectIdentifier SPNEGO = new ASN1ObjectIdentifier("1.3.6.1.5.5.2");
 }

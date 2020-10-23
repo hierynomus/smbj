@@ -22,6 +22,7 @@ import com.hierynomus.smb.SMBBuffer;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 public class SMB2GetDFSReferralResponse {
     private String originalPath;
@@ -41,10 +42,11 @@ public class SMB2GetDFSReferralResponse {
         this.referralEntries = referralEntries;
     }
 
-    public EnumSet<ReferralHeaderFlags> getReferralHeaderFlags() {
+    public Set<ReferralHeaderFlags> getReferralHeaderFlags() {
         return referralHeaderFlags;
     }
 
+    @SuppressWarnings("squid:S00115")
     public enum ReferralHeaderFlags implements EnumWithValue<ReferralHeaderFlags> {
         ReferralServers(0x1L),
         StorageServers(0x2L),
@@ -93,6 +95,10 @@ public class SMB2GetDFSReferralResponse {
 
     public List<DFSReferral> getReferralEntries() {
         return referralEntries;
+    }
+
+    public int getPathConsumed() {
+        return pathConsumed;
     }
 
     /**

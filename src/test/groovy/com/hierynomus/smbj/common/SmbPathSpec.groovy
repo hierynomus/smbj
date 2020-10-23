@@ -32,6 +32,8 @@ class SmbPathSpec extends Specification {
 
     where:
     stringPath                                 | host        | share | path
+    "\\" | "" | null | null
+    "\\\\" | "" | null | null
     "localhost\\C\$\\My Documents\\Jeroen"     | "localhost" | "C\$" | "My Documents\\Jeroen"
     "\\localhost\\C\$\\My Documents\\Jeroen"   | "localhost" | "C\$" | "My Documents\\Jeroen"
     "\\\\localhost\\C\$\\My Documents\\Jeroen" | "localhost" | "C\$" | "My Documents\\Jeroen"
@@ -116,5 +118,22 @@ class SmbPathSpec extends Specification {
     smbPath.toUncPath() == '\\\\host\\share\\foo\\bar'
     childPath.toUncPath() == '\\\\host\\share\\foo\\bar\\baz\\boz'
     parsedPath.toUncPath() == '\\\\host\\share\\foo\\bar'
+  }
+
+  @Unroll
+  def "should get correct parent path for #path"() {
+    given:
+    def smbPath = SmbPath.parse(path)
+    def smbParent = SmbPath.parse(parent)
+
+    expect:
+    smbPath.parent == smbParent
+
+    where:
+    path | parent
+    "localhost\\C\$\\My Documents\\Jeroen" | "localhost\\C\$\\My Documents"
+    "localhost\\C\$\\My Documents" | "localhost\\C\$"
+    "localhost\\C\$" | "localhost\\C\$"
+
   }
 }

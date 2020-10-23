@@ -40,7 +40,7 @@ public class ArrayByteChunkProvider extends ByteChunkProvider {
     }
 
     @Override
-    protected int getChunk(byte[] chunk) throws IOException {
+    protected int getChunk(byte[] chunk) {
         int write = chunk.length;
         if (write > remaining) {
             write = remaining;

@@ -69,4 +69,17 @@ class SMBClientSpec extends Specification {
     then:
     con1 != con2
   }
+
+  def "should not disconnect if more than one connection to the same host is open"() {
+    given:
+    def con1 = client.connect("hostA")
+    def con2 = client.connect("hostA")
+
+    when:
+    con1.close()
+
+    then:
+    con1 == con2
+    con2.isConnected()
+  }
 }

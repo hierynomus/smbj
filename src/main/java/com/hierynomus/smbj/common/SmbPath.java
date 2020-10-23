@@ -38,7 +38,18 @@ public class SmbPath {
     }
 
     private static String rewritePath(String path) {
-        return Strings.isNotBlank(path) ? path.replace('/', '\\') : path;
+        if (Strings.isNotBlank(path)) {
+            String replaced = path.replace('/', '\\');
+            if (replaced.charAt(0) == '\\') {
+                if (replaced.length() > 1 && replaced.charAt(1) == '\\') {
+                    return replaced.substring(2);
+                } else {
+                    return replaced.substring(1);
+                }
+            }
+            return replaced;
+        }
+        return path;
     }
 
     public SmbPath(SmbPath parent, String path) {
@@ -78,16 +89,7 @@ public class SmbPath {
 
     public static SmbPath parse(String path) {
         String rewritten = rewritePath(path);
-        String splitPath = rewritten;
-        if (rewritten.charAt(0) == '\\') {
-            if (rewritten.charAt(1) == '\\') {
-                splitPath = rewritten.substring(2);
-            } else {
-                splitPath = rewritten.substring(1);
-            }
-        }
-
-        String[] split = splitPath.split("\\\\", 3);
+        String[] split = rewritten.split("\\\\", 3);
         if (split.length == 1) {
             return new SmbPath(split[0]);
         }
@@ -123,6 +125,19 @@ public class SmbPath {
 
     public String getPath() {
         return path;
+    }
+
+    public SmbPath getParent() {
+        if (path == null || path.isEmpty()) {
+            return this;
+        }
+        int idx = path.lastIndexOf('\\');
+        if (idx > 0) {
+            return new SmbPath(hostname, shareName, path.substring(0, idx));
+        } else {
+            return new SmbPath(hostname, shareName);
+        }
+
     }
 
     public boolean isOnSameHost(SmbPath other) {

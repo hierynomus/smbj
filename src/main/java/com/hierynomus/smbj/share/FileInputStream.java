@@ -19,14 +19,13 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.smbj.ProgressListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.EnumSet;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -84,19 +83,19 @@ class FileInputStream extends InputStream {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         isClosed = true;
         file = null;
         buf = null;
     }
 
     @Override
-    public int available() throws IOException {
+    public int available() {
         return 0;
     }
 
     @Override
-    public long skip(long n) throws IOException {
+    public long skip(long n) {
         if (buf == null) {
             offset += n;
         } else if (curr + n < buf.length) {
@@ -119,7 +118,7 @@ class FileInputStream extends InputStream {
         }
 
         SMB2ReadResponse res = Futures.get(nextResponse, readTimeout, TimeUnit.MILLISECONDS, TransportException.Wrapper);
-        if (res.getHeader().getStatus() == NtStatus.STATUS_SUCCESS) {
+        if (res.getHeader().getStatusCode() == NtStatus.STATUS_SUCCESS.getValue()) {
             buf = res.getData();
             curr = 0;
             offset += res.getDataLength();
@@ -128,20 +127,23 @@ class FileInputStream extends InputStream {
             }
         }
 
-        if (res.getHeader().getStatus() == NtStatus.STATUS_END_OF_FILE) {
+        // According to MS-SMB2 2.2.20 and 3.3.5.12 the server should terminate the last SMB2 READ Response with STATUS_END_OF_FILE,
+        // however at least the IBM implementation does not do that and only returns a '0' data length on the response.
+        // Treat this corner case as an EOF marker to fix unbounded loops.
+        if (res.getHeader().getStatusCode() == NtStatus.STATUS_END_OF_FILE.getValue() || res.getDataLength() == 0) {
             logger.debug("EOF, {} bytes read", offset);
             isClosed = true;
             return;
         }
 
-        if (res.getHeader().getStatus() != NtStatus.STATUS_SUCCESS) {
+        if (res.getHeader().getStatusCode() != NtStatus.STATUS_SUCCESS.getValue()) {
             throw new SMBApiException(res.getHeader(), "Read failed for " + this);
         }
 
         nextResponse = sendRequest();
     }
 
-    private Future<SMB2ReadResponse> sendRequest() throws IOException {
+    private Future<SMB2ReadResponse> sendRequest() {
         return file.readAsync(offset, bufferSize);
     }
 }

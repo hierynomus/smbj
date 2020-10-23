@@ -17,11 +17,11 @@ package com.hierynomus.smbj.auth;
 
 import com.hierynomus.mssmb2.SMB2Header;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
-import com.hierynomus.security.SecurityProvider;
-import com.hierynomus.smbj.session.Session;
 import com.hierynomus.protocol.transport.TransportException;
-import com.sun.security.jgss.ExtendedGSSContext;
-import com.sun.security.jgss.InquireType;
+import com.hierynomus.security.SecurityProvider;
+import com.hierynomus.smbj.GSSContextConfig;
+import com.hierynomus.smbj.SmbConfig;
+import com.hierynomus.smbj.session.Session;
 import org.ietf.jgss.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +37,7 @@ import java.util.Random;
 
 public class SpnegoAuthenticator implements Authenticator {
     private static final Logger logger = LoggerFactory.getLogger(SpnegoAuthenticator.class);
+    private GSSContextConfig gssContextConfig;
 
     public static class Factory implements com.hierynomus.protocol.commons.Factory.Named<Authenticator> {
 
@@ -79,7 +80,8 @@ public class SpnegoAuthenticator implements Authenticator {
                 String hostName = session.getConnection().getRemoteHostname();
                 GSSName serverName = gssManager.createName(service + "@" + hostName, GSSName.NT_HOSTBASED_SERVICE);
                 gssContext = gssManager.createContext(serverName, spnegoOid, context.getCreds(), GSSContext.DEFAULT_LIFETIME);
-                gssContext.requestMutualAuth(false);
+                gssContext.requestMutualAuth(gssContextConfig.isRequestMutualAuth());
+                gssContext.requestCredDeleg(gssContextConfig.isRequestCredDeleg());
                 // TODO fill in all the other options too
             }
 
@@ -91,8 +93,7 @@ public class SpnegoAuthenticator implements Authenticator {
 
             AuthenticateResponse response = new AuthenticateResponse(newToken);
             if (gssContext.isEstablished()) {
-                ExtendedGSSContext e = (ExtendedGSSContext) gssContext;
-                Key key = (Key) e.inquireSecContext(InquireType.KRB5_GET_SESSION_KEY);
+                Key key = ExtendedGSSContext.krb5GetSessionKey(gssContext);
                 if (key != null) {
                     // if a session key was negotiated, save it.
                     response.setSigningKey(adjustSessionKeyLength(key.getEncoded()));
@@ -128,8 +129,8 @@ public class SpnegoAuthenticator implements Authenticator {
     }
 
     @Override
-    public void init(SecurityProvider securityProvider, Random random) {
-        // No-op, SPNEGO does not need these.
+    public void init(SmbConfig config) {
+        this.gssContextConfig = config.getClientGSSContextConfig();
     }
 
     @Override

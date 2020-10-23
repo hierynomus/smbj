@@ -50,10 +50,35 @@ public class Share implements AutoCloseable {
         new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF}
     );
 
-    private static final EnumSet<NtStatus> SUCCESS = EnumSet.of(NtStatus.STATUS_SUCCESS);
-    private static final EnumSet<NtStatus> SUCCESS_OR_SYMLINK = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_STOPPED_ON_SYMLINK);
-    private static final EnumSet<NtStatus> SUCCESS_OR_NO_MORE_FILES_OR_NO_SUCH_FILE = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_NO_MORE_FILES, NtStatus.STATUS_NO_SUCH_FILE);
-    private static final EnumSet<NtStatus> SUCCESS_OR_EOF = EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_END_OF_FILE);
+    private static final StatusHandler SUCCESS_OR_SYMLINK = new StatusHandler() {
+        @Override
+        public boolean isSuccess(long statusCode) {
+            return statusCode == NtStatus.STATUS_SUCCESS.getValue() ||
+                statusCode == NtStatus.STATUS_STOPPED_ON_SYMLINK.getValue();
+        }
+    };
+    private static final StatusHandler SUCCESS_OR_NO_MORE_FILES_OR_NO_SUCH_FILE = new StatusHandler() {
+        @Override
+        public boolean isSuccess(long statusCode) {
+            return statusCode == NtStatus.STATUS_SUCCESS.getValue() ||
+                statusCode == NtStatus.STATUS_NO_MORE_FILES.getValue() ||
+                statusCode == NtStatus.STATUS_NO_SUCH_FILE.getValue();
+        }
+    };
+    private static final StatusHandler SUCCESS_OR_EOF = new StatusHandler() {
+        @Override
+        public boolean isSuccess(long statusCode) {
+            return statusCode == NtStatus.STATUS_SUCCESS.getValue() ||
+                statusCode == NtStatus.STATUS_END_OF_FILE.getValue();
+        }
+    };
+    private static final StatusHandler SUCCESS_OR_CLOSED = new StatusHandler() {
+        @Override
+        public boolean isSuccess(long statusCode) {
+            return statusCode == NtStatus.STATUS_SUCCESS.getValue() ||
+                statusCode == NtStatus.STATUS_FILE_CLOSED.getValue();
+        }
+    };
 
     protected final SmbPath smbPath;
     protected final TreeConnect treeConnect;
@@ -134,11 +159,11 @@ public class Share implements AutoCloseable {
             createOptions,
             path
         );
-        SMB2CreateResponse resp = sendReceive(cr, "Create", path, getCreateSuccessStatus(), transactTimeout);
+        SMB2CreateResponse resp = sendReceive(cr, "Create", path, getCreateStatusHandler(), transactTimeout);
         return resp;
     }
 
-    protected Set<NtStatus> getCreateSuccessStatus() {
+    protected StatusHandler getCreateStatusHandler() {
         return SUCCESS_OR_SYMLINK;
     }
 
@@ -148,12 +173,17 @@ public class Share implements AutoCloseable {
             fileId,
             sessionId, treeId
         );
-        sendReceive(flushReq, "Flush", fileId, SUCCESS, writeTimeout);
+        sendReceive(flushReq, "Flush", fileId, StatusHandler.SUCCESS, writeTimeout);
     }
 
     void closeFileId(SMB2FileId fileId) throws SMBApiException {
         SMB2Close closeReq = new SMB2Close(dialect, sessionId, treeId, fileId);
-        sendReceive(closeReq, "Close", fileId, EnumSet.of(NtStatus.STATUS_SUCCESS, NtStatus.STATUS_FILE_CLOSED), transactTimeout);
+        sendReceive(closeReq, "Close", fileId, SUCCESS_OR_CLOSED, transactTimeout);
+    }
+
+    void closeFileIdNoWait(SMB2FileId fileId) throws SMBApiException {
+        SMB2Close closeReq = new SMB2Close(dialect, sessionId, treeId, fileId);
+        send(closeReq);
     }
 
     SMB2QueryInfoResponse queryInfo(SMB2FileId fileId, SMB2QueryInfoRequest.SMB2QueryInfoType infoType, Set<SecurityInformation> securityInfo, FileInformationClass fileInformationClass, FileSystemInformationClass fileSystemInformationClass) {
@@ -163,7 +193,7 @@ public class Share implements AutoCloseable {
             fileId, infoType,
             fileInformationClass, fileSystemInformationClass, null, securityInfo
         );
-        return sendReceive(qreq, "QueryInfo", fileId, SUCCESS, transactTimeout);
+        return sendReceive(qreq, "QueryInfo", fileId, StatusHandler.SUCCESS, transactTimeout);
     }
 
     void setInfo(SMB2FileId fileId, SMB2SetInfoRequest.SMB2InfoType infoType, Set<SecurityInformation> securityInfo, FileInformationClass fileInformationClass, byte[] buffer) {
@@ -173,7 +203,7 @@ public class Share implements AutoCloseable {
             infoType, fileId,
             fileInformationClass, securityInfo, buffer
         );
-        sendReceive(qreq, "SetInfo", fileId, SUCCESS, transactTimeout);
+        sendReceive(qreq, "SetInfo", fileId, StatusHandler.SUCCESS, transactTimeout);
     }
 
     SMB2QueryDirectoryResponse queryDirectory(SMB2FileId fileId, Set<SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags> flags, FileInformationClass informationClass, String searchPattern) {
@@ -198,7 +228,7 @@ public class Share implements AutoCloseable {
             provider,
             writeBufferSize
         );
-        return sendReceive(wreq, "Write", fileId, SUCCESS, writeTimeout);
+        return sendReceive(wreq, "Write", fileId, StatusHandler.SUCCESS, writeTimeout);
     }
 
     SMB2ReadResponse read(SMB2FileId fileId, long offset, int length) {
@@ -292,14 +322,14 @@ public class Share implements AutoCloseable {
 
     SMB2IoctlResponse ioctl(SMB2FileId fileId, long ctlCode, boolean isFsCtl, ByteChunkProvider inputData, int maxOutputResponse) {
         Future<SMB2IoctlResponse> fut = ioctlAsync(fileId, ctlCode, isFsCtl, inputData, maxOutputResponse);
-        return receive(fut, "IOCTL", fileId, SUCCESS, transactTimeout);
+        return receive(fut, "IOCTL", fileId, StatusHandler.SUCCESS, transactTimeout);
     }
 
     public Future<SMB2IoctlResponse> ioctlAsync(long ctlCode, boolean isFsCtl, ByteChunkProvider inputData) {
         return ioctlAsync(ROOT_ID, ctlCode, isFsCtl, inputData, -1);
     }
 
-    private Future<SMB2IoctlResponse> ioctlAsync(SMB2FileId fileId, long ctlCode, boolean isFsCtl, ByteChunkProvider inputData, int maxOutputResponse) {
+    Future<SMB2IoctlResponse> ioctlAsync(SMB2FileId fileId, long ctlCode, boolean isFsCtl, ByteChunkProvider inputData, int maxOutputResponse) {
         ByteChunkProvider inData = inputData == null ? EMPTY : inputData;
 
         if (inData.bytesLeft() > transactBufferSize) {
@@ -327,12 +357,17 @@ public class Share implements AutoCloseable {
             fileId, lockElements
         );
 
-        return sendReceive(qreq, "Lock", fileId, SUCCESS, transactTimeout);
+        return sendReceive(qreq, "Lock", fileId, StatusHandler.SUCCESS, transactTimeout);
     }
 
-    private <T extends SMB2Packet> T sendReceive(SMB2Packet request, String name, Object target, Set<NtStatus> successResponses, long timeout) {
+    Future<SMB2ChangeNotifyResponse> changeNotifyAsync(SMB2FileId fileId, Set<SMB2CompletionFilter> completionFilter, Set<SMB2ChangeNotifyFlags> flags) {
+        SMB2ChangeNotifyRequest cnreq = new SMB2ChangeNotifyRequest(dialect, sessionId, treeId, fileId, completionFilter, flags, transactBufferSize);
+        return send(cnreq);
+    }
+
+    private <T extends SMB2Packet> T sendReceive(SMB2Packet request, String name, Object target, StatusHandler statusHandler, long timeout) {
         Future<T> fut = send(request);
-        return receive(fut, name, target, successResponses, timeout);
+        return receive(fut, name, target, statusHandler, timeout);
     }
 
     private <T extends SMB2Packet> Future<T> send(SMB2Packet request) {
@@ -347,11 +382,11 @@ public class Share implements AutoCloseable {
         }
     }
 
-    <T extends SMB2Packet> T receive(Future<T> fut, String name, Object target, Set<NtStatus> successResponses, long timeout) {
+    <T extends SMB2Packet> T receive(Future<T> fut, String name, Object target, StatusHandler statusHandler, long timeout) {
         T resp = receive(fut, timeout);
 
-        NtStatus status = resp.getHeader().getStatus();
-        if (!successResponses.contains(status)) {
+        long status = resp.getHeader().getStatusCode();
+        if (!statusHandler.isSuccess(status)) {
             throw new SMBApiException(resp.getHeader(), name + " failed for " + target);
         }
         return resp;
@@ -370,4 +405,29 @@ public class Share implements AutoCloseable {
         }
         return resp;
     }
+
+    @Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((smbPath == null) ? 0 : smbPath.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Share other = (Share) obj;
+		if (smbPath == null) {
+			if (other.smbPath != null)
+				return false;
+		} else if (!smbPath.equals(other.smbPath))
+			return false;
+		return true;
+	}
 }

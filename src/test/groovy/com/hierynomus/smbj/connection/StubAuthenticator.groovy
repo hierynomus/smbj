@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.connection
 
 import com.hierynomus.security.SecurityProvider
+import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.auth.AuthenticateResponse
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.auth.Authenticator
@@ -36,7 +37,7 @@ class StubAuthenticator implements Authenticator {
   }
 
   @Override
-  void init(SecurityProvider securityProvider, Random random) {
+  void init(SmbConfig config) {
 
   }
 

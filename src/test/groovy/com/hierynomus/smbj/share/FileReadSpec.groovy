@@ -42,15 +42,16 @@ class FileReadSpec extends Specification {
   private MessageDigest digest
   private File file
   private Connection connection
+  private BasicPacketProcessor responder
 
   def setup() {
     fileData = randomData(42, 12345)
 
-    def responder = new BasicPacketProcessor({ req ->
+    responder = new BasicPacketProcessor({ req ->
       if (req instanceof SMB2CreateRequest)
         return createResponse()
       if (req instanceof SMB2ReadRequest)
-        return read(req, fileData)
+        return read(req, fileData, false)
 
       null
     })
@@ -132,6 +133,27 @@ class FileReadSpec extends Specification {
     ByteArrayUtils.printHex(digest.digest()) == ByteArrayUtils.printHex(expectedDigest)
   }
 
+  def "should read entire file contents via input stream in IBM mode"() {
+    when:
+    responder.addBehaviour { SMB2Packet req ->
+      if (req instanceof SMB2ReadRequest)
+        return read(req, fileData, true)
+
+      null
+    }
+    def out = new DigestOutputStream(new ByteArrayOutputStream(), digest)
+    def buffer = new byte[10]
+
+    def input = file.getInputStream(null)
+    def bytesRead
+    while ((bytesRead = input.read(buffer)) != -1) {
+      out.write(buffer, 0, bytesRead)
+    }
+
+    then:
+    ByteArrayUtils.printHex(digest.digest()) == ByteArrayUtils.printHex(expectedDigest)
+  }
+
   def "should read entire file contents via input stream with buffer offset"() {
     when:
     def out = new DigestOutputStream(new ByteArrayOutputStream(), digest)
@@ -190,19 +212,19 @@ class FileReadSpec extends Specification {
   byte[] randomData(int seed, int length) {
     Random rng = new Random(seed)
     byte[] data = new byte[length]
-    rng.nextBytes(data);
+    rng.nextBytes(data)
     data
   }
 
   SMB2Packet createResponse() {
     def response = new SMB2CreateResponse()
-    response.header.status = NtStatus.STATUS_SUCCESS
+    response.header.statusCode = NtStatus.STATUS_SUCCESS.value
     response.fileAttributes = EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL)
     response.fileId = new SMB2FileId(new byte[0], new byte[0])
     response
   }
 
-  SMB2Packet read(SMB2ReadRequest req, byte[] data) {
+  SMB2Packet read(SMB2ReadRequest req, byte[] data, boolean ibmMode) {
     def offset = req.offset as int
     def length = req.getPayloadSize()
 
@@ -212,12 +234,12 @@ class FileReadSpec extends Specification {
 
     def response = new SMB2ReadResponse()
 
-    if (length <= 0) {
-      response.header.status = NtStatus.STATUS_END_OF_FILE
+    if (length <= 0 && !ibmMode) {
+      response.header.statusCode = NtStatus.STATUS_END_OF_FILE.value
     } else {
-      response.header.status = NtStatus.STATUS_SUCCESS
+      response.header.statusCode = NtStatus.STATUS_SUCCESS.value
       response.data = Arrays.copyOfRange(data, offset, offset + length)
-      response.dataLength = length
+      response.dataLength = Math.max(length, 0)
     }
     response
   }

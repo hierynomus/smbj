@@ -22,4 +22,5 @@ test-output/
 .DS_Store
 /smbj/
 *.pdf
-
+.vscode/
+.java-version

@@ -15,13 +15,10 @@
  */
 package com.hierynomus.smbj.paths;
 
-import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.session.Session;
-
-import java.util.EnumSet;
-import java.util.Set;
+import com.hierynomus.smbj.share.StatusHandler;
 
 public interface PathResolver {
     PathResolver LOCAL = new PathResolver() {
@@ -31,12 +28,33 @@ public interface PathResolver {
         }
 
         @Override
-        public Set<NtStatus> handledStates() {
-            return EnumSet.of(NtStatus.STATUS_SUCCESS);
+        public SmbPath resolve(Session session, SmbPath smbPath) {
+            return smbPath;
+        }
+
+        public StatusHandler statusHandler() {
+            return StatusHandler.SUCCESS;
         }
     };
 
+    /**
+     * Reactive path resolution based on response packet
+     * @param session
+     * @param responsePacket
+     * @param smbPath
+     * @return
+     * @throws PathResolveException
+     */
     SmbPath resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath) throws PathResolveException;
 
-    Set<NtStatus> handledStates();
+    /**
+     * Proactive path resolution based on response packet
+     * @param session
+     * @param smbPath
+     * @return
+     * @throws PathResolveException
+     */
+    SmbPath resolve(Session session, SmbPath smbPath) throws PathResolveException;
+
+    StatusHandler statusHandler();
 }

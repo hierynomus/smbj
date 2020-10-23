@@ -141,6 +141,18 @@ public class FileInformationFactory {
             }
         });
 
+        decoders.put(FileStreamInformation.class, new FileInformation.Decoder<FileStreamInformation>() {
+            @Override
+            public FileInformationClass getInformationClass() {
+                return FileInformationClass.FileStreamInformation;
+            }
+
+            @Override
+            public FileStreamInformation read(Buffer inputBuffer) throws Buffer.BufferException {
+                return parseFileStreamInformation(inputBuffer);
+            }
+        });
+
         FileInformation.Encoder<FileEndOfFileInformation> endOfFileCodec = new FileInformation.Encoder<FileEndOfFileInformation>() {
             @Override
             public FileInformationClass getInformationClass() {
@@ -478,6 +490,31 @@ public class FileInformationFactory {
     private static FileEaInformation parseFileEaInformation(Buffer<?> buffer) throws Buffer.BufferException {
         long eaSize = buffer.readUInt32();
         return new FileEaInformation(eaSize);
+    }
+
+    /**
+     * 2.4.40 FileStreamInformation
+     */
+    private static FileStreamInformation parseFileStreamInformation(Buffer<?> buffer) throws Buffer.BufferException {
+
+        List<FileStreamInformationItem> streamList = new ArrayList<>();
+        long currEntry = 0;
+        long nextEntry = 0;
+
+        do {
+            currEntry += nextEntry;
+            buffer.rpos((int) currEntry);
+
+            nextEntry = buffer.readUInt32(); //Unsigned 32
+            long nameLen = buffer.readUInt32(); //Unsigned 32
+            long size = buffer.readLong(); //Signed 64
+            long allocSize = buffer.readLong(); //Signed 64
+
+            String name = buffer.readString(Charsets.UTF_16LE, (int) nameLen / 2);
+            streamList.add(new FileStreamInformationItem(size, allocSize, name));
+        } while (nextEntry != 0);
+
+        return new FileStreamInformation(streamList);
     }
 
     private static FileAccessInformation parseFileAccessInformation(Buffer<?> buffer) throws Buffer.BufferException {

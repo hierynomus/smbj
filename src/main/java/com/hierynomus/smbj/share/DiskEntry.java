@@ -17,16 +17,11 @@ package com.hierynomus.smbj.share;
 
 import com.hierynomus.msdtyp.SecurityDescriptor;
 import com.hierynomus.msdtyp.SecurityInformation;
-import com.hierynomus.msfscc.fileinformation.FileAllInformation;
-import com.hierynomus.msfscc.fileinformation.FileLinkInformation;
-import com.hierynomus.msfscc.fileinformation.FileQueryableInformation;
-import com.hierynomus.msfscc.fileinformation.FileRenameInformation;
-import com.hierynomus.msfscc.fileinformation.FileSettableInformation;
+import com.hierynomus.msfscc.fileinformation.*;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2LockResponse;
 import com.hierynomus.mssmb2.messages.submodule.SMB2LockElement;
-import com.hierynomus.protocol.transport.TransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,11 +47,23 @@ public abstract class DiskEntry implements Closeable {
         share.closeFileId(fileId);
     }
 
+    public void closeNoWait() {
+        share.closeFileIdNoWait(fileId);
+    }
+
     public SMB2FileId getFileId() {
         return fileId;
     }
 
-    public FileAllInformation getFileInformation() throws SMBApiException, TransportException {
+    public String getFileName() {
+        return fileName;
+    }
+
+    public DiskShare getDiskShare() {
+        return share;
+    }
+
+    public FileAllInformation getFileInformation() throws SMBApiException {
         return getFileInformation(FileAllInformation.class);
     }
 
@@ -113,11 +120,11 @@ public abstract class DiskEntry implements Closeable {
     /**
      * Creates hard link for receiver.<br/>
      * This method is a shortcut for <code>DiskEntry#createHardlink(linkname, false)</code>
-     * 
+     *
      * @param linkname the path to the hard link relative to share
      * @throws SMBApiException
-     * 
-     * @see {@link DiskEntry#createHardlink(String, boolean)} 
+     *
+     * @see {@link DiskEntry#createHardlink(String, boolean)}
      */
     public void createHardlink(final String linkname) throws SMBApiException {
         this.createHardlink(linkname, false);
@@ -125,17 +132,17 @@ public abstract class DiskEntry implements Closeable {
 
     /**
      * Creates hard link for receiver.
-     * 
-     * @param linkname the path to the hard link relative to share  
+     *
+     * @param linkname the path to the hard link relative to share
      * @param replaceIfExist if true replaces existing entry.
-     * 
+     *
      * @throws SMBApiException
      */
     public void createHardlink(final String linkname, final boolean replaceIfExist) throws SMBApiException {
         final FileLinkInformation linkInfo = new FileLinkInformation(replaceIfExist, linkname);
         this.setFileInformation(linkInfo);
     }
-	        
+
     /**
      * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
      * corresponding operation.
@@ -193,7 +200,39 @@ public abstract class DiskEntry implements Closeable {
      * @param lockElements List (an array) of LockCount (2.2.26.1 SMB2_LOCK_ELEMENT Structure) structures.
      * @return Server response to lock request. 2.2.27 SMB2 LOCK Response
      */
-    public SMB2LockResponse lockRequest(short lockSequenceNumber, int lockSequenceIndex, List<SMB2LockElement> lockElements) {
+    public SMB2LockResponse lockRequest(short lockSequenceNumber, int lockSequenceIndex,
+            List<SMB2LockElement> lockElements) {
         return share.sendLockRequest(fileId, lockSequenceNumber, lockSequenceIndex, lockElements);
     }
+
+    @Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((fileName == null) ? 0 : fileName.hashCode());
+		result = prime * result + ((share == null) ? 0 : share.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		DiskEntry other = (DiskEntry) obj;
+		if (fileName == null) {
+			if (other.fileName != null)
+				return false;
+		} else if (!fileName.equals(other.fileName))
+			return false;
+		if (share == null) {
+			if (other.share != null)
+				return false;
+		} else if (!share.equals(other.share))
+			return false;
+		return true;
+	}
 }
