@@ -37,7 +37,6 @@ import com.hierynomus.smbj.io.EmptyByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
 
 import java.io.IOException;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Future;
