@@ -23,6 +23,7 @@ import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.msfscc.FileSystemInformationClass;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.*;
+import com.hierynomus.mssmb2.messages.submodule.SMB2LockElement;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.SmbConfig;
@@ -36,7 +37,7 @@ import com.hierynomus.smbj.io.EmptyByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
 
 import java.io.IOException;
-import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -347,6 +348,17 @@ public class Share implements AutoCloseable {
         return send(ioreq);
     }
 
+    SMB2LockResponse sendLockRequest(SMB2FileId fileId, short lockSequenceNumber, int lockSequenceIndex, List<SMB2LockElement> lockElements) {
+        SMB2LockRequest qreq = new SMB2LockRequest(
+            dialect,
+            sessionId, treeId,
+            lockSequenceNumber, lockSequenceIndex,
+            fileId, lockElements
+        );
+
+        return sendReceive(qreq, "Lock", fileId, StatusHandler.SUCCESS, transactTimeout);
+    }
+
     Future<SMB2ChangeNotifyResponse> changeNotifyAsync(SMB2FileId fileId, Set<SMB2CompletionFilter> completionFilter, Set<SMB2ChangeNotifyFlags> flags) {
         SMB2ChangeNotifyRequest cnreq = new SMB2ChangeNotifyRequest(dialect, sessionId, treeId, fileId, completionFilter, flags, transactBufferSize);
         return send(cnreq);
@@ -391,6 +403,10 @@ public class Share implements AutoCloseable {
             throw new SMBRuntimeException(e);
         }
         return resp;
+    }
+
+    SMB2Dialect getDialect() {
+        return dialect;
     }
 
     @Override

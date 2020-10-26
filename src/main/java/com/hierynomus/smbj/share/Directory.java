@@ -28,12 +28,13 @@ import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2ChangeNotifyResponse;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryRequest;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryResponse;
+import com.hierynomus.smbj.common.SmbPath;
 
 import java.util.*;
 import java.util.concurrent.Future;
 
 public class Directory extends DiskEntry implements Iterable<FileIdBothDirectoryInformation> {
-    Directory(SMB2FileId fileId, DiskShare diskShare, String fileName) {
+    Directory(SMB2FileId fileId, DiskShare diskShare, SmbPath fileName) {
         super(fileId, diskShare, fileName);
     }
 
@@ -131,7 +132,7 @@ public class Directory extends DiskEntry implements Iterable<FileIdBothDirectory
 
     @Override
     public String toString() {
-        return String.format("Directory{fileId=%s, fileName='%s'}", fileId, fileName);
+        return String.format("Directory{fileId=%s, fileName='%s'}", fileId, name.toUncPath());
     }
 
     private class DirectoryIterator<F extends FileDirectoryQueryableInformation> implements Iterator<F> {
