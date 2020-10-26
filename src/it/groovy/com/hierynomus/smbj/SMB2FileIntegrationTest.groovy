@@ -198,23 +198,50 @@ class SMB2FileIntegrationTest extends Specification {
   def "should lock and unlock the file"() {
     given:
     def fileToLock = share.openFile("fileToLock", EnumSet.of(AccessMask.GENERIC_READ, AccessMask.GENERIC_WRITE), null, EnumSet.noneOf(SMB2ShareAccess.class), FILE_CREATE, null)
-    def lockElement01 = new SMB2LockElement(0, 10, EnumSet.of(SMB2LockFlag.SMB2_LOCKFLAG_EXCLUSIVE_LOCK, SMB2LockFlag.SMB2_LOCKFLAG_FAIL_IMMEDIATELY))
-    def unlockElement01 = new SMB2LockElement(0, 10, EnumSet.of(SMB2LockFlag.SMB2_LOCKFLAG_UNLOCK))
 
     when:
-    def lockResponse01 = fileToLock.lockRequest(0 as short, 0, [lockElement01] as List)
+    fileToLock.requestLock().exclusiveLock(0, 10, true).send()
 
     then:
-    lockResponse01.header.status == NtStatus.STATUS_SUCCESS
+    noExceptionThrown()
 
     when:
-    def unlockResponse01 = fileToLock.lockRequest(0 as short, 0, [unlockElement01] as List)
+    fileToLock.requestLock().unlock(0, 10).send()
 
     then:
-    unlockResponse01.header.status == NtStatus.STATUS_SUCCESS
+    noExceptionThrown()
 
     cleanup:
     fileToLock.close()
+    share.rm("fileToLock")
+  }
+
+  def "should fail requesting overlapping exclusive lock range"() {
+    given:
+    def fileToLock = share.openFile("fileToLock", EnumSet.of(AccessMask.GENERIC_READ, AccessMask.GENERIC_WRITE), null, EnumSet.noneOf(SMB2ShareAccess.class), FILE_CREATE, null)
+
+    when:
+    fileToLock.requestLock().exclusiveLock(0, 10, true).send()
+    fileToLock.requestLock().exclusiveLock(5, 15, true).send()
+
+    then:
+    thrown(SMBApiException.class)
+
+    when:
+    fileToLock.requestLock().unlock(0, 10).send()
+    fileToLock.requestLock().exclusiveLock(5, 15, true).send()
+
+    then:
+    noExceptionThrown()
+
+    when:
+    fileToLock.requestLock().unlock(5, 15).send()
+    fileToLock.close()
+
+    then:
+    noExceptionThrown()
+
+    cleanup:
     share.rm("fileToLock")
   }
 

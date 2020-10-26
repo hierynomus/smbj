@@ -405,6 +405,10 @@ public class Share implements AutoCloseable {
         return resp;
     }
 
+    SMB2Dialect getDialect() {
+        return dialect;
+    }
+
     @Override
 	public int hashCode() {
 		final int prime = 31;

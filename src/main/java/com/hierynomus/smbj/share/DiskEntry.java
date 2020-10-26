@@ -171,20 +171,6 @@ public abstract class DiskEntry extends Open<DiskShare> {
         share.deleteOnClose(fileId);
     }
 
-    /***
-     * Send a lock request for diskEntry. This could be lock/unlock operation. 2.2.26 SMB2 LOCK Request
-     *
-     * @param lockElements List (an array) of LockCount (2.2.26.1 SMB2_LOCK_ELEMENT Structure) structures.
-     * @return Server response to lock request. 2.2.27 SMB2 LOCK Response
-     */
-    public SMB2LockResponse lockRequest(List<SMB2LockElement> lockElements) {
-        // [MS-SMB2].pdf 3.2.4.19 Application Requests Locking of an Array of Byte Ranges
-        // If any of the Booleans Open.ResilientHandle, Open.IsPersistent, or
-        // Connection.SupportsMultiChannel is TRUE, ...
-        // Otherwise the client MUST set LockSequenceIndex and LockSequenceNumber to 0.
-        return share.sendLockRequest(fileId, (short)0, 0, lockElements);
-    }
-
     @Override
 	public int hashCode() {
 		final int prime = 31;
