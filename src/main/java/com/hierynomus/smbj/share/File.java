@@ -105,9 +105,9 @@ public class File extends DiskEntry {
      * @param fileOffset The offset, in bytes, into the file to which the data should be written
      * @param offset     the start offset in the data
      * @param length     the number of bytes that are written
-     * @return the List of write response future
+     * @return A Future containing the total number of bytes written to the remote.
      */
-    public List<Future<SMB2WriteResponse>> writeAsync(byte[] buffer, long fileOffset, int offset, int length) {
+    public Future<Integer> writeAsync(byte[] buffer, long fileOffset, int offset, int length) {
         return writer.writeAsync(buffer, fileOffset, offset, length);
     }
 
@@ -116,9 +116,9 @@ public class File extends DiskEntry {
      * The offset in the file to which data is written is determined by {@link ByteChunkProvider#getOffset()}.
      *
      * @param provider the byte chunk provider
-     * @return the List of write response future
+     * @return A future containing the total number of bytes written to the remote.
      */
-    public List<Future<SMB2WriteResponse>> writeAsync(ByteChunkProvider provider) {
+    public Future<Integer> writeAsync(ByteChunkProvider provider) {
         return writer.writeAsync(provider);
     }
 

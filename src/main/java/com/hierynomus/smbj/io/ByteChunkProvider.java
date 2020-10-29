@@ -28,26 +28,32 @@ public abstract class ByteChunkProvider implements Closeable {
     protected long offset;
     protected int chunkSize = CHUNK_SIZE;
 
+    private int lastWriteSize;
+
     public abstract boolean isAvailable();
 
     public void writeChunk(OutputStream os) {
+        lastWriteSize = 0;
         byte[] chunk = new byte[chunkSize];
         try {
             int size = getChunk(chunk);
             os.write(chunk, 0, size);
             offset += size;
+            lastWriteSize += size;
         } catch (IOException e) {
             throw new SMBRuntimeException(e);
         }
     }
 
     public void writeChunks(Buffer<?> buffer, int nrChunks) {
+        lastWriteSize = 0;
         byte[] chunk = new byte[chunkSize];
         for (int i = 0; i < nrChunks; i++) {
             try {
                 int size = getChunk(chunk);
                 buffer.putRawBytes(chunk, 0, size);
                 offset += size;
+                lastWriteSize += size;
             } catch (IOException e) {
                 throw new SMBRuntimeException(e);
             }
@@ -55,11 +61,13 @@ public abstract class ByteChunkProvider implements Closeable {
     }
 
     public void writeChunk(Buffer<?> buffer) {
+        lastWriteSize = 0;
         byte[] chunk = new byte[chunkSize];
         try {
             int size = getChunk(chunk);
             buffer.putRawBytes(chunk, 0, size);
             offset += size;
+            lastWriteSize += size;
         } catch (IOException e) {
             throw new SMBRuntimeException(e);
         }
@@ -67,6 +75,10 @@ public abstract class ByteChunkProvider implements Closeable {
 
     public long getOffset() {
         return offset;
+    }
+
+    public int getLastWriteSize() {
+        return lastWriteSize;
     }
 
     protected abstract int getChunk(byte[] chunk) throws IOException;
