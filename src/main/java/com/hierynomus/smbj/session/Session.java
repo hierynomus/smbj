@@ -211,7 +211,9 @@ public class Session implements AutoCloseable {
         nestedSessionsRwLock.readLock().lock();
         try {
             final Session existingSession = nestedSessionsByHost.get(resolvedSharePath.getHostname());
-            if (existingSession != null) return existingSession;
+            if (existingSession != null) {
+                return existingSession;
+            }
         } finally {
             nestedSessionsRwLock.readLock().unlock();
         }
