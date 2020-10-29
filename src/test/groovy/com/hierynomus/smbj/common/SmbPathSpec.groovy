@@ -32,6 +32,8 @@ class SmbPathSpec extends Specification {
 
     where:
     stringPath                                 | host        | share | path
+    "\\" | "" | null | null
+    "\\\\" | "" | null | null
     "localhost\\C\$\\My Documents\\Jeroen"     | "localhost" | "C\$" | "My Documents\\Jeroen"
     "\\localhost\\C\$\\My Documents\\Jeroen"   | "localhost" | "C\$" | "My Documents\\Jeroen"
     "\\\\localhost\\C\$\\My Documents\\Jeroen" | "localhost" | "C\$" | "My Documents\\Jeroen"

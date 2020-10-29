@@ -63,7 +63,7 @@ public class DiskShare extends Share {
     public DiskEntry open(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         SmbPath pathAndFile = new SmbPath(smbPath, path);
         SMB2CreateResponseContext response = resolveAndCreateFile(pathAndFile, null, accessMask, attributes, shareAccesses, createDisposition, createOptions);
-        return getDiskEntry(path, response);
+        return getDiskEntry(response);
     }
 
     @Override
@@ -106,12 +106,12 @@ public class DiskShare extends Share {
         return new SMB2CreateResponseContext(resp, path, this);
     }
 
-    protected DiskEntry getDiskEntry(String path, SMB2CreateResponseContext responseContext) {
+    protected DiskEntry getDiskEntry(SMB2CreateResponseContext responseContext) {
         SMB2CreateResponse response = responseContext.resp;
         if (response.getFileAttributes().contains(FILE_ATTRIBUTE_DIRECTORY)) {
-            return new Directory(response.getFileId(), responseContext.share, responseContext.target.toUncPath());
+            return new Directory(response.getFileId(), responseContext.share, responseContext.target);
         } else {
-            return new File(response.getFileId(), responseContext.share, responseContext.target.toUncPath());
+            return new File(response.getFileId(), responseContext.share, responseContext.target);
         }
     }
 

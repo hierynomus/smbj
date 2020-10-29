@@ -29,6 +29,7 @@ import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.io.ArrayByteChunkProvider;
 import com.hierynomus.smbj.io.ByteChunkProvider;
 import org.slf4j.Logger;
@@ -45,9 +46,9 @@ public class File extends DiskEntry {
     private static final Logger logger = LoggerFactory.getLogger(File.class);
     private final SMB2Writer writer;
 
-    File(SMB2FileId fileId, DiskShare diskShare, String fileName) {
+    File(SMB2FileId fileId, DiskShare diskShare, SmbPath fileName) {
         super(fileId, diskShare, fileName);
-        this.writer = new SMB2Writer(diskShare, fileId, fileName);
+        this.writer = new SMB2Writer(diskShare, fileId, fileName.toUncPath());
     }
 
     /**
@@ -347,7 +348,7 @@ public class File extends DiskEntry {
     public String toString() {
         return "File{" +
             "fileId=" + fileId +
-            ", fileName='" + fileName + '\'' +
+            ", fileName='" + name.toUncPath() + '\'' +
             '}';
     }
 

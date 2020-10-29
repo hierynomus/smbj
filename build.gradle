@@ -19,6 +19,8 @@ plugins {
 }
 
 group = "com.hierynomus"
+ext.moduleName = "${project.group}.${project.name}"
+
 defaultTasks "build"
 
 repositories {
@@ -68,6 +70,14 @@ scmVersion {
 }
 
 project.version = scmVersion.version
+
+jar {
+    inputs.property("moduleName", moduleName)
+
+    manifest {
+       attributes  'Automatic-Module-Name': moduleName
+   }
+}
 
 // This disables the pedantic doclint feature of JDK8
 if (JavaVersion.current().isJava8Compatible()) {

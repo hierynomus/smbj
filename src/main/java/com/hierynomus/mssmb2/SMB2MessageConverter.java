@@ -69,6 +69,7 @@ public class SMB2MessageConverter {
             case SMB2_CANCEL:
                 return new SMB2Cancel();
             case SMB2_LOCK:
+                return new SMB2LockResponse();
             case SMB2_OPLOCK_BREAK:
             default:
                 logger.error("Unknown SMB2 Message Command type: " + command);

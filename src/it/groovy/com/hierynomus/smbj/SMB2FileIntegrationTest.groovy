@@ -26,6 +26,11 @@ import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.mssmb2.SMBApiException
 import com.hierynomus.security.bc.BCSecurityProvider
+import com.hierynomus.mssmb2.SMB2LockFlag
+import com.hierynomus.mssmb2.SMB2ShareAccess
+import com.hierynomus.mssmb2.SMBApiException
+import com.hierynomus.mssmb2.messages.submodule.SMB2LockElement
+import com.hierynomus.smb.SMBPacket
 import com.hierynomus.mssmb2.messages.SMB2Cancel
 import com.hierynomus.mssmb2.messages.SMB2ChangeNotifyResponse
 import com.hierynomus.protocol.commons.concurrent.Futures
@@ -196,6 +201,56 @@ class SMB2FileIntegrationTest extends Specification {
     share.rm("bigfile")
   }
 
+  def "should lock and unlock the file"() {
+    given:
+    def fileToLock = share.openFile("fileToLock", EnumSet.of(AccessMask.GENERIC_READ, AccessMask.GENERIC_WRITE), null, EnumSet.noneOf(SMB2ShareAccess.class), FILE_CREATE, null)
+
+    when:
+    fileToLock.requestLock().exclusiveLock(0, 10, true).send()
+
+    then:
+    noExceptionThrown()
+
+    when:
+    fileToLock.requestLock().unlock(0, 10).send()
+
+    then:
+    noExceptionThrown()
+
+    cleanup:
+    fileToLock.close()
+    share.rm("fileToLock")
+  }
+
+  def "should fail requesting overlapping exclusive lock range"() {
+    given:
+    def fileToLock = share.openFile("fileToLock", EnumSet.of(AccessMask.GENERIC_READ, AccessMask.GENERIC_WRITE), null, EnumSet.noneOf(SMB2ShareAccess.class), FILE_CREATE, null)
+
+    when:
+    fileToLock.requestLock().exclusiveLock(0, 10, true).send()
+    fileToLock.requestLock().exclusiveLock(5, 15, true).send()
+
+    then:
+    thrown(SMBApiException.class)
+
+    when:
+    fileToLock.requestLock().unlock(0, 10).send()
+    fileToLock.requestLock().exclusiveLock(5, 15, true).send()
+
+    then:
+    noExceptionThrown()
+
+    when:
+    fileToLock.requestLock().unlock(5, 15).send()
+    fileToLock.close()
+
+    then:
+    noExceptionThrown()
+
+    cleanup:
+    share.rm("fileToLock")
+  }
+
   def "should append to the file"() {
     given:
     def file = share.openFile("appendfile", EnumSet.of(AccessMask.FILE_WRITE_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN_IF, null)
@@ -302,7 +357,7 @@ class SMB2FileIntegrationTest extends Specification {
     }
   }
 
-  def "should correctly detect file and folder existence"() {
+  def "should correctly detect file existence"() {
     given:
     share.mkdir("im_a_directory")
     def src = share.openFile("im_a_file", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_OVERWRITE_IF, null)
@@ -311,35 +366,12 @@ class SMB2FileIntegrationTest extends Specification {
 
     expect:
     share.fileExists("im_a_file")
-    share.folderExists("im_a_directory")
-    !share.folderExists("im_a_file")
     !share.fileExists("im_a_directory")
     !share.fileExists("i_do_not_exist")
-    !share.folderExists("i_do_not_exist")
 
     cleanup:
     share.rm("im_a_file")
     share.rmdir("im_a_directory", false)
-  }
-
-  @Unroll
-  def "should not fail if #method response is DELETE_PENDING for directory"() {
-    given:
-    def dir = share.openDirectory("to_be_removed", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_CREATE, null)
-    dir.close()
-    dir = share.openDirectory("to_be_removed", EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
-    dir.deleteOnClose()
-
-    when:
-    func(share)
-
-    then:
-    noExceptionThrown()
-
-    where:
-    method         | func
-    "rmdir"        | { s -> s.rmdir("to_be_removed", false) }
-    "folderExists" | { s -> s.folderExists("to_be_removed") }
   }
 
   @Unroll
@@ -361,51 +393,5 @@ class SMB2FileIntegrationTest extends Specification {
     method       | func
     "rm"         | { s -> s.rm("test.txt") }
     "fileExists" | { s -> s.fileExists("test.txt") }
-  }
-
-  def "should not fail if folderExists response is DELETE_PENDING"() {
-    given:
-    def dir = share.openDirectory("to_be_removed", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_CREATE, null)
-    dir.close()
-    dir = share.openDirectory("to_be_removed", EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
-    dir.deleteOnClose()
-
-    when:
-    share.folderExists("to_be_removed")
-
-    then:
-    noExceptionThrown()
-  }
-
-  def "should not fail if fileExists response is DELETE_PENDING"() {
-    given:
-    def textFile = share.openFile("test.txt", EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, FILE_CREATE, null)
-    textFile.write(new ArrayByteChunkProvider("Hello World!".getBytes(StandardCharsets.UTF_8), 0))
-    textFile.close()
-    textFile = share.openFile("test.txt", EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
-    textFile.deleteOnClose()
-
-    when:
-    share.fileExists("test.txt")
-
-    then:
-    noExceptionThrown()
-  }
-
-  def "should cancel ChangeNotify request"() {
-    given:
-    share.mkdir("to_be_watched")
-    def dir = share.openDirectory("to_be_watched", EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
-    dir.deleteOnClose()
-
-    def watch = dir.watchAsync(EnumSet.of(SMB2CompletionFilter.FILE_NOTIFY_CHANGE_FILE_NAME), true)
-
-    when:
-    watch.cancel(true)
-    def cancel = Futures.get(watch, SMBRuntimeException.Wrapper)
-
-    then:
-    noExceptionThrown()
-    cancel.fileNotifyInfoList.size() == 0
   }
 }
