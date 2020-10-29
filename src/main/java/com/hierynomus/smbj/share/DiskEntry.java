@@ -20,41 +20,30 @@ import com.hierynomus.msdtyp.SecurityInformation;
 import com.hierynomus.msfscc.fileinformation.*;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMBApiException;
-import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.mssmb2.messages.SMB2LockResponse;
+import com.hierynomus.mssmb2.messages.submodule.SMB2LockElement;
+import com.hierynomus.smbj.common.SmbPath;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Closeable;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
-public abstract class DiskEntry implements Closeable {
+public abstract class DiskEntry extends Open<DiskShare> {
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    protected DiskShare share;
-    protected SMB2FileId fileId;
-    protected String fileName;
-
-    DiskEntry(SMB2FileId fileId, DiskShare share, String fileName) {
-        this.share = share;
-        this.fileId = fileId;
-        this.fileName = fileName;
-    }
-
-    public void close() {
-        share.closeFileId(fileId);
+    DiskEntry(SMB2FileId fileId, DiskShare share, SmbPath fileName) {
+        super(fileId, fileName, share);
     }
 
     public void closeNoWait() {
         share.closeFileIdNoWait(fileId);
     }
 
-    public SMB2FileId getFileId() {
-        return fileId;
-    }
-
     public String getFileName() {
-        return fileName;
+        return name.getPath();
     }
 
     public DiskShare getDiskShare() {
@@ -118,11 +107,11 @@ public abstract class DiskEntry implements Closeable {
     /**
      * Creates hard link for receiver.<br/>
      * This method is a shortcut for <code>DiskEntry#createHardlink(linkname, false)</code>
-     * 
+     *
      * @param linkname the path to the hard link relative to share
      * @throws SMBApiException
-     * 
-     * @see {@link DiskEntry#createHardlink(String, boolean)} 
+     *
+     * @see {@link DiskEntry#createHardlink(String, boolean)}
      */
     public void createHardlink(final String linkname) throws SMBApiException {
         this.createHardlink(linkname, false);
@@ -130,17 +119,17 @@ public abstract class DiskEntry implements Closeable {
 
     /**
      * Creates hard link for receiver.
-     * 
-     * @param linkname the path to the hard link relative to share  
+     *
+     * @param linkname the path to the hard link relative to share
      * @param replaceIfExist if true replaces existing entry.
-     * 
+     *
      * @throws SMBApiException
      */
     public void createHardlink(final String linkname, final boolean replaceIfExist) throws SMBApiException {
         final FileLinkInformation linkInfo = new FileLinkInformation(replaceIfExist, linkname);
         this.setFileInformation(linkInfo);
     }
-	        
+
     /**
      * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
      * corresponding operation.
@@ -182,19 +171,11 @@ public abstract class DiskEntry implements Closeable {
         share.deleteOnClose(fileId);
     }
 
-    public void closeSilently() {
-        try {
-            close();
-        } catch (Exception e) {
-            logger.warn("File close failed for {},{},{}", fileName, share, fileId, e);
-        }
-    }
-
     @Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((fileName == null) ? 0 : fileName.hashCode());
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((share == null) ? 0 : share.hashCode());
 		return result;
 	}
@@ -208,10 +189,10 @@ public abstract class DiskEntry implements Closeable {
 		if (getClass() != obj.getClass())
 			return false;
 		DiskEntry other = (DiskEntry) obj;
-		if (fileName == null) {
-			if (other.fileName != null)
+		if (name == null) {
+			if (other.name != null)
 				return false;
-		} else if (!fileName.equals(other.fileName))
+		} else if (!name.equals(other.name))
 			return false;
 		if (share == null) {
 			if (other.share != null)

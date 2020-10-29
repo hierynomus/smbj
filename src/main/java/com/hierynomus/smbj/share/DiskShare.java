@@ -63,7 +63,7 @@ public class DiskShare extends Share {
     public DiskEntry open(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         SmbPath pathAndFile = new SmbPath(smbPath, path);
         SMB2CreateResponseContext response = resolveAndCreateFile(pathAndFile, null, accessMask, attributes, shareAccesses, createDisposition, createOptions);
-        return getDiskEntry(path, response);
+        return getDiskEntry(response);
     }
 
     @Override
@@ -106,12 +106,12 @@ public class DiskShare extends Share {
         return new SMB2CreateResponseContext(resp, path, this);
     }
 
-    protected DiskEntry getDiskEntry(String path, SMB2CreateResponseContext responseContext) {
+    protected DiskEntry getDiskEntry(SMB2CreateResponseContext responseContext) {
         SMB2CreateResponse response = responseContext.resp;
         if (response.getFileAttributes().contains(FILE_ATTRIBUTE_DIRECTORY)) {
-            return new Directory(response.getFileId(), responseContext.share, responseContext.target.toUncPath());
+            return new Directory(response.getFileId(), responseContext.share, responseContext.target);
         } else {
-            return new File(response.getFileId(), responseContext.share, responseContext.target.toUncPath());
+            return new File(response.getFileId(), responseContext.share, responseContext.target);
         }
     }
 
@@ -154,7 +154,7 @@ public class DiskShare extends Share {
         );
     }
 
-    private static StatusHandler FILE_EXISTS_STATUS_HANDLER = new StatusHandler() {
+    private static final StatusHandler FILE_EXISTS_STATUS_HANDLER = new StatusHandler() {
         @Override
         public boolean isSuccess(long statusCode) {
             return statusCode == STATUS_OBJECT_NAME_NOT_FOUND.getValue()
@@ -171,7 +171,7 @@ public class DiskShare extends Share {
         return exists(path, of(FILE_NON_DIRECTORY_FILE), FILE_EXISTS_STATUS_HANDLER);
     }
 
-    private static StatusHandler FOLDER_EXISTS_STATUS_HANDLER = new StatusHandler() {
+    private static final StatusHandler FOLDER_EXISTS_STATUS_HANDLER = new StatusHandler() {
         @Override
         public boolean isSuccess(long statusCode) {
             return statusCode == STATUS_OBJECT_NAME_NOT_FOUND.getValue()

@@ -27,30 +27,18 @@ import com.hierynomus.smbj.io.ArrayByteChunkProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Closeable;
-
-public class NamedPipe implements Closeable {
+public class NamedPipe extends Open<PipeShare> {
     private static final long FSCTL_PIPE_PEEK = 0x0011400cL;
     private static final long FSCTL_PIPE_TRANSCEIVE = 0x0011c017L;
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    protected PipeShare share;
-    protected SMB2FileId fileId;
-    protected SmbPath name;
-
     NamedPipe(SMB2FileId fileId, PipeShare share, SmbPath name) {
-        this.share = share;
-        this.fileId = fileId;
-        this.name = name;
+        super(fileId, name, share);
     }
 
     public String getName() {
         return name.getPath();
-    }
-
-    public SMB2FileId getFileId() {
-        return fileId;
     }
 
     /**
@@ -210,17 +198,5 @@ public class NamedPipe implements Closeable {
      */
     public int ioctl(long ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength, byte[] outData, int outOffset, int outLength) {
         return share.ioctl(fileId, ctlCode, isFsCtl, inData, inOffset, inLength, outData, outOffset, outLength);
-    }
-
-    public void close() {
-        share.closeFileId(fileId);
-    }
-
-    public void closeSilently() {
-        try {
-            close();
-        } catch (Exception e) {
-            logger.warn("Pipe close failed for {},{},{}", name, share, fileId, e);
-        }
     }
 }
