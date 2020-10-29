@@ -16,13 +16,13 @@
 package com.hierynomus.ntlm.messages;
 
 import com.hierynomus.msdtyp.MsDataTypes;
+import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,7 +46,7 @@ public class NtlmChallenge extends NtlmPacket {
 
     @Override
     public void read(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
-        buffer.readString(StandardCharsets.UTF_8, 8); // Signature (8 bytes) (NTLMSSP\0)
+        buffer.readString(Charsets.UTF_8, 8); // Signature (8 bytes) (NTLMSSP\0)
         buffer.readUInt32(); // MessageType (4 bytes)
         readTargetNameFields(buffer); // TargetNameFields (8 bytes)
         negotiateFlags = EnumWithValue.EnumUtils.toEnumSet(buffer.readUInt32(), NtlmNegotiateFlag.class); // NegotiateFlags (4 bytes)
@@ -80,7 +80,7 @@ public class NtlmChallenge extends NtlmPacket {
                     case MsvAvDnsDomainName:
                     case MsvAvDnsTreeName:
                     case MsvAvTargetName:
-                        targetInfo.put(avId, buffer.readString(StandardCharsets.UTF_16LE, avLen / 2));
+                        targetInfo.put(avId, buffer.readString(Charsets.UTF_16LE, avLen / 2));
                         break;
                     case MsvAvFlags:
                         targetInfo.put(avId, buffer.readUInt32(Endian.LE));
@@ -104,7 +104,7 @@ public class NtlmChallenge extends NtlmPacket {
         if (targetNameLen > 0) {
             // Move to where buffer begins
             buffer.rpos(targetNameBufferOffset);
-            targetName = buffer.readString(StandardCharsets.UTF_16LE, targetNameLen / 2);
+            targetName = buffer.readString(Charsets.UTF_16LE, targetNameLen / 2);
         }
     }
 
@@ -151,6 +151,12 @@ public class NtlmChallenge extends NtlmPacket {
 
     public Object getAvPairObject(AvId key) {
         return this.targetInfo.get(key);
+    }
+
+    public String getAvPairString(AvId key) {
+        Object obj = this.targetInfo.get(key);
+        if (obj == null) return null;
+        else return String.valueOf(obj);
     }
 
     public WindowsVersion getVersion() {

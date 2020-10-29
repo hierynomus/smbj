@@ -16,10 +16,10 @@
 package com.hierynomus.mssmb2;
 
 import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,9 +78,10 @@ public class SMB2Error {
      * @throws Buffer.BufferException
      */
     private void readErrorData(SMB2Header header, SMBBuffer buffer) throws Buffer.BufferException {
-        if (header.getStatus() == NtStatus.STATUS_BUFFER_TOO_SMALL) {
+        long statusCode = header.getStatusCode();
+        if (statusCode == NtStatus.STATUS_BUFFER_TOO_SMALL.getValue()) {
             this.errorData.add(new BufferTooSmallError().read(buffer));
-        } else if (header.getStatus() == NtStatus.STATUS_STOPPED_ON_SYMLINK) {
+        } else if (statusCode == NtStatus.STATUS_STOPPED_ON_SYMLINK.getValue()) {
             this.errorData.add(new SymbolicLinkError().read(buffer));
         }
     }
@@ -134,7 +135,7 @@ public class SMB2Error {
             String s = null;
             if (length > 0) {
                 buffer.rpos(curpos + offset);
-                s = buffer.readString(StandardCharsets.UTF_16, length / 2);
+                s = buffer.readString(Charsets.UTF_16, length / 2);
             }
             buffer.rpos(curpos);
             return s;

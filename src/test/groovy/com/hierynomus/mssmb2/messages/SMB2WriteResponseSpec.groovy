@@ -16,21 +16,21 @@
 package com.hierynomus.mssmb2.messages
 
 import com.hierynomus.protocol.commons.ByteArrayUtils
-import com.hierynomus.smb.SMBBuffer
-import spock.lang.Specification
 
-class SMB2WriteResponseSpec extends Specification {
+class SMB2WriteResponseSpec extends AbstractPacketReadSpec {
 
   def "should parse write response"() {
     given:
     String hexString1 = "fe534d4240000000000000000900010001000000000000004d00000000000000000000000100000061000000007400000000000000000000000000000000000011000000002000000000000000000000"
     byte[] bytes1 = ByteArrayUtils.parseHex(hexString1)
-    SMB2WriteResponse response = new SMB2WriteResponse()
 
     when:
-    response.read(new SMBBuffer(bytes1))
+    def response = convert(bytes1)
 
     then:
-    response.bytesWritten == 8192
+    response.class == SMB2WriteResponse.class
+    with(response as SMB2WriteResponse) { r ->
+      r.bytesWritten == 8192
+    }
   }
 }

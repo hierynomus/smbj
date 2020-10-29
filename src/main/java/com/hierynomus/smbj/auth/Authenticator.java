@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.auth;
 
 import com.hierynomus.security.SecurityProvider;
+import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.session.Session;
 
 import java.io.IOException;
@@ -23,7 +24,7 @@ import java.util.Random;
 
 public interface Authenticator {
 
-    void init(SecurityProvider securityProvider, Random random);
+    void init(SmbConfig config);
 
     boolean supports(AuthenticationContext context);
 

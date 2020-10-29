@@ -15,10 +15,11 @@
  */
 package com.hierynomus.protocol.commons.backport;
 
+import com.hierynomus.protocol.commons.Charsets;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
-import java.nio.charset.StandardCharsets;
 
 /**
  * Socket wrapper that supports pre-Java8 HTTP CONNECT proxies
@@ -51,7 +52,7 @@ public class Jdk7HttpProxySocket extends Socket {
         }
         InetSocketAddress isa = (InetSocketAddress) endpoint;
         String httpConnect = "CONNECT " + isa.getHostName() + ":" + isa.getPort() + " HTTP/1.0\n\n";
-        getOutputStream().write(httpConnect.getBytes(StandardCharsets.UTF_8));
+        getOutputStream().write(httpConnect.getBytes(Charsets.UTF_8));
         checkAndFlushProxyResponse();
     }
 
@@ -69,8 +70,9 @@ public class Jdk7HttpProxySocket extends Socket {
         // Expecting HTTP/1.x 200 OK
         if (proxyResponse.contains("200")) {
             // Flush any outstanding message in buffer
-            if (socketInput.available() > 0) {
-                socketInput.skip(socketInput.available());
+            int avail = socketInput.available();
+            while (avail > 0) {
+                avail -= socketInput.skip(avail);
             }
             // Proxy Connect Successful
         } else {

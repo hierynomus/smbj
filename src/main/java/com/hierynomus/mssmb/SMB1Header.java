@@ -42,7 +42,7 @@ public class SMB1Header implements SMBHeader {
     }
 
     @Override
-    public void readFrom(Buffer<?> buffer) throws Buffer.BufferException {
+    public void readFrom(Buffer<?> buffer) {
         throw new UnsupportedOperationException("Receiving SMBv1 Messages not supported in SMBJ");
     }
 }

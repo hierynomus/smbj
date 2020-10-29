@@ -15,24 +15,6 @@
  */
 package com.hierynomus.msdfsc
 
-import com.hierynomus.msdfsc.messages.DFSReferral
-import com.hierynomus.msdfsc.messages.DFSReferralV34
-import com.hierynomus.msdfsc.messages.SMB2GetDFSReferralResponse
-import com.hierynomus.mserref.NtStatus
-import com.hierynomus.mssmb2.SMB2Dialect
-import com.hierynomus.mssmb2.SMB2Packet
-import com.hierynomus.mssmb2.SMB2ShareCapabilities
-import com.hierynomus.mssmb2.messages.*
-import com.hierynomus.security.jce.JceSecurityProvider
-import com.hierynomus.smb.SMBBuffer
-import com.hierynomus.smbj.SMBClient
-import com.hierynomus.smbj.SmbConfig
-import com.hierynomus.smbj.auth.AuthenticationContext
-import com.hierynomus.smbj.common.SmbPath
-import com.hierynomus.smbj.connection.Connection
-import com.hierynomus.smbj.connection.NegotiatedProtocol
-import com.hierynomus.smbj.event.SMBEventBus
-import com.hierynomus.smbj.session.Session
 import spock.lang.Specification
 
 class DFSTest extends Specification {

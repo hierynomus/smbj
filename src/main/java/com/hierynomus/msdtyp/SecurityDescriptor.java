@@ -59,7 +59,7 @@ public class SecurityDescriptor {
             c.add(Control.DP);
         }
 
-        buffer.putUInt16((int) EnumWithValue.EnumUtils.toLong(control)); // Control (2 bytes)
+        buffer.putUInt16((int) EnumWithValue.EnumUtils.toLong(c)); // Control (2 bytes)
 
         int offsetsPos = buffer.wpos();
         buffer.putUInt32(0);

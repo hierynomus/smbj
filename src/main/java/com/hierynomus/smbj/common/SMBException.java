@@ -20,7 +20,7 @@ import com.hierynomus.protocol.commons.concurrent.ExceptionWrapper;
 import java.io.IOException;
 
 public class SMBException extends IOException {
-    public static ExceptionWrapper<SMBException> Wrapper = new ExceptionWrapper<SMBException>() {
+    public static final ExceptionWrapper<SMBException> Wrapper = new ExceptionWrapper<SMBException>() {
         @Override
         public SMBException wrap(Throwable throwable) {
             if (throwable instanceof SMBException) {

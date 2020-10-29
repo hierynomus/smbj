@@ -82,7 +82,7 @@ public interface Factory<T> {
              * @return a comma separated list of factory names
              */
             public static <T> List<String> getNames(List<Named<T>> factories) {
-                List<String> list = new LinkedList<String>();
+                List<String> list = new LinkedList<>();
                 for (Named<T> f : factories)
                     list.add(f.getName());
                 return list;

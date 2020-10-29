@@ -15,9 +15,9 @@
  */
 package com.hierynomus.smbj.share;
 
+import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.io.ByteChunkProvider;
-import com.hierynomus.protocol.transport.TransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,10 +33,10 @@ class FileOutputStream extends OutputStream {
 
     private static final Logger logger = LoggerFactory.getLogger(FileOutputStream.class);
 
-    FileOutputStream(SMB2Writer writer, int bufferSize, ProgressListener progressListener) {
+    FileOutputStream(SMB2Writer writer, int bufferSize, long offset, ProgressListener progressListener) {
         this.writer = writer;
         this.progressListener = progressListener;
-        this.provider = new ByteArrayProvider(bufferSize);
+        this.provider = new ByteArrayProvider(bufferSize,offset);
     }
 
     @Override
@@ -87,7 +87,7 @@ class FileOutputStream extends OutputStream {
         }
     }
 
-    private void sendWriteRequest() throws TransportException {
+    private void sendWriteRequest() {
         writer.write(provider, progressListener);
     }
 
@@ -113,8 +113,9 @@ class FileOutputStream extends OutputStream {
 
         private RingBuffer buf;
 
-        private ByteArrayProvider(int maxWriteSize) {
+        private ByteArrayProvider(int maxWriteSize, long offset) {
             this.buf = new RingBuffer(maxWriteSize);
+            this.offset = offset;
         }
 
         @Override
@@ -123,7 +124,7 @@ class FileOutputStream extends OutputStream {
         }
 
         @Override
-        protected int getChunk(byte[] chunk) throws IOException {
+        protected int getChunk(byte[] chunk) {
             return buf.read(chunk);
         }
 

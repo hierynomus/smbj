@@ -18,6 +18,11 @@ package com.hierynomus.protocol.transport;
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
+/**
+ * Serialize a Packet into its wire-format.
+ * @param <P> The Packet type
+ * @param <B> The Buffer type
+ */
 public interface PacketSerializer<P extends Packet<B>, B extends Buffer<B>> {
 
     B write(P packet);

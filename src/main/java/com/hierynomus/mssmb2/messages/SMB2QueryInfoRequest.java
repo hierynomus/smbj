@@ -29,7 +29,7 @@ import java.util.Set;
  */
 public class SMB2QueryInfoRequest extends SMB2Packet {
 
-    long MAX_OUTPUT_BUFFER_LENGTH = 64 * 1024;
+    private static final long MAX_OUTPUT_BUFFER_LENGTH = 64 * 1024L;
 
     private final SMB2FileId fileId;
     private final SMB2QueryInfoType infoType;

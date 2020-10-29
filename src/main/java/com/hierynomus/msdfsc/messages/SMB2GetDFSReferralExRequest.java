@@ -56,9 +56,9 @@ public class SMB2GetDFSReferralExRequest {
         buffer.putUInt16(requestFlags);
 
         if ((requestFlags & RequestFlags.FLAGS_SITENAMEPRESENT.getValue()) != 0) {
-            buffer.putUInt32(requestFileName.length() + 2 + siteName.length() + 2);
+            buffer.putUInt32(requestFileName.length() + 2 + siteName.length() + 2L);
         } else {
-            buffer.putUInt32(requestFileName.length() + 2);
+            buffer.putUInt32(requestFileName.length() + 2L);
         }
 
         buffer.putStringLengthUInt16(requestFileName);

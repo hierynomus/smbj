@@ -21,15 +21,20 @@ import com.hierynomus.msfscc.fileinformation.FileDirectoryQueryableInformation;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.msfscc.fileinformation.FileInformation;
 import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
+import com.hierynomus.mssmb2.SMB2ChangeNotifyFlags;
+import com.hierynomus.mssmb2.SMB2CompletionFilter;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMBApiException;
+import com.hierynomus.mssmb2.messages.SMB2ChangeNotifyResponse;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryRequest;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryResponse;
+import com.hierynomus.smbj.common.SmbPath;
 
 import java.util.*;
+import java.util.concurrent.Future;
 
 public class Directory extends DiskEntry implements Iterable<FileIdBothDirectoryInformation> {
-    Directory(SMB2FileId fileId, DiskShare diskShare, String fileName) {
+    Directory(SMB2FileId fileId, DiskShare diskShare, SmbPath fileName) {
         super(fileId, diskShare, fileName);
     }
 
@@ -107,13 +112,27 @@ public class Directory extends DiskEntry implements Iterable<FileIdBothDirectory
         return new DirectoryIterator<>(informationClass, searchPattern);
     }
 
+    /***
+     * Send a change notify request and and return a Future for change notify
+     * response.
+     *
+     * @param completionFilter   types of changes to monitor
+     * @param recursive          monitor changes on any file or directory contained
+     *                           beneath the directory
+     * @return a Future to be used to retrieve the change notify response packet
+     */
+    public Future<SMB2ChangeNotifyResponse> watchAsync(Set<SMB2CompletionFilter> completionFilter, boolean watchTree) {
+        Set<SMB2ChangeNotifyFlags> flags = watchTree ? EnumSet.of(SMB2ChangeNotifyFlags.WATCH_TREE) : EnumSet.noneOf(SMB2ChangeNotifyFlags.class);
+        return share.changeNotifyAsync(fileId, completionFilter, flags);
+    }
+
     public SMB2FileId getFileId() {
         return fileId;
     }
 
     @Override
     public String toString() {
-        return String.format("Directory{fileId=%s, fileName='%s'}", fileId, fileName);
+        return String.format("Directory{fileId=%s, fileName='%s'}", fileId, name.toUncPath());
     }
 
     private class DirectoryIterator<F extends FileDirectoryQueryableInformation> implements Iterator<F> {
@@ -172,14 +191,14 @@ public class Directory extends DiskEntry implements Iterable<FileIdBothDirectory
 
             SMB2QueryDirectoryResponse qdResp = share.queryDirectory(fileId, flags, informationClass, searchPattern);
 
-            NtStatus status = qdResp.getHeader().getStatus();
+            long status = qdResp.getHeader().getStatusCode();
             byte[] buffer = qdResp.getOutputBuffer();
 
             // The macOS SMB server doesn't always send a STATUS_NO_MORE_FILES response. Instead it keeps on sending
             // an identical response back. Detect if the response is identical to the previous one and abort the loop
             // if that's the case.
             // Additionally, STATUS_NO_SUCH_FILE is being returned when searchPattern does not match any files
-            if (status == NtStatus.STATUS_NO_MORE_FILES || status == NtStatus.STATUS_NO_SUCH_FILE || (currentBuffer != null && Arrays.equals(currentBuffer, buffer))) {
+            if (status == NtStatus.STATUS_NO_MORE_FILES.getValue() || status == NtStatus.STATUS_NO_SUCH_FILE.getValue() || (currentBuffer != null && Arrays.equals(currentBuffer, buffer))) {
                 currentIterator = null;
                 currentBuffer = null;
             } else {

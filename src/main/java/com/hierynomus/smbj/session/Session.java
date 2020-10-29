@@ -15,6 +15,8 @@
  */
 package com.hierynomus.smbj.session;
 
+import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.mssmb2.SMBApiException;
@@ -37,6 +39,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -57,6 +61,7 @@ public class Session implements AutoCloseable {
     private SMBEventBus bus;
     private final PathResolver pathResolver;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
+    private List<Session> nestedSessions = new ArrayList<>();
     private AuthenticationContext userCredentials;
 
     private boolean guest;
@@ -90,20 +95,27 @@ public class Session implements AutoCloseable {
         boolean requireMessageSigning = connection.getConfig().isSigningRequired();
         boolean connectionSigningRequired = connection.getConnectionInfo().isServerRequiresSigning();
 
+        // If the global setting RequireMessageSigning is set to TRUE or
+        // Connection.RequireSigning is set to TRUE then Session.SigningRequired MUST be
+        // set to TRUE, otherwise Session.SigningRequired MUST be set to FALSE.
         if (requireMessageSigning || connectionSigningRequired) {
             signingRequired = true;
+        } else {
+            signingRequired = false;
         }
 
         if (anonymous) {
             // If the security subsystem indicates that the session was established by an anonymous user, Session.SigningRequired MUST be set to FALSE.
             signingRequired = false;
         }
-        if (guest && connection.getConfig().isSigningRequired()) {
+        if (guest && signingRequired) {
             throw new SMB2GuestSigningRequiredException();
-        } else if (guest) {
+        } else if (guest && !requireMessageSigning) {
             signingRequired = false;
         }
-        if (connection.getNegotiatedProtocol().getDialect().isSmb3x() && setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_ENCRYPT_DATA)) {
+
+        if (connection.getNegotiatedProtocol().getDialect().isSmb3x()
+            && setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_ENCRYPT_DATA)) {
             encryptData = true;
             signingRequired = false;
         }
@@ -151,20 +163,19 @@ public class Session implements AutoCloseable {
             SMB2TreeConnectResponse response = Futures.get(send, connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
             try {
                 SmbPath resolvedSharePath = pathResolver.resolve(this, response, smbPath);
+                Session session = this;
+                if (!resolvedSharePath.isOnSameHost(smbPath)) {
+                    logger.info("Re-routing the connection to host {}", resolvedSharePath.getHostname());
+                    session = buildNestedSession(resolvedSharePath);
+                }
                 if (!resolvedSharePath.isOnSameShare(smbPath)) {
-                    try {
-                        Connection connection = getConnection().getClient().connect(resolvedSharePath.getHostname());
-                        Session session = connection.authenticate(getAuthenticationContext());
-                        return session.connectShare(shareName);
-                    } catch (IOException e) {
-                        throw new SMBRuntimeException("Could not connect to DFS root " + resolvedSharePath, e);
-                    }
+                    return session.connectShare(resolvedSharePath.getShareName());
                 }
             } catch (PathResolveException ignored) {
                 // Ignored
             }
 
-            if (response.getHeader().getStatus().isError()) {
+            if (NtStatus.isError(response.getHeader().getStatusCode())) {
                 logger.debug(response.getHeader().toString());
                 throw new SMBApiException(response.getHeader(), "Could not connect to " + smbPath);
             }
@@ -174,7 +185,7 @@ public class Session implements AutoCloseable {
             }
 
             long treeId = response.getHeader().getTreeId();
-            TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), connection, bus);
+            TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), connection, bus, response.getMaximalAccess());
 
             Share share;
             if (response.isDiskShare()) {
@@ -191,6 +202,17 @@ public class Session implements AutoCloseable {
             return share;
         } catch (TransportException e) {
             throw new SMBRuntimeException(e);
+        }
+    }
+
+    public Session buildNestedSession(SmbPath resolvedSharePath) {
+        try {
+            Connection connection = getConnection().getClient().connect(resolvedSharePath.getHostname());
+            Session session = connection.authenticate(getAuthenticationContext());
+            nestedSessions.add(session);
+            return session;
+        } catch (IOException e) {
+            throw new SMBApiException(NtStatus.STATUS_OTHER.getValue(), SMB2MessageCommandCode.SMB2_NEGOTIATE, "Could not connect to DFS root " + resolvedSharePath, e);
         }
     }
 
@@ -213,9 +235,17 @@ public class Session implements AutoCloseable {
                     logger.error("Caught exception while closing TreeConnect with id: {}", share.getTreeConnect().getTreeId(), e);
                 }
             }
+            for (Session nestedSession : nestedSessions) {
+                logger.info("Logging off nested session {} for session {}", nestedSession.getSessionId(), sessionId);
+                try {
+                    nestedSession.logoff();
+                } catch (TransportException te) {
+                    logger.error("Caught exception while logging off nested session {}", nestedSession.getSessionId());
+                }
+            }
             SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
             SMB2Logoff response = Futures.get(this.<SMB2Logoff>send(logoff), connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
-            if (!response.getHeader().getStatus().isSuccess()) {
+            if (!NtStatus.isSuccess(response.getHeader().getStatusCode())) {
                 throw new SMBApiException(response.getHeader(), "Could not logoff session <<" + sessionId + ">>");
             }
         } finally {

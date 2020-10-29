@@ -36,11 +36,10 @@ public class ACL {
 
     public ACL(byte revision, List<ACE> aces) {
         this.revision = revision;
-        this.aces = aces;
+        this.aces = aces == null ? Collections.<ACE>emptyList() : aces;
     }
 
     public void write(SMBBuffer buffer) {
-        List<ACE> aces = this.aces == null ? Collections.<ACE>emptyList() : this.aces;
         int startPos = buffer.wpos();
         buffer.putByte(revision); // AclRevision (1 byte)
         buffer.putReserved1(); // Sbz1 (1 byte)

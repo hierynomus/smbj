@@ -131,13 +131,13 @@ public class SMB2Writer {
     }
 
     public OutputStream getOutputStream() {
-        return getOutputStream(null);
+        return getOutputStream(null, 0);
     }
 
-    public OutputStream getOutputStream(ProgressListener listener) {
+    public OutputStream getOutputStream(ProgressListener listener, long offset) {
         return new FileOutputStream(
             this,
-            share.getWriteBufferSize(),
+            share.getWriteBufferSize(),offset,
             listener
         );
     }
