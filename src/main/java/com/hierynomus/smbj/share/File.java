@@ -24,6 +24,7 @@ import com.hierynomus.mssmb2.copy.CopyChunkRequest;
 import com.hierynomus.mssmb2.copy.CopyChunkResponse;
 import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
+import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smb.SMBBuffer;
@@ -96,6 +97,29 @@ public class File extends DiskEntry {
      */
     public int write(ByteChunkProvider provider, ProgressListener progressListener) {
         return writer.write(provider, progressListener);
+    }
+
+    /***
+     * Write the data Async in buffer to this file at position fileOffset.
+     * @param buffer     the data to write
+     * @param fileOffset The offset, in bytes, into the file to which the data should be written
+     * @param offset     the start offset in the data
+     * @param length     the number of bytes that are written
+     * @return A Future containing the total number of bytes written to the remote.
+     */
+    public Future<Integer> writeAsync(byte[] buffer, long fileOffset, int offset, int length) {
+        return writer.writeAsync(buffer, fileOffset, offset, length);
+    }
+
+    /**
+     * Async Write all available data from the byte chunk provider to this file.
+     * The offset in the file to which data is written is determined by {@link ByteChunkProvider#getOffset()}.
+     *
+     * @param provider the byte chunk provider
+     * @return A future containing the total number of bytes written to the remote.
+     */
+    public Future<Integer> writeAsync(ByteChunkProvider provider) {
+        return writer.writeAsync(provider);
     }
 
     public OutputStream getOutputStream() {

@@ -220,6 +220,16 @@ public class Share implements AutoCloseable {
     }
 
     SMB2WriteResponse write(SMB2FileId fileId, ByteChunkProvider provider) {
+        return receive(
+            writeAsync(fileId, provider),
+            "Write",
+            fileId,
+            StatusHandler.SUCCESS,
+            writeTimeout
+        );
+    }
+
+    Future<SMB2WriteResponse> writeAsync(SMB2FileId fileId, ByteChunkProvider provider) {
         SMB2WriteRequest wreq = new SMB2WriteRequest(
             dialect,
             fileId,
@@ -227,7 +237,7 @@ public class Share implements AutoCloseable {
             provider,
             writeBufferSize
         );
-        return sendReceive(wreq, "Write", fileId, StatusHandler.SUCCESS, writeTimeout);
+        return send(wreq);
     }
 
     SMB2ReadResponse read(SMB2FileId fileId, long offset, int length) {

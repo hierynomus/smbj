@@ -16,14 +16,15 @@
 package com.hierynomus.protocol.commons.concurrent;
 
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class TransformedFuture<T, V> extends AFuture<V> {
-    private AFuture<T> wrapped;
+    private Future<T> wrapped;
     private AFuture.Function<T, V> function;
 
-    public TransformedFuture(AFuture<T> wrapped, Function<T, V> function) {
+    public TransformedFuture(Future<T> wrapped, Function<T, V> function) {
         this.wrapped = wrapped;
         this.function = function;
     }
