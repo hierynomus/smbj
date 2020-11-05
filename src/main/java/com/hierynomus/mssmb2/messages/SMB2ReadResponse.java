@@ -40,18 +40,6 @@ public class SMB2ReadResponse extends SMB2Packet {
         data = buffer.readRawBytes(dataLength); // Buffer (variable)
     }
 
-    /**
-     * [MS-SMB2].pdf 3.3.4.4
-     * STATUS_BUFFER_OVERFLOW should be treated as a success code.
-     *
-     * @param status The status to verify
-     * @return
-     */
-    @Override
-    protected boolean isSuccess(NtStatus status) {
-        return super.isSuccess(status) || status == NtStatus.STATUS_BUFFER_OVERFLOW;
-    }
-
     public int getDataLength() {
         return dataLength;
     }

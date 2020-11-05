@@ -15,6 +15,7 @@
  */
 package com.hierynomus.mssmb2.messages;
 
+import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2ShareCapabilities;
 import com.hierynomus.protocol.commons.buffer.Buffer;
@@ -34,7 +35,7 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
     private byte shareType;
     private long shareFlags;
     private Set<SMB2ShareCapabilities> capabilities;
-    private long maximalAccess;
+    private Set<AccessMask> maximalAccess;
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
@@ -43,7 +44,7 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
         buffer.readByte(); // Reserved (1 byte)
         shareFlags = buffer.readUInt32(); // ShareFlags (4 bytes)
         capabilities = toEnumSet(buffer.readUInt32(), SMB2ShareCapabilities.class); // Capabilities (4 bytes)
-        maximalAccess = buffer.readUInt32(); // MaximalAccess (4 bytes)
+        maximalAccess = toEnumSet(buffer.readUInt32(), AccessMask.class); // MaximalAccess (4 bytes)
     }
 
     /**
@@ -81,7 +82,7 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
         return capabilities;
     }
 
-    public long getMaximalAccess() {
+    public Set<AccessMask> getMaximalAccess() {
         return maximalAccess;
     }
 }

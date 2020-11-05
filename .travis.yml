@@ -1,6 +1,8 @@
-language: java
 dist: trusty
-sudo: false
+sudo: required
+
+services:
+  - docker
 
 before_cache:
   - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
@@ -10,14 +12,58 @@ cache:
   directories:
   - $HOME/.gradle/caches/
   - $HOME/.gradle/wrapper/
+  - $HOME/.android/build-cache
+  - $HOME/.sonar/cache
 
-jdk:
-  - oraclejdk8
-  - openjdk8
-  - oraclejdk9
+stages:
+  - touchstone
+  - test
+  - android-test
+  - integration
+  - name: quality
 
-before_install:
-  - pip install --user codecov
+jobs:
+  include:
+    - stage: touchstone
+      language: java
+      jdk: oraclejdk8
+    - stage: test
+      language: java
+      jdk: openjdk8
+    - stage: test
+      language: java
+      jdk: openjdk9
+    - stage: test
+      language: java
+      jdk: oraclejdk9
+    - stage: android-test
+      language: android
+      android:
+        components:
+          - build-tools-27.0.3
+          - android-19
+          - extra
+      script: ./gradlew --build-file build-android.gradle build
+    - stage: integration
+      language: java
+      jdk: oraclejdk8
+      script: ./gradlew integrationTest
+    - stage: quality
+      language: java
+      jdk: oraclejdk8
+      before_install:
+        - pip install --user codecov
+      after_success:
+        - codecov
+      script: ./gradlew check
+    - stage: quality
+      language: java
+      jdk: oraclejdk8
+      script: ./gradlew sonarqube
+      if: type != pull_request
 
-after_success:
-- codecov
+addons:
+  sonarcloud:
+    organization: "hierynomus-github"
+    token:
+      secure: "d97gMarjhrvgRcvnZlmKk4evHHfXQbw5NJWlpEMMxJyM0pksyfUaJBEljd6kG8bAm2f7yuBVlPJR3RQEBfGHh9QJg3fi0f7HPTE2DRCSYNBDZkSVKPEPnAeDlzyWAInPTNUV/0cdvNa7SBjmd7y/hWN6ihYF+e/WUQy5ChQ/H38rjoTAGsyGHQlPmd/+h7Ct3/cCqW3oUPUpvQIvH/Dq8QZt7pSy8FdtUXltHgZWdgvymDaxvRxb3KhBzo2hHWHBRXlo0MqnREx110UZ/zZOSXgxRY8/7oizWbgoPAZElBkKu40feoIUC6gqiimIbSk+VyaCEMRxfa3CLYmEYWx0BS1ClT1nuGuHnllxN7+WfcIfAYOMTAeLnFtMrV7+Ph26aR8PmRgHmxgpvAvEHmSRR6T9pk8VnI5OsiOhvFLmh2i2joTLCRfNmiVjM2gLlWSku6c0K5DemxpB++DKwZhmySlNVGuZg4HfqElRGM93dsQsxFGyeqCOqapVjXc0XBkDIkZfWu+9d4uMMqW7/2jUarLgtr/5/5+96tK28rFQuPicck80sKIxTotrtIDBZk7wHdoWjP84lf3H4CySCuRVpOU8+/3xEQZkIuuk5WOuqpsbl7LoHxddAdkhYq1e/NajiqL/670R9ui1EKOIqa+gwNspH9pzDWBzqFb4wSbB+M0="

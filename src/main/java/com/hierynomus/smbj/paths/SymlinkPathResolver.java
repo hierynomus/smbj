@@ -19,33 +19,36 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Error;
 import com.hierynomus.mssmb2.SMB2Functions;
 import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.share.StatusHandler;
 
-import java.nio.charset.StandardCharsets;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 
 import static com.hierynomus.utils.Strings.join;
 import static com.hierynomus.utils.Strings.split;
 
 public class SymlinkPathResolver implements PathResolver {
     private PathResolver wrapped;
-    private Set<NtStatus> states;
+    private StatusHandler statusHandler;
 
-    public SymlinkPathResolver(PathResolver wrapped) {
+    public SymlinkPathResolver(final PathResolver wrapped) {
         this.wrapped = wrapped;
-        this.states = EnumSet.copyOf(wrapped.handledStates());
-        this.states.add(NtStatus.STATUS_STOPPED_ON_SYMLINK);
+        this.statusHandler = new StatusHandler() {
+            @Override
+            public boolean isSuccess(long statusCode) {
+                return statusCode == NtStatus.STATUS_STOPPED_ON_SYMLINK.getValue() || wrapped.statusHandler().isSuccess(statusCode);
+            }
+        };
     }
 
     @Override
     public <T> T resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath, ResolveAction<T> action) throws PathResolveException {
-        if (responsePacket.getHeader().getStatus() == NtStatus.STATUS_STOPPED_ON_SYMLINK) {
+        if (responsePacket.getHeader().getStatusCode() == NtStatus.STATUS_STOPPED_ON_SYMLINK.getValue()) {
             SMB2Error.SymbolicLinkError symlinkData = getSymlinkErrorData(responsePacket.getError());
             if (symlinkData == null) {
-                throw new PathResolveException(responsePacket.getHeader().getStatus(), "Create failed for " + smbPath + ": missing symlink data");
+                throw new PathResolveException(responsePacket.getHeader().getStatusCode(), "Create failed for " + smbPath + ": missing symlink data");
             }
             String target = resolveSymlinkTarget(smbPath.getPath(), symlinkData);
             return action.apply(new SmbPath(smbPath.getHostname(), smbPath.getShareName(), target));
@@ -55,8 +58,14 @@ public class SymlinkPathResolver implements PathResolver {
     }
 
     @Override
-    public Set<NtStatus> handledStates() {
-        return EnumSet.copyOf(states);
+    public <T> T resolve(Session session, SmbPath smbPath, ResolveAction<T> action) throws PathResolveException {
+        return wrapped.resolve(session, smbPath, action);
+    }
+
+
+    @Override
+    public StatusHandler statusHandler() {
+        return statusHandler;
     }
 
     private static SMB2Error.SymbolicLinkError getSymlinkErrorData(SMB2Error error) {
@@ -97,12 +106,12 @@ public class SymlinkPathResolver implements PathResolver {
 
     private String getSymlinkParsedPath(String fileName, int unparsedPathLength) {
         byte[] fileNameBytes = SMB2Functions.unicode(fileName);
-        return new String(fileNameBytes, 0, fileNameBytes.length - unparsedPathLength, StandardCharsets.UTF_16LE);
+        return new String(fileNameBytes, 0, fileNameBytes.length - unparsedPathLength, Charsets.UTF_16LE);
     }
 
     private String getSymlinkUnparsedPath(String fileName, int unparsedPathLength) {
         byte[] fileNameBytes = SMB2Functions.unicode(fileName);
-        return new String(fileNameBytes, fileNameBytes.length - unparsedPathLength, unparsedPathLength, StandardCharsets.UTF_16LE);
+        return new String(fileNameBytes, fileNameBytes.length - unparsedPathLength, unparsedPathLength, Charsets.UTF_16LE);
     }
 
     private String normalizePath(String path) {

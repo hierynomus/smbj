@@ -19,15 +19,19 @@ import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMB2MessageFlag;
 import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 
 /**
  * [MS-SMB2] 2.2.30 SMB2 CANCEL Request
  */
-public class SMB2CancelRequest extends SMB2Packet {
+public class SMB2Cancel extends SMB2Packet {
 
-    public SMB2CancelRequest(SMB2Dialect dialect, long messageId, long asyncId) {
-        super(4, dialect, SMB2MessageCommandCode.SMB2_CANCEL);
+    public SMB2Cancel() {
+    }
+
+    public SMB2Cancel(SMB2Dialect dialect, long sessionId, long messageId, long asyncId) {
+        super(4, dialect, SMB2MessageCommandCode.SMB2_CANCEL, sessionId);
         header.setMessageId(messageId);
         if (asyncId != 0) {
             header.setFlag(SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND);
@@ -39,5 +43,11 @@ public class SMB2CancelRequest extends SMB2Packet {
     protected void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putReserved2(); // Reserved (2 bytes)
+    }
+
+    @Override
+    protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
+        buffer.readUInt16(); // StructureSize (2 bytes)
+        buffer.skip(2); // Reserved (2 bytes)
     }
 }

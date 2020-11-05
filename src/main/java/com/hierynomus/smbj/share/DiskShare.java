@@ -18,7 +18,6 @@ package com.hierynomus.smbj.share;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SecurityDescriptor;
 import com.hierynomus.msdtyp.SecurityInformation;
-import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.FileSystemInformationClass;
 import com.hierynomus.msfscc.fileinformation.*;
@@ -29,17 +28,13 @@ import com.hierynomus.mssmb2.messages.SMB2SetInfoRequest;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
-import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smb.SMBBuffer;
-import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
-import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.paths.PathResolveException;
 import com.hierynomus.smbj.paths.PathResolver;
 import com.hierynomus.smbj.session.Session;
 
-import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -54,8 +49,8 @@ import static com.hierynomus.mssmb2.SMB2CreateOptions.FILE_DIRECTORY_FILE;
 import static com.hierynomus.mssmb2.SMB2CreateOptions.FILE_NON_DIRECTORY_FILE;
 import static com.hierynomus.mssmb2.SMB2ShareAccess.*;
 import static com.hierynomus.mssmb2.messages.SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_SECURITY;
-import static java.util.EnumSet.of;
 import static java.util.EnumSet.noneOf;
+import static java.util.EnumSet.of;
 
 public class DiskShare extends Share {
     private final PathResolver resolver;
@@ -66,38 +61,25 @@ public class DiskShare extends Share {
     }
 
     public DiskEntry open(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
-        SMB2CreateResponseContext response = createFileAndResolve(path, null, accessMask, attributes, shareAccesses, createDisposition, createOptions);
-        return getDiskEntry(path, response);
+        SmbPath pathAndFile = new SmbPath(smbPath, path);
+        SMB2CreateResponseContext response = resolveAndCreateFile(pathAndFile, null, accessMask, attributes, shareAccesses, createDisposition, createOptions);
+        return getDiskEntry(response);
     }
 
     @Override
-    protected Set<NtStatus> getCreateSuccessStatus() {
-        return resolver.handledStates();
+    protected StatusHandler getCreateStatusHandler() {
+        return resolver.statusHandler();
     }
 
-    private SMB2CreateResponseContext createFileAndResolve(String path, final SMB2ImpersonationLevel impersonationLevel, final Set<AccessMask> accessMask, final Set<FileAttributes> fileAttributes, final Set<SMB2ShareAccess> shareAccess, final SMB2CreateDisposition createDisposition, final Set<SMB2CreateOptions> createOptions) {
+    private SMB2CreateResponseContext createFileAndResolve(final SmbPath path, final SMB2ImpersonationLevel impersonationLevel, final Set<AccessMask> accessMask, final Set<FileAttributes> fileAttributes, final Set<SMB2ShareAccess> shareAccess, final SMB2CreateDisposition createDisposition, final Set<SMB2CreateOptions> createOptions) {
         final SMB2CreateResponse resp = super.createFile(path, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
         try {
-            final SmbPath source = new SmbPath(smbPath, path);
-            SMB2CreateResponseContext target = resolver.resolve(session, resp, source, new PathResolver.ResolveAction<SMB2CreateResponseContext>() {
+            SMB2CreateResponseContext target = resolver.resolve(session, resp, path, new PathResolver.ResolveAction<SMB2CreateResponseContext>() {
                 @Override
                 public SMB2CreateResponseContext apply(SmbPath target) {
-                    DiskShare resolveShare = DiskShare.this;
-                    Session connectedSession = DiskShare.this.session;
-                    if (!source.isOnSameHost(target)) {
-                        SMBClient client = treeConnect.getConnection().getClient();
-                        try {
-                            Connection connect = client.connect(target.getHostname());
-                            connectedSession = connect.authenticate(session.getAuthenticationContext());
-                        } catch (IOException e) {
-                            throw new SMBApiException(resp.getHeader(), "Cannot connect to resolved path " + target, e);
-                        }
-                    }
-                    if (!source.isOnSameShare(target)) {
-                        resolveShare = (DiskShare) connectedSession.connectShare(target.getShareName());
-                    }
-                    if (!source.equals(target)) {
-                        return resolveShare.createFileAndResolve(target.getPath(), impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
+                    DiskShare resolveShare = rerouteIfNeeded(path, target);
+                    if (!path.equals(target)) {
+                        return resolveShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
                     } else {
                         return null;
                     }
@@ -107,18 +89,51 @@ public class DiskShare extends Share {
             if (target != null) {
                 return target;
             }
+
+            return new SMB2CreateResponseContext(resp, path, this);
         } catch (PathResolveException e) {
-            throw new SMBApiException(e.getStatus(), SMB2MessageCommandCode.SMB2_CREATE, "Cannot resolve path " + path, e);
+            throw new SMBApiException(e.getStatusCode(), SMB2MessageCommandCode.SMB2_CREATE,
+                    "Cannot resolve path " + path, e);
         }
-        return new SMB2CreateResponseContext(resp, this);
     }
 
-    protected DiskEntry getDiskEntry(String path, SMB2CreateResponseContext responseContext) {
+    private SMB2CreateResponseContext resolveAndCreateFile(final SmbPath path,
+            final SMB2ImpersonationLevel impersonationLevel, final Set<AccessMask> accessMask,
+            final Set<FileAttributes> fileAttributes, final Set<SMB2ShareAccess> shareAccess,
+            final SMB2CreateDisposition createDisposition, final Set<SMB2CreateOptions> createOptions) {
+        try {
+            SMB2CreateResponseContext target = resolver.resolve(session, path, new PathResolver.ResolveAction<SMB2CreateResponseContext>(){
+                @Override
+                public SMB2CreateResponseContext apply(SmbPath target) {
+                    DiskShare resolvedShare = rerouteIfNeeded(path, target);
+                    return resolvedShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes,
+                            shareAccess, createDisposition, createOptions);                }
+            });
+
+            return target;
+        } catch (PathResolveException pre) {
+            throw new SMBApiException(pre.getStatus().getValue(), SMB2MessageCommandCode.SMB2_CREATE,
+                    "Cannot resolve path " + path, pre);
+        }
+    }
+
+    private DiskShare rerouteIfNeeded(SmbPath path, SmbPath target) {
+        Session connectedSession = this.session;
+        if (!path.isOnSameHost(target)) {
+            connectedSession = connectedSession.buildNestedSession(target);
+        }
+        if (!path.isOnSameShare(target)) {
+            return (DiskShare) connectedSession.connectShare(target.getShareName());
+        }
+        return this;
+    }
+
+    protected DiskEntry getDiskEntry(SMB2CreateResponseContext responseContext) {
         SMB2CreateResponse response = responseContext.resp;
         if (response.getFileAttributes().contains(FILE_ATTRIBUTE_DIRECTORY)) {
-            return new Directory(response.getFileId(), responseContext.share, path);
+            return new Directory(response.getFileId(), responseContext.share, responseContext.target);
         } else {
-            return new File(response.getFileId(), responseContext.share, path);
+            return new File(response.getFileId(), responseContext.share, responseContext.target);
         }
     }
 
@@ -161,25 +176,45 @@ public class DiskShare extends Share {
         );
     }
 
+    private static final StatusHandler FILE_EXISTS_STATUS_HANDLER = new StatusHandler() {
+        @Override
+        public boolean isSuccess(long statusCode) {
+            return statusCode == STATUS_OBJECT_NAME_NOT_FOUND.getValue()
+                || statusCode == STATUS_OBJECT_PATH_NOT_FOUND.getValue()
+                || statusCode == STATUS_FILE_IS_A_DIRECTORY.getValue()
+                || statusCode == STATUS_DELETE_PENDING.getValue();
+        }
+    };
+
     /**
      * File in the given path exists or not
      */
     public boolean fileExists(String path) throws SMBApiException {
-        return exists(path, of(FILE_NON_DIRECTORY_FILE), of(STATUS_OBJECT_NAME_NOT_FOUND, STATUS_OBJECT_PATH_NOT_FOUND, STATUS_FILE_IS_A_DIRECTORY));
+        return exists(path, of(FILE_NON_DIRECTORY_FILE), FILE_EXISTS_STATUS_HANDLER);
     }
+
+    private static final StatusHandler FOLDER_EXISTS_STATUS_HANDLER = new StatusHandler() {
+        @Override
+        public boolean isSuccess(long statusCode) {
+            return statusCode == STATUS_OBJECT_NAME_NOT_FOUND.getValue()
+                || statusCode == STATUS_OBJECT_PATH_NOT_FOUND.getValue()
+                || statusCode == STATUS_NOT_A_DIRECTORY.getValue()
+                || statusCode == STATUS_DELETE_PENDING.getValue();
+        }
+    };
 
     /**
      * Folder in the given path exists or not.
      */
     public boolean folderExists(String path) throws SMBApiException {
-        return exists(path, of(FILE_DIRECTORY_FILE), of(STATUS_OBJECT_NAME_NOT_FOUND, STATUS_OBJECT_PATH_NOT_FOUND, STATUS_NOT_A_DIRECTORY));
+        return exists(path, of(FILE_DIRECTORY_FILE), FOLDER_EXISTS_STATUS_HANDLER);
     }
 
-    private boolean exists(String path, EnumSet<SMB2CreateOptions> createOptions, Set<NtStatus> acceptedStatuses) throws SMBApiException {
+    private boolean exists(String path, EnumSet<SMB2CreateOptions> createOptions, StatusHandler statusHandler) throws SMBApiException {
         try (DiskEntry ignored = open(path, of(FILE_READ_ATTRIBUTES), of(FILE_ATTRIBUTE_NORMAL), ALL, FILE_OPEN, createOptions)) {
             return true;
         } catch (SMBApiException sae) {
-            if (acceptedStatuses.contains(sae.getStatus())) {
+            if (statusHandler.isSuccess(sae.getStatusCode())) {
                 return false;
             } else {
                 throw sae;
@@ -188,30 +223,30 @@ public class DiskShare extends Share {
     }
 
     /**
-     * Equivalent to calling {@link #list(String, Class, String) list(path, FileIdBothDirectoryInformation.class, null)}.
+     * Equivalent to calling {@link #list(String, Class, String, EnumSet<AccessMask>) list(path, FileIdBothDirectoryInformation.class, null, null)}.
      *
-     * @see #list(String, Class, String)
+     * @see #list(String, Class, String, EnumSet<AccessMask>)
      */
     public List<FileIdBothDirectoryInformation> list(String path) throws SMBApiException {
-        return list(path, FileIdBothDirectoryInformation.class, null);
+        return list(path, FileIdBothDirectoryInformation.class, null, null);
     }
 
     /**
-     * Equivalent to calling {@link #list(String, Class, String) list(path, FileIdBothDirectoryInformation.class, searchPattern)}.
+     * Equivalent to calling {@link #list(String, Class, String, EnumSet<AccessMask>) list(path, FileIdBothDirectoryInformation.class, searchPattern, null)}.
      *
-     * @see #list(String, Class, String)
+     * @see #list(String, Class, String, EnumSet<AccessMask>)
      */
     public List<FileIdBothDirectoryInformation> list(String path, String searchPattern) throws SMBApiException {
-        return list(path, FileIdBothDirectoryInformation.class, searchPattern);
+        return list(path, FileIdBothDirectoryInformation.class, searchPattern, null);
     }
 
     /**
-     * Equivalent to calling {@link #list(String, Class, String) list(path, informationClass, null)}.
+     * Equivalent to calling {@link #list(String, Class, String, EnumSet<AccessMask>) list(path, informationClass, null, null)}.
      *
-     * @see #list(String, Class, String)
+     * @see #list(String, Class, String, EnumSet<AccessMask>)
      */
     public <I extends FileDirectoryQueryableInformation> List<I> list(String path, Class<I> informationClass) {
-        return list(path, informationClass, null);
+        return list(path, informationClass, null, null);
     }
 
     /**
@@ -219,9 +254,16 @@ public class DiskShare extends Share {
      *
      * @see Directory#iterator(Class, String)
      */
-    public <I extends FileDirectoryQueryableInformation> List<I> list(String path, Class<I> informationClass, String searchPattern) {
-        try (Directory d = openDirectory(path, of(FILE_LIST_DIRECTORY, FILE_READ_ATTRIBUTES, FILE_READ_EA), null, ALL, FILE_OPEN, null)) {
+    public <I extends FileDirectoryQueryableInformation> List<I> list(String path, Class<I> informationClass, String searchPattern, EnumSet<AccessMask> accessMask) {
+        Directory d = openDirectory(path,
+                accessMask == null ? of(FILE_LIST_DIRECTORY, FILE_READ_ATTRIBUTES, FILE_READ_EA) : accessMask,
+            null, ALL, FILE_OPEN, null);
+        try {
             return d.list(informationClass, searchPattern);
+        } finally {
+            if (d != null) {
+                d.closeSilently();
+            }
         }
     }
 
@@ -258,7 +300,7 @@ public class DiskShare extends Share {
     /**
      * Get information for a given fileId
      **/
-    public FileAllInformation getFileInformation(SMB2FileId fileId) throws SMBApiException, TransportException {
+    public FileAllInformation getFileInformation(SMB2FileId fileId) throws SMBApiException {
         return getFileInformation(fileId, FileAllInformation.class);
     }
 
@@ -326,6 +368,13 @@ public class DiskShare extends Share {
         }
     }
 
+    private static StatusHandler ALREADY_DELETED_STATUS_HANDLER = new StatusHandler() {
+        @Override
+        public boolean isSuccess(long statusCode) {
+            return statusCode == STATUS_DELETE_PENDING.getValue();
+        }
+    };
+
     /**
      * Remove the directory at the given path.
      */
@@ -354,6 +403,11 @@ public class DiskShare extends Share {
                 of(FILE_DIRECTORY_FILE)
             )) {
                 e.deleteOnClose();
+            } catch (SMBApiException sae) {
+                if (ALREADY_DELETED_STATUS_HANDLER.isSuccess(sae.getStatusCode())) {
+                    return;
+                }
+                throw sae;
             }
         }
     }
@@ -371,6 +425,11 @@ public class DiskShare extends Share {
             of(FILE_NON_DIRECTORY_FILE)
         )) {
             e.deleteOnClose();
+        } catch (SMBApiException sae) {
+            if (ALREADY_DELETED_STATUS_HANDLER.isSuccess(sae.getStatusCode())) {
+                return;
+            }
+            throw sae;
         }
     }
 
@@ -447,16 +506,18 @@ public class DiskShare extends Share {
     }
 
     /**
-     * A return object for the {@link #createFileAndResolve(String, SMB2ImpersonationLevel, Set, Set, Set, SMB2CreateDisposition, Set)} call.
+     * A return object for the {@link #createFileAndResolve(SmbPath, SMB2ImpersonationLevel, Set, Set, Set, SMB2CreateDisposition, Set)} call.
      *
      * This object wraps the {@link SMB2CreateResponse} and the actual {@link Share} which generated it if the path needed to be resolved.
      */
     static class SMB2CreateResponseContext {
         final SMB2CreateResponse resp;
         final DiskShare share;
+        final SmbPath target;
 
-        public SMB2CreateResponseContext(SMB2CreateResponse resp, DiskShare share) {
+        public SMB2CreateResponseContext(SMB2CreateResponse resp, SmbPath target, DiskShare share) {
             this.resp = resp;
+            this.target = target;
             this.share = share;
         }
     }

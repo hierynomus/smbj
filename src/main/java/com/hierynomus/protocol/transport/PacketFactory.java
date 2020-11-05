@@ -15,20 +15,20 @@
  */
 package com.hierynomus.protocol.transport;
 
-import com.hierynomus.protocol.Packet;
+import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
 import java.io.IOException;
 
-public interface PacketFactory<P extends Packet<?>> {
+public interface PacketFactory<D extends PacketData<?>> {
 
     /**
-     * Construct a packet out of the raw byte data.
+     * Construct {@link PacketData packet data} out of the raw byte data.
      *
      * @param data the byte array containing the full packet data
-     * @return A newly constructed packet.
+     * @return A newly constructed {@link PacketData} object.
      */
-    P read(byte[] data) throws Buffer.BufferException, IOException;
+    D read(byte[] data) throws Buffer.BufferException, IOException;
 
     /**
      * Checks whether this PacketFactory is able to handle the incoming raw byte data.

@@ -25,17 +25,17 @@ import com.hierynomus.security.SecurityException;
  */
 public class BCSecurityProvider implements SecurityProvider {
     @Override
-    public MessageDigest getDigest(String name) throws SecurityException {
+    public MessageDigest getDigest(String name) {
         return new BCMessageDigest(name);
     }
 
     @Override
-    public Mac getMac(String name) throws SecurityException {
+    public Mac getMac(String name) {
         return new BCMac(name);
     }
 
     @Override
-    public Cipher getCipher(String name) throws SecurityException {
+    public Cipher getCipher(String name) {
         return BCCipherFactory.create(name);
     }
 }

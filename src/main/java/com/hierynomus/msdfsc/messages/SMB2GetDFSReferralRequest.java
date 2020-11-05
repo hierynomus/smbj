@@ -15,9 +15,8 @@
  */
 package com.hierynomus.msdfsc.messages;
 
+import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.smb.SMBBuffer;
-
-import java.nio.charset.StandardCharsets;
 
 /**
  * [MS-DFSC].pdf 2.2.2 REQ_GET_DFS_REFERRAL
@@ -32,6 +31,6 @@ public class SMB2GetDFSReferralRequest {
 
     public void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(4); // MaxReferralLevel (2 bytes)
-        buffer.putNullTerminatedString(requestFileName, StandardCharsets.UTF_16); // RequestFileName (variable)
+        buffer.putNullTerminatedString(requestFileName, Charsets.UTF_16); // RequestFileName (variable)
     }
 }

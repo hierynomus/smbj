@@ -17,6 +17,7 @@ package com.hierynomus.ntlm.functions;
 
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.ntlm.NtlmException;
+import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.security.Cipher;
@@ -25,7 +26,6 @@ import com.hierynomus.security.SecurityProvider;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -38,7 +38,7 @@ public class NtlmFunctions {
 
     static final byte[] LMOWFv1_SECRET = new byte[]{0x4B, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25}; // KGS!@#$%
 
-    public static final Charset UNICODE = StandardCharsets.UTF_16LE;
+    public static final Charset UNICODE = Charsets.UTF_16LE;
 
     private final Random random;
     private final SecurityProvider securityProvider;

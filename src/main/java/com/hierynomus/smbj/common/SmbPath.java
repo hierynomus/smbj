@@ -15,7 +15,8 @@
  */
 package com.hierynomus.smbj.common;
 
-import java.util.Objects;
+import com.hierynomus.protocol.commons.Objects;
+import com.hierynomus.utils.Strings;
 
 public class SmbPath {
     private final String hostname;
@@ -33,20 +34,35 @@ public class SmbPath {
     public SmbPath(String hostname, String shareName, String path) {
         this.shareName = shareName;
         this.hostname = hostname;
-        this.path = path;
+        this.path = rewritePath(path);
+    }
+
+    private static String rewritePath(String path) {
+        if (Strings.isNotBlank(path)) {
+            String replaced = path.replace('/', '\\');
+            if (replaced.charAt(0) == '\\') {
+                if (replaced.length() > 1 && replaced.charAt(1) == '\\') {
+                    return replaced.substring(2);
+                } else {
+                    return replaced.substring(1);
+                }
+            }
+            return replaced;
+        }
+        return path;
     }
 
     public SmbPath(SmbPath parent, String path) {
         this.hostname = parent.hostname;
-        if (parent.shareName != null) {
+        if (Strings.isNotBlank(parent.shareName)) {
             this.shareName = parent.shareName;
         } else {
             throw new IllegalArgumentException("Can only make child SmbPath of fully specified SmbPath");
         }
-        if (parent.path != null) {
-            this.path = parent.path + "\\" + path;
+        if (Strings.isNotBlank(parent.path)) {
+            this.path = parent.path + "\\" + rewritePath(path);
         } else {
-            this.path = path;
+            this.path = rewritePath(path);
         }
     }
 
@@ -59,7 +75,7 @@ public class SmbPath {
                 b.append("\\");
             }
             b.append(shareName);
-            if (path != null && !path.isEmpty()) {
+            if (Strings.isNotBlank(path)) {
                 b.append("\\").append(path);
             }
         }
@@ -72,16 +88,8 @@ public class SmbPath {
     }
 
     public static SmbPath parse(String path) {
-        String splitPath = path;
-        if (path.charAt(0) == '\\') {
-            if (path.charAt(1) == '\\') {
-                splitPath = path.substring(2);
-            } else {
-                splitPath = path.substring(1);
-            }
-        }
-
-        String[] split = splitPath.split("\\\\", 3);
+        String rewritten = rewritePath(path);
+        String[] split = rewritten.split("\\\\", 3);
         if (split.length == 1) {
             return new SmbPath(split[0]);
         }
@@ -119,11 +127,24 @@ public class SmbPath {
         return path;
     }
 
+    public SmbPath getParent() {
+        if (path == null || path.isEmpty()) {
+            return this;
+        }
+        int idx = path.lastIndexOf('\\');
+        if (idx > 0) {
+            return new SmbPath(hostname, shareName, path.substring(0, idx));
+        } else {
+            return new SmbPath(hostname, shareName);
+        }
+
+    }
+
     public boolean isOnSameHost(SmbPath other) {
         return other != null && Objects.equals(this.hostname, other.hostname);
     }
 
     public boolean isOnSameShare(SmbPath other) {
-        return other != null && Objects.equals(this.hostname, other.hostname) && Objects.equals(this.shareName, other.shareName);
+        return isOnSameHost(other) && Objects.equals(this.shareName, other.shareName);
     }
 }

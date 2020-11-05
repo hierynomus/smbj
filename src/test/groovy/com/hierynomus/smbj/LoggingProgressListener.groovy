@@ -18,10 +18,10 @@ package com.hierynomus.smbj
 import org.slf4j.LoggerFactory
 
 class LoggingProgressListener implements ProgressListener {
-  def log = LoggerFactory.getLogger(LoggingProgressListener)
+  def logger = LoggerFactory.getLogger(LoggingProgressListener)
 
   @Override
   void onProgressChanged(long numBytes, long totalBytes) {
-    log.info("R/W {} bytes, total = {} bytes", numBytes, totalBytes)
+    logger.info("R/W {} bytes, total = {} bytes", numBytes, totalBytes)
   }
 }

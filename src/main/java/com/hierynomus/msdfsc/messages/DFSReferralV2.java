@@ -15,10 +15,9 @@
  */
 package com.hierynomus.msdfsc.messages;
 
+import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
-
-import java.nio.charset.StandardCharsets;
 
 public class DFSReferralV2 extends DFSReferral {
     private static final int SIZE = 22;
@@ -65,9 +64,9 @@ public class DFSReferralV2 extends DFSReferral {
 
     @Override
     void writeOffsettedData(SMBBuffer buffer) {
-        buffer.putNullTerminatedString(dfsPath, StandardCharsets.UTF_16);
-        buffer.putNullTerminatedString(dfsAlternatePath, StandardCharsets.UTF_16);
-        buffer.putNullTerminatedString(path, StandardCharsets.UTF_16);
+        buffer.putNullTerminatedString(dfsPath, Charsets.UTF_16);
+        buffer.putNullTerminatedString(dfsAlternatePath, Charsets.UTF_16);
+        buffer.putNullTerminatedString(path, Charsets.UTF_16);
     }
 
     @Override

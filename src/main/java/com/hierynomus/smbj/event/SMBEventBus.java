@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
  * throughout the codebase, and can easily switch it out if need be.
  */
 public class SMBEventBus {
-    private static final Logger log = LoggerFactory.getLogger(SMBEventBus.class);
+    private static final Logger logger = LoggerFactory.getLogger(SMBEventBus.class);
 
     private PubSubSupport<SMBEvent> wrappedBus;
 
@@ -36,9 +36,9 @@ public class SMBEventBus {
             @Override
             public void handleError(PublicationError error) {
                 if (error.getCause() != null) {
-                    log.error(error.toString(), error.getCause());
+                    logger.error(error.toString(), error.getCause());
                 } else {
-                    log.error(error.toString());
+                    logger.error(error.toString());
                 }
             }
         }));

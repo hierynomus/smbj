@@ -15,9 +15,9 @@
  */
 package com.hierynomus.ntlm.messages;
 
+import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
-import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
@@ -42,7 +42,7 @@ public class NtlmNegotiate extends NtlmPacket {
     private long flags = DEFAULT_FLAGS;
 
     public void write(Buffer.PlainBuffer buffer) {
-        buffer.putString("NTLMSSP\0", StandardCharsets.UTF_8); // Signature (8 bytes)
+        buffer.putString("NTLMSSP\0", Charsets.UTF_8); // Signature (8 bytes)
         buffer.putUInt32(0x01); // MessageType (4 bytes)
 
         // Write the negotiateFlags as Big Endian, as this is a byte[] in the spec and not an integral value

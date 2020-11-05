@@ -15,10 +15,9 @@
  */
 package com.hierynomus.msdfsc.messages;
 
+import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
-
-import java.nio.charset.StandardCharsets;
 
 public class DFSReferralV1 extends DFSReferral {
 
@@ -34,12 +33,12 @@ public class DFSReferralV1 extends DFSReferral {
     @Override
     public void readReferral(SMBBuffer buffer, int referralStartPos) throws Buffer.BufferException {
         referralEntryFlags = 0; // Must be set to 0 for V1
-        path = buffer.readNullTerminatedString(StandardCharsets.UTF_16);
+        path = buffer.readNullTerminatedString(Charsets.UTF_16);
     }
 
     @Override
     int writeReferral(SMBBuffer buffer, int entryStartPos, int bufferDataOffset) {
-        buffer.putNullTerminatedString(path, StandardCharsets.UTF_16);
+        buffer.putNullTerminatedString(path, Charsets.UTF_16);
         return bufferDataOffset;
     }
 

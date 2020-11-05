@@ -34,66 +34,84 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.io.BufferByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.Share;
+import com.hierynomus.smbj.share.StatusHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.EnumSet;
-import java.util.Set;
 import java.util.concurrent.Future;
 
 public class DFSPathResolver implements PathResolver {
     private static final Logger logger = LoggerFactory.getLogger(DFSPathResolver.class);
     private static final long FSCTL_DFS_GET_REFERRALS = 0x00060194L;
     private static final long FSCTL_DFS_GET_REFERRALS_EX = 0x000601B0L;
-    private final Set<NtStatus> states;
+    private final StatusHandler statusHandler;
 
-    private PathResolver wrapped;
+    private final PathResolver wrapped;
 
     private enum DfsRequestType {
         DOMAIN,
         DC,
         SYSVOL,
         ROOT,
-        LINK;
+        LINK
     }
 
     private ReferralCache referralCache = new ReferralCache();
 
     private DomainCache domainCache = new DomainCache();
 
-    public DFSPathResolver(PathResolver wrapped) {
+    public DFSPathResolver(final PathResolver wrapped) {
         this.wrapped = wrapped;
-        this.states = EnumSet.copyOf(wrapped.handledStates());
-        this.states.add(NtStatus.STATUS_PATH_NOT_COVERED);
+        this.statusHandler = new StatusHandler() {
+            @Override
+            public boolean isSuccess(long statusCode) {
+                return statusCode == NtStatus.STATUS_PATH_NOT_COVERED.getValue() || wrapped.statusHandler().isSuccess(statusCode);
+            }
+        };
     }
 
     @Override
     public <T> T resolve(Session session, SMB2Packet responsePacket, final SmbPath smbPath, final ResolveAction<T> action) throws PathResolveException {
-        if (smbPath.getPath() != null && responsePacket.getHeader().getStatus() == NtStatus.STATUS_PATH_NOT_COVERED) {
+        if (smbPath.getPath() != null && responsePacket.getHeader().getStatusCode() == NtStatus.STATUS_PATH_NOT_COVERED.getValue()) {
             logger.info("DFS Share {} does not cover {}, resolve through DFS", smbPath.getShareName(), smbPath);
-            return resolve(session, smbPath.toUncPath(), new ResolveAction<T>() {
+            return start(session, smbPath, new ResolveAction<T>() {
                 @Override
                 public T apply(SmbPath target) {
                     logger.info("DFS resolved {} -> {}", smbPath, target);
                     return action.apply(target);
                 }
             });
-        } else if (smbPath.getPath() == null && responsePacket.getHeader().getStatus().isError()) {
+        } else if (smbPath.getPath() == null && NtStatus.isError(responsePacket.getHeader().getStatusCode())) {
             logger.info("Attempting to resolve {} through DFS", smbPath);
-            return resolve(session, smbPath.toUncPath(), action);
+            return start(session, smbPath, action);
         }
         return wrapped.resolve(session, responsePacket, smbPath, action);
     }
 
     @Override
-    public Set<NtStatus> handledStates() {
-        return EnumSet.copyOf(this.states);
+    public StatusHandler statusHandler() {
+        return this.statusHandler;
     }
 
-    private <T> T resolve(Session session, String uncPath, ResolveAction<T> action) throws PathResolveException {
-        logger.info("Starting DFS resolution for {}", uncPath);
-        DFSPath dfsPath = new DFSPath(uncPath);
+    @Override
+    public <T> T resolve(Session session, SmbPath smbPath, ResolveAction<T> action) throws PathResolveException {
+        SmbPath target = start(session, smbPath, new ResolveAction<SmbPath>(){
+            @Override
+            public SmbPath apply(SmbPath target) {
+                return target;
+            }
+        });
+        if (!smbPath.equals(target)) {
+            logger.info("DFS resolved {} -> {}", smbPath, target);
+            return action.apply(target);
+        }
+        return wrapped.resolve(session, smbPath, action);
+    }
+
+    private <T> T start(Session session, SmbPath uncPath, ResolveAction<T> action) throws PathResolveException {
+        logger.info("Starting DFS resolution for {}", uncPath.toUncPath());
+        DFSPath dfsPath = new DFSPath(uncPath.toUncPath());
         ResolveState<T> state = new ResolveState<T>(dfsPath, action);
         return step1(session, state);
     }
@@ -194,8 +212,8 @@ public class DFSPathResolver implements PathResolver {
             // Send DC referral request
             String bootstrapDC = session.getAuthenticationContext().getDomain();
             // TODO @ckherrmann's code contained extra check resolveState.hostName.equals(bootstrapDC)
-            ReferralResult result = sendDfsReferralRequest(DfsRequestType.DC, bootstrapDC, session, state.path.toPath()); // TODO
-            if (!result.status.isSuccess()) {
+            ReferralResult result = sendDfsReferralRequest(DfsRequestType.DC, bootstrapDC, session, state.path); // TODO
+            if (!NtStatus.isSuccess(result.status)) {
                 return step13(session, state, result);
             }
             domainCacheEntry = result.domainCacheEntry;
@@ -225,8 +243,8 @@ public class DFSPathResolver implements PathResolver {
      */
     private <T> T step6(Session session, ResolveState<T> state) throws DFSException {
         logger.trace("DFS[6]: {}", state);
-        ReferralResult result = sendDfsReferralRequest(DfsRequestType.ROOT, state.path.getPathComponents().get(0), session, state.path.toPath());
-        if (result.status.isSuccess()) {
+        ReferralResult result = sendDfsReferralRequest(DfsRequestType.ROOT, state.path.getPathComponents().get(0), session, state.path);
+        if (NtStatus.isSuccess(result.status)) {
             return step7(session, state, result.referralCacheEntry);
         }
 
@@ -293,8 +311,8 @@ public class DFSPathResolver implements PathResolver {
         if (rootReferralCacheEntry == null) {
             throw new IllegalStateException("Could not find referral cache entry for " + rootPath);
         }
-        ReferralResult result = sendDfsReferralRequest(DfsRequestType.LINK, rootReferralCacheEntry.getTargetHint().getTargetPath(), session, state.path.toPath());
-        if (!result.status.isSuccess()) {
+        ReferralResult result = sendDfsReferralRequest(DfsRequestType.LINK, rootReferralCacheEntry.getTargetHint().getTargetPath(), session, state.path);
+        if (!NtStatus.isSuccess(result.status)) {
             return step14(session, state, result);
         }
 
@@ -315,8 +333,8 @@ public class DFSPathResolver implements PathResolver {
      */
     private <T> T step10(Session session, ResolveState<T> state, DomainCache.DomainCacheEntry domainCacheEntry) throws DFSException {
         logger.trace("DFS[10]: {}", state);
-        ReferralResult r = sendDfsReferralRequest(DfsRequestType.SYSVOL, domainCacheEntry.getDCHint(), session, state.path.toPath());
-        if (r.status.isSuccess()) {
+        ReferralResult r = sendDfsReferralRequest(DfsRequestType.SYSVOL, domainCacheEntry.getDCHint(), session, state.path);
+        if (NtStatus.isSuccess(r.status)) {
             return step3(session, state, r.referralCacheEntry);
         }
         return step13(session, state, r);
@@ -368,7 +386,7 @@ public class DFSPathResolver implements PathResolver {
         throw new DFSException(result.status, "DFS request failed for path " + state.path);
     }
 
-    private ReferralResult sendDfsReferralRequest(DfsRequestType type, String hostName, Session session, String path) throws DFSException {
+    private ReferralResult sendDfsReferralRequest(DfsRequestType type, String hostName, Session session, DFSPath path) throws DFSException {
         // The client MUST initiate a server session with the SMB server, as specified in [MS-CIFS] section 3.4.4.7,
         // by passing HostName and UserCredentials as input parameters and receiving an opaque ClientGenericContext,
         // as specified in [MS-CIFS] section 3.4.
@@ -396,8 +414,8 @@ public class DFSPathResolver implements PathResolver {
         }
     }
 
-    private ReferralResult getReferral(DfsRequestType type, Share share, String path) throws TransportException, Buffer.BufferException {
-        SMB2GetDFSReferralRequest req = new SMB2GetDFSReferralRequest(path);
+    private ReferralResult getReferral(DfsRequestType type, Share share, DFSPath path) throws TransportException, Buffer.BufferException {
+        SMB2GetDFSReferralRequest req = new SMB2GetDFSReferralRequest(path.toPath());
         SMBBuffer buffer = new SMBBuffer();
         req.writeTo(buffer);
         Future<SMB2IoctlResponse> ioctl = share.ioctlAsync(FSCTL_DFS_GET_REFERRALS, true, new BufferByteChunkProvider(buffer));
@@ -406,10 +424,10 @@ public class DFSPathResolver implements PathResolver {
 
     }
 
-    private ReferralResult handleReferralResponse(DfsRequestType type, SMB2IoctlResponse response, String originalPath) throws Buffer.BufferException {
-        ReferralResult result = new ReferralResult(response.getHeader().getStatus());
-        if (result.status == NtStatus.STATUS_SUCCESS) {
-            SMB2GetDFSReferralResponse resp = new SMB2GetDFSReferralResponse(originalPath);
+    private ReferralResult handleReferralResponse(DfsRequestType type, SMB2IoctlResponse response, DFSPath originalPath) throws Buffer.BufferException {
+        ReferralResult result = new ReferralResult(response.getHeader().getStatusCode());
+        if (result.status == NtStatus.STATUS_SUCCESS.getValue()) {
+            SMB2GetDFSReferralResponse resp = new SMB2GetDFSReferralResponse(originalPath.toPath());
             resp.read(new SMBBuffer(response.getOutputBuffer()));
 
             switch (type) {
@@ -432,9 +450,11 @@ public class DFSPathResolver implements PathResolver {
 
     private void handleRootOrLinkReferralResponse(ReferralResult result, SMB2GetDFSReferralResponse response) {
         if (response.getReferralEntries().isEmpty()) {
-            result.status = NtStatus.STATUS_OBJECT_PATH_NOT_FOUND;
+            result.status = NtStatus.STATUS_OBJECT_PATH_NOT_FOUND.getValue();
+            return;
         }
         ReferralCache.ReferralCacheEntry referralCacheEntry = new ReferralCache.ReferralCacheEntry(response, domainCache);
+        logger.info("Got DFS Referral result: {}", referralCacheEntry);
         referralCache.put(referralCacheEntry);
         result.referralCacheEntry = referralCacheEntry;
     }
@@ -472,11 +492,11 @@ public class DFSPathResolver implements PathResolver {
     }
 
     private static class ReferralResult {
-        NtStatus status;
+        long status;
         ReferralCache.ReferralCacheEntry referralCacheEntry;
         DomainCache.DomainCacheEntry domainCacheEntry;
 
-        private ReferralResult(NtStatus status) {
+        private ReferralResult(long status) {
             this.status = status;
         }
 

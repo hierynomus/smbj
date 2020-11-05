@@ -17,8 +17,8 @@ package com.hierynomus.smbj.connection;
 
 import com.hierynomus.mssmb2.SMB2GlobalCapability;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
-
 import com.hierynomus.ntlm.messages.WindowsVersion;
+
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.UUID;
@@ -48,6 +48,8 @@ public class ConnectionInfo {
     private String preauthIntegrityHashId;
     private byte[] preauthIntegrityHashValue;
     private String cipherId;
+    // How much the SMB server clock is off from client clock
+    private Long timeOffsetMillis;
 
     ConnectionInfo(UUID clientGuid, String serverName) {
         // new SessionTable
@@ -64,6 +66,7 @@ public class ConnectionInfo {
         serverCapabilities = toEnumSet(response.getCapabilities(), SMB2GlobalCapability.class);
         this.negotiatedProtocol = new NegotiatedProtocol(response.getDialect(), response.getMaxTransactSize(), response.getMaxReadSize(), response.getMaxWriteSize(), serverCapabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU));
         serverSecurityMode = response.getSecurityMode();
+        timeOffsetMillis = System.currentTimeMillis() - response.getSystemTime().toEpochMillis();
     }
 
     public UUID getClientGuid() {
@@ -118,19 +121,21 @@ public class ConnectionInfo {
         this.netBiosName = netBiosName;
     }
 
+    public Long getTimeOffsetMillis() {
+        return timeOffsetMillis;
+    }
+
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("ConnectionInfo{\n");
-        sb.append("  serverGuid=").append(serverGuid).append(",\n");
-        sb.append("  serverName='").append(serverName).append("',\n");
-        sb.append("  negotiatedProtocol=").append(negotiatedProtocol).append(",\n");
-        sb.append("  clientGuid=").append(clientGuid).append(",\n");
-        sb.append("  clientCapabilities=").append(clientCapabilities).append(",\n");
-        sb.append("  serverCapabilities=").append(serverCapabilities).append(",\n");
-        sb.append("  clientSecurityMode=").append(clientSecurityMode).append(",\n");
-        sb.append("  serverSecurityMode=").append(serverSecurityMode).append(",\n");
-        sb.append("  server='").append(server).append("'\n");
-        sb.append('}');
-        return sb.toString();
+        return "ConnectionInfo{\n" + "  serverGuid=" + serverGuid + ",\n" +
+            "  serverName='" + serverName + "',\n" +
+            "  negotiatedProtocol=" + negotiatedProtocol + ",\n" +
+            "  clientGuid=" + clientGuid + ",\n" +
+            "  clientCapabilities=" + clientCapabilities + ",\n" +
+            "  serverCapabilities=" + serverCapabilities + ",\n" +
+            "  clientSecurityMode=" + clientSecurityMode + ",\n" +
+            "  serverSecurityMode=" + serverSecurityMode + ",\n" +
+            "  server='" + server + "'\n" +
+            '}';
     }
 }

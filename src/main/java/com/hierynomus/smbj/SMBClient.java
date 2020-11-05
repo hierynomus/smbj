@@ -25,6 +25,7 @@ import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,7 +35,7 @@ import static com.hierynomus.protocol.commons.IOUtils.closeSilently;
 /**
  * Server Message Block Client API.
  */
-public class SMBClient {
+public class SMBClient implements Closeable {
     /**
      * The default TCP port for SMB
      */
@@ -96,6 +97,9 @@ public class SMBClient {
         synchronized (this) {
             String hostPort = hostname + ":" + port;
             Connection cachedConnection = connectionTable.get(hostPort);
+            if (cachedConnection != null) {
+                cachedConnection = cachedConnection.lease();
+            }
             if (cachedConnection == null || !cachedConnection.isConnected()) {
                 Connection connection = new Connection(config, this, bus);
                 try {
@@ -107,7 +111,8 @@ public class SMBClient {
                 connectionTable.put(hostPort, connection);
                 return connection;
             }
-            return connectionTable.get(hostPort);
+
+            return cachedConnection;
         }
     }
 
@@ -117,9 +122,22 @@ public class SMBClient {
         synchronized (this) {
             String hostPort = event.getHostname() + ":" + event.getPort();
             connectionTable.remove(hostPort);
-            log.debug("Connection to << {} >> closed", hostPort);
+            logger.debug("Connection to << {} >> closed", hostPort);
         }
     }
 
-    private static final Logger log = LoggerFactory.getLogger(SMBClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(SMBClient.class);
+
+    @Override
+    public void close() {
+        logger.info("Going to close all remaining connections");
+        for (Connection connection : connectionTable.values()) {
+            try {
+                connection.close();
+            } catch (Exception e) {
+                logger.debug("Error closing connection to host {}", connection.getRemoteHostname());
+                logger.debug("Exception was: ", e);
+            }
+        }
+    }
 }

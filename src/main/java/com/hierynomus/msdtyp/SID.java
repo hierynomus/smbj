@@ -116,8 +116,8 @@ public class SID {
             throw new IllegalArgumentException("The IdentifierAuthority can not be larger than 6 bytes");
         }
         buffer.putRawBytes(sidIdentifierAuthority); // IdentifierAuthority (6 bytes)
-        for (int i = 0; i < subAuthorities.length; i++) {
-            buffer.putUInt32(subAuthorities[i]); // SubAuthority (variable * 4 bytes)
+        for (long subAuthority : subAuthorities) {
+            buffer.putUInt32(subAuthority); // SubAuthority (variable * 4 bytes)
         }
     }
 
@@ -157,8 +157,9 @@ public class SID {
             b.append(id);
         }
 
-        for (int i = 0; i < subAuthorities.length; i++)
-            b.append("-").append(subAuthorities[i] & 0xFFFFFFFFL);
+        for (long subAuthority : subAuthorities) {
+            b.append("-").append(subAuthority & 0xFFFFFFFFL);
+        }
 
         return b.toString();
     }

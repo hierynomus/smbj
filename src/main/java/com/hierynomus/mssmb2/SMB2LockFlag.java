@@ -13,21 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.mssmb;
+package com.hierynomus.mssmb2;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.transport.PacketFactory;
+import com.hierynomus.protocol.commons.EnumWithValue;
 
-import java.io.IOException;
+/**
+ * [MS-SMB2].pdf 2.2.26.1 SMB2_LOCK_ELEMENT Structure - Flags
+ */
+public enum SMB2LockFlag implements EnumWithValue<SMB2LockFlag> {
+    SMB2_LOCKFLAG_SHARED_LOCK(0x01L),
+    SMB2_LOCKFLAG_EXCLUSIVE_LOCK(0x02L),
+    SMB2_LOCKFLAG_UNLOCK(0x04L),
+    SMB2_LOCKFLAG_FAIL_IMMEDIATELY(0x10L);
 
-public class SMB1MessageConverter implements PacketFactory<SMB1Packet> {
-    @Override
-    public SMB1Packet read(byte[] data) throws Buffer.BufferException, IOException {
-        throw new SMB1NotSupportedException();
+    private long value;
+
+    SMB2LockFlag(long value) {
+        this.value = value;
     }
 
     @Override
-    public boolean canHandle(byte[] data) {
-        return data[0] == (byte) 0xFF && data[1] == 'S' && data[2] == 'M' && data[3] == 'B';
+    public long getValue() {
+        return value;
     }
 }

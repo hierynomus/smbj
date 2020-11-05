@@ -41,8 +41,8 @@ class SIDSpec extends Specification {
 
   def "SID identity"() {
     given:
-    SID s1 = new SID((byte) 1, [0, 0, 0, 0, 0, 1] as byte[], [0] as long[]);
-    SID s2 = new SID((byte) 1, [0, 0, 0, 0, 0, 1] as byte[], [0] as long[]);
+    SID s1 = new SID((byte) 1, [0, 0, 0, 0, 0, 1] as byte[], [0] as long[])
+    SID s2 = new SID((byte) 1, [0, 0, 0, 0, 0, 1] as byte[], [0] as long[])
 
     expect:
     s1 == s2

@@ -57,4 +57,13 @@ public class Strings {
         return joiner.toString();
     }
 
+    /**
+     * Check whether the passed String is not null and not empty (after trim)
+     * @param s The string to check
+     * @return <code>true</code> iff the string is not blank
+     */
+    public static boolean isNotBlank(String s) {
+        return s != null && !s.trim().isEmpty();
+    }
+
 }

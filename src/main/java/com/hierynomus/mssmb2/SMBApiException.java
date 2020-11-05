@@ -19,40 +19,35 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 
 public class SMBApiException extends SMBRuntimeException {
-    private final NtStatus status;
     private final SMB2MessageCommandCode failedCommand;
     private long statusCode;
 
-    public SMBApiException(NtStatus status, SMB2MessageCommandCode failedCommand, Throwable t) {
+    public SMBApiException(long status, SMB2MessageCommandCode failedCommand, Throwable t) {
         super(t);
-        this.status = status;
-        this.statusCode = status.getValue();
+        this.statusCode = status;
         this.failedCommand = failedCommand;
     }
 
-    public SMBApiException(NtStatus status, SMB2MessageCommandCode failedCommand, String message, Throwable t) {
+    public SMBApiException(long status, SMB2MessageCommandCode failedCommand, String message, Throwable t) {
         super(message, t);
-        this.status = status;
-        this.statusCode = status.getValue();
+        this.statusCode = status;
         this.failedCommand = failedCommand;
     }
 
     public SMBApiException(SMB2Header header, String message) {
         super(message);
-        this.status = header.getStatus();
         this.statusCode = header.getStatusCode();
         this.failedCommand = header.getMessage();
     }
 
     public SMBApiException(SMB2Header header, String message, Throwable t) {
         super(message, t);
-        this.status = header.getStatus();
         this.statusCode = header.getStatusCode();
         this.failedCommand = header.getMessage();
     }
 
     public NtStatus getStatus() {
-        return status;
+        return NtStatus.valueOf(statusCode);
     }
 
     public long getStatusCode() {
@@ -65,6 +60,6 @@ public class SMBApiException extends SMBRuntimeException {
 
     @Override
     public String getMessage() {
-        return status + "(" + status.getValue() + "/" + statusCode + "): " + super.getMessage();
+        return String.format("%s (0x%08x): %s", getStatus().name(), statusCode, super.getMessage());
     }
 }
