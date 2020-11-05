@@ -18,7 +18,7 @@ package com.hierynomus.smbj.share;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
 import com.hierynomus.protocol.commons.concurrent.AFuture;
-import com.hierynomus.protocol.commons.concurrent.TransformedFuture;
+import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.io.ArrayByteChunkProvider;
@@ -29,10 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * Generic class that allows to write data to a share entry (Be it a printer or
@@ -140,7 +137,7 @@ public class SMB2Writer {
             logger.debug("Sending async write request to {} from offset {}", this.entryName, provider.getOffset());
             Future<SMB2WriteResponse> resp = share.writeAsync(fileId, provider);
             final int bytesWritten = provider.getLastWriteSize();
-            wrespFutureList.add(new TransformedFuture<SMB2WriteResponse, Integer>(resp,
+            wrespFutureList.add(Futures.transform(resp,
                     new AFuture.Function<SMB2WriteResponse, Integer>() {
                         @Override
                         public Integer apply(SMB2WriteResponse t) {
@@ -155,56 +152,15 @@ public class SMB2Writer {
                     }));
         }
 
-        return new AFuture<Integer>() {
-            @Override
-            public boolean isCancelled() {
-                for (Future<Integer> future : wrespFutureList) {
-                    if (!future.isCancelled()) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            @Override
-            public boolean cancel(boolean mayInterruptIfRunning) {
-                boolean allCancelled = true;
-                for (Future<Integer> future : wrespFutureList) {
-                    allCancelled = allCancelled && future.cancel(mayInterruptIfRunning);
-                }
-                return allCancelled;
-            }
-
-            @Override
-            public boolean isDone() {
-                for (Future<Integer> future : wrespFutureList) {
-                    if (!future.isDone()) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            @Override
-            public Integer get() throws InterruptedException, ExecutionException {
+        return Futures.transform(Futures.sequence(wrespFutureList), new AFuture.Function<List<Integer>, Integer>(){
+            public Integer apply(List<Integer> a) {
                 int sum = 0;
-                for (Future<Integer> future : wrespFutureList) {
-                    sum += future.get();
+                for (Integer i : a) {
+                    sum += i;
                 }
                 return sum;
-            }
-
-            @Override
-            public Integer get(long timeout, TimeUnit unit)
-                    throws InterruptedException, ExecutionException, TimeoutException {
-                int sum = 0;
-                for (Future<Integer> future : wrespFutureList) {
-                    sum += future.get(timeout, unit);
-                }
-                return sum;
-            }
-        };
-
+            };
+        });
     }
 
     public OutputStream getOutputStream() {
