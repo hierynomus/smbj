@@ -15,10 +15,13 @@
  */
 package com.hierynomus.protocol.commons.concurrent;
 
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import com.hierynomus.protocol.commons.concurrent.AFuture.Function;
 
 public class Futures {
 
@@ -33,7 +36,8 @@ public class Futures {
         }
     }
 
-    public static <T, E extends Throwable> T get(Future<T> future, long timeout, TimeUnit unit, ExceptionWrapper<E> wrapper) throws E {
+    public static <T, E extends Throwable> T get(Future<T> future, long timeout, TimeUnit unit,
+            ExceptionWrapper<E> wrapper) throws E {
         try {
             return future.get(timeout, unit);
         } catch (InterruptedException e) {
@@ -42,5 +46,13 @@ public class Futures {
         } catch (ExecutionException | TimeoutException e) {
             throw wrapper.wrap(e);
         }
+    }
+
+    public static <T> Future<List<T>> sequence(List<Future<T>> futures) {
+        return new SequencedFuture<T>(futures);
+    }
+
+    public static <F, T> Future<T> transform(Future<F> future, Function<F, T> f) {
+        return new TransformedFuture<F, T>(future, f);
     }
 }
