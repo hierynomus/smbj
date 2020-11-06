@@ -23,13 +23,13 @@ import com.hierynomus.smbj.share.StatusHandler;
 public interface PathResolver {
     PathResolver LOCAL = new PathResolver() {
         @Override
-        public SmbPath resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath) {
-            return smbPath;
+        public <T> T resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath, ResolveAction<T> action) throws PathResolveException {
+            return action.apply(smbPath);
         }
 
         @Override
-        public SmbPath resolve(Session session, SmbPath smbPath) {
-            return smbPath;
+        public <T> T resolve(Session session, SmbPath smbPath, ResolveAction<T> action) {
+            return action.apply(smbPath);
         }
 
         public StatusHandler statusHandler() {
@@ -45,7 +45,8 @@ public interface PathResolver {
      * @return
      * @throws PathResolveException
      */
-    SmbPath resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath) throws PathResolveException;
+    <T> T resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath,
+            ResolveAction<T> action) throws PathResolveException;
 
     /**
      * Proactive path resolution based on response packet
@@ -54,7 +55,12 @@ public interface PathResolver {
      * @return
      * @throws PathResolveException
      */
-    SmbPath resolve(Session session, SmbPath smbPath) throws PathResolveException;
+    <T> T resolve(Session session, SmbPath smbPath,  ResolveAction<T> action) throws PathResolveException;
 
     StatusHandler statusHandler();
+
+    interface ResolveAction<T> {
+        T apply(SmbPath target);
+    }
 }
+

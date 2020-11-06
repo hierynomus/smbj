@@ -62,7 +62,6 @@ class DfsIntegrationSpec extends Specification {
     share.close()
   }
 
-  @Ignore
   def "should list contents of DFS virtual directory"() {
     given:
     def share = session.connectShare("dfs")

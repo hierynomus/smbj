@@ -34,7 +34,12 @@ class SymlinkPathResolverSpec extends Specification {
     SMB2CreateResponse resp = getResponse(true, 0x2E, "\\??\\D:\\DonHall\\MiscDocuments\\PDocs", "D:\\DonHall\\MiscDocuments\\PDocs")
 
     when:
-    def target = pathResolver.resolve(null, resp, new SmbPath("localhost", "test", original))
+    def target = pathResolver.resolve(null, resp, new SmbPath("localhost", "test", original), new PathResolver.ResolveAction<SmbPath>() {
+      @Override
+      SmbPath apply(SmbPath target) {
+        return target
+      }
+    })
 
     then:
     target.path == "??\\D:\\DonHall\\MiscDocuments\\PDocs\\DailyDocs\\[MS-SMB].doc"
@@ -46,7 +51,12 @@ class SymlinkPathResolverSpec extends Specification {
     def resp = getResponse(false, 0x2E, "..\\DonHall\\Documents\\PDocs", "..\\DonHall\\Documents\\PDocs")
 
     when:
-    def target = pathResolver.resolve(null, resp, new SmbPath("localhost", "test", original))
+    def target = pathResolver.resolve(null, resp, new SmbPath("localhost", "test", original), new PathResolver.ResolveAction<SmbPath>() {
+      @Override
+      SmbPath apply(SmbPath target) {
+        return target
+      }
+    })
 
     then:
     target.path == "DonHall\\Documents\\PDocs\\DailyDocs\\[MS-SMB].doc"

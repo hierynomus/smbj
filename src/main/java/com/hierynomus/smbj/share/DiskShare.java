@@ -71,13 +71,49 @@ public class DiskShare extends Share {
         return resolver.statusHandler();
     }
 
-    private SMB2CreateResponseContext resolveAndCreateFile(SmbPath path, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+    private SMB2CreateResponseContext createFileAndResolve(final SmbPath path, final SMB2ImpersonationLevel impersonationLevel, final Set<AccessMask> accessMask, final Set<FileAttributes> fileAttributes, final Set<SMB2ShareAccess> shareAccess, final SMB2CreateDisposition createDisposition, final Set<SMB2CreateOptions> createOptions) {
+        final SMB2CreateResponse resp = super.createFile(path, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
         try {
-            SmbPath target = resolver.resolve(session, path);
-            DiskShare resolvedShare = rerouteIfNeeded(path, target);
-            return resolvedShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
+            SMB2CreateResponseContext target = resolver.resolve(session, resp, path, new PathResolver.ResolveAction<SMB2CreateResponseContext>() {
+                @Override
+                public SMB2CreateResponseContext apply(SmbPath target) {
+                    DiskShare resolveShare = rerouteIfNeeded(path, target);
+                    if (!path.equals(target)) {
+                        return resolveShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
+                    } else {
+                        return null;
+                    }
+                }
+            });
+
+            if (target != null) {
+                return target;
+            }
+
+            return new SMB2CreateResponseContext(resp, path, this);
+        } catch (PathResolveException e) {
+            throw new SMBApiException(e.getStatusCode(), SMB2MessageCommandCode.SMB2_CREATE,
+                    "Cannot resolve path " + path, e);
+        }
+    }
+
+    private SMB2CreateResponseContext resolveAndCreateFile(final SmbPath path,
+            final SMB2ImpersonationLevel impersonationLevel, final Set<AccessMask> accessMask,
+            final Set<FileAttributes> fileAttributes, final Set<SMB2ShareAccess> shareAccess,
+            final SMB2CreateDisposition createDisposition, final Set<SMB2CreateOptions> createOptions) {
+        try {
+            SMB2CreateResponseContext target = resolver.resolve(session, path, new PathResolver.ResolveAction<SMB2CreateResponseContext>(){
+                @Override
+                public SMB2CreateResponseContext apply(SmbPath target) {
+                    DiskShare resolvedShare = rerouteIfNeeded(path, target);
+                    return resolvedShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes,
+                            shareAccess, createDisposition, createOptions);                }
+            });
+
+            return target;
         } catch (PathResolveException pre) {
-            throw new SMBApiException(pre.getStatus().getValue(), SMB2MessageCommandCode.SMB2_CREATE, "Cannot resolve path " + path, pre);
+            throw new SMBApiException(pre.getStatus().getValue(), SMB2MessageCommandCode.SMB2_CREATE,
+                    "Cannot resolve path " + path, pre);
         }
     }
 
@@ -90,20 +126,6 @@ public class DiskShare extends Share {
             return (DiskShare) connectedSession.connectShare(target.getShareName());
         }
         return this;
-    }
-
-    private SMB2CreateResponseContext createFileAndResolve(SmbPath path, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
-        SMB2CreateResponse resp = super.createFile(path, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
-        try {
-            SmbPath target = resolver.resolve(session, resp, path);
-            DiskShare resolveShare = rerouteIfNeeded(path, target);
-            if (!path.equals(target)) {
-                return resolveShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
-            }
-        } catch (PathResolveException e) {
-            throw new SMBApiException(e.getStatusCode(), SMB2MessageCommandCode.SMB2_CREATE, "Cannot resolve path " + path, e);
-        }
-        return new SMB2CreateResponseContext(resp, path, this);
     }
 
     protected DiskEntry getDiskEntry(SMB2CreateResponseContext responseContext) {
