@@ -104,7 +104,7 @@ public class ReferralCache {
         private final int ttl;
         private final long expires;
         private final boolean targetFailback;
-        private final TargetSetEntry targetHint;
+        private int targetHint = 0;
         private final List<TargetSetEntry> targetList;
 
         public ReferralCacheEntry(SMB2GetDFSReferralResponse response, DomainCache domainCache) {
@@ -143,7 +143,6 @@ public class ReferralCache {
                 TargetSetEntry e = new TargetSetEntry(r.getPath(), false);
                 targetList.add(e);
             }
-            this.targetHint = targetList.get(0);
             this.targetList = Collections.unmodifiableList(targetList);
         }
 
@@ -168,9 +167,17 @@ public class ReferralCache {
             return dfsPathPrefix;
         }
 
-
         public TargetSetEntry getTargetHint() {
-            return targetHint;
+            return targetList.get(targetHint);
+        }
+
+        public synchronized TargetSetEntry nextTargetHint() {
+            if (targetHint < targetList.size()) {
+                targetHint++;
+                return getTargetHint();
+            } else {
+                return null;
+            }
         }
 
         public List<TargetSetEntry> getTargetList() {
@@ -179,7 +186,7 @@ public class ReferralCache {
 
         @Override
         public String toString() {
-            return dfsPathPrefix + "->" + targetHint.targetPath  + "(" +  rootOrLink + "), " + targetList;
+            return dfsPathPrefix + "->" + getTargetHint().targetPath  + "(" +  rootOrLink + "), " + targetList;
         }
 
     }

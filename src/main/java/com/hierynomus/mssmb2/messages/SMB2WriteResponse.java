@@ -24,19 +24,19 @@ import com.hierynomus.smb.SMBBuffer;
  */
 public class SMB2WriteResponse extends SMB2Packet {
 
-    private long bytesWritten;
+    private int bytesWritten;
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
         buffer.skip(2); // StructureSize (2 bytes)
         buffer.skip(2); // Reserved (2 bytes)
-        bytesWritten = buffer.readUInt32(); // Count (4 bytes)
+        bytesWritten = buffer.readUInt32AsInt(); // Count (4 bytes)
         buffer.skip(4); // Remaining (4 bytes) - Reserved do not use
         buffer.skip(2); // WriteChannelInfoOffset (2 bytes) - Reserved do not use
         buffer.skip(2); // WriteChannelInfoLength (2 bytes) - Reserved do not use
     }
 
-    public long getBytesWritten() {
+    public int getBytesWritten() {
         return bytesWritten;
     }
 }

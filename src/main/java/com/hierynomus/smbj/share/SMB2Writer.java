@@ -17,16 +17,23 @@ package com.hierynomus.smbj.share;
 
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
+import com.hierynomus.protocol.commons.concurrent.AFuture;
+import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.smbj.ProgressListener;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.io.ArrayByteChunkProvider;
 import com.hierynomus.smbj.io.ByteChunkProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.OutputStream;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.concurrent.Future;
 
 /**
- * Generic class that allows to write data to a share entry (Be it a printer or a file)
+ * Generic class that allows to write data to a share entry (Be it a printer or
+ * a file)
  */
 public class SMB2Writer {
     private static final Logger logger = LoggerFactory.getLogger(SMB2Writer.class);
@@ -45,7 +52,8 @@ public class SMB2Writer {
      * Write the data in buffer to this file at position fileOffset.
      *
      * @param buffer     the data to write
-     * @param fileOffset The offset, in bytes, into the file to which the data should be written
+     * @param fileOffset The offset, in bytes, into the file to which the data
+     *                   should be written
      * @return the actual number of bytes that was written to the file
      */
     public int write(byte[] buffer, long fileOffset) {
@@ -56,7 +64,8 @@ public class SMB2Writer {
      * Write the data in buffer to this file at position fileOffset.
      *
      * @param buffer     the data to write
-     * @param fileOffset The offset, in bytes, into the file to which the data should be written
+     * @param fileOffset The offset, in bytes, into the file to which the data
+     *                   should be written
      * @param offset     the start offset in the data
      * @param length     the number of bytes that are written
      * @return the actual number of bytes that was written to the file
@@ -66,8 +75,9 @@ public class SMB2Writer {
     }
 
     /**
-     * Write all available data from the byte chunk provider to this file.
-     * The offset in the file to which data is written is determined by {@link ByteChunkProvider#getOffset()}.
+     * Write all available data from the byte chunk provider to this file. The
+     * offset in the file to which data is written is determined by
+     * {@link ByteChunkProvider#getOffset()}.
      *
      * @param provider the byte chunk provider
      * @return the actual number of bytes that was written to the file
@@ -77,11 +87,13 @@ public class SMB2Writer {
     }
 
     /**
-     * Write all available data from the byte chunk provider to this file.
-     * The offset in the file to which data is written is determined by {@link ByteChunkProvider#getOffset()}.
+     * Write all available data from the byte chunk provider to this file. The
+     * offset in the file to which data is written is determined by
+     * {@link ByteChunkProvider#getOffset()}.
      *
      * @param provider         the byte chunk provider
-     * @param progressListener an optional callback that will be invoked when data has been written to the file
+     * @param progressListener an optional callback that will be invoked when data
+     *                         has been written to the file
      * @return the actual number of bytes that was written to the file
      */
     public int write(ByteChunkProvider provider, ProgressListener progressListener) {
@@ -96,11 +108,66 @@ public class SMB2Writer {
         return bytesWritten;
     }
 
+    /***
+     * Write the data Async in buffer to this file at position fileOffset.
+     *
+     * @param buffer     the data to write
+     * @param fileOffset The offset, in bytes, into the file to which the data
+     *                   should be written
+     * @param offset     the start offset in the data
+     * @param length     the number of bytes that are written
+     * @return A Future containing the total number of bytes written
+     */
+    public Future<Integer> writeAsync(byte[] buffer, long fileOffset, int offset, int length) {
+        return writeAsync(new ArrayByteChunkProvider(buffer, offset, length, fileOffset));
+    }
+
+    /**
+     * Async Write all available data from the byte chunk provider to this file. The
+     * offset in the file to which data is written is determined by
+     * {@link ByteChunkProvider#getOffset()}.
+     *
+     * @param provider the byte chunk provider
+     * @return the List of write response future
+     */
+    public Future<Integer> writeAsync(ByteChunkProvider provider) {
+        final List<Future<Integer>> wrespFutureList = new ArrayList<Future<Integer>>();
+        while (provider.isAvailable()) {
+            // maybe more than one time, need array list to store the write response future
+            logger.debug("Sending async write request to {} from offset {}", this.entryName, provider.getOffset());
+            Future<SMB2WriteResponse> resp = share.writeAsync(fileId, provider);
+            final int bytesWritten = provider.getLastWriteSize();
+            wrespFutureList.add(Futures.transform(resp,
+                    new AFuture.Function<SMB2WriteResponse, Integer>() {
+                        @Override
+                        public Integer apply(SMB2WriteResponse t) {
+                            int receivedBytes = t.getBytesWritten();
+                            if (receivedBytes == bytesWritten) {
+                                return bytesWritten;
+                            }
+                            throw new SMBRuntimeException(
+                                    "Possible remote file corruption detected, server wrote less bytes ("
+                                            + receivedBytes + ") in async mode than we sent (" + bytesWritten + ").");
+                        }
+                    }));
+        }
+
+        return Futures.transform(Futures.sequence(wrespFutureList), new AFuture.Function<List<Integer>, Integer>(){
+            public Integer apply(List<Integer> a) {
+                int sum = 0;
+                for (Integer i : a) {
+                    sum += i;
+                }
+                return sum;
+            };
+        });
+    }
+
+    public OutputStream getOutputStream() {
+        return getOutputStream(null, 0);
+    }
+
     public OutputStream getOutputStream(ProgressListener listener, long offset) {
-        return new FileOutputStream(
-            this,
-            share.getWriteBufferSize(),offset,
-            listener
-        );
+        return new FileOutputStream(this, share.getWriteBufferSize(), offset, listener);
     }
 }

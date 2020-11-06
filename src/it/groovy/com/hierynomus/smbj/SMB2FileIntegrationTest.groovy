@@ -34,6 +34,7 @@ import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.common.SMBRuntimeException
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.io.ArrayByteChunkProvider
+import com.hierynomus.smbj.io.InputStreamByteChunkProvider
 import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.share.DiskShare
 import com.hierynomus.smbj.transport.tcp.async.AsyncDirectTcpTransportFactory
@@ -387,5 +388,41 @@ class SMB2FileIntegrationTest extends Specification {
     method | func
     "rm" | { s -> s.rm("test.txt") }
     "fileExists" | { s -> s.fileExists("test.txt") }
+  }
+
+  def "should write async file"() {
+    given:
+    def size = 2 * 1024 * 1024 + 10
+    def file = share.openFile("bigfile", EnumSet.of(AccessMask.FILE_WRITE_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OVERWRITE_IF, null)
+    def bytes = new byte[size]
+    Random.newInstance().nextBytes(bytes)
+    def istream = new ByteArrayInputStream(bytes)
+
+    when:
+    def writtenFuture = file.writeAsync(new InputStreamByteChunkProvider(istream))
+    file.close()
+    istream.close()
+
+    then:
+    writtenFuture.get() == size
+
+    when:
+    def readBytes = new byte[size]
+    def readFile = share.openFile("bigfile", EnumSet.of(AccessMask.FILE_READ_DATA), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    def read = 0
+    for (;;) {
+      def nrRead = readFile.read(readBytes, read, read, size - read)
+      if (nrRead == -1) {
+        break
+      }
+      read += nrRead
+    }
+
+    then:
+    read == size
+    readBytes == bytes
+    cleanup:
+    share.rm("bigfile")
+
   }
 }

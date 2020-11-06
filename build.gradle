@@ -7,14 +7,13 @@ plugins {
   id "groovy"
   id "jacoco"
   id "maven-publish"
-  id 'pl.allegro.tech.build.axion-release' version '1.10.1'
+  id 'pl.allegro.tech.build.axion-release' version '1.11.0'
   id "com.github.hierynomus.license" version "0.15.0"
-  id "com.bmuschko.docker-remote-api" version "5.2.0"
-  id "com.jfrog.bintray" version "1.8.4"
+  id "com.bmuschko.docker-remote-api" version "6.4.0"
+  id "com.jfrog.bintray" version "1.8.5"
   id 'ru.vyarus.java-lib' version '1.1.2'
   id 'ru.vyarus.github-info' version '1.1.0'
   id 'ru.vyarus.animalsniffer' version '1.5.0'
-  id "idea"
   id 'org.sonarqube' version "2.7"
 }
 
@@ -122,20 +121,20 @@ tasks.withType(Test) {
   }
 }
 
-idea {
-  module {
-    testSourceDirs += file("src/it/groovy")
-    // Ugly hack, the it/resources needs to be marked as testSourceDir before it can be picked up by the iml.withXml
-    testSourceDirs += file('src/it/resources')
-  }
-  module.iml.withXml {
-    def node = it.asNode()
-    def content = node.component.find { it.'@name' == 'NewModuleRootManager' }.content[0]
-    content.sourceFolder.findAll { it.@url?.contains('it/resources') }.each {
-      it.@type = 'java-test-resource'
-    }
-  }
-}
+// idea {
+//   module {
+//     testSourceDirs += file("src/it/groovy")
+//     // Ugly hack, the it/resources needs to be marked as testSourceDir before it can be picked up by the iml.withXml
+//     testSourceDirs += file('src/it/resources')
+//   }
+//   module.iml.withXml {
+//     def node = it.asNode()
+//     def content = node.component.find { it.'@name' == 'NewModuleRootManager' }.content[0]
+//     content.sourceFolder.findAll { it.@url?.contains('it/resources') }.each {
+//       it.@type = 'java-test-resource'
+//     }
+//   }
+// }
 
 project.tasks.compileGroovy.onlyIf { false }
 
@@ -224,13 +223,14 @@ sonarqube {
 
 task buildItestImage(type: DockerBuildImage) {
   inputDir = file('src/it/docker-image')
-  tags = ['smbj/smbj-itest']
+  images.add('smbj/smbj-itest:latest')
 }
 
 task createItestContainer(type: DockerCreateContainer) {
   dependsOn buildItestImage
   targetImageId buildItestImage.getImageId()
-  portBindings = ['445:445']
+  hostConfig.portBindings = ['445:445']
+  hostConfig.autoRemove = true
 }
 
 task startItestContainer(type: DockerStartContainer) {
