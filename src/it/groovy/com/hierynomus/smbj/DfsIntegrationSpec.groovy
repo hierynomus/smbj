@@ -75,4 +75,18 @@ class DfsIntegrationSpec extends Specification {
     cleanup:
     share.close()
   }
+
+  def "should connect to fallback if first link is broken"() {
+    given:
+    def share = session.connectShare("dfs")
+
+    when:
+    def dir = (share as DiskShare).openDirectory("firstfail-public", EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null)
+
+    then:
+    dir.list().fileName.contains(".")
+
+    cleanup:
+    share.close()
+  }
 }
