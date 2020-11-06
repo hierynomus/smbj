@@ -23,6 +23,7 @@ import com.hierynomus.msdfsc.messages.SMB2GetDFSReferralRequest;
 import com.hierynomus.msdfsc.messages.SMB2GetDFSReferralResponse;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.Futures;
@@ -157,9 +158,28 @@ public class DFSPathResolver implements PathResolver {
      */
     private <T> T step3(Session session, ResolveState<T> state, ReferralCache.ReferralCacheEntry lookup) {
         logger.trace("DFS[3]: {}", state);
-        state.path = state.path.replacePrefix(lookup.getDfsPathPrefix(), lookup.getTargetHint().getTargetPath());
-        state.isDFSPath = true;
-        return step8(session, state, lookup);
+        ReferralCache.TargetSetEntry target = lookup.getTargetHint();
+        SMBApiException lastException = null;
+        DFSPath initialPath = state.path;
+        while (target != null) {
+            try {
+                state.path = state.path.replacePrefix(lookup.getDfsPathPrefix(), lookup.getTargetHint().getTargetPath());
+                state.isDFSPath = true;
+                return step8(session, state, lookup);
+            } catch (SMBApiException e) {
+                lastException = e;
+                if (e.getStatusCode() != NtStatus.STATUS_PATH_NOT_COVERED.getValue()) {
+                    target = lookup.nextTargetHint();
+                    state.path = initialPath;
+                }
+            }
+        }
+
+        if (lastException != null) {
+            throw lastException;
+        }
+
+        throw new IllegalStateException("Unknown error resolving DFS");
     }
 
     /**
