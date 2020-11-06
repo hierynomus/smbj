@@ -96,15 +96,10 @@ public class DFSPathResolver implements PathResolver {
 
     @Override
     public <T> T resolve(Session session, SmbPath smbPath, ResolveAction<T> action) throws PathResolveException {
-        SmbPath target = start(session, smbPath, new ResolveAction<SmbPath>(){
-            @Override
-            public SmbPath apply(SmbPath target) {
-                return target;
-            }
-        });
+        T target = start(session, smbPath, action);
         if (!smbPath.equals(target)) {
             logger.info("DFS resolved {} -> {}", smbPath, target);
-            return action.apply(target);
+            return target;
         }
         return wrapped.resolve(session, smbPath, action);
     }
@@ -287,7 +282,6 @@ public class DFSPathResolver implements PathResolver {
     @SuppressWarnings("PMD.UnusedFormalParameter")
     private <T> T step8(Session session, ResolveState<T> state, ReferralCache.ReferralCacheEntry lookup) {
         logger.trace("DFS[8]: {}", state);
-        // TODO This is now in DFSSession, try to get it here...
         return state.action.apply(SmbPath.parse(state.path.toPath()));
     }
 
