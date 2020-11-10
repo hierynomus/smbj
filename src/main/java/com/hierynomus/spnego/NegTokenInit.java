@@ -91,6 +91,7 @@ public class NegTokenInit extends SpnegoToken {
         super(0x0, "NegTokenInit");
     }
 
+    @SuppressWarnings("rawtypes")
     public void write(Buffer<?> buffer) throws SpnegoException {
         try {
             List<ASN1Object> negTokenInit = new ArrayList<>();
@@ -115,7 +116,7 @@ public class NegTokenInit extends SpnegoToken {
                 throw new SpnegoException("Incorrect GSS-API ASN.1 token received, expected to find an [APPLICATION 0], not: " + applicationSpecific);
             }
             ASN1Sequence implicitSequence = applicationSpecific.getObject(ASN1Tag.SEQUENCE);
-            ASN1Object spnegoOid = implicitSequence.get(0);
+            ASN1Object<?> spnegoOid = implicitSequence.get(0);
             if (!(spnegoOid instanceof ASN1ObjectIdentifier)) {
                 throw new SpnegoException("Expected to find the SPNEGO OID (" + SPNEGO + "), not: " + spnegoOid);
             }
@@ -151,18 +152,18 @@ public class NegTokenInit extends SpnegoToken {
         }
     }
 
-    void readMechToken(ASN1Object mechToken) throws SpnegoException {
+    void readMechToken(ASN1Object<?> mechToken) throws SpnegoException {
         if (!(mechToken instanceof ASN1OctetString)) {
             throw new SpnegoException("Expected the MechToken (OCTET_STRING) contents, not: " + mechToken);
         }
         this.mechToken = ((ASN1OctetString) mechToken).getValue();
     }
 
-    void readMechTypeList(ASN1Object sequence) throws SpnegoException {
+    void readMechTypeList(ASN1Object<?> sequence) throws SpnegoException {
         if (!(sequence instanceof ASN1Sequence)) {
             throw new SpnegoException("Expected the MechTypeList (SEQUENCE) contents, not: " + sequence);
         }
-        for (ASN1Object mechType : (ASN1Sequence) sequence) {
+        for (ASN1Object<?> mechType : (ASN1Sequence) sequence) {
             if (!(mechType instanceof ASN1ObjectIdentifier)) {
                 throw new SpnegoException("Expected a MechType (OBJECT IDENTIFIER) as contents of the MechTypeList, not: " + mechType);
             }
@@ -170,6 +171,7 @@ public class NegTokenInit extends SpnegoToken {
         }
     }
 
+    @SuppressWarnings("rawtypes")
     private void addMechToken(List<ASN1Object> negTokenInit) {
         if (mechToken != null && mechToken.length > 0) {
             ASN1TaggedObject token = new ASN1TaggedObject(ASN1Tag.contextSpecific(2).constructed(), new ASN1OctetString(mechToken), true);
@@ -177,6 +179,7 @@ public class NegTokenInit extends SpnegoToken {
         }
     }
 
+    @SuppressWarnings("rawtypes")
     private void addMechTypeList(List<ASN1Object> negTokenInit) {
         if (mechTypes.size() > 0) {
             List<ASN1Object> supportedMechVector = new ArrayList<ASN1Object>(mechTypes);

@@ -158,7 +158,6 @@ public class AsyncDirectTcpTransport<D extends PacketData<?>, P extends Packet<?
         });
     }
 
-    @SuppressWarnings("unchecked")
     private ByteBuffer prepareBufferToSend(P packet) {
         Buffer<?> packetData = handlers.getSerializer().write(packet);
         int dataSize = packetData.available();

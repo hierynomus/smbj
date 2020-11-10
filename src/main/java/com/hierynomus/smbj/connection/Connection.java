@@ -15,30 +15,8 @@
  */
 package com.hierynomus.smbj.connection;
 
-import com.hierynomus.mssmb.SMB1PacketFactory;
-import com.hierynomus.mssmb2.SMB2MessageConverter;
-import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.mssmb2.SMB2PacketFactory;
-import com.hierynomus.mssmb2.messages.SMB2Cancel;
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
-import com.hierynomus.protocol.commons.concurrent.Futures;
-import com.hierynomus.protocol.transport.*;
-import com.hierynomus.smb.SMBPacket;
-import com.hierynomus.smb.SMBPacketData;
-import com.hierynomus.smbj.SMBClient;
-import com.hierynomus.smbj.SmbConfig;
-import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.common.Pooled;
-import com.hierynomus.smbj.connection.packet.*;
-import com.hierynomus.smbj.event.ConnectionClosed;
-import com.hierynomus.smbj.event.SMBEventBus;
-import com.hierynomus.smbj.event.SessionLoggedOff;
-import com.hierynomus.smbj.server.ServerList;
-import com.hierynomus.smbj.session.Session;
-import net.engio.mbassy.listener.Handler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.hierynomus.mssmb2.SMB2Packet.SINGLE_CREDIT_PAYLOAD_SIZE;
+import static java.lang.String.format;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -48,8 +26,45 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static com.hierynomus.mssmb2.SMB2Packet.SINGLE_CREDIT_PAYLOAD_SIZE;
-import static java.lang.String.format;
+import com.hierynomus.mssmb.SMB1PacketFactory;
+import com.hierynomus.mssmb2.SMB2MessageConverter;
+import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.SMB2PacketFactory;
+import com.hierynomus.mssmb2.messages.SMB2Cancel;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
+import com.hierynomus.protocol.commons.concurrent.Futures;
+import com.hierynomus.protocol.transport.PacketFactory;
+import com.hierynomus.protocol.transport.PacketHandlers;
+import com.hierynomus.protocol.transport.PacketReceiver;
+import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.protocol.transport.TransportLayer;
+import com.hierynomus.smb.SMBPacket;
+import com.hierynomus.smb.SMBPacketData;
+import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.SmbConfig;
+import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.common.Pooled;
+import com.hierynomus.smbj.connection.packet.DeadLetterPacketHandler;
+import com.hierynomus.smbj.connection.packet.IncomingPacketHandler;
+import com.hierynomus.smbj.connection.packet.SMB1PacketHandler;
+import com.hierynomus.smbj.connection.packet.SMB2AsyncResponsePacketHandler;
+import com.hierynomus.smbj.connection.packet.SMB2CompoundedPacketHandler;
+import com.hierynomus.smbj.connection.packet.SMB2CreditGrantingPacketHandler;
+import com.hierynomus.smbj.connection.packet.SMB2IsOutstandingPacketHandler;
+import com.hierynomus.smbj.connection.packet.SMB2ProcessResponsePacketHandler;
+import com.hierynomus.smbj.connection.packet.SMB2SignatureVerificationPacketHandler;
+import com.hierynomus.smbj.connection.packet.SMB3DecryptingPacketHandler;
+import com.hierynomus.smbj.event.ConnectionClosed;
+import com.hierynomus.smbj.event.SMBEventBus;
+import com.hierynomus.smbj.event.SessionLoggedOff;
+import com.hierynomus.smbj.server.ServerList;
+import com.hierynomus.smbj.session.Session;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import net.engio.mbassy.listener.Handler;
 
 /**
  * A connection to a server.
@@ -255,7 +270,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     }
 
     @Override
-    public void handle(SMBPacketData uncheckedPacket) throws TransportException {
+    public void handle(SMBPacketData<?> uncheckedPacket) throws TransportException {
         this.packetHandlerChain.handle(uncheckedPacket);
         // [MS-SMB2] 3.2.5.1.6 Handling Session Expiration
         // if (packet.getHeader().getStatus() == NtStatus.STATUS_NETWORK_SESSION_EXPIRED) {

@@ -3,7 +3,6 @@ package com.hierynomus.security.jce.messagedigest;
 
 import java.security.DigestException;
 import java.security.MessageDigest;
-import java.security.MessageDigestSpi;
 
 /**
  * MD4.java - An implementation of Ron Rivest's MD4 message digest algorithm.

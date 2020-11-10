@@ -15,7 +15,7 @@
  */
 package com.hierynomus.smbj.event;
 
-public class TreeDisconnected extends SessionEvent implements SMBEvent {
+public class TreeDisconnected extends SessionEvent {
 
     private long treeId;
 

@@ -17,6 +17,7 @@ package com.hierynomus.smbj.paths;
 
 import com.hierynomus.mserref.NtStatus;
 
+@SuppressWarnings("serial")
 public class PathResolveException extends Exception {
     private final long status;
 

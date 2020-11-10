@@ -31,9 +31,6 @@ public abstract class ACE {
         this.aceHeader = header;
     }
 
-    private ACE() {
-    }
-
     public final void write(SMBBuffer buffer) {
         int startPos = buffer.wpos();
 

@@ -15,14 +15,15 @@
  */
 package com.hierynomus.smbj.transport;
 
+import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.transport.PacketReceiver;
 import com.hierynomus.protocol.transport.TransportException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.InputStream;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class PacketReader<D extends PacketData<?>> implements Runnable {
     private final Logger logger = LoggerFactory.getLogger(getClass());

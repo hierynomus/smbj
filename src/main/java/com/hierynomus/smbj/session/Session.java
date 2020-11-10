@@ -44,10 +44,11 @@ import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static java.lang.String.format;
 
@@ -68,7 +69,8 @@ public class Session implements AutoCloseable {
     private final PathResolver pathResolver;
     private PacketSignatory signatory;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
-    private List<Session> nestedSessions = new ArrayList<>();
+    private Map<String, Session> nestedSessionsByHost = new HashMap<>();
+    private ReentrantReadWriteLock nestedSessionsRwLock = new ReentrantReadWriteLock();
     private AuthenticationContext userCredentials;
     private SessionContext sessionContext;
 
@@ -118,7 +120,7 @@ public class Session implements AutoCloseable {
 
     private Share connectTree(final String shareName) {
         String remoteHostname = connection.getRemoteHostname();
-        SmbPath smbPath = new SmbPath(remoteHostname, shareName);
+        final SmbPath smbPath = new SmbPath(remoteHostname, shareName);
         logger.info("Connecting to {} on session {}", smbPath, sessionId);
         try {
             SMB2TreeConnectRequest smb2TreeConnectRequest = new SMB2TreeConnectRequest(connection.getNegotiatedProtocol().getDialect(), smbPath, sessionId);
@@ -126,14 +128,23 @@ public class Session implements AutoCloseable {
             Future<SMB2TreeConnectResponse> send = this.send(smb2TreeConnectRequest);
             SMB2TreeConnectResponse response = Futures.get(send, config.getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
             try {
-                SmbPath resolvedSharePath = pathResolver.resolve(this, response, smbPath);
-                Session session = this;
-                if (!resolvedSharePath.isOnSameHost(smbPath)) {
-                    logger.info("Re-routing the connection to host {}", resolvedSharePath.getHostname());
-                    session = buildNestedSession(resolvedSharePath);
-                }
-                if (!resolvedSharePath.isOnSameShare(smbPath)) {
-                    return session.connectShare(resolvedSharePath.getShareName());
+                Share share = pathResolver.resolve(this, response, smbPath, new PathResolver.ResolveAction<Share>() {
+                    @Override
+                    public Share apply(SmbPath target) {
+                        Session session = Session.this;
+                        if (!target.isOnSameHost(smbPath)) {
+                            logger.info("Re-routing the connection to host {}", target.getHostname());
+                            session = getNestedSession(target);
+                        }
+                        if (!target.isOnSameShare(smbPath)) {
+                            return session.connectShare(target.getShareName());
+                        }
+                        return null;
+                    }
+                });
+
+                if (share != null) {
+                    return share;
                 }
             } catch (PathResolveException ignored) {
                 // Ignored
@@ -169,14 +180,46 @@ public class Session implements AutoCloseable {
         }
     }
 
-    public Session buildNestedSession(SmbPath resolvedSharePath) {
+    public Session getNestedSession(SmbPath resolvedSharePath) {
+        nestedSessionsRwLock.readLock().lock();
         try {
-            Connection connection = getConnection().getClient().connect(resolvedSharePath.getHostname());
-            Session session = connection.authenticate(getAuthenticationContext());
-            nestedSessions.add(session);
+            final Session existingSession = nestedSessionsByHost.get(resolvedSharePath.getHostname());
+            if (existingSession != null) {
+                return existingSession;
+            }
+        } finally {
+            nestedSessionsRwLock.readLock().unlock();
+        }
+
+        Session session;
+        nestedSessionsRwLock.writeLock().lock(); // update to write lock
+        try {
+            // re-check if other thread created the missing session in the meantime
+            session = nestedSessionsByHost.get(resolvedSharePath.getHostname());
+
+            if (session == null) {
+                session = createNestedSession(resolvedSharePath);
+                nestedSessionsByHost.put(resolvedSharePath.getHostname(), session);
+            }
+            nestedSessionsRwLock.readLock().lock();
+        } finally {
+            nestedSessionsRwLock.writeLock().unlock();
+        }
+
+        try {
             return session;
+        } finally {
+            nestedSessionsRwLock.readLock().unlock();
+        }
+    }
+
+    private Session createNestedSession(SmbPath smbPath) {
+        try {
+            Connection connection = getConnection().getClient().connect(smbPath.getHostname());
+            return connection.authenticate(getAuthenticationContext());
         } catch (IOException e) {
-            throw new SMBApiException(NtStatus.STATUS_OTHER.getValue(), SMB2MessageCommandCode.SMB2_NEGOTIATE, "Could not connect to DFS root " + resolvedSharePath, e);
+            throw new SMBApiException(NtStatus.STATUS_OTHER.getValue(), SMB2MessageCommandCode.SMB2_NEGOTIATE,
+                "Could not connect to DFS root " + smbPath, e);
         }
     }
 
@@ -199,13 +242,19 @@ public class Session implements AutoCloseable {
                     logger.error("Caught exception while closing TreeConnect with id: {}", share.getTreeConnect().getTreeId(), e);
                 }
             }
-            for (Session nestedSession : nestedSessions) {
-                logger.info("Logging off nested session {} for session {}", nestedSession.getSessionId(), sessionId);
-                try {
-                    nestedSession.logoff();
-                } catch (TransportException te) {
-                    logger.error("Caught exception while logging off nested session {}", nestedSession.getSessionId());
+
+            nestedSessionsRwLock.writeLock().lock();
+            try {
+                for (Session nestedSession : nestedSessionsByHost.values()) {
+                    logger.info("Logging off nested session {} for session {}", nestedSession.getSessionId(), sessionId);
+                    try {
+                        nestedSession.logoff();
+                    } catch (TransportException te) {
+                        logger.error("Caught exception while logging off nested session {}", nestedSession.getSessionId());
+                    }
                 }
+            } finally {
+                nestedSessionsRwLock.writeLock().unlock();
             }
             SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
             SMB2Logoff response = Futures.get(this.<SMB2Logoff>send(logoff), config.getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);

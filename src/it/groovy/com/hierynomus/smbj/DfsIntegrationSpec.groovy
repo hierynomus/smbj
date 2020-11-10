@@ -62,13 +62,26 @@ class DfsIntegrationSpec extends Specification {
     share.close()
   }
 
-  @Ignore
   def "should list contents of DFS virtual directory"() {
     given:
     def share = session.connectShare("dfs")
 
     when:
     def dir = (share as DiskShare).openDirectory("user", EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null)
+
+    then:
+    dir.list().fileName.contains(".")
+
+    cleanup:
+    share.close()
+  }
+
+  def "should connect to fallback if first link is broken"() {
+    given:
+    def share = session.connectShare("dfs")
+
+    when:
+    def dir = (share as DiskShare).openDirectory("firstfail-public", EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null)
 
     then:
     dir.list().fileName.contains(".")

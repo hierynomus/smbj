@@ -44,22 +44,22 @@ public class SymlinkPathResolver implements PathResolver {
     }
 
     @Override
-    public SmbPath resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath) throws PathResolveException {
+    public <T> T resolve(Session session, SMB2Packet responsePacket, SmbPath smbPath, ResolveAction<T> action) throws PathResolveException {
         if (responsePacket.getHeader().getStatusCode() == NtStatus.STATUS_STOPPED_ON_SYMLINK.getValue()) {
             SMB2Error.SymbolicLinkError symlinkData = getSymlinkErrorData(responsePacket.getError());
             if (symlinkData == null) {
                 throw new PathResolveException(responsePacket.getHeader().getStatusCode(), "Create failed for " + smbPath + ": missing symlink data");
             }
             String target = resolveSymlinkTarget(smbPath.getPath(), symlinkData);
-            return new SmbPath(smbPath.getHostname(), smbPath.getShareName(), target);
+            return action.apply(new SmbPath(smbPath.getHostname(), smbPath.getShareName(), target));
         }
 
-        return wrapped.resolve(session, responsePacket, smbPath);
+        return wrapped.resolve(session, responsePacket, smbPath, action);
     }
 
     @Override
-    public SmbPath resolve(Session session, SmbPath smbPath) throws PathResolveException {
-        return wrapped.resolve(session, smbPath);
+    public <T> T resolve(Session session, SmbPath smbPath, ResolveAction<T> action) throws PathResolveException {
+        return wrapped.resolve(session, smbPath, action);
     }
 
 

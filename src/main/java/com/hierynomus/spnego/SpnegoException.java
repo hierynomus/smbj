@@ -17,6 +17,7 @@ package com.hierynomus.spnego;
 
 import java.io.IOException;
 
+@SuppressWarnings("serial")
 public class SpnegoException extends Exception {
     public SpnegoException(String message) {
         super(message);

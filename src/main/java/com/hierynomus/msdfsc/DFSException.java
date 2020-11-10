@@ -17,6 +17,7 @@ package com.hierynomus.msdfsc;
 
 import com.hierynomus.smbj.paths.PathResolveException;
 
+@SuppressWarnings("serial")
 public class DFSException extends PathResolveException {
     public DFSException(long status, String message) {
         super(status, message);

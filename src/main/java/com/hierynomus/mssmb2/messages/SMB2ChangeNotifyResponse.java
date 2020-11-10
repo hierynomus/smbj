@@ -15,16 +15,13 @@
  */
 package com.hierynomus.mssmb2.messages;
 
-import com.hierynomus.msfscc.FileNotifyAction;
-import com.hierynomus.msfscc.directory.FileNotifyInformation;
-import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.protocol.commons.Charsets;
-import com.hierynomus.protocol.commons.EnumWithValue;
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smb.SMBBuffer;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import com.hierynomus.msfscc.directory.FileNotifyInformation;
+import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.smb.SMBBuffer;
 
 /**
  * [MS-SMB2].pdf 2.2.36 SMB2 CHANGE_NOTIFY Response

@@ -15,10 +15,10 @@
  */
 package com.hierynomus.smbj.auth;
 
+import java.io.IOException;
+
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.connection.ConnectionContext;
-
-import java.io.IOException;
 
 public interface Authenticator {
 

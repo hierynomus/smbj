@@ -18,6 +18,7 @@ package com.hierynomus.mssmb2;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 
+@SuppressWarnings("serial")
 public class SMBApiException extends SMBRuntimeException {
     private final SMB2MessageCommandCode failedCommand;
     private long statusCode;

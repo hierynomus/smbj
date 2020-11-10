@@ -50,7 +50,7 @@ public class FsCtlPipeWaitRequest {
         return timeoutUnit;
     }
 
-    public void write(Buffer buffer) {
+    public void write(Buffer<?> buffer) {
         // Timeout (8 bytes): A 64-bit signed integer that specifies the maximum amount of time, in units of
         // 100 milliseconds, that the function can wait for an instance of the named pipe to be available.
         buffer.putUInt64(timeoutSpecified ? timeoutUnit.toMillis(timeout) / 100L : 0L);

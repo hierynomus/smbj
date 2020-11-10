@@ -15,6 +15,7 @@
  */
 package com.hierynomus.ntlm;
 
+@SuppressWarnings("serial")
 public class NtlmException extends RuntimeException {
 
     public NtlmException() {

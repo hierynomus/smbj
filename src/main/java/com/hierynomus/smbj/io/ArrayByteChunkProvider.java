@@ -15,8 +15,6 @@
  */
 package com.hierynomus.smbj.io;
 
-import java.io.IOException;
-
 public class ArrayByteChunkProvider extends ByteChunkProvider {
 
     private final byte[] data;

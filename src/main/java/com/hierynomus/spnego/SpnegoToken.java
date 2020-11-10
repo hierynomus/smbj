@@ -40,9 +40,10 @@ abstract class SpnegoToken {
         this.tokenName = tokenName;
     }
 
-    protected void writeGss(Buffer<?> buffer, ASN1Object negToken) throws IOException {
+    protected void writeGss(Buffer<?> buffer, ASN1Object<?> negToken) throws IOException {
         ASN1TaggedObject negotiationToken = new ASN1TaggedObject(ASN1Tag.contextSpecific(tokenTagNo).constructed(), negToken);
 
+        @SuppressWarnings("rawtypes")
         List<ASN1Object> implicitSeqGssApi = new ArrayList<>();
         implicitSeqGssApi.add(SPNEGO);
         implicitSeqGssApi.add(negotiationToken);
@@ -55,17 +56,17 @@ abstract class SpnegoToken {
         buffer.putRawBytes(baos.toByteArray());
     }
 
-    protected void parseSpnegoToken(ASN1Object spnegoToken) throws SpnegoException {
+    protected void parseSpnegoToken(ASN1Object<?> spnegoToken) throws SpnegoException {
         if (!(spnegoToken instanceof ASN1TaggedObject) || ((ASN1TaggedObject) spnegoToken).getTagNo() != tokenTagNo) {
             throw new SpnegoException("Expected to find the " + tokenName + " (CHOICE [" + tokenTagNo + "]) header, not: " + spnegoToken);
         }
 
-        ASN1Object negToken = ((ASN1TaggedObject) spnegoToken).getObject();
+        ASN1Object<?> negToken = ((ASN1TaggedObject) spnegoToken).getObject();
         if (!(negToken instanceof ASN1Sequence)) {
             throw new SpnegoException("Expected a " + tokenName + " (SEQUENCE), not: " + negToken);
         }
 
-        for (ASN1Object asn1Object : (ASN1Sequence) negToken) {
+        for (ASN1Object<?> asn1Object : (ASN1Sequence) negToken) {
             if (!(asn1Object instanceof ASN1TaggedObject)) {
                 throw new SpnegoException("Expected an ASN.1 TaggedObject as " + tokenName + " contents, not: " + asn1Object);
             }

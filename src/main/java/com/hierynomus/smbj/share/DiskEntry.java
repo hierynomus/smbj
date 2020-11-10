@@ -15,21 +15,22 @@
  */
 package com.hierynomus.smbj.share;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 import com.hierynomus.msdtyp.SecurityDescriptor;
 import com.hierynomus.msdtyp.SecurityInformation;
-import com.hierynomus.msfscc.fileinformation.*;
+import com.hierynomus.msfscc.fileinformation.FileAllInformation;
+import com.hierynomus.msfscc.fileinformation.FileLinkInformation;
+import com.hierynomus.msfscc.fileinformation.FileQueryableInformation;
+import com.hierynomus.msfscc.fileinformation.FileRenameInformation;
+import com.hierynomus.msfscc.fileinformation.FileSettableInformation;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMBApiException;
-import com.hierynomus.mssmb2.messages.SMB2LockResponse;
-import com.hierynomus.mssmb2.messages.submodule.SMB2LockElement;
 import com.hierynomus.smbj.common.SmbPath;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
 
 public abstract class DiskEntry extends Open<DiskShare> {
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());

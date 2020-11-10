@@ -15,6 +15,11 @@
  */
 package com.hierynomus.smbj.utils;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.EnumSet;
+
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
@@ -23,22 +28,7 @@ import com.hierynomus.mssmb2.SMB2ShareAccess;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.io.InputStreamByteChunkProvider;
-import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.EnumSet;
-
-import static com.hierynomus.msdtyp.AccessMask.FILE_ADD_SUBDIRECTORY;
-import static com.hierynomus.msdtyp.AccessMask.FILE_LIST_DIRECTORY;
-import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_DIRECTORY;
-import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_CREATE;
-import static com.hierynomus.mssmb2.SMB2CreateOptions.FILE_DIRECTORY_FILE;
-import static com.hierynomus.mssmb2.SMB2ShareAccess.ALL;
-import static java.util.EnumSet.of;
 
 public class SmbFiles {
 
