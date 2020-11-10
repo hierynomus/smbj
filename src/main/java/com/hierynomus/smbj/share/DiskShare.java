@@ -120,7 +120,7 @@ public class DiskShare extends Share {
     private DiskShare rerouteIfNeeded(SmbPath path, SmbPath target) {
         Session connectedSession = this.session;
         if (!path.isOnSameHost(target)) {
-            connectedSession = connectedSession.buildNestedSession(target);
+            connectedSession = connectedSession.getNestedSession(target);
         }
         if (!path.isOnSameShare(target)) {
             return (DiskShare) connectedSession.connectShare(target.getShareName());
