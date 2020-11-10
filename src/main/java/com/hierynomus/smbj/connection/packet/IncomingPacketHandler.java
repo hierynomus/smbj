@@ -15,7 +15,6 @@
  */
 package com.hierynomus.smbj.connection.packet;
 
-import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smb.SMBPacketData;
 

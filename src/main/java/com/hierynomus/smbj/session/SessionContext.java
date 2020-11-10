@@ -16,7 +16,6 @@
 package com.hierynomus.smbj.session;
 
 import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
-import com.hierynomus.smbj.connection.SMBSessionBuilder;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;

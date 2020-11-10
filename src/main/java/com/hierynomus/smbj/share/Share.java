@@ -29,7 +29,6 @@ import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
-import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.connection.NegotiatedProtocol;
 import com.hierynomus.smbj.io.ArrayByteChunkProvider;
 import com.hierynomus.smbj.io.ByteChunkProvider;

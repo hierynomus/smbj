@@ -31,6 +31,6 @@ public enum SMB3CompressionAlgorithm implements EnumWithValue<SMB3CompressionAlg
 
     @Override
     public long getValue() {
-        return 0;
+        return value;
     }
 }

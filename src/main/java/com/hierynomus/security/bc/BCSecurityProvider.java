@@ -15,7 +15,9 @@
  */
 package com.hierynomus.security.bc;
 
+import com.hierynomus.security.AEADBlockCipher;
 import com.hierynomus.security.Cipher;
+import com.hierynomus.security.DerivationFunction;
 import com.hierynomus.security.Mac;
 import com.hierynomus.security.MessageDigest;
 import com.hierynomus.security.SecurityProvider;

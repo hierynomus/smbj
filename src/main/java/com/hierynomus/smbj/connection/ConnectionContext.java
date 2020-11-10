@@ -15,18 +15,20 @@
  */
 package com.hierynomus.smbj.connection;
 
-import com.hierynomus.mssmb2.*;
-import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
-import com.hierynomus.ntlm.messages.WindowsVersion;
-import com.hierynomus.smbj.SmbConfig;
-import com.hierynomus.smbj.server.Server;
-
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 
-import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
+import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.mssmb2.SMB2GlobalCapability;
+import com.hierynomus.mssmb2.SMB3CompressionAlgorithm;
+import com.hierynomus.mssmb2.SMB3EncryptionCipher;
+import com.hierynomus.mssmb2.SMB3HashAlgorithm;
+import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
+import com.hierynomus.ntlm.messages.WindowsVersion;
+import com.hierynomus.smbj.SmbConfig;
+import com.hierynomus.smbj.server.Server;
 
 public class ConnectionContext {
 

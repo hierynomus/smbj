@@ -17,7 +17,6 @@ package com.hierynomus.smbj.server;
 
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2GlobalCapability;
-import com.hierynomus.protocol.transport.TransportException;
 
 import java.util.Set;
 import java.util.UUID;

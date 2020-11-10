@@ -234,7 +234,7 @@ class SMBProtocolNegotiator {
     }
 
     public static class NegotiationContext {
-        private SMBPacket negotiationRequest;
+        private SMBPacket<?, ?> negotiationRequest;
         private SMB2NegotiateResponse negotiationResponse;
         private SMB3EncryptionCipher cipher;
         private SMB3HashAlgorithm preauthIntegrityHashId;
@@ -242,7 +242,7 @@ class SMBProtocolNegotiator {
         private byte[] preauthIntegrityHashValue;
         private Server server;
 
-        public SMBPacket getNegotiationRequest() {
+        public SMBPacket<?, ?> getNegotiationRequest() {
             return negotiationRequest;
         }
 
