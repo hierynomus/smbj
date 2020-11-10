@@ -15,8 +15,6 @@
  */
 package com.hierynomus.smbj.io;
 
-import java.io.IOException;
-
 public class EmptyByteChunkProvider extends ByteChunkProvider {
     public EmptyByteChunkProvider(long fileOffset) {
         this.offset = fileOffset;

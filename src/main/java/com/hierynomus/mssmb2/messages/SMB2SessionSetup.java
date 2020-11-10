@@ -15,15 +15,18 @@
  */
 package com.hierynomus.mssmb2.messages;
 
-import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.mssmb2.*;
-import com.hierynomus.protocol.commons.EnumWithValue;
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smb.SMBBuffer;
+import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
 
 import java.util.Set;
 
-import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet;
+import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.mssmb2.SMB2GlobalCapability;
+import com.hierynomus.mssmb2.SMB2Header;
+import com.hierynomus.mssmb2.SMB2MessageCommandCode;
+import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.protocol.commons.EnumWithValue;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.smb.SMBBuffer;
 
 /**
  * [MS-SMB2].pdf 2.2.5 SMB2_SESSION_SETUP Request / 2.2.6 SMB2_SESSION_SETUP Response

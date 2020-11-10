@@ -75,7 +75,7 @@ public class SMB2MessageConverter {
         }
     }
 
-    public SMB2Packet readPacket(SMBPacket requestPacket, SMB2PacketData packetData) throws Buffer.BufferException {
+    public SMB2Packet readPacket(SMBPacket<?, ?> requestPacket, SMB2PacketData packetData) throws Buffer.BufferException {
         SMB2Packet responsePacket = getPacketInstance(packetData);
         if (isSuccess(requestPacket, packetData)) {
             responsePacket.read(packetData);
@@ -88,7 +88,7 @@ public class SMB2MessageConverter {
     /**
      * [MS-SMB2].pdf 3.3.4.4
      */
-    private boolean isSuccess(SMBPacket requestPacket, SMB2PacketData packetData) {
+    private boolean isSuccess(SMBPacket<?, ?> requestPacket, SMB2PacketData packetData) {
         if (packetData.isSuccess()) {
             return true;
         }

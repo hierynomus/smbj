@@ -61,7 +61,7 @@ public class FsCtlPipePeekResponse {
         return data;
     }
 
-    public void read(Buffer buffer) throws Buffer.BufferException {
+    public void read(Buffer<?> buffer) throws Buffer.BufferException {
         state = EnumWithValue.EnumUtils.valueOf(buffer.readUInt32(), PipeState.class, null);
         readDataAvailable = buffer.readUInt32();
         numberOfMessages = buffer.readUInt32();

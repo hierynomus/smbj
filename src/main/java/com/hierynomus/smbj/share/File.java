@@ -15,6 +15,14 @@
  */
 package com.hierynomus.smbj.share;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.Future;
+
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.fileinformation.FileEndOfFileInformation;
 import com.hierynomus.msfscc.fileinformation.FileStandardInformation;
@@ -24,7 +32,6 @@ import com.hierynomus.mssmb2.copy.CopyChunkRequest;
 import com.hierynomus.mssmb2.copy.CopyChunkResponse;
 import com.hierynomus.mssmb2.messages.SMB2IoctlResponse;
 import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
-import com.hierynomus.mssmb2.messages.SMB2WriteResponse;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smb.SMBBuffer;
@@ -33,18 +40,9 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.io.ArrayByteChunkProvider;
 import com.hierynomus.smbj.io.ByteChunkProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.*;
-import java.util.concurrent.Future;
 
 public class File extends DiskEntry {
 
-    private static final Logger logger = LoggerFactory.getLogger(File.class);
     private final SMB2Writer writer;
 
     File(SMB2FileId fileId, DiskShare diskShare, SmbPath fileName) {

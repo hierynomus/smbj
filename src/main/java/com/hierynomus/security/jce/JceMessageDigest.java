@@ -15,14 +15,13 @@
  */
 package com.hierynomus.security.jce;
 
-import com.hierynomus.security.MessageDigest;
-import com.hierynomus.security.SecurityException;
-import com.hierynomus.security.jce.messagedigest.MD4;
-
-import java.lang.reflect.InvocationTargetException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Provider;
+
+import com.hierynomus.security.MessageDigest;
+import com.hierynomus.security.SecurityException;
+import com.hierynomus.security.jce.messagedigest.MD4;
 
 public class JceMessageDigest implements MessageDigest {
     private java.security.MessageDigest md;

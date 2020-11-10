@@ -15,8 +15,10 @@
  */
 package com.hierynomus.security.bc;
 
-import com.hierynomus.security.*;
-import com.hierynomus.security.SecurityException;
+import com.hierynomus.security.Cipher;
+import com.hierynomus.security.Mac;
+import com.hierynomus.security.MessageDigest;
+import com.hierynomus.security.SecurityProvider;
 
 /**
  * Generic BouncyCastle abstraction, in order to use Bouncy Castle directly when available.

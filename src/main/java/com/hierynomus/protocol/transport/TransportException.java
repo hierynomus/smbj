@@ -19,6 +19,7 @@ import com.hierynomus.protocol.commons.concurrent.ExceptionWrapper;
 
 import java.io.IOException;
 
+@SuppressWarnings("serial")
 public class TransportException extends IOException {
     public static final ExceptionWrapper<TransportException> Wrapper = new ExceptionWrapper<TransportException>() {
         @Override

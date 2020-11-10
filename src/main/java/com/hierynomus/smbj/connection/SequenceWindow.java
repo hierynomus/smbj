@@ -81,6 +81,7 @@ class SequenceWindow {
         return result;
     }
 
+    @SuppressWarnings("serial")
     private static class NoopSemaphore extends Semaphore {
         public NoopSemaphore() {
             super(1);

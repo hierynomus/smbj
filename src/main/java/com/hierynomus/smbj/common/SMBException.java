@@ -19,6 +19,7 @@ import com.hierynomus.protocol.commons.concurrent.ExceptionWrapper;
 
 import java.io.IOException;
 
+@SuppressWarnings("serial")
 public class SMBException extends IOException {
     public static final ExceptionWrapper<SMBException> Wrapper = new ExceptionWrapper<SMBException>() {
         @Override

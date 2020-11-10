@@ -17,7 +17,6 @@ package com.hierynomus.protocol.commons.concurrent;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public class PromiseBackedFuture<V> extends AFuture<V> {
     private Promise<V, ?> promise;

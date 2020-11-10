@@ -75,7 +75,8 @@ public class NegTokenTarg extends SpnegoToken {
     }
 
     // Override writeGss for NTLMSSP_AUTH since Samba does not like putting the OID for SPNEGO
-    protected void writeGss(Buffer<?> buffer, ASN1Object negToken) throws IOException {
+    @Override
+    protected void writeGss(Buffer<?> buffer, ASN1Object<?> negToken) throws IOException {
         ASN1TaggedObject negotiationToken = new ASN1TaggedObject(ASN1Tag.contextSpecific(0x01).constructed(), negToken, true);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ASN1OutputStream out = new ASN1OutputStream(new DEREncoder(), baos)) {
@@ -84,6 +85,7 @@ public class NegTokenTarg extends SpnegoToken {
         buffer.putRawBytes(baos.toByteArray());
     }
 
+    @SuppressWarnings("rawtypes")
     public void write(Buffer<?> buffer) throws SpnegoException {
         List<ASN1Object> negTokenTarg = new ArrayList<>();
         try {
@@ -113,7 +115,7 @@ public class NegTokenTarg extends SpnegoToken {
 
     private NegTokenTarg read(Buffer<?> buffer) throws SpnegoException {
         try (ASN1InputStream is = new ASN1InputStream(new DERDecoder(), buffer.asInputStream())) {
-            ASN1Object instance = is.readObject();
+            ASN1Object<?> instance = is.readObject();
             parseSpnegoToken(instance);
         } catch (IOException e) {
             throw new SpnegoException("Could not read NegTokenTarg from buffer", e);
@@ -142,7 +144,7 @@ public class NegTokenTarg extends SpnegoToken {
 
     }
 
-    private void readResponseToken(ASN1Object responseToken) throws SpnegoException {
+    private void readResponseToken(ASN1Object<?> responseToken) throws SpnegoException {
         if (!(responseToken instanceof ASN1OctetString)) {
             throw new SpnegoException("Expected the responseToken (OCTET_STRING) contents, not: " + responseToken);
         }
@@ -150,7 +152,7 @@ public class NegTokenTarg extends SpnegoToken {
 
     }
 
-    private void readMechListMIC(ASN1Object mic) throws SpnegoException {
+    private void readMechListMIC(ASN1Object<?> mic) throws SpnegoException {
         if (!(mic instanceof ASN1OctetString)) {
             throw new SpnegoException("Expected the responseToken (OCTET_STRING) contents, not: " + mic);
         }
@@ -158,7 +160,7 @@ public class NegTokenTarg extends SpnegoToken {
 
     }
 
-    private void readSupportedMech(ASN1Object supportedMech) throws SpnegoException {
+    private void readSupportedMech(ASN1Object<?> supportedMech) throws SpnegoException {
         if (!(supportedMech instanceof ASN1ObjectIdentifier)) {
             throw new SpnegoException("Expected the supportedMech (OBJECT IDENTIFIER) contents, not: " + supportedMech);
         }
@@ -166,7 +168,7 @@ public class NegTokenTarg extends SpnegoToken {
 
     }
 
-    private void readNegResult(ASN1Object object) throws SpnegoException {
+    private void readNegResult(ASN1Object<?> object) throws SpnegoException {
         if (!(object instanceof ASN1Enumerated)) {
             throw new SpnegoException("Expected the negResult (ENUMERATED) contents, not: " + supportedMech);
         }

@@ -15,24 +15,28 @@
  */
 package com.hierynomus.smbj.auth;
 
-import com.hierynomus.mssmb2.SMB2Header;
-import com.hierynomus.protocol.commons.ByteArrayUtils;
-import com.hierynomus.protocol.transport.TransportException;
-import com.hierynomus.security.SecurityProvider;
-import com.hierynomus.smbj.GSSContextConfig;
-import com.hierynomus.smbj.SmbConfig;
-import com.hierynomus.smbj.session.Session;
-import org.ietf.jgss.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.security.auth.Subject;
 import java.io.IOException;
 import java.security.Key;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
-import java.util.Random;
+
+import javax.security.auth.Subject;
+
+import com.hierynomus.mssmb2.SMB2Header;
+import com.hierynomus.protocol.commons.ByteArrayUtils;
+import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.smbj.GSSContextConfig;
+import com.hierynomus.smbj.SmbConfig;
+import com.hierynomus.smbj.session.Session;
+
+import org.ietf.jgss.GSSContext;
+import org.ietf.jgss.GSSException;
+import org.ietf.jgss.GSSManager;
+import org.ietf.jgss.GSSName;
+import org.ietf.jgss.Oid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class SpnegoAuthenticator implements Authenticator {

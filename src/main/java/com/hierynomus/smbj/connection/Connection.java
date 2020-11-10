@@ -386,7 +386,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     }
 
     @Override
-    public void handle(SMBPacketData uncheckedPacket) throws TransportException {
+    public void handle(SMBPacketData<?> uncheckedPacket) throws TransportException {
         if (!(uncheckedPacket instanceof SMB2PacketData)) {
             throw new SMB1NotSupportedException();
         }

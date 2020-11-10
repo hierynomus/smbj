@@ -29,7 +29,7 @@ public class FileNotifyInformation {
     public FileNotifyInformation() {
     }
 
-    public void read(Buffer buffer) throws Buffer.BufferException {
+    public void read(Buffer<?> buffer) throws Buffer.BufferException {
         this.nextEntryOffset = buffer.readUInt32AsInt(); // NextEntryOffset (4 bytes)
         this.action = EnumWithValue.EnumUtils.valueOf(buffer.readUInt32(), FileNotifyAction.class, null); // Action (4 bytes)
         long fileNameLength = buffer.readUInt32(); // FileNameLength (4 bytes)

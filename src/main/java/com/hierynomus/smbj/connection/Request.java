@@ -58,8 +58,8 @@ class Request {
         return messageId;
     }
 
+    @SuppressWarnings("unchecked")
     <T extends SMB2Packet> AFuture<T> getFuture(final CancellableFuture.CancelCallback callback) {
-        //noinspection unchecked
         return (AFuture<T>) new CancellableFuture<>(promise.future(), callback);
 
     }

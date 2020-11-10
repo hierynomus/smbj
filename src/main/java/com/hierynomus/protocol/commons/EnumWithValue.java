@@ -28,7 +28,7 @@ public interface EnumWithValue<E extends Enum<E>> {
             long l = 0;
             for (E e : set) {
                 if (e instanceof EnumWithValue) {
-                    l |= ((EnumWithValue) e).getValue();
+                    l |= ((EnumWithValue<?>) e).getValue();
                 } else {
                     throw new IllegalArgumentException("Can only be used with EnumWithValue enums.");
                 }

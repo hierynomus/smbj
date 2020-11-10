@@ -103,8 +103,6 @@ public enum NtStatus implements EnumWithValue<NtStatus> {
     }
 
     public static NtStatus valueOf(long statusCode) {
-        long l = 0xc0000120L;
-
         return EnumUtils.valueOf(statusCode, NtStatus.class, STATUS_OTHER);
     }
 
