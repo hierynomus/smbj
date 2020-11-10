@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.session
+package com.hierynomus.smbj.connection
 
 import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2MessageConverter
@@ -31,7 +31,8 @@ class PacketSignatorySpec extends Specification {
   def "should verify signature of non-success packet"() {
     given:
     def packet = new SMB2PacketData([0xfe, 0x53, 0x4d, 0x42, 0x40, 0x00, 0x10, 0x00, 0x06, 0x00, 0x00, 0x80, 0x0e, 0x00, 0x20, 0x00, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x25, 0x00, 0x00, 0x00, 0x00, 0x24, 0x00, 0x00, 0x46, 0xef, 0xdd, 0x50, 0xd6, 0xcd, 0xaa, 0x25, 0xba, 0xc7, 0xc4, 0xb5, 0xd4, 0x9a, 0x0e, 0x08, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05] as byte[])
-    def signatory = new PacketSignatory(SMB2Dialect.SMB_2_1, new BCSecurityProvider())
+    def signatory = new PacketSignatory(new BCSecurityProvider())
+    signatory.init(SMB2Dialect.SMB_2_0_2)
 
     when:
     boolean verified = signatory.verify(packet, signingKey)
@@ -43,7 +44,8 @@ class PacketSignatorySpec extends Specification {
 
   def "should verify signature of packet with padding"() {
     def packet = new SMB2PacketData(ByteArrayUtils.parseHex("fe534d4240000100030100c0050001000900000000000000ba9e62000000000000000000010000009103001c041400001FEDE330C927BC01F83C3C0E07DCB0BA09000000000000000000000000000000"))
-    def signatory = new PacketSignatory(SMB2Dialect.SMB_2_1, new BCSecurityProvider())
+    def signatory = new PacketSignatory(new BCSecurityProvider())
+    signatory.init(SMB2Dialect.SMB_2_0_2)
 
     when:
     boolean verified = signatory.verify(packet, signingKey)

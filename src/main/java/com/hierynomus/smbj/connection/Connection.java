@@ -102,6 +102,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         this.transport = config.getTransportLayerFactory().createTransportLayer(new PacketHandlers<>(new SMBPacketSerializer(), this, converter), config);
         this.bus = bus;
         this.serverList = serverList;
+        init();
     }
 
     private void init() {
@@ -125,8 +126,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         this.transport = connection.transport;
         this.bus = connection.bus;
         this.serverList = connection.serverList;
-        this.packetHandlerChain = connection.packetHandlerChain;
-        bus.subscribe(this);
+        init();
     }
 
     public void connect(String hostname, int port) throws IOException {
