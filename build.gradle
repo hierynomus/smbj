@@ -28,8 +28,8 @@ repositories {
   maven { url "http://dl.bintray.com/typesafe/maven-releases" }
 }
 
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 configurations.compile.transitive = false
 
@@ -40,12 +40,20 @@ dependencies {
   compile BCPROV_JDK15ON
   compile MBASSADOR
   compile ASN_ONE
-  testCompile GROOVY_ALL
+  testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
+  testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.0")
+  testImplementation("org.junit.jupiter:junit-jupiter-params:5.7.0")
+
+  testImplementation GROOVY_ALL
   testRuntime CGLIB_NODEP
   testRuntime OBJENESIS
-  testCompile SPOCK_CORE
-  testCompile COMMONS_IO
+  testImplementation SPOCK_CORE
+  testImplementation COMMONS_IO
   testRuntime LOGBACK_CLASSIC
+}
+
+tasks.withType(Test) {
+  useJUnitPlatform()
 }
 
 license {
@@ -86,7 +94,7 @@ if (JavaVersion.current().isJava8Compatible()) {
 }
 
 configurations {
-  integrationTestCompile.extendsFrom testCompile
+  integrationTestImplementation.extendsFrom testImplementation
   integrationTestRuntime.extendsFrom testRuntime
 }
 
