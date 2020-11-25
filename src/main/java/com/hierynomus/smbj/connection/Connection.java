@@ -27,9 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.hierynomus.mssmb.SMB1PacketFactory;
-import com.hierynomus.mssmb2.SMB2MessageConverter;
-import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.mssmb2.SMB2PacketFactory;
+import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.SMB2Cancel;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
@@ -71,7 +69,7 @@ import net.engio.mbassy.listener.Handler;
  */
 public class Connection extends Pooled<Connection> implements Closeable, PacketReceiver<SMBPacketData<?>> {
     private static final Logger logger = LoggerFactory.getLogger(Connection.class);
-    private static final DelegatingSMBMessageConverter converter = new DelegatingSMBMessageConverter(new SMB2PacketFactory(), new SMB1PacketFactory());
+    private static final DelegatingSMBMessageConverter converter = new DelegatingSMBMessageConverter(new SMB3EncryptedPacketFactory(), new SMB3CompressedPacketFactory(), new SMB2PacketFactory(), new SMB1PacketFactory());
     private IncomingPacketHandler packetHandlerChain;
 
     private ConnectionContext connectionContext;
@@ -111,13 +109,14 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         this.signatory = new PacketSignatory(config.getSecurityProvider());
         this.encryptor = new PacketEncryptor(config.getSecurityProvider());
 
-        this.packetHandlerChain = new SMB2CompoundedPacketHandler().setNext(
-            new SMB2IsOutstandingPacketHandler(outstandingRequests).setNext(
-                new SMB2SignatureVerificationPacketHandler(sessionTable, signatory).setNext(
-                    new SMB2CreditGrantingPacketHandler(sequenceWindow).setNext(
-                        new SMB2AsyncResponsePacketHandler(outstandingRequests).setNext(
-                            new SMB2ProcessResponsePacketHandler(smb2Converter, outstandingRequests).setNext(
-                                new SMB1PacketHandler().setNext(new DeadLetterPacketHandler())))))));
+        this.packetHandlerChain = new SMB3DecryptingPacketHandler(sessionTable, encryptor).setNext(
+            new SMB2CompoundedPacketHandler().setNext(
+                new SMB2IsOutstandingPacketHandler(outstandingRequests).setNext(
+                    new SMB2SignatureVerificationPacketHandler(sessionTable, signatory).setNext(
+                        new SMB2CreditGrantingPacketHandler(sequenceWindow).setNext(
+                            new SMB2AsyncResponsePacketHandler(outstandingRequests).setNext(
+                                new SMB2ProcessResponsePacketHandler(smb2Converter, outstandingRequests).setNext(
+                                    new SMB1PacketHandler().setNext(new DeadLetterPacketHandler()))))))));
     }
 
     public Connection(Connection connection) {
@@ -137,7 +136,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         this.connectionContext = new ConnectionContext(config.getClientGuid(), hostname, port, config);
         new SMBProtocolNegotiator(this, config, connectionContext).negotiateDialect();
         this.signatory.init(connectionContext.getNegotiatedProtocol().getDialect());
-        this.packetHandlerChain = new SMB3DecryptingPacketHandler(connectionContext.getNegotiatedProtocol().getDialect(), sessionTable, new PacketEncryptor(config.getSecurityProvider())).setNext(this.packetHandlerChain);
+        this.encryptor.init(connectionContext);
         logger.info("Successfully connected to: {}", getRemoteHostname());
     }
 
@@ -152,9 +151,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
      * {@link TransportLayer#disconnect()}.
      *
      * <p>
-     * If {@code force} is set to false, the usage count of the connection is
-     * reduced by one. If the usage count drops to zero the connection is really
-     * closed.
+     * If {@code force} is set to false, the usage counter of the connection reduces with one. If the usage count drops to zero the connection will be closed.
      * </p>
      *
      * @param force if set, does not nicely terminate the open sessions.
@@ -190,7 +187,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         return new SMBSessionBuilder(this, config, new SMBSessionBuilder.SessionFactory() {
             @Override
             public Session createSession(AuthenticationContext context) {
-                return new Session(Connection.this, config, context, bus, client.getPathResolver(), signatory);
+                return new Session(Connection.this, config, context, bus, client.getPathResolver(), signatory, encryptor);
             }
         }).establish(authContext);
     }

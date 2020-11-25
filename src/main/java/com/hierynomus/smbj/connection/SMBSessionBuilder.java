@@ -53,6 +53,7 @@ import java.util.List;
 
 import static com.hierynomus.mssmb2.messages.SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_ENABLED;
 import static com.hierynomus.mssmb2.messages.SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_REQUIRED;
+import static com.hierynomus.utils.Strings.nullTerminatedBytes;
 import static java.lang.String.format;
 
 /**
@@ -60,11 +61,18 @@ import static java.lang.String.format;
  */
 public class SMBSessionBuilder {
 
-    private static final byte[] SMB_3_1_1_ENC_KDF_LABEL = new byte[]{'S', 'M', 'B', 'C', '2', 'S', 'C', 'i', 'p', 'h', 'e', 'r', 'K', 'e', 'y', 0}; // SMBC2SCipherKey\0
-    private static final byte[] KDF_LABEL = new byte[]{'S', 'M', 'B', '2', 'A', 'E', 'S', 'C', 'C', 'M', 0}; // SMB2AESCCM\0
-    private static final byte[] ENC_KDF_CONTEXT = new byte[]{'S', 'e', 'r', 'v', 'e', 'r', 'I', 'n', ' ', 0}; // ServerIn \0
-    private static final byte[] SMB_3_1_1_DEC_KDF_LABEL = new byte[]{'S', 'M', 'B', 'S', '2', 'C', 'C', 'i', 'p', 'h', 'e', 'r', 'K', 'e', 'y', 0}; // SMBS2CCipherKey\0
-    private static final byte[] DEC_KDF_CONTEXT = new byte[]{'S', 'e', 'r', 'v', 'e', 'r', 'O', 'u', 't', 0}; // ServerOut\0
+    private static final byte[] KDF_ENC_LABEL_SMB311 = nullTerminatedBytes("SMBC2SCipherKey");
+    private static final byte[] KDF_DEC_LABEL_SMB311 = nullTerminatedBytes("SMBS2CCipherKey");
+    private static final byte[] KDF_ENCDEC_LABEL = nullTerminatedBytes("SMB2AESCCM");
+    private static final byte[] KDF_ENC_CONTEXT = nullTerminatedBytes("ServerIn ");
+    private static final byte[] KDF_DEC_CONTEXT = nullTerminatedBytes("ServerOut");
+    private static final byte[] KDF_SIGN_CONTEXT = nullTerminatedBytes("SmbSign");
+    private static final byte[] KDF_SIGN_LABEL = nullTerminatedBytes("SMB2AESCMAC");
+    private static final byte[] KDF_SIGN_LABEL_SMB311 = nullTerminatedBytes("SMBSigningKey");
+    private static final byte[] KDF_APP_CONTEXT = nullTerminatedBytes("SmbRpc");
+    private static final byte[] KDF_APP_LABEL = nullTerminatedBytes("SMB2APP");
+    private static final byte[] KDF_APP_LABEL_SMB311 = nullTerminatedBytes("SMBAppKey");
+
 
     private static final Logger logger = LoggerFactory.getLogger(SMBSessionBuilder.class);
     private final SmbConfig config;
@@ -154,11 +162,15 @@ public class SMBSessionBuilder {
                 !response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_GUEST) &&
                 connectionContext.supportsEncryption()) {
                 if (dialect == SMB2Dialect.SMB_3_1_1) {
-                    context.setEncryptionKey(deriveKey(ctx, context.getSessionKey(), SMB_3_1_1_ENC_KDF_LABEL, context.getPreauthIntegrityHashValue()));
-                    context.setDecryptionKey(deriveKey(ctx, context.getSessionKey(), SMB_3_1_1_DEC_KDF_LABEL, context.getPreauthIntegrityHashValue()));
+                    context.setEncryptionKey(deriveKey(ctx, context.getSessionKey(), KDF_ENC_LABEL_SMB311, context.getPreauthIntegrityHashValue()));
+                    context.setDecryptionKey(deriveKey(ctx, context.getSessionKey(), KDF_DEC_LABEL_SMB311, context.getPreauthIntegrityHashValue()));
+                    context.setSigningKey(deriveKey(ctx, context.getSessionKey(), KDF_SIGN_LABEL_SMB311, context.getPreauthIntegrityHashValue()));
+                    context.setApplicationKey(deriveKey(ctx, context.getSessionKey(), KDF_APP_LABEL_SMB311, context.getPreauthIntegrityHashValue()));
                 } else {
-                    context.setEncryptionKey(deriveKey(ctx, context.getSessionKey(), KDF_LABEL, ENC_KDF_CONTEXT));
-                    context.setDecryptionKey(deriveKey(ctx, context.getSessionKey(), KDF_LABEL, DEC_KDF_CONTEXT));
+                    context.setEncryptionKey(deriveKey(ctx, context.getSessionKey(), KDF_ENCDEC_LABEL, KDF_ENC_CONTEXT));
+                    context.setDecryptionKey(deriveKey(ctx, context.getSessionKey(), KDF_ENCDEC_LABEL, KDF_DEC_CONTEXT));
+                    context.setSigningKey(deriveKey(ctx, context.getSessionKey(), KDF_SIGN_LABEL, KDF_SIGN_CONTEXT));
+                    context.setApplicationKey(deriveKey(ctx, context.getSessionKey(), KDF_APP_LABEL, KDF_APP_CONTEXT));
                 }
             }
             return session;

@@ -34,6 +34,7 @@ public class SessionContext {
     // SMB 3.x
     private SecretKey decryptionKey;
     private SecretKey encryptionKey;
+    private SecretKey applicationKey;
 
     // SMB 3.1.1
     byte[] preauthIntegrityHashValue;
@@ -42,7 +43,6 @@ public class SessionContext {
         this.sessionFlags = response.getSessionFlags();
 
     }
-
 
     public boolean isSigningRequired() {
         return signingRequired;
@@ -92,11 +92,23 @@ public class SessionContext {
         return decryptionKey;
     }
 
+    public SecretKey getEncryptionKey() {
+        return encryptionKey;
+    }
+
     public void setEncryptionKey(SecretKey encryptionKey) {
         this.encryptionKey = encryptionKey;
     }
 
     public void setDecryptionKey(SecretKey decryptionKey) {
         this.decryptionKey = decryptionKey;
+    }
+
+    public void setSigningKey(SecretKey signingKey) {
+        this.signingKey = signingKey;
+    }
+
+    public void setApplicationKey(SecretKey applicationKey) {
+        this.applicationKey = applicationKey;
     }
 }

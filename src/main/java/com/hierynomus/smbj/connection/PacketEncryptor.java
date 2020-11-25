@@ -15,9 +15,7 @@
  */
 package com.hierynomus.smbj.connection;
 
-import com.hierynomus.mssmb2.SMB2Dialect;
-import com.hierynomus.mssmb2.SMB3EncryptedPacketData;
-import com.hierynomus.mssmb2.SMB3EncryptionCipher;
+import com.hierynomus.mssmb2.*;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.security.AEADBlockCipher;
 import com.hierynomus.security.Cipher;
@@ -88,6 +86,15 @@ public class PacketEncryptor {
         }
     }
 
+    public SMB2Packet encrypt(SMB2Packet packet, SecretKey encryptionKey) {
+        if (encryptionKey != null) {
+            return new EncryptedPacketWrapper(packet, encryptionKey);
+        } else {
+            logger.debug("Not wrapping {} as encrypted, as no key is set.", packet.getHeader().getMessage());
+            return packet;
+        }
+    }
+
     private byte[] createAAD(SMB3EncryptedPacketData packetData) {
         SMBBuffer b = new SMBBuffer();
         packetData.getHeader().writeTo(b); // Write the header
@@ -95,4 +102,19 @@ public class PacketEncryptor {
         return b.getCompactData();
     }
 
+    public class EncryptedPacketWrapper extends SMB2Packet {
+        private final SMB2Packet packet;
+        private final SecretKey encryptionKey;
+
+        public EncryptedPacketWrapper(SMB2Packet packet, SecretKey encryptionKey) {
+            this.packet = packet;
+            this.encryptionKey = encryptionKey;
+        }
+
+        @Override
+        public void write(SMBBuffer buffer) {
+            SMBBuffer wrappedPacketPlain = new SMBBuffer();
+            packet.write(wrappedPacketPlain);
+        }
+    }
 }

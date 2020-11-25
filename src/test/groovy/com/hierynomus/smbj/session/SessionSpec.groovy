@@ -31,7 +31,7 @@ class SessionSpec extends Specification {
     def connection = Stub(Connection, constructorArgs: [config, null, Mock(SMBEventBus), new ServerList()]) {
       getNegotiatedProtocol() >> new NegotiatedProtocol(SMB2Dialect.SMB_2_0_2, 100, 100, 100, true)
     }
-    def session = new Session(connection, config, null, null, null, null)
+    def session = new Session(connection, config, null, null, null, null, null)
 
     when:
     session.connectShare("foo\\bar")

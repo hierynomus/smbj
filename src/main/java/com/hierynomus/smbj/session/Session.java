@@ -31,6 +31,7 @@ import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.connection.PacketEncryptor;
 import com.hierynomus.smbj.connection.PacketSignatory;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
@@ -68,13 +69,14 @@ public class Session implements AutoCloseable {
     private SMBEventBus bus;
     private final PathResolver pathResolver;
     private PacketSignatory signatory;
+    private PacketEncryptor encryptor;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
     private Map<String, Session> nestedSessionsByHost = new HashMap<>();
     private ReentrantReadWriteLock nestedSessionsRwLock = new ReentrantReadWriteLock();
     private AuthenticationContext userCredentials;
     private SessionContext sessionContext;
 
-    public Session(Connection connection, SmbConfig config, AuthenticationContext userCredentials, SMBEventBus bus, PathResolver pathResolver, PacketSignatory signatory) {
+    public Session(Connection connection, SmbConfig config, AuthenticationContext userCredentials, SMBEventBus bus, PathResolver pathResolver, PacketSignatory signatory, PacketEncryptor encryptor) {
         this.connection = connection;
         this.config = config;
         this.userCredentials = userCredentials;
@@ -297,6 +299,9 @@ public class Session implements AutoCloseable {
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
         if (signingRequired && sessionContext.getSigningKey() == null) {
             throw new TransportException("Message signing is required, but no signing key is negotiated");
+        }
+        if (encryptData && sessionContext.getEncryptionKey() == null) {
+            throw new TransportException("Message encryption is required, but no encryption key is negotiated");
         }
         return connection.send(signatory.sign(packet, sessionContext.getSigningKey()));
     }

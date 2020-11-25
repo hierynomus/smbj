@@ -84,12 +84,10 @@ import java.util.Arrays;
  */
 public class SMB3DecryptingPacketHandler extends AbstractIncomingPacketHandler {
     private static final Logger logger = LoggerFactory.getLogger(SMB3DecryptingPacketHandler.class);
-    private SMB2Dialect dialect;
     private SessionTable sessionTable;
     private PacketEncryptor encryptor;
 
-    public SMB3DecryptingPacketHandler(SMB2Dialect dialect, SessionTable sessionTable, PacketEncryptor encryptor) {
-        this.dialect = dialect;
+    public SMB3DecryptingPacketHandler(SessionTable sessionTable, PacketEncryptor encryptor) {
         this.sessionTable = sessionTable;
         this.encryptor = encryptor;
     }
