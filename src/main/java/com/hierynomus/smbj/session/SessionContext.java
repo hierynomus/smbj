@@ -26,7 +26,8 @@ public class SessionContext {
     private Set<SMB2SessionSetup.SMB2SessionFlags> sessionFlags;
 
     private boolean signingRequired;
-    private boolean encryptData;
+    // SMB3.x If set, indicates that all message for this session MUST be encrypted
+    private boolean encryptData; // SMB3.x
 
     private SecretKey sessionKey;
 

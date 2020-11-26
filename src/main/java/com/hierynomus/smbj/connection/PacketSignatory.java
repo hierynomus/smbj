@@ -174,7 +174,7 @@ public class PacketSignatory {
 
         @Override
         public String toString() {
-            return wrappedPacket.toString();
+            return "Signed(" + wrappedPacket.toString() + ")";
         }
 
         /**

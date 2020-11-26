@@ -97,7 +97,7 @@ public class SMB2SignatureVerificationPacketHandler extends SMB2PacketHandler {
                 return;
             }
 
-            if (signatory.verify(packetData, session.getSigningKey())) {
+            if (signatory.verify(packetData, session.getSigningKey(packetData.getHeader(), false))) {
                 logger.debug("Signature for packet {} verified.", packetData);
                 next.handle(packetData);
                 return;

@@ -16,10 +16,7 @@
 package com.hierynomus.smbj.session;
 
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.mssmb2.SMB2MessageCommandCode;
-import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.mssmb2.SMB2ShareCapabilities;
-import com.hierynomus.mssmb2.SMBApiException;
+import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
 import com.hierynomus.mssmb2.messages.SMB2Logoff;
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
@@ -59,10 +56,6 @@ import static java.lang.String.format;
 public class Session implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(Session.class);
     private long sessionId;
-
-    private boolean signingRequired;
-    // SMB3.x If set, indicates that all message for this session MUST be encrypted
-    private boolean encryptData; // SMB3.x
 
     private Connection connection;
     private final SmbConfig config;
@@ -269,7 +262,7 @@ public class Session implements AutoCloseable {
     }
 
     public boolean isSigningRequired() {
-        return signingRequired;
+        return sessionContext.isSigningRequired();
     }
 
     public boolean isGuest() {
@@ -297,13 +290,15 @@ public class Session implements AutoCloseable {
      * @throws TransportException
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
-        if (signingRequired && sessionContext.getSigningKey() == null) {
+        SecretKey signingKey = getSigningKey(packet.getHeader(), true);
+        if (sessionContext.isSigningRequired() && signingKey == null) {
             throw new TransportException("Message signing is required, but no signing key is negotiated");
         }
-        if (encryptData && sessionContext.getEncryptionKey() == null) {
+        if (sessionContext.isEncryptData() && sessionContext.getEncryptionKey() == null) {
             throw new TransportException("Message encryption is required, but no encryption key is negotiated");
         }
-        return connection.send(signatory.sign(packet, sessionContext.getSigningKey()));
+
+        return connection.send(signatory.sign(packet, signingKey));
     }
 
     public <T extends SMB2Packet> T processSendResponse(SMB2CreateRequest packet) throws TransportException {
@@ -311,8 +306,36 @@ public class Session implements AutoCloseable {
         return Futures.get(responseFuture, SMBRuntimeException.Wrapper);
     }
 
-    public SecretKey getSigningKey() {
-        return sessionContext.getSigningKey();
+    /**
+     * If Connection.Dialect belongs to the SMB 3.x dialect family, and the received message is an SMB2 SESSION_SETUP
+     * Response without a status code equal to STATUS_SUCCESS in the header, the client MUST verify the signature of
+     * the message as specified in section 3.1.5.1, using Session.SigningKey as the signing key, and passing the
+     * response message.
+     * For all other messages, the client MUST look up the Channel in Session.ChannelList, where the Channel.Connection
+     * matches the connection on which this message is received, and MUST use Channel.SigningKey for verifying the
+     * signature as specified in section 3.1.5.1.
+     *
+     *  Otherwise, the client MUST verify the signature of the message as specified in section 3.1.5.1,
+     * using Session.SessionKey as the signing key, and passing the response message.
+     *
+     *
+     * @param signing If true, check for signing mode, else get for verification mode
+     * @return
+     */
+    public SecretKey getSigningKey(SMB2PacketHeader header, boolean signing) {
+        if (connection.getNegotiatedProtocol().getDialect().isSmb3x()) {
+            if (header.getMessage() == SMB2MessageCommandCode.SMB2_SESSION_SETUP) {
+                if (signing) {
+                    return sessionContext.getSigningKey();
+                }
+                if (header.getStatusCode() != NtStatus.STATUS_SUCCESS.getValue()) {
+                    return sessionContext.getSigningKey();
+                }
+            }
+            return sessionContext.getSigningKey(); // TODO channel.getSigningKey()
+        }
+
+        return sessionContext.getSessionKey();
     }
 
     public SessionContext getSessionContext() {

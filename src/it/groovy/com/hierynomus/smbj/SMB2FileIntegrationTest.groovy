@@ -61,7 +61,7 @@ class SMB2FileIntegrationTest extends Specification {
       .builder()
       .withMultiProtocolNegotiate(true)
       .withDialects(SMB2Dialect.SMB_2_1)
-//      .withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>())
+      .withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>())
       .withSecurityProvider(new BCSecurityProvider())
       .withSigningRequired(true)
       /*.withEncryptData(true)*/.build()

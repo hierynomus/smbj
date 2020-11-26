@@ -27,6 +27,7 @@ import com.hierynomus.mssmb2.messages.*
 class BasicPacketProcessor {
   private Closure<SMB2Packet> processPacket = { SMB2Packet req ->
     def resp = null
+    req = req.packet // Ensure unwrapping
     if (req instanceof SMB2NegotiateRequest) {
       resp = negotiateResponse()
     } else if (req instanceof SMB2SessionSetup) {
