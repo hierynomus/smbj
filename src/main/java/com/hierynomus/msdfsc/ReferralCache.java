@@ -172,7 +172,7 @@ public class ReferralCache {
         }
 
         public synchronized TargetSetEntry nextTargetHint() {
-            if (targetHint < targetList.size()) {
+            if (targetHint < targetList.size()-1) {
                 targetHint++;
                 return getTargetHint();
             } else {
