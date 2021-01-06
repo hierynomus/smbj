@@ -36,8 +36,8 @@ public class SMB2TransformHeader implements SMBHeader {
     private long sessionId;
     private int messageEndPosition;
 
-    public SMB2TransformHeader(byte[] signature, byte[] nonce, int originalMessageSize, long sessionId) {
-        this.signature = signature;
+    public SMB2TransformHeader(byte[] nonce, int originalMessageSize, long sessionId) {
+        this.signature = new byte[16]; // Assign empty signature so that creating the AAD is successful
         this.nonce = nonce;
         this.originalMessageSize = originalMessageSize;
         this.sessionId = sessionId;
@@ -88,6 +88,10 @@ public class SMB2TransformHeader implements SMBHeader {
 
     public byte[] getSignature() {
         return signature;
+    }
+
+    public void setSignature(byte[] signature) {
+        this.signature = signature;
     }
 
     public byte[] getNonce() {

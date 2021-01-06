@@ -69,8 +69,8 @@ public class SessionContext {
         return sessionFlags.contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_GUEST);
     }
 
-    public void setSessionKey(byte[] sessionKey) {
-        this.sessionKey = new SecretKeySpec(sessionKey, "");
+    public void setSessionKey(SecretKeySpec sessionKey) {
+        this.sessionKey = sessionKey;
     }
 
     public void setPreauthIntegrityHashValue(byte[] preauthIntegrityHashValue) {

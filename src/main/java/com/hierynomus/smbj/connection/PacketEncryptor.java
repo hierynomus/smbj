@@ -17,6 +17,7 @@ package com.hierynomus.smbj.connection;
 
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.security.AEADBlockCipher;
 import com.hierynomus.security.Cipher;
 import com.hierynomus.security.SecurityException;
@@ -29,12 +30,14 @@ import org.slf4j.LoggerFactory;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class PacketEncryptor {
     private static final Logger logger = LoggerFactory.getLogger(PacketEncryptor.class);
     private SecurityProvider securityProvider;
     private SMB3EncryptionCipher cipher;
     private SMB2Dialect dialect;
+    private AtomicInteger nonceCounter = new AtomicInteger(0);
 
     public PacketEncryptor(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
@@ -49,6 +52,7 @@ public class PacketEncryptor {
         } else {
             cipher = SMB3EncryptionCipher.AES_128_CCM;
         }
+        logger.info("Initialized PacketEncryptor with Cipher << {} >>", cipher);
     }
 
     public boolean canDecrypt(SMB3EncryptedPacketData packetData) {
@@ -60,7 +64,7 @@ public class PacketEncryptor {
     public byte[] decrypt(SMB3EncryptedPacketData packetData, SecretKey decryptionKey) {
         byte[] realNonce = Arrays.copyOf(packetData.getHeader().getNonce(), cipher.getNonceLength());
         try {
-            byte[] aad = createAAD(packetData);
+            byte[] aad = createAAD(packetData.getHeader());
             byte[] cipherText = packetData.getCipherText();
             byte[] signature = packetData.getHeader().getSignature();
 
@@ -95,10 +99,19 @@ public class PacketEncryptor {
         }
     }
 
-    private byte[] createAAD(SMB3EncryptedPacketData packetData) {
+    byte[] createAAD(SMB2TransformHeader header) {
         SMBBuffer b = new SMBBuffer();
-        packetData.getHeader().writeTo(b); // Write the header
+        header.writeTo(b); // Write the header
         b.rpos(20); // Skip ProtocolId (4 bytes) AND Signature (16 bytes)
+        return b.getCompactData();
+    }
+
+    byte[] getNewNonce() {
+        long nonce = System.nanoTime();
+        SMBBuffer b = new SMBBuffer();
+        b.putUInt64(nonce); // Little Endians go first
+        int padding = cipher.getNonceLength() - 8; // 64 bits = 8 bytes
+        b.putReserved(padding);
         return b.getCompactData();
     }
 
@@ -114,7 +127,77 @@ public class PacketEncryptor {
         @Override
         public void write(SMBBuffer buffer) {
             SMBBuffer wrappedPacketPlain = new SMBBuffer();
+            // Write the whole plainText packet to the buffer
             packet.write(wrappedPacketPlain);
+
+            // number of bytes available to read is equals to packet size
+            final byte[] plainText = wrappedPacketPlain.getCompactData();
+
+            // The nonce used in the SMB2_TRANSFORM_HEADER
+            final byte[] nonceField = getNewNonce();
+            // the nonce actually used in encryption
+            final GCMParameterSpec parameterSpec = new GCMParameterSpec(128, nonceField);
+
+            // 3.1.4.3 Encrypting the Message, The SMB2 TRANSFORM_HEADER,
+            // excluding the ProtocolId and Signature fields,
+            // as the optional authenticated data.
+            SMB2TransformHeader header = new SMB2TransformHeader(nonceField, plainText.length, packet.getHeader().getSessionId());
+            final byte[] aad = createAAD(header);
+
+            // the AEC-CCM and AES-GCM both will generate cipherText with authentication tag
+            byte[] cipherTextWithMac;
+            try {
+                AEADBlockCipher aeadBlockCipher = securityProvider.getAEADBlockCipher(cipher.getAlgorithmName());
+                aeadBlockCipher.init(Cipher.CryptMode.ENCRYPT, encryptionKey.getEncoded(), parameterSpec);
+                aeadBlockCipher.updateAAD(aad, 0, aad.length);
+                cipherTextWithMac = aeadBlockCipher.doFinal(plainText, 0, plainText.length);
+            } catch (SecurityException e) {
+                logger.error("Security exception while encrypting packet << {} >>", packet.getHeader());
+                throw new SMBRuntimeException(e);
+            }
+
+            // the plainTextSize should equals cipherTextSize - AUTHENTICATION_TAG_LENGTH
+            if (cipherTextWithMac.length != plainText.length + 16) {
+                throw new IllegalStateException("Invalid length for cipherText after encryption.");
+            }
+
+            byte[] signature = new byte[16];
+            System.arraycopy(cipherTextWithMac, plainText.length, signature, 0, signature.length);
+            header.setSignature(signature);
+
+            header.writeTo(buffer);
+            buffer.putRawBytes(cipherTextWithMac, 0, plainText.length);
         }
+
+        @Override
+        public SMB2PacketHeader getHeader() {
+            return packet.getHeader();
+        }
+
+
+        @Override
+        public long getSequenceNumber() {
+            return packet.getSequenceNumber();
+        }
+
+        @Override
+        public int getStructureSize() {
+            return packet.getStructureSize();
+        }
+
+        @Override
+        public String toString() {
+            return "Encrypted(" + packet.toString() + ")";
+        }
+
+        /**
+         * Return the result of the {@link #getPacket()} call on the wrapped packet.
+         * @return The unwrapped wrapppedPacket
+         */
+        @Override
+        public SMB2Packet getPacket() {
+            return packet.getPacket();
+        }
+
     }
 }

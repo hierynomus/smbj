@@ -135,7 +135,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         transport.connect(new InetSocketAddress(hostname, port));
         this.connectionContext = new ConnectionContext(config.getClientGuid(), hostname, port, config);
         new SMBProtocolNegotiator(this, config, connectionContext).negotiateDialect();
-        this.signatory.init(connectionContext.getNegotiatedProtocol().getDialect());
+        this.signatory.init();
         this.encryptor.init(connectionContext);
         logger.info("Successfully connected to: {}", getRemoteHostname());
     }

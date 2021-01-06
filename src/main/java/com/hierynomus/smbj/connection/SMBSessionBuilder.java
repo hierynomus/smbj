@@ -61,17 +61,19 @@ import static java.lang.String.format;
  */
 public class SMBSessionBuilder {
 
-    private static final byte[] KDF_ENC_LABEL_SMB311 = nullTerminatedBytes("SMBC2SCipherKey");
-    private static final byte[] KDF_DEC_LABEL_SMB311 = nullTerminatedBytes("SMBS2CCipherKey");
-    private static final byte[] KDF_ENCDEC_LABEL = nullTerminatedBytes("SMB2AESCCM");
-    private static final byte[] KDF_ENC_CONTEXT = nullTerminatedBytes("ServerIn ");
-    private static final byte[] KDF_DEC_CONTEXT = nullTerminatedBytes("ServerOut");
-    private static final byte[] KDF_SIGN_CONTEXT = nullTerminatedBytes("SmbSign");
-    private static final byte[] KDF_SIGN_LABEL = nullTerminatedBytes("SMB2AESCMAC");
-    private static final byte[] KDF_SIGN_LABEL_SMB311 = nullTerminatedBytes("SMBSigningKey");
-    private static final byte[] KDF_APP_CONTEXT = nullTerminatedBytes("SmbRpc");
-    private static final byte[] KDF_APP_LABEL = nullTerminatedBytes("SMB2APP");
-    private static final byte[] KDF_APP_LABEL_SMB311 = nullTerminatedBytes("SMBAppKey");
+    static final byte[] KDF_ENC_LABEL_SMB311 = nullTerminatedBytes("SMBC2SCipherKey");
+    static final byte[] KDF_DEC_LABEL_SMB311 = nullTerminatedBytes("SMBS2CCipherKey");
+    static final byte[] KDF_ENCDEC_LABEL = nullTerminatedBytes("SMB2AESCCM");
+    static final byte[] KDF_ENC_CONTEXT = nullTerminatedBytes("ServerIn ");
+    static final byte[] KDF_DEC_CONTEXT = nullTerminatedBytes("ServerOut");
+    static final byte[] KDF_SIGN_CONTEXT = nullTerminatedBytes("SmbSign");
+    static final byte[] KDF_SIGN_LABEL = nullTerminatedBytes("SMB2AESCMAC");
+    static final byte[] KDF_SIGN_LABEL_SMB311 = nullTerminatedBytes("SMBSigningKey");
+    static final byte[] KDF_APP_CONTEXT = nullTerminatedBytes("SmbRpc");
+    static final byte[] KDF_APP_LABEL = nullTerminatedBytes("SMB2APP");
+    static final byte[] KDF_APP_LABEL_SMB311 = nullTerminatedBytes("SMBAppKey");
+    static final String HMAC_SHA256_ALGORITHM = "HmacSHA256";
+    static final String AES_128_CMAC_ALGORITHM = "AesCmac";
 
 
     private static final Logger logger = LoggerFactory.getLogger(SMBSessionBuilder.class);
@@ -151,7 +153,7 @@ public class SMBSessionBuilder {
 
             SessionContext context = session.getSessionContext();
             processAuthenticationToken(ctx, response.getSecurityBuffer());
-            context.setSessionKey(ctx.sessionKey);
+            context.setSessionKey(new SecretKeySpec(ctx.sessionKey, HMAC_SHA256_ALGORITHM));
             if (dialect == SMB2Dialect.SMB_3_1_1) {
                 updatePreauthIntegrityValue(ctx, context, ctx.request);
             }
@@ -161,16 +163,17 @@ public class SMBSessionBuilder {
                 !response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_NULL) &&
                 !response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_GUEST) &&
                 connectionContext.supportsEncryption()) {
+                String alg = connectionContext.getCipherId().getAlgorithmName();
                 if (dialect == SMB2Dialect.SMB_3_1_1) {
-                    context.setEncryptionKey(deriveKey(ctx, context.getSessionKey(), KDF_ENC_LABEL_SMB311, context.getPreauthIntegrityHashValue()));
-                    context.setDecryptionKey(deriveKey(ctx, context.getSessionKey(), KDF_DEC_LABEL_SMB311, context.getPreauthIntegrityHashValue()));
-                    context.setSigningKey(deriveKey(ctx, context.getSessionKey(), KDF_SIGN_LABEL_SMB311, context.getPreauthIntegrityHashValue()));
-                    context.setApplicationKey(deriveKey(ctx, context.getSessionKey(), KDF_APP_LABEL_SMB311, context.getPreauthIntegrityHashValue()));
+                    context.setEncryptionKey(deriveKey(context.getSessionKey(), KDF_ENC_LABEL_SMB311, context.getPreauthIntegrityHashValue(), alg));
+                    context.setDecryptionKey(deriveKey(context.getSessionKey(), KDF_DEC_LABEL_SMB311, context.getPreauthIntegrityHashValue(), alg));
+                    context.setSigningKey(deriveKey(context.getSessionKey(), KDF_SIGN_LABEL_SMB311, context.getPreauthIntegrityHashValue(), AES_128_CMAC_ALGORITHM));
+                    context.setApplicationKey(deriveKey(context.getSessionKey(), KDF_APP_LABEL_SMB311, context.getPreauthIntegrityHashValue(), alg));
                 } else {
-                    context.setEncryptionKey(deriveKey(ctx, context.getSessionKey(), KDF_ENCDEC_LABEL, KDF_ENC_CONTEXT));
-                    context.setDecryptionKey(deriveKey(ctx, context.getSessionKey(), KDF_ENCDEC_LABEL, KDF_DEC_CONTEXT));
-                    context.setSigningKey(deriveKey(ctx, context.getSessionKey(), KDF_SIGN_LABEL, KDF_SIGN_CONTEXT));
-                    context.setApplicationKey(deriveKey(ctx, context.getSessionKey(), KDF_APP_LABEL, KDF_APP_CONTEXT));
+                    context.setEncryptionKey(deriveKey(context.getSessionKey(), KDF_ENCDEC_LABEL, KDF_ENC_CONTEXT, alg));
+                    context.setDecryptionKey(deriveKey(context.getSessionKey(), KDF_ENCDEC_LABEL, KDF_DEC_CONTEXT, alg));
+                    context.setSigningKey(deriveKey(context.getSessionKey(), KDF_SIGN_LABEL, KDF_SIGN_CONTEXT, AES_128_CMAC_ALGORITHM));
+                    context.setApplicationKey(deriveKey(context.getSessionKey(), KDF_APP_LABEL, KDF_APP_CONTEXT, alg));
                 }
             }
             return session;
@@ -272,7 +275,7 @@ public class SMBSessionBuilder {
         sessionContext.setPreauthIntegrityHashValue(DigestUtil.digest(ctx.digest, sessionContext.getPreauthIntegrityHashValue(), Packets.getPacketBytes(packet)));
     }
 
-    private SecretKey deriveKey(BuilderContext ctx, SecretKey derivationKey, byte[] label, byte[] context) {
+    private SecretKey deriveKey(SecretKey derivationKey, byte[] label, byte[] context, String algorithm) {
         ByteArrayOutputStream fixedSuffixTemp = new ByteArrayOutputStream(25);
         try {
             fixedSuffixTemp.write(label);
@@ -289,7 +292,7 @@ public class SMBSessionBuilder {
             kdf.init(new CounterDerivationParameters(derivationKey.getEncoded(), fixedSuffix, 32));
             byte[] derived = new byte[16]; // 16 bytes = 128 bits
             kdf.generateBytes(derived, 0, derived.length);
-            return new SecretKeySpec(derived, connectionContext.getCipherId().getAlgorithmName());
+            return new SecretKeySpec(derived, algorithm);
         } catch (SecurityException se) {
             throw new SMBRuntimeException(se);
         }

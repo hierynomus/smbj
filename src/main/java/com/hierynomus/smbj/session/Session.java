@@ -77,6 +77,7 @@ public class Session implements AutoCloseable {
         this.pathResolver = pathResolver;
         this.signatory = signatory;
         this.sessionContext = new SessionContext();
+        this.encryptor = encryptor;
         if (bus != null) {
             bus.subscribe(this);
         }
@@ -294,8 +295,13 @@ public class Session implements AutoCloseable {
         if (sessionContext.isSigningRequired() && signingKey == null) {
             throw new TransportException("Message signing is required, but no signing key is negotiated");
         }
+
         if (sessionContext.isEncryptData() && sessionContext.getEncryptionKey() == null) {
             throw new TransportException("Message encryption is required, but no encryption key is negotiated");
+        }
+
+        if (sessionContext.isEncryptData()) {
+            return connection.send(encryptor.encrypt(packet, sessionContext.getEncryptionKey()));
         }
 
         return connection.send(signatory.sign(packet, signingKey));

@@ -198,7 +198,7 @@ public class ConnectionContext {
 
     @Override
     public String toString() {
-        return "ConnectionInfo{\n" + "  serverGuid=" + server.getServerGUID() + ",\n" +
+        return "ConnectionContext{\n" + "  serverGuid=" + server.getServerGUID() + ",\n" +
             "  serverName='" + server.getServerName() + "',\n" +
             "  negotiatedProtocol=" + negotiatedProtocol + ",\n" +
             "  clientGuid=" + clientGuid + ",\n" +

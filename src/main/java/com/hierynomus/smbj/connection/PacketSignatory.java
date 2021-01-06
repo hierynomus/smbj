@@ -36,22 +36,13 @@ import static com.hierynomus.mssmb2.SMB2MessageFlag.SMB2_FLAGS_SIGNED;
 public class PacketSignatory {
     private static final Logger logger = LoggerFactory.getLogger(PacketSignatory.class);
 
-    private static final String HMAC_SHA256_ALGORITHM = "HmacSHA256";
-    private static final String AES_128_CMAC_ALGORITHM = "AesCmac";
-
     private SecurityProvider securityProvider;
-    private String algorithm;
 
     PacketSignatory(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
     }
 
-    void init(SMB2Dialect dialect) {
-        if (dialect.isSmb3x()) {
-            algorithm = AES_128_CMAC_ALGORITHM;
-        } else {
-            algorithm = HMAC_SHA256_ALGORITHM;
-        }
+    void init() {
     }
 
     public SMB2Packet sign(SMB2Packet packet, SecretKey secretKey) {
@@ -67,7 +58,7 @@ public class PacketSignatory {
     public boolean verify(SMB2PacketData packet, SecretKey secretKey) {
         try {
             SMBBuffer buffer = packet.getDataBuffer();
-            Mac mac = getMac(secretKey, algorithm, securityProvider);
+            Mac mac = getMac(secretKey, securityProvider);
             mac.update(buffer.array(), packet.getHeader().getHeaderStartPosition(), SIGNATURE_OFFSET);
             mac.update(EMPTY_SIGNATURE);
             mac.update(buffer.array(), STRUCTURE_SIZE, packet.getHeader().getMessageEndPosition() - STRUCTURE_SIZE);
@@ -88,8 +79,8 @@ public class PacketSignatory {
         }
     }
 
-    private static Mac getMac(SecretKey secretKey, String algorithm, SecurityProvider securityProvider) throws SecurityException {
-        Mac mac = securityProvider.getMac(algorithm);
+    private static Mac getMac(SecretKey secretKey, SecurityProvider securityProvider) throws SecurityException {
+        Mac mac = securityProvider.getMac(secretKey.getAlgorithm());
         mac.init(secretKey.getEncoded());
         return mac;
     }
@@ -132,7 +123,7 @@ public class PacketSignatory {
 
             SigningBuffer(SMBBuffer wrappedBuffer) throws SecurityException {
                 this.wrappedBuffer = wrappedBuffer;
-                mac = getMac(secretKey, PacketSignatory.this.algorithm, PacketSignatory.this.securityProvider);
+                mac = getMac(secretKey, PacketSignatory.this.securityProvider);
             }
 
             @Override

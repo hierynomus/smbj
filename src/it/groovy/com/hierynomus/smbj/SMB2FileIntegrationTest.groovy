@@ -42,6 +42,7 @@ import com.hierynomus.smbj.io.InputStreamByteChunkProvider
 import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.share.DiskShare
 import com.hierynomus.smbj.transport.tcp.async.AsyncDirectTcpTransportFactory
+import com.hierynomus.smbj.transport.tcp.direct.DirectTcpTransportFactory
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -60,8 +61,8 @@ class SMB2FileIntegrationTest extends Specification {
     def config = SmbConfig
       .builder()
       .withMultiProtocolNegotiate(true)
-      .withDialects(SMB2Dialect.SMB_2_1)
-      .withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>())
+      .withDialects(SMB2Dialect.SMB_3_1_1).withEncryptData(true)
+      .withTransportLayerFactory(new DirectTcpTransportFactory<>())
       .withSecurityProvider(new BCSecurityProvider())
       .withSigningRequired(true)
       /*.withEncryptData(true)*/.build()
