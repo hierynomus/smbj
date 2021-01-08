@@ -274,7 +274,7 @@ public class File extends DiskEntry {
      * https://msdn.microsoft.com/en-us/library/cc246804.aspx
      */
     private byte[] getResumeKey() throws Buffer.BufferException {
-        byte[] response = ioctl(FSCTL_SRV_REQUEST_RESUME_KEY, true, new byte[0], 0, 0);
+        byte[] response = ioctl(FSCTL_SRV_REQUEST_RESUME_KEY, true, new byte[0], 0, 0, 32);
         return Arrays.copyOf(response, 24);
     }
 
@@ -334,7 +334,7 @@ public class File extends DiskEntry {
         byte[] data = buffer.getCompactData();
 
         SMB2IoctlResponse response = share.receive(
-            share.ioctlAsync(target.fileId, CopyChunkRequest.getCtlCode(), true, new ArrayByteChunkProvider(data, 0, data.length, 0), -1),
+            share.ioctlAsync(target.fileId, CopyChunkRequest.getCtlCode(), true, new ArrayByteChunkProvider(data, 0, data.length, 0), 12),
             "IOCTL",
             target.fileId,
             COPY_CHUNK_ALLOWED_STATUS_VALUES,

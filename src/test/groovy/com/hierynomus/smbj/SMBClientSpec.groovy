@@ -23,10 +23,10 @@ class SMBClientSpec extends Specification {
 
   def processor = new BasicPacketProcessor({ req -> null })
   def config = SmbConfig.builder().withTransportLayerFactory(new StubTransportLayerFactory(processor.&processPacket)).build()
-  def client = new SMBClient(config)
 
   def "should return same connection for same host/port combo"() {
     given:
+    def client = new SMBClient(config)
     def con1 = client.connect("aHost", 4242)
 
     when:
@@ -38,6 +38,7 @@ class SMBClientSpec extends Specification {
 
   def "should return different connection for different port on same host"() {
     given:
+    def client = new SMBClient(config)
     def con1 = client.connect("aHost", 4242)
 
     when:
@@ -49,6 +50,7 @@ class SMBClientSpec extends Specification {
 
   def "should return different connection for different host"() {
     given:
+    def client = new SMBClient(config)
     def con1 = client.connect("hostA")
 
     when:
@@ -60,6 +62,7 @@ class SMBClientSpec extends Specification {
 
   def "should not return connection that was closed when connecting to same host"() {
     given:
+    def client = new SMBClient(config)
     def con1 = client.connect("hostA")
     con1.close()
 
@@ -72,6 +75,7 @@ class SMBClientSpec extends Specification {
 
   def "should not disconnect if more than one connection to the same host is open"() {
     given:
+    def client = new SMBClient(config)
     def con1 = client.connect("hostA")
     def con2 = client.connect("hostA")
 

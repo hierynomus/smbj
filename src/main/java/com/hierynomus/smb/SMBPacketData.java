@@ -30,9 +30,17 @@ public abstract class SMBPacketData<H extends SMBHeader> implements PacketData<S
     protected SMBBuffer dataBuffer;
 
     public SMBPacketData(H header, byte[] data) throws Buffer.BufferException {
+        this(header, new SMBBuffer(data));
+    }
+
+    protected SMBPacketData(H header, SMBBuffer buffer) throws Buffer.BufferException {
         this.header = header;
-        this.dataBuffer = new SMBBuffer(data);
+        this.dataBuffer = buffer;
         readHeader();
+    }
+
+    protected SMBPacketData(H header) {
+        this.header = header;
     }
 
     protected void readHeader() throws Buffer.BufferException {

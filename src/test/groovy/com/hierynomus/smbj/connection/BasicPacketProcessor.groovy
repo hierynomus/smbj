@@ -21,11 +21,13 @@ import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2MessageCommandCode
 import com.hierynomus.mssmb2.SMB2Packet
 import com.hierynomus.mssmb2.SMB2ShareCapabilities
+import com.hierynomus.mssmb2.SMB2ShareFlags
 import com.hierynomus.mssmb2.messages.*
 
 class BasicPacketProcessor {
   private Closure<SMB2Packet> processPacket = { SMB2Packet req ->
     def resp = null
+    req = req.packet // Ensure unwrapping
     if (req instanceof SMB2NegotiateRequest) {
       resp = negotiateResponse()
     } else if (req instanceof SMB2SessionSetup) {
@@ -70,6 +72,7 @@ class BasicPacketProcessor {
     response.header.statusCode = NtStatus.STATUS_SUCCESS.value
     response.dialect = SMB2Dialect.SMB_2_1
     response.systemTime = FileTime.now();
+    response.serverGuid = UUID.fromString("00112233-4455-6677-8899-aabbccddeeff")
     response
   }
 
@@ -94,6 +97,7 @@ class BasicPacketProcessor {
     def response = new SMB2TreeConnectResponse()
     response.header.statusCode = NtStatus.STATUS_SUCCESS.value
     response.capabilities = EnumSet.of(SMB2ShareCapabilities.SMB2_SHARE_CAP_DFS)
+    response.shareFlags = EnumSet.noneOf(SMB2ShareFlags)
     response.shareType = 0x01 as byte
     response
   }

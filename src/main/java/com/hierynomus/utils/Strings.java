@@ -15,6 +15,8 @@
  */
 package com.hierynomus.utils;
 
+import com.hierynomus.protocol.commons.Charsets;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,6 +57,17 @@ public class Strings {
             joiner.append(strings.get(i));
         }
         return joiner.toString();
+    }
+
+    /**
+     * Return a byte[] of the String including a final null terminator
+     * @param s
+     * @return
+     */
+    public static byte[] nullTerminatedBytes(String s) {
+        byte[] b = new byte[s.length() + 1];
+        System.arraycopy(s.getBytes(Charsets.US_ASCII), 0, b, 0, s.length());
+        return b;
     }
 
     /**

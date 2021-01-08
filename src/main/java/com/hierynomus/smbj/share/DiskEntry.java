@@ -150,6 +150,22 @@ public abstract class DiskEntry extends Open<DiskShare> {
      * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
      * corresponding operation.
      *
+     * @param ctlCode  the control code
+     * @param isFsCtl  true if the control code is an FSCTL; false if it is an IOCTL
+     * @param inData   the control code dependent input data
+     * @param inOffset the offset in <code>inData</code> where the input data starts
+     * @param inLength the number of bytes from <code>inData</code> to send, starting at <code>offset</code>
+     * @param maxOutputResponse the maximum number of bytes that the server can return for the output data in the SMB2 IOCTL Response.
+     * @return the response data or <code>null</code> if the control code did not produce a response
+     */
+    public byte[] ioctl(int ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength, int maxOutputResponse) {
+        return share.ioctl(fileId, ctlCode, isFsCtl, inData, inOffset, inLength, maxOutputResponse);
+    }
+
+    /**
+     * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
+     * corresponding operation.
+     *
      * @param ctlCode   the control code
      * @param isFsCtl   true if the control code is an FSCTL; false if it is an IOCTL
      * @param inData    the control code dependent input data

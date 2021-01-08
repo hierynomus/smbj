@@ -21,4 +21,6 @@ public interface MessageDigest {
     byte[] digest();
 
     void reset();
+
+    int getDigestLength();
 }

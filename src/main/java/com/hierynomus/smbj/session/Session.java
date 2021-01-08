@@ -16,18 +16,20 @@
 package com.hierynomus.smbj.session;
 
 import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.mssmb2.SMB2MessageCommandCode;
-import com.hierynomus.mssmb2.SMB2Packet;
-import com.hierynomus.mssmb2.SMB2ShareCapabilities;
-import com.hierynomus.mssmb2.SMBApiException;
-import com.hierynomus.mssmb2.messages.*;
+import com.hierynomus.mssmb2.*;
+import com.hierynomus.mssmb2.messages.SMB2CreateRequest;
+import com.hierynomus.mssmb2.messages.SMB2Logoff;
+import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest;
+import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.TransportException;
-import com.hierynomus.security.SecurityProvider;
+import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.connection.PacketEncryptor;
+import com.hierynomus.smbj.connection.PacketSignatory;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.event.TreeDisconnected;
@@ -38,6 +40,7 @@ import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -54,72 +57,29 @@ public class Session implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(Session.class);
     private long sessionId;
 
-    private PacketSignatory packetSignatory;
-    private boolean signingRequired;
-    private boolean encryptData; // SMB3.x
-
     private Connection connection;
+    private final SmbConfig config;
     private SMBEventBus bus;
     private final PathResolver pathResolver;
+    private PacketSignatory signatory;
+    private PacketEncryptor encryptor;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
     private Map<String, Session> nestedSessionsByHost = new HashMap<>();
     private ReentrantReadWriteLock nestedSessionsRwLock = new ReentrantReadWriteLock();
     private AuthenticationContext userCredentials;
+    private SessionContext sessionContext;
 
-    private boolean guest;
-    private boolean anonymous;
-
-    public Session(Connection connection, AuthenticationContext userCredentials, SMBEventBus bus, PathResolver pathResolver, SecurityProvider securityProvider) {
+    public Session(Connection connection, SmbConfig config, AuthenticationContext userCredentials, SMBEventBus bus, PathResolver pathResolver, PacketSignatory signatory, PacketEncryptor encryptor) {
         this.connection = connection;
+        this.config = config;
         this.userCredentials = userCredentials;
         this.bus = bus;
         this.pathResolver = pathResolver;
-        this.packetSignatory = new PacketSignatory(connection.getNegotiatedProtocol().getDialect(), securityProvider);
+        this.signatory = signatory;
+        this.sessionContext = new SessionContext();
+        this.encryptor = encryptor;
         if (bus != null) {
             bus.subscribe(this);
-        }
-    }
-
-    public void init(SMB2SessionSetup setup) {
-        this.guest = setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_GUEST);
-        this.anonymous = setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_NULL);
-        validateAndSetSigning(setup);
-        if (guest || anonymous) {
-            packetSignatory.init(null); // De-initialize the signatory if it was initialized with a bogus key during the auth
-        }
-    }
-
-    /**
-     * [MS-SMB2] 3.2.5.3.1 Handling a New Authentication
-     * @param setup
-     */
-    private void validateAndSetSigning(SMB2SessionSetup setup) {
-        boolean requireMessageSigning = connection.getConfig().isSigningRequired();
-        boolean connectionSigningRequired = connection.getConnectionInfo().isServerRequiresSigning();
-
-        // If the global setting RequireMessageSigning is set to TRUE or
-        // Connection.RequireSigning is set to TRUE then Session.SigningRequired MUST be
-        // set to TRUE, otherwise Session.SigningRequired MUST be set to FALSE.
-        if (requireMessageSigning || connectionSigningRequired) {
-            signingRequired = true;
-        } else {
-            signingRequired = false;
-        }
-
-        if (anonymous) {
-            // If the security subsystem indicates that the session was established by an anonymous user, Session.SigningRequired MUST be set to FALSE.
-            signingRequired = false;
-        }
-        if (guest && signingRequired) {
-            throw new SMB2GuestSigningRequiredException();
-        } else if (guest && !requireMessageSigning) {
-            signingRequired = false;
-        }
-
-        if (connection.getNegotiatedProtocol().getDialect().isSmb3x()
-            && setup.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_ENCRYPT_DATA)) {
-            encryptData = true;
-            signingRequired = false;
         }
     }
 
@@ -134,9 +94,9 @@ public class Session implements AutoCloseable {
     /**
      * Connect to a share on the remote machine over the authenticated session.
      * <p/>
-     * [MS-SMB2].pdf 3.2.4.2 Application Requests a Connection to a Share
-     * [MS-SMB2].pdf 3.2.4.2.4 Connecting to the Share
-     * [MS-SMB2].pdf 3.2.5.5 Receiving an SMB2 TREE_CONNECT Response
+     * [MS-SMB2] 3.2.4.2 Application Requests a Connection to a Share
+     * [MS-SMB2] 3.2.4.2.4 Connecting to the Share
+     * [MS-SMB2] 3.2.5.5 Receiving an SMB2 TREE_CONNECT Response
      *
      * @param shareName The name of the share to connect to.
      * @return the handle to the connected share.
@@ -162,7 +122,7 @@ public class Session implements AutoCloseable {
             SMB2TreeConnectRequest smb2TreeConnectRequest = new SMB2TreeConnectRequest(connection.getNegotiatedProtocol().getDialect(), smbPath, sessionId);
             smb2TreeConnectRequest.getHeader().setCreditRequest(256);
             Future<SMB2TreeConnectResponse> send = this.send(smb2TreeConnectRequest);
-            SMB2TreeConnectResponse response = Futures.get(send, connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
+            SMB2TreeConnectResponse response = Futures.get(send, config.getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
             try {
                 Share share = pathResolver.resolve(this, response, smbPath, new PathResolver.ResolveAction<Share>() {
                     @Override
@@ -196,7 +156,7 @@ public class Session implements AutoCloseable {
             }
 
             long treeId = response.getHeader().getTreeId();
-            TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), connection, bus, response.getMaximalAccess());
+            TreeConnect treeConnect = new TreeConnect(treeId, smbPath, this, response.getCapabilities(), config, connection.getConnectionContext(), bus, response.getMaximalAccess(), response.getShareFlags());
 
             Share share;
             if (response.isDiskShare()) {
@@ -293,7 +253,7 @@ public class Session implements AutoCloseable {
                 nestedSessionsRwLock.writeLock().unlock();
             }
             SMB2Logoff logoff = new SMB2Logoff(connection.getNegotiatedProtocol().getDialect(), sessionId);
-            SMB2Logoff response = Futures.get(this.<SMB2Logoff>send(logoff), connection.getConfig().getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
+            SMB2Logoff response = Futures.get(this.<SMB2Logoff>send(logoff), config.getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
             if (!NtStatus.isSuccess(response.getHeader().getStatusCode())) {
                 throw new SMBApiException(response.getHeader(), "Could not logoff session <<" + sessionId + ">>");
             }
@@ -303,19 +263,15 @@ public class Session implements AutoCloseable {
     }
 
     public boolean isSigningRequired() {
-        return signingRequired;
+        return sessionContext.isSigningRequired();
     }
 
     public boolean isGuest() {
-        return guest;
+        return sessionContext.isGuest();
     }
 
     public boolean isAnonymous() {
-        return anonymous;
-    }
-
-    public void setSigningKey(byte[] signingKeyBytes) {
-        packetSignatory.init(signingKeyBytes);
+        return sessionContext.isAnonymous();
     }
 
     @Override
@@ -335,10 +291,16 @@ public class Session implements AutoCloseable {
      * @throws TransportException
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
-        if (signingRequired && !packetSignatory.isInitialized()) {
+        SecretKey signingKey = getSigningKey(packet.getHeader(), true);
+        if (sessionContext.isSigningRequired() && signingKey == null) {
             throw new TransportException("Message signing is required, but no signing key is negotiated");
         }
-        return connection.send(packetSignatory.sign(packet));
+
+        if (shouldEncryptData()) {
+            return connection.send(encryptor.encrypt(packet, sessionContext.getEncryptionKey()));
+        }
+
+        return connection.send(signatory.sign(packet, signingKey));
     }
 
     public <T extends SMB2Packet> T processSendResponse(SMB2CreateRequest packet) throws TransportException {
@@ -346,11 +308,60 @@ public class Session implements AutoCloseable {
         return Futures.get(responseFuture, SMBRuntimeException.Wrapper);
     }
 
-    public AuthenticationContext getAuthenticationContext() {
-        return userCredentials;
+    /**
+     * If Connection.Dialect belongs to the SMB 3.x dialect family, and the received message is an SMB2 SESSION_SETUP
+     * Response without a status code equal to STATUS_SUCCESS in the header, the client MUST verify the signature of
+     * the message as specified in section 3.1.5.1, using Session.SigningKey as the signing key, and passing the
+     * response message.
+     * For all other messages, the client MUST look up the Channel in Session.ChannelList, where the Channel.Connection
+     * matches the connection on which this message is received, and MUST use Channel.SigningKey for verifying the
+     * signature as specified in section 3.1.5.1.
+     *
+     *  Otherwise, the client MUST verify the signature of the message as specified in section 3.1.5.1,
+     * using Session.SessionKey as the signing key, and passing the response message.
+     *
+     *
+     * @param signing If true, check for signing mode, else get for verification mode
+     * @return
+     */
+    public SecretKey getSigningKey(SMB2PacketHeader header, boolean signing) {
+        if (connection.getNegotiatedProtocol().getDialect().isSmb3x()) {
+            if (header.getMessage() == SMB2MessageCommandCode.SMB2_SESSION_SETUP) {
+                if (signing) {
+                    return sessionContext.getSigningKey();
+                }
+                if (header.getStatusCode() != NtStatus.STATUS_SUCCESS.getValue()) {
+                    return sessionContext.getSigningKey();
+                }
+            }
+            return sessionContext.getSigningKey(); // TODO channel.getSigningKey()
+        }
+
+        return sessionContext.getSessionKey();
     }
 
-    public PacketSignatory getPacketSignatory() {
-        return packetSignatory;
+    /**
+     * Returns whether packets for this session should be encrypted.
+     *
+     * @return
+     * @throws TransportException When encryption is required and encryption key is missing.
+     */
+    public boolean shouldEncryptData() throws TransportException {
+        if (sessionContext.isEncryptData() && sessionContext.getEncryptionKey() == null) {
+            throw new TransportException("Message encryption is required, but no encryption key is negotiated");
+        }
+
+        boolean encryptData = sessionContext.isEncryptData();
+        encryptData |= (sessionContext.getEncryptionKey() != null && connection.getConnectionContext().clientPrefersEncryption());
+
+        return encryptData;
+    }
+
+    public SessionContext getSessionContext() {
+        return sessionContext;
+    }
+
+    public AuthenticationContext getAuthenticationContext() {
+        return userCredentials;
     }
 }

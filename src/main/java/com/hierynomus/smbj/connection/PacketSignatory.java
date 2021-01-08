@@ -13,55 +13,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.session;
+package com.hierynomus.smbj.connection;
 
 import com.hierynomus.mssmb2.SMB2Dialect;
-import com.hierynomus.mssmb2.SMB2Header;
+import com.hierynomus.mssmb2.SMB2PacketData;
+import com.hierynomus.mssmb2.SMB2PacketHeader;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.security.Mac;
 import com.hierynomus.security.SecurityException;
 import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smb.SMBBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.crypto.SecretKey;
 import java.util.Arrays;
 
-import static com.hierynomus.mssmb2.SMB2Header.*;
+import static com.hierynomus.mssmb2.SMB2PacketHeader.*;
 import static com.hierynomus.mssmb2.SMB2MessageFlag.SMB2_FLAGS_SIGNED;
 
 public class PacketSignatory {
     private static final Logger logger = LoggerFactory.getLogger(PacketSignatory.class);
 
-    private static final String HMAC_SHA256_ALGORITHM = "HmacSHA256";
-
-    private SMB2Dialect dialect;
     private SecurityProvider securityProvider;
-    private String algorithm;
-    private byte[] secretKey;
-    public byte[] getSecretKey() { return secretKey; } 
 
-    PacketSignatory(SMB2Dialect dialect, SecurityProvider securityProvider) {
-        this.dialect = dialect;
+    PacketSignatory(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
     }
 
-    void init(byte[] secretKey) {
-        if (dialect.isSmb3x()) {
-            throw new IllegalStateException("Cannot set a signing key (yet) for SMB3.x");
-        } else {
-            algorithm = HMAC_SHA256_ALGORITHM;
-            this.secretKey = secretKey;
-        }
+    void init() {
     }
 
-    boolean isInitialized() {
-        return secretKey != null;
-    }
-
-    SMB2Packet sign(SMB2Packet packet) {
+    public SMB2Packet sign(SMB2Packet packet, SecretKey secretKey) {
         if (secretKey != null) {
-            return new SignedPacketWrapper(packet);
+            return new SignedPacketWrapper(packet, secretKey);
         } else {
             logger.debug("Not wrapping {} as signed, as no key is set.", packet.getHeader().getMessage());
             return packet;
@@ -69,13 +55,13 @@ public class PacketSignatory {
     }
 
     // TODO make session a packet handler which wraps the incoming packets
-    public boolean verify(SMB2Packet packet) {
+    public boolean verify(SMB2PacketData packet, SecretKey secretKey) {
         try {
-            SMBBuffer buffer = packet.getBuffer();
-            com.hierynomus.security.Mac mac = getMac(secretKey, algorithm, securityProvider);
-            mac.update(buffer.array(), packet.getMessageStartPos(), SIGNATURE_OFFSET);
+            SMBBuffer buffer = packet.getDataBuffer();
+            Mac mac = getMac(secretKey, securityProvider);
+            mac.update(buffer.array(), packet.getHeader().getHeaderStartPosition(), SIGNATURE_OFFSET);
             mac.update(EMPTY_SIGNATURE);
-            mac.update(buffer.array(), STRUCTURE_SIZE, packet.getMessageEndPos() - STRUCTURE_SIZE);
+            mac.update(buffer.array(), STRUCTURE_SIZE, packet.getHeader().getMessageEndPosition() - STRUCTURE_SIZE);
             byte[] signature = mac.doFinal();
             byte[] receivedSignature = packet.getHeader().getSignature();
             for (int i = 0; i < SIGNATURE_SIZE; i++) {
@@ -93,17 +79,19 @@ public class PacketSignatory {
         }
     }
 
-    private static com.hierynomus.security.Mac getMac(byte[] secretKey, String algorithm, SecurityProvider securityProvider) throws SecurityException {
-        com.hierynomus.security.Mac mac = securityProvider.getMac(algorithm);
-        mac.init(secretKey);
+    private static Mac getMac(SecretKey secretKey, SecurityProvider securityProvider) throws SecurityException {
+        Mac mac = securityProvider.getMac(secretKey.getAlgorithm());
+        mac.init(secretKey.getEncoded());
         return mac;
     }
 
     public class SignedPacketWrapper extends SMB2Packet {
         private final SMB2Packet wrappedPacket;
+        private SecretKey secretKey;
 
-        SignedPacketWrapper(SMB2Packet packet) {
+        SignedPacketWrapper(SMB2Packet packet, SecretKey secretKey) {
             this.wrappedPacket = packet;
+            this.secretKey = secretKey;
         }
 
         @Override
@@ -131,11 +119,11 @@ public class PacketSignatory {
 
         private class SigningBuffer extends SMBBuffer {
             private SMBBuffer wrappedBuffer;
-            private final com.hierynomus.security.Mac mac;
+            private final Mac mac;
 
             SigningBuffer(SMBBuffer wrappedBuffer) throws SecurityException {
                 this.wrappedBuffer = wrappedBuffer;
-                mac = getMac(PacketSignatory.this.secretKey, PacketSignatory.this.algorithm, PacketSignatory.this.securityProvider);
+                mac = getMac(secretKey, PacketSignatory.this.securityProvider);
             }
 
             @Override
@@ -161,7 +149,7 @@ public class PacketSignatory {
         }
 
         @Override
-        public SMB2Header getHeader() {
+        public SMB2PacketHeader getHeader() {
             return wrappedPacket.getHeader();
         }
 
@@ -177,7 +165,7 @@ public class PacketSignatory {
 
         @Override
         public String toString() {
-            return wrappedPacket.toString();
+            return "Signed(" + wrappedPacket.toString() + ")";
         }
 
         /**

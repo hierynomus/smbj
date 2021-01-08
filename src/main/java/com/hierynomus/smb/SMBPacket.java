@@ -20,6 +20,7 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 
 public abstract class SMBPacket<D extends SMBPacketData<H>, H extends SMBHeader> implements Packet<SMBBuffer> {
     protected H header;
+    protected SMBBuffer buffer;
 
     public SMBPacket(H header) {
         this.header = header;
@@ -36,4 +37,7 @@ public abstract class SMBPacket<D extends SMBPacketData<H>, H extends SMBHeader>
         throw new UnsupportedOperationException("Call read(D extends PacketData<H>) instead of this method");
     }
 
+    public SMBBuffer getBuffer() {
+        return buffer;
+    }
 }

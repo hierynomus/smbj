@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.connection
 
+import com.hierynomus.protocol.commons.ByteArrayUtils
 import com.hierynomus.security.SecurityProvider
 import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.auth.AuthenticateResponse
@@ -47,7 +48,9 @@ class StubAuthenticator implements Authenticator {
   }
 
   @Override
-  AuthenticateResponse authenticate(AuthenticationContext context, byte[] gssToken, Session session) throws IOException {
-    return new AuthenticateResponse(new byte[0])
+  AuthenticateResponse authenticate(AuthenticationContext context, byte[] gssToken, ConnectionContext connectionContext) throws IOException {
+    def resp = new AuthenticateResponse(new byte[0])
+    resp.sessionKey = ByteArrayUtils.parseHex("09921d4431b171b977370bf8910900f9")
+    return resp
   }
 }

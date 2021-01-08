@@ -60,7 +60,7 @@ public class SMB2QueryInfoRequest extends SMB2Packet {
     protected void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putByte((byte) infoType.getValue()); // InfoType (1 byte)
-        int BUFFER_OFFSET = SMB2Header.STRUCTURE_SIZE + 40;
+        int BUFFER_OFFSET = SMB2PacketHeader.STRUCTURE_SIZE + 40;
         int offset = 0;
         switch (infoType) { // FileInfoClass 1 byte
             case SMB2_0_INFO_FILE:

@@ -19,12 +19,12 @@ import com.hierynomus.smb.SMBBuffer
 import spock.lang.Specification
 import spock.lang.Unroll
 
-class SMB2HeaderSpec extends Specification {
+class SMB2PacketHeaderSpec extends Specification {
 
   @Unroll
   def "should write credit request for dialect #dialect"() {
     given:
-    def header = new SMB2Header()
+    def header = new SMB2PacketHeader()
     header.setCreditRequest(66)
     header.setCreditCharge(0)
     header.setDialect(dialect)

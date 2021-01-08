@@ -17,6 +17,7 @@ package com.hierynomus.mssmb2.messages
 
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mssmb2.SMB2ShareCapabilities
+import com.hierynomus.mssmb2.SMB2ShareFlags
 import com.hierynomus.protocol.commons.ByteArrayUtils
 import com.hierynomus.protocol.commons.EnumWithValue
 import com.hierynomus.smb.SMBBuffer
@@ -37,7 +38,7 @@ class SMB2TreeConnectResponseSpec extends AbstractPacketReadSpec {
     with (response as SMB2TreeConnectResponse) { tcResponse ->
       tcResponse.getCapabilities() == EnumSet.noneOf(SMB2ShareCapabilities.class)
       tcResponse.getMaximalAccess() == EnumWithValue.EnumUtils.toEnumSet(0x001f01ffL, AccessMask.class)
-      tcResponse.getShareFlags() == 0x800L
+      tcResponse.getShareFlags() == EnumWithValue.EnumUtils.toEnumSet(0x800L, SMB2ShareFlags.class)
       tcResponse.isDiskShare()
     }
   }

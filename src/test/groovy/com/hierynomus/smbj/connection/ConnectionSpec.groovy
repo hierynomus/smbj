@@ -94,6 +94,7 @@ class ConnectionSpec extends Specification {
   def "should report STATUS_NETWORK_SESSION_EXPIRED to client application"() {
     given:
     config = smbConfig({ req ->
+      req = req.packet
       if (req instanceof SMB2TreeConnectRequest) {
         def resp = new SMB2TreeConnectResponse()
         resp.header.statusCode = NtStatus.STATUS_NETWORK_SESSION_EXPIRED.value

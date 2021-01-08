@@ -40,10 +40,10 @@ class FileOutputStreamSpec extends Specification {
   def setup() {
     devNull = new ByteArrayOutputStream()
     def responder = new BasicPacketProcessor({ req ->
-      if (req instanceof SMB2CreateRequest)
+      if (req.packet instanceof SMB2CreateRequest)
         return createResponse()
-      if (req instanceof SMB2WriteRequest)
-        return write(req)
+      if (req.packet instanceof SMB2WriteRequest)
+        return write(req.packet)
 
       null
     })

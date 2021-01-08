@@ -15,14 +15,6 @@
  */
 package com.hierynomus.smbj.transport.tcp.async;
 
-import com.hierynomus.protocol.PacketData;
-import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
-import com.hierynomus.protocol.transport.PacketFactory;
-import com.hierynomus.protocol.transport.PacketReceiver;
-import com.hierynomus.smbj.transport.PacketReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.channels.AsynchronousCloseException;
@@ -31,8 +23,16 @@ import java.nio.channels.CompletionHandler;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.hierynomus.protocol.PacketData;
+import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
+import com.hierynomus.protocol.transport.PacketFactory;
+import com.hierynomus.protocol.transport.PacketReceiver;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class AsyncPacketReader<D extends PacketData<?>> {
-    private static final Logger logger = LoggerFactory.getLogger(PacketReader.class);
+    private static final Logger logger = LoggerFactory.getLogger(AsyncPacketReader.class);
 
     private final PacketFactory<D> packetFactory;
     private PacketReceiver<D> handler;
@@ -119,7 +119,8 @@ public class AsyncPacketReader<D extends PacketData<?>> {
             logger.trace("Channel to {} closed by other party, closing it locally.", remoteHost);
         } else {
             String excClass = exc.getClass().getSimpleName();
-            logger.trace("{} on channel to {}, closing channel: {}", excClass, remoteHost, exc.getMessage());
+            logger.error("{} on channel to {}, closing channel: {}", excClass, remoteHost, exc.getMessage());
+            logger.debug("Exception was: ", exc);
         }
         closeChannelQuietly();
     }

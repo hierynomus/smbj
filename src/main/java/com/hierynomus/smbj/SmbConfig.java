@@ -16,6 +16,7 @@
 package com.hierynomus.smbj;
 
 import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.mssmb2.SMB2GlobalCapability;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.socket.ProxySocketFactory;
 import com.hierynomus.security.SecurityProvider;
@@ -74,6 +75,7 @@ public final class SmbConfig {
     private TransportLayerFactory<SMBPacketData<?>, SMBPacket<?, ?>> transportLayerFactory;
     private long transactTimeout;
     private GSSContextConfig clientGSSContextConfig;
+    private boolean encryptData;
     private String workStationName;
 
     private int soTimeout;
@@ -98,7 +100,8 @@ public final class SmbConfig {
             // order is important.  The authenticators listed first will be selected
             .withAuthenticators(getDefaultAuthenticators())
             .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
-            .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig());
+            .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig())
+            .withEncryptData(false);
     }
 
     private static SecurityProvider getDefaultSecurityProvider() {
@@ -150,6 +153,7 @@ public final class SmbConfig {
         soTimeout = other.soTimeout;
         useMultiProtocolNegotiate = other.useMultiProtocolNegotiate;
         clientGSSContextConfig = other.clientGSSContextConfig;
+        encryptData = other.encryptData;
         workStationName = other.workStationName;
     }
 
@@ -229,8 +233,26 @@ public final class SmbConfig {
         return clientGSSContextConfig;
     }
 
+    public boolean isEncryptData() {
+        return encryptData;
+    }
+
     public String getWorkStationName() {
         return workStationName;
+    }
+
+    public Set<SMB2GlobalCapability> getClientCapabilities() {
+        if (!SMB2Dialect.supportsSmb3x(dialects)) {
+            return EnumSet.noneOf(SMB2GlobalCapability.class);
+        }
+        EnumSet<SMB2GlobalCapability> set = EnumSet.of(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU);
+        if (isDfsEnabled()) {
+            set.add(SMB2GlobalCapability.SMB2_GLOBAL_CAP_DFS);
+        }
+        if (isEncryptData()) {
+            set.add(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION);
+        }
+        return set;
     }
 
     public static class Builder {
@@ -399,6 +421,11 @@ public final class SmbConfig {
             if (config.dialects.isEmpty()) {
                 throw new IllegalStateException("At least one SMB dialect should be specified");
             }
+
+            if (config.encryptData && !SMB2Dialect.supportsSmb3x(config.dialects)) {
+                throw new IllegalStateException("If encryption is enabled, at least one dialect should be SMB3.x compatible");
+            }
+
             return new SmbConfig(config);
         }
 
@@ -417,6 +444,11 @@ public final class SmbConfig {
                 throw new IllegalArgumentException("Client GSSContext Config may not be null");
             }
             config.clientGSSContextConfig = clientGSSContextConfig;
+            return this;
+        }
+
+        public Builder withEncryptData(boolean encryptData) {
+            config.encryptData = encryptData;
             return this;
         }
 

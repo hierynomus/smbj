@@ -15,7 +15,9 @@
  */
 package com.hierynomus.security.bc;
 
+import com.hierynomus.security.AEADBlockCipher;
 import com.hierynomus.security.Cipher;
+import com.hierynomus.security.DerivationFunction;
 import com.hierynomus.security.Mac;
 import com.hierynomus.security.MessageDigest;
 import com.hierynomus.security.SecurityProvider;
@@ -39,5 +41,15 @@ public class BCSecurityProvider implements SecurityProvider {
     @Override
     public Cipher getCipher(String name) {
         return BCCipherFactory.create(name);
+    }
+
+    @Override
+    public AEADBlockCipher getAEADBlockCipher(String name) {
+        return BCAEADCipherFactory.create(name);
+    }
+
+    @Override
+    public DerivationFunction getDerivationFunction(String name) {
+        return BCDerivationFunctionFactory.create(name);
     }
 }

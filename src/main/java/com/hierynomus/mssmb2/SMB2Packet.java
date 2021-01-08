@@ -15,24 +15,21 @@
  */
 package com.hierynomus.mssmb2;
 
+import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
+
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smb.SMBPacket;
-import com.hierynomus.smbj.common.Check;
 
-import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
-
-public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2Header> {
+public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2PacketHeader> {
 
     public static final int SINGLE_CREDIT_PAYLOAD_SIZE = 64 * 1024;
     protected int structureSize;
-    private SMBBuffer buffer;
     private SMB2Error error;
-    private int messageEndPos;
 
     protected SMB2Packet() {
-        super(new SMB2Header());
+        super(new SMB2PacketHeader());
     }
 
     protected SMB2Packet(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType) {
@@ -44,7 +41,7 @@ public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2Header> {
     }
 
     protected SMB2Packet(int structureSize, SMB2Dialect dialect, SMB2MessageCommandCode messageType, long sessionId, long treeId) {
-        super(new SMB2Header());
+        super(new SMB2PacketHeader());
         this.structureSize = structureSize;
         header.setDialect(dialect);
         header.setMessageType(messageType);
@@ -69,33 +66,16 @@ public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2Header> {
         return buffer;
     }
 
-    /**
-     * The start position of this packet in the {@link #getBuffer()}. Normally this is 0, except
-     * when this packet was compounded.
-     *
-     * @return The start position of this received packet in the buffer
-     */
-    public int getMessageStartPos() {
-        return header.getHeaderStartPosition();
-    }
-
-    /**
-     * THe end position of this packet in the {@link #getBuffer()}. Normally this is the last written position,
-     * except when this packet was compounded.
-     *
-     * @return The end position of this received packet in the buffer
-     */
-    public int getMessageEndPos() {
-        return messageEndPos;
-    }
 
     public void write(SMBBuffer buffer) {
+        this.buffer = buffer; // Keep track of the buffer
         header.writeTo(buffer);
         writeTo(buffer);
+        header.setMessageEndPosition(buffer.wpos());
     }
 
     /**
-     * Write the message fields into the buffer, as specified in the [MS-SMB2].pdf specification.
+     * Write the message fields into the buffer, as specified in the [MS-SMB2] specification.
      *
      * @param buffer
      */
@@ -107,24 +87,14 @@ public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2Header> {
         this.buffer = packetData.getDataBuffer(); // remember the buffer we read it from
         this.header = packetData.getHeader();
         readMessage(buffer);
-        this.messageEndPos = buffer.rpos();
+        buffer.rpos(this.header.getMessageEndPosition());
     }
 
     final void readError(SMB2PacketData packetData) throws Buffer.BufferException {
         this.buffer = packetData.getDataBuffer(); // remember the buffer we read it from
         this.header = packetData.getHeader();
         this.error = new SMB2Error().read(header, buffer);
-        if (this.header.getNextCommandOffset() != 0L) {
-            // This packet was Compounded, It's end position (including padding is determined by the NextCommandOffset
-            this.messageEndPos = this.header.getHeaderStartPosition() + this.header.getNextCommandOffset();
-        } else {
-            // Else the message end position is determined by the packet size (which is the write position of the buffer)
-            this.messageEndPos = buffer.wpos();
-        }
-        Check.ensure(this.messageEndPos >= buffer.rpos(), "The message end position should be at or beyond the buffer read position");
-        // Set the buffer's rpos to the end position of the message. In case of Compounding the buffer is then ready to read
-        // the next packet.
-        buffer.rpos(this.messageEndPos);
+        buffer.rpos(this.header.getMessageEndPosition());
     }
 
     /**

@@ -33,7 +33,7 @@ public class SMB2Error {
     SMB2Error() {
     }
 
-    SMB2Error read(SMB2Header header, SMBBuffer buffer) throws Buffer.BufferException {
+    SMB2Error read(SMB2PacketHeader header, SMBBuffer buffer) throws Buffer.BufferException {
         buffer.skip(2); // StructureSize (2 bytes)
         int errorContextCount = buffer.readByte(); // ErrorContextCount (1 byte)
         buffer.skip(1); // Reserved (1 byte)
@@ -61,7 +61,7 @@ public class SMB2Error {
      * @param errorContextCount
      * @throws Buffer.BufferException
      */
-    private void readErrorContext(SMB2Header header, SMBBuffer buffer, int errorContextCount) throws Buffer.BufferException {
+    private void readErrorContext(SMB2PacketHeader header, SMBBuffer buffer, int errorContextCount) throws Buffer.BufferException {
         for (int i = 0; i < errorContextCount; i++) {
             buffer.readUInt32AsInt(); // ErrorDataLength (4 bytes)
             buffer.skip(4); // ErrorId (always SMB2_ERROR_ID_DEFAULT (0x0)) (4 bytes)
@@ -77,7 +77,7 @@ public class SMB2Error {
      * @return
      * @throws Buffer.BufferException
      */
-    private void readErrorData(SMB2Header header, SMBBuffer buffer) throws Buffer.BufferException {
+    private void readErrorData(SMB2PacketHeader header, SMBBuffer buffer) throws Buffer.BufferException {
         long statusCode = header.getStatusCode();
         if (statusCode == NtStatus.STATUS_BUFFER_TOO_SMALL.getValue()) {
             this.errorData.add(new BufferTooSmallError().read(buffer));

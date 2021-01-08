@@ -22,6 +22,10 @@ import com.hierynomus.msfscc.fileinformation.FileStandardInformation
 import com.hierynomus.mssmb2.SMB2ChangeNotifyFlags
 import com.hierynomus.mssmb2.SMB2CompletionFilter
 import com.hierynomus.mssmb2.SMB2CreateDisposition
+import com.hierynomus.mssmb2.SMB2Dialect
+import com.hierynomus.mssmb2.SMB2ShareAccess
+import com.hierynomus.mssmb2.SMBApiException
+import com.hierynomus.security.bc.BCSecurityProvider
 import com.hierynomus.mssmb2.SMB2LockFlag
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.mssmb2.SMBApiException
@@ -38,6 +42,7 @@ import com.hierynomus.smbj.io.InputStreamByteChunkProvider
 import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.share.DiskShare
 import com.hierynomus.smbj.transport.tcp.async.AsyncDirectTcpTransportFactory
+import com.hierynomus.smbj.transport.tcp.direct.DirectTcpTransportFactory
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -56,8 +61,11 @@ class SMB2FileIntegrationTest extends Specification {
     def config = SmbConfig
       .builder()
       .withMultiProtocolNegotiate(true)
-    .withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>())
-      .withSigningRequired(true).build()
+      .withDialects(SMB2Dialect.SMB_3_0).withEncryptData(true)
+      .withTransportLayerFactory(new DirectTcpTransportFactory<>())
+      .withSecurityProvider(new BCSecurityProvider())
+      .withSigningRequired(true)
+      /*.withEncryptData(true)*/.build()
     client = new SMBClient(config)
     connection = client.connect("127.0.0.1")
     session = connection.authenticate(new AuthenticationContext("smbj", "smbj".toCharArray(), null))
@@ -275,7 +283,7 @@ class SMB2FileIntegrationTest extends Specification {
     def bytes2 = new byte[1024 * 1024]
     Random.newInstance().nextBytes(bytes2)
     def istream2 = new ByteArrayInputStream(bytes2)
-    ostream = appendfile.getOutputStream(new LoggingProgressListener(),true)
+    ostream = appendfile.getOutputStream(new LoggingProgressListener(), true)
     try {
       byte[] buffer = new byte[4096]
       int len
@@ -292,7 +300,7 @@ class SMB2FileIntegrationTest extends Specification {
     share.fileExists("appendfile")
 
     when:
-    def readBytes = new byte[2* 1024 * 1024]
+    def readBytes = new byte[2 * 1024 * 1024]
     def readFile = share.openFile("appendfile", EnumSet.of(AccessMask.FILE_READ_DATA), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
     try {
       def remoteIs = readFile.getInputStream(new LoggingProgressListener())
@@ -314,7 +322,7 @@ class SMB2FileIntegrationTest extends Specification {
     }
 
     then:
-    readBytes == [bytes,bytes2].flatten()
+    readBytes == [bytes, bytes2].flatten()
 
     cleanup:
     share.rm("appendfile")
@@ -385,8 +393,8 @@ class SMB2FileIntegrationTest extends Specification {
     noExceptionThrown()
 
     where:
-    method | func
-    "rm" | { s -> s.rm("test.txt") }
+    method       | func
+    "rm"         | { s -> s.rm("test.txt") }
     "fileExists" | { s -> s.fileExists("test.txt") }
   }
 
