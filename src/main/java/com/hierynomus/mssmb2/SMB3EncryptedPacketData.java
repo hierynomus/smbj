@@ -26,4 +26,10 @@ public class SMB3EncryptedPacketData extends SMBPacketData<SMB2TransformHeader> 
     public byte[] getCipherText() throws Buffer.BufferException {
         return getDataBuffer().readRawBytes(getHeader().getOriginalMessageSize());
     }
+
+    @Override
+    public String toString() {
+        return "Encrypted for session id << " + getHeader().getSessionId() + " >>";
+    }
+
 }

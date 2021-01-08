@@ -35,7 +35,7 @@ public class SMB2PacketData extends SMBPacketData<SMB2PacketHeader> {
         super(new SMB2PacketHeader(), data);
     }
 
-    private SMB2PacketData(SMBBuffer buffer) throws Buffer.BufferException {
+    SMB2PacketData(SMBBuffer buffer) throws Buffer.BufferException {
         super(new SMB2PacketHeader(), buffer);
     }
 
@@ -91,5 +91,4 @@ public class SMB2PacketData extends SMBPacketData<SMB2PacketHeader> {
     public String toString() {
         return getHeader().getMessage() + " with message id << " + getHeader().getMessageId() + " >>";
     }
-
 }

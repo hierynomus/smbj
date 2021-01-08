@@ -16,21 +16,31 @@
 package com.hierynomus.mssmb2;
 
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smb.SMBPacketData;
+import com.hierynomus.smb.SMBBuffer;
 
-public class SMB3CompressedPacketData extends SMBPacketData<SMB2CompressionTransformHeader> {
-    private boolean decrypted;
-
-    public SMB3CompressedPacketData(byte[] data) throws Buffer.BufferException {
-        this(data, false);
+/**
+ * PacketData class that indicates this PacketData was instantiated in the PacketEncryptor as part of the
+ * decryption.
+ */
+public class SMB2DecryptedPacketData extends SMB2PacketData {
+    public SMB2DecryptedPacketData(byte[] data) throws Buffer.BufferException {
+        super(data);
     }
 
-    public SMB3CompressedPacketData(byte[] data, boolean decrypted) throws Buffer.BufferException {
-        super(new SMB2CompressionTransformHeader(), data);
-        this.decrypted = decrypted;
+    public SMB2DecryptedPacketData(SMBBuffer dataBuffer) throws Buffer.BufferException {
+        super(dataBuffer);
+    }
+
+
+    public SMB2PacketData next() throws Buffer.BufferException {
+        if (isCompounded()) {
+            return new SMB2DecryptedPacketData(dataBuffer);
+        } else {
+            return null;
+        }
     }
 
     public boolean isDecrypted() {
-        return decrypted;
+        return true;
     }
 }

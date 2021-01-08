@@ -186,7 +186,7 @@ public class PacketEncryptor {
 
         @Override
         public String toString() {
-            return "Encrypted(" + packet.toString() + ")";
+            return "Encrypted[" + packet.toString() + "]";
         }
 
         /**

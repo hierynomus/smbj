@@ -158,6 +158,15 @@ public class ConnectionContext {
     }
 
     /**
+     * Indicates that the client prefers encryption on this connection. This will only be enabled if the
+     * established Session has an encryptionkey set.
+     * @return <code>true</code> iff the negotiated protocol is at least SMB3 and both client and server have indicated they support encryption
+     */
+    public boolean clientPrefersEncryption() {
+        return negotiatedProtocol.getDialect().isSmb3x() && supportsEncryption();
+    }
+
+    /**
      * If the client implements SMB 2.1 or SMB 3.x dialect family, the client MUST perform the following:
      * If SMB2_GLOBAL_CAP_LEASING is set in the Capabilities field of the SMB2 NEGOTIATE Response, the client MUST set Connection.SupportsFileLeasing to TRUE. Otherwise, it MUST be set to FALSE.
      * @return

@@ -133,9 +133,9 @@ public class SMB3DecryptingPacketHandler extends AbstractIncomingPacketHandler {
     }
 
     private void handleCompressedPacket(SMBPacketData<?> packetData, byte[] decrypted) throws TransportException {
-        logger.debug("Decrypted packet {} is compresed.", packetData);
+        logger.debug("Packet {} is compressed.", packetData);
         try {
-            next.handle(new SMB3CompressedPacketData(decrypted));
+            next.handle(new SMB3CompressedPacketData(decrypted, true));
             // TODO not handling further decompression validation
             return;
         } catch (Buffer.BufferException e) {
@@ -145,9 +145,10 @@ public class SMB3DecryptingPacketHandler extends AbstractIncomingPacketHandler {
 
     private void handleSMB2Packet(byte[] decrypted, SMB3EncryptedPacketData packetData) throws TransportException {
         try {
-            logger.debug("Descrypted packet {} is a regular packet.", packetData);
-            SMB2PacketData nextPacket = new SMB2PacketData(decrypted);
+            SMB2PacketData nextPacket = new SMB2DecryptedPacketData(decrypted);
+            logger.debug("Decrypted packet {} is packet {}.", packetData, nextPacket);
             if (nextPacket.getHeader().getSessionId() != packetData.getHeader().getSessionId()) {
+                logger.error("Mismatched sessionId between encrypted packet {} and decrypted contents {}", packetData, nextPacket);
                 next.handle(new DeadLetterPacketData(nextPacket.getHeader()));
             } else {
                 next.handle(nextPacket);
@@ -157,5 +158,4 @@ public class SMB3DecryptingPacketHandler extends AbstractIncomingPacketHandler {
             throw new SMBRuntimeException("Could not load SMB2 Packet", e);
         }
     }
-
 }

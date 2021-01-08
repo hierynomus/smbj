@@ -82,7 +82,13 @@ public class SMB2SignatureVerificationPacketHandler extends SMB2PacketHandler {
             return;
         }
 
-        if (packetData.getHeader().isFlagSet(SMB2_FLAGS_SIGNED) && !packetData.isDecrypted()) {
+        if (packetData.isDecrypted()) {
+            logger.debug("Passthrough Signature Verification as packet is decrypted");
+            next.handle(packetData);
+            return;
+        }
+
+        if (packetData.getHeader().isFlagSet(SMB2_FLAGS_SIGNED)) {
             long sessionId = packetData.getHeader().getSessionId();
             // TODO Deviation from Spec...
             if (sessionId == 0L || packetData.getHeader().getMessage() == SMB2_SESSION_SETUP) {

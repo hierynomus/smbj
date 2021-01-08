@@ -296,11 +296,7 @@ public class Session implements AutoCloseable {
             throw new TransportException("Message signing is required, but no signing key is negotiated");
         }
 
-        if (sessionContext.isEncryptData() && sessionContext.getEncryptionKey() == null) {
-            throw new TransportException("Message encryption is required, but no encryption key is negotiated");
-        }
-
-        if (sessionContext.isEncryptData()) {
+        if (shouldEncryptData()) {
             return connection.send(encryptor.encrypt(packet, sessionContext.getEncryptionKey()));
         }
 
@@ -342,6 +338,23 @@ public class Session implements AutoCloseable {
         }
 
         return sessionContext.getSessionKey();
+    }
+
+    /**
+     * Returns whether packets for this session should be encrypted.
+     *
+     * @return
+     * @throws TransportException When encryption is required and encryption key is missing.
+     */
+    public boolean shouldEncryptData() throws TransportException {
+        if (sessionContext.isEncryptData() && sessionContext.getEncryptionKey() == null) {
+            throw new TransportException("Message encryption is required, but no encryption key is negotiated");
+        }
+
+        boolean encryptData = sessionContext.isEncryptData();
+        encryptData |= (sessionContext.getEncryptionKey() != null && connection.getConnectionContext().clientPrefersEncryption());
+
+        return encryptData;
     }
 
     public SessionContext getSessionContext() {
