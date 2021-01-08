@@ -15,13 +15,9 @@
  */
 package com.hierynomus.smbj.io
 
-import org.junit.Rule
-import org.junit.rules.TemporaryFolder
 import spock.lang.Specification
 
 class FileByteChunkProviderSpec extends Specification {
-  @Rule
-  TemporaryFolder temp
 
   def "should write 1 chunk to outputStream"() {
     given:
@@ -51,6 +47,9 @@ class FileByteChunkProviderSpec extends Specification {
     baos.toByteArray() == file.bytes
     provider.offset == 1024
     !provider.isAvailable()
+
+    cleanup:
+    file.delete()
   }
 
   def "should have available after writing first chunk"() {
@@ -65,6 +64,9 @@ class FileByteChunkProviderSpec extends Specification {
     then:
     provider.offset == ByteChunkProvider.CHUNK_SIZE
     provider.isAvailable()
+
+    cleanup:
+    file.delete()
   }
 
   def "should start at provided offset"() {
@@ -83,12 +85,14 @@ class FileByteChunkProviderSpec extends Specification {
     provider.offset == ByteChunkProvider.CHUNK_SIZE
     !provider.isAvailable()
 
+    cleanup:
+    file.delete()
   }
 
   private def getFileWithRandomData(int size) {
     def bytes = new byte[size]
     new Random().nextBytes(bytes)
-    def file = temp.newFile("foo.txt")
+    def file = File.createTempFile("foo", "txt")
     file.withOutputStream {
       it.write(bytes)
     }
