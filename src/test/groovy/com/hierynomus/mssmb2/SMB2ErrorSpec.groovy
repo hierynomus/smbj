@@ -22,7 +22,7 @@ class SMB2ErrorSpec extends Specification {
 
   def "ErrorData - Empty"() {
     given:
-    def header = new SMB2Header()
+    def header = new SMB2PacketHeader()
     def buffer = new SMBBuffer()
     buffer.putReserved(2)
     buffer.putReserved(1)
@@ -40,7 +40,7 @@ class SMB2ErrorSpec extends Specification {
 
   def "ErrorData - Empty - W10 1709"() {
     given:
-    def header = new SMB2Header()
+    def header = new SMB2PacketHeader()
     def buffer = new SMBBuffer()
     buffer.putReserved(2)
     buffer.putReserved(1)

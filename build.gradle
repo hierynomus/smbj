@@ -25,7 +25,7 @@ defaultTasks "build"
 repositories {
   mavenCentral()
   maven { url "https://jitpack.io" }
-  maven { url "http://dl.bintray.com/typesafe/maven-releases" }
+  maven { url "http://dl.bintray.com/hierynomus/maven" }
 }
 
 sourceCompatibility = 1.8
@@ -229,6 +229,7 @@ sonarqube {
   }
 }
 
+
 task buildItestImage(type: DockerBuildImage) {
   inputDir = file('src/it/docker-image')
   images.add('smbj/smbj-itest:latest')
@@ -242,12 +243,12 @@ task createItestContainer(type: DockerCreateContainer) {
 }
 
 task startItestContainer(type: DockerStartContainer) {
-  dependsOn createItestContainer
-  targetContainerId createItestContainer.getContainerId()
+    dependsOn createItestContainer
+    targetContainerId createItestContainer.getContainerId()
 }
 
 task stopItestContainer(type: DockerStopContainer) {
-  targetContainerId createItestContainer.getContainerId()
+    targetContainerId createItestContainer.getContainerId()
 }
 
 project.tasks.integrationTest.dependsOn(startItestContainer)

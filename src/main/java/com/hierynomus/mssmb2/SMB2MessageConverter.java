@@ -20,9 +20,11 @@ import com.hierynomus.mssmb2.messages.*;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBPacket;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SMB2MessageConverter {
-
+    private static final Logger logger = LoggerFactory.getLogger(SMB2MessageConverter.class);
     private static final long FSCTL_PIPE_PEEK = 0x0011400cL;
     private static final long FSCTL_PIPE_TRANSCEIVE = 0x0011c017L;
     private static final long FSCTL_DFS_GET_REFERRALS = 0x00060194L;
@@ -70,6 +72,7 @@ public class SMB2MessageConverter {
                 return new SMB2LockResponse();
             case SMB2_OPLOCK_BREAK:
             default:
+                logger.error("Unknown SMB2 Message Command type: " + command);
                 throw new SMBRuntimeException("Unknown SMB2 Message Command type: " + command);
 
         }

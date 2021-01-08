@@ -25,7 +25,7 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 import java.util.Date;
 import java.util.UUID;
 
-class Request {
+public class Request {
 
     private final Promise<SMB2Packet, SMBRuntimeException> promise;
     private SMBPacket<?, ?> packet;
@@ -50,7 +50,7 @@ class Request {
         this.asyncId = asyncId;
     }
 
-    Promise<SMB2Packet, SMBRuntimeException> getPromise() {
+    public Promise<SMB2Packet, SMBRuntimeException> getPromise() {
         return promise;
     }
 

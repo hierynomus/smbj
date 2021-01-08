@@ -332,7 +332,9 @@ public class Buffer<T extends Buffer<T>> {
     }
 
     /**
-     * Copies the contents of provided buffer into this buffer
+     * Copies the contents of provided buffer into this buffer.
+     *
+     * NOTE: This does not update the source buffer fields!
      *
      * @param buffer the {@code Buffer} to copy
      * @return this

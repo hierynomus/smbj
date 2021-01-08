@@ -26,6 +26,7 @@ public class SMB1Packet extends SMBPacket<SMB1PacketData, SMB1Header> {
 
     @Override
     public final void write(SMBBuffer buffer) {
+        this.buffer = buffer;
         header.writeTo(buffer);
         writeTo(buffer);
     }

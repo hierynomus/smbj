@@ -48,6 +48,7 @@ class FileReadSpec extends Specification {
     fileData = randomData(42, 12345)
 
     responder = new BasicPacketProcessor({ req ->
+      req = req.packet
       if (req instanceof SMB2CreateRequest)
         return createResponse()
       if (req instanceof SMB2ReadRequest)

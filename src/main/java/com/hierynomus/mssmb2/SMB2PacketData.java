@@ -17,8 +17,10 @@ package com.hierynomus.mssmb2;
 
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smb.SMBPacketData;
 
+import static com.hierynomus.mssmb2.SMB2MessageCommandCode.SMB2_OPLOCK_BREAK;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 
 /**
@@ -27,10 +29,14 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
  * The SMB2 Header is always present and has a fixed layout. The packet data itself varies based on the {@link SMB2MessageCommandCode} in the header,
  * together with the {@link com.hierynomus.mserref.NtStatus}.
  */
-public class SMB2PacketData extends SMBPacketData<SMB2Header> {
+public class SMB2PacketData extends SMBPacketData<SMB2PacketHeader> {
 
     public SMB2PacketData(byte[] data) throws Buffer.BufferException {
-        super(new SMB2Header(), data);
+        super(new SMB2PacketHeader(), data);
+    }
+
+    SMB2PacketData(SMBBuffer buffer) throws Buffer.BufferException {
+        super(new SMB2PacketHeader(), buffer);
     }
 
     public long getSequenceNumber() {
@@ -53,8 +59,36 @@ public class SMB2PacketData extends SMBPacketData<SMB2Header> {
         return isSet(getHeader().getFlags(), SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND) && getHeader().getStatusCode() == NtStatus.STATUS_PENDING.getValue();
     }
 
+    /**
+     * Check whether this is an SMB2_OPLOCK_BREAK Notification packet
+     */
+    public boolean isOplockBreakNotification() {
+        return getHeader().getMessageId() == 0xFFFFFFFFFFFFFFFFL && getHeader().getMessage() == SMB2_OPLOCK_BREAK;
+    }
+
+
+    /**
+     * Check whether this Packet is part of a Compounded message
+     * @return
+     */
+    public boolean isCompounded() {
+        return getHeader().getNextCommandOffset() != 0;
+    }
+
+    public SMB2PacketData next() throws Buffer.BufferException {
+        if (isCompounded()) {
+            return new SMB2PacketData(dataBuffer);
+        } else {
+            return null;
+        }
+    }
+
+    public boolean isDecrypted() {
+        return false;
+    }
+
     @Override
     public String toString() {
-        return "SMB2PacketData[" + getHeader().getMessage() + ", " + getHeader().getStatusCode() + "]";
+        return getHeader().getMessage() + " with message id << " + getHeader().getMessageId() + " >>";
     }
 }

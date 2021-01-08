@@ -23,13 +23,14 @@ import com.hierynomus.smbj.common.Check;
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.isSet;
 
 /**
- * [MS-SMB2].pdf 2.2.1 SMB2 Packet Header
+ * [MS-SMB2] 2.2.1 SMB2 Packet Header
  */
-public class SMB2Header implements SMBHeader {
+public class SMB2PacketHeader implements SMBHeader {
     public static final byte[] EMPTY_SIGNATURE = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
     public static final int STRUCTURE_SIZE = 64;
     public static final int SIGNATURE_OFFSET = 48;
     public static final int SIGNATURE_SIZE = 16;
+    public static final byte[] PROTOCOL_ID = {(byte) 0xFE, 'S', 'M', 'B'};
 
     private SMB2Dialect dialect;
     private int creditCharge = 1;
@@ -46,11 +47,12 @@ public class SMB2Header implements SMBHeader {
     private byte[] signature;
     // We need to keep track of where the header is in the buffer, for both signature verification as well as compounding.
     private int headerStartPosition;
+    private int messageEndPosition;
 
     @Override
     public void writeTo(SMBBuffer buffer) {
         this.headerStartPosition = buffer.wpos(); // Set the current start position of the header.
-        buffer.putRawBytes(new byte[]{(byte) 0xFE, 'S', 'M', 'B'}); // ProtocolId (4 byte)
+        buffer.putRawBytes(PROTOCOL_ID); // ProtocolId (4 byte)
         buffer.putUInt16(STRUCTURE_SIZE); // StructureSize (2 byte)
         writeCreditCharge(buffer); // CreditCharge (2 byte)
         writeChannelSequenceReserved(buffer); // (ChannelSequence/Reserved)/Status (4 bytes)
@@ -73,14 +75,13 @@ public class SMB2Header implements SMBHeader {
         if (dialect.isSmb3x()) {
             buffer.putRawBytes(new byte[]{0x0, 0x0}); // ChannelSequence (2 bytes)
             buffer.putReserved(2); // Reserved (2 bytes)
-            throw new UnsupportedOperationException("SMB 3.x not yet implemented");
         } else {
             buffer.putReserved4(); // Status (4 bytes) (reserved on request)
         }
     }
 
     /**
-     * [MS-SMB2].pdf 3.2.4.1.2 Requesting Credits from the Server
+     * [MS-SMB2] 3.2.4.1.2 Requesting Credits from the Server
      * <p>
      * We should at least request the number of credits this request consumes, but we can request more (by calling {@link #setCreditRequest(int)}).
      */
@@ -164,7 +165,7 @@ public class SMB2Header implements SMBHeader {
     public void readFrom(Buffer<?> buffer) throws Buffer.BufferException {
         this.headerStartPosition = buffer.rpos(); // Keep track of the header start position.
         byte[] protocolId = buffer.readRawBytes(4); // ProtocolId (4 bytes) (already verified)
-        Check.ensureEquals(protocolId, new byte[]{(byte) 0xFE, 'S', 'M', 'B'}, "Could not find SMB2 Packet header");
+        Check.ensureEquals(protocolId, PROTOCOL_ID, "Could not find SMB2 Packet header");
         buffer.skip(2); // StructureSize (2 bytes)
         buffer.readUInt16(); // CreditCharge (2 bytes)
         statusCode = buffer.readUInt32(); // Status (4 bytes)
@@ -181,6 +182,14 @@ public class SMB2Header implements SMBHeader {
         }
         sessionId = buffer.readLong(); // SessionId (8 bytes)
         signature = buffer.readRawBytes(16); // Signature (16 bytes)
+
+        if (nextCommandOffset != 0L) {
+            // This packet was Compounded, It's end position (including padding is determined by the NextCommandOffset
+            this.messageEndPosition = headerStartPosition + nextCommandOffset;
+        } else {
+            // Else the message end position is determined by the packet size (which is the write position of the buffer)
+            this.messageEndPosition = buffer.wpos();
+        }
     }
 
     public void setStatusCode(long statusCode) {
@@ -239,5 +248,13 @@ public class SMB2Header implements SMBHeader {
 
     public int getHeaderStartPosition() {
         return headerStartPosition;
+    }
+
+    public int getMessageEndPosition() {
+        return messageEndPosition;
+    }
+
+    public void setMessageEndPosition(int messageEndPosition) {
+        this.messageEndPosition = messageEndPosition;
     }
 }

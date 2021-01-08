@@ -59,6 +59,7 @@ public class SMB1ComNegotiateRequest extends SMB1Packet {
             buffer.putByte((byte) 0x02); // BufferFormat (1 byte)
             buffer.putNullTerminatedString(s, Charsets.UTF_8);
         }
+        header.setMessageEndPosition(buffer.wpos());
     }
 
     @Override

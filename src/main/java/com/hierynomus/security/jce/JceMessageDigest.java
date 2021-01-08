@@ -60,4 +60,10 @@ public class JceMessageDigest implements MessageDigest {
     public void reset() {
         md.reset();
     }
+
+    @Override
+    public int getDigestLength() {
+        return md.getDigestLength();
+    }
+
 }

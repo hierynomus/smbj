@@ -26,7 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class PacketReader<D extends PacketData<?>> implements Runnable {
-    private static final Logger logger = LoggerFactory.getLogger(PacketReader.class);
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     protected InputStream in;
     private PacketReceiver<D> handler;

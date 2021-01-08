@@ -15,7 +15,7 @@
  */
 package com.hierynomus.smbj.connection
 
-import com.hierynomus.mssmb2.SMB2Header
+import com.hierynomus.mssmb2.SMB2PacketHeader
 import com.hierynomus.mssmb2.SMB2MessageConverter
 import com.hierynomus.mssmb2.SMB2Packet
 import com.hierynomus.mssmb2.SMB2PacketData
@@ -91,7 +91,7 @@ class StubTransportLayerFactory implements TransportLayerFactory<SMB2PacketData,
     }
 
     @Override
-    SMB2Header getHeader() {
+    SMB2PacketHeader getHeader() {
       return packet.header
     }
 

@@ -23,11 +23,13 @@ import com.hierynomus.msfscc.fileinformation.FileStandardInformation
 import com.hierynomus.mssmb2.SMB2ChangeNotifyFlags
 import com.hierynomus.mssmb2.SMB2CompletionFilter
 import com.hierynomus.mssmb2.SMB2CreateDisposition
+import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.mssmb2.SMBApiException
 import com.hierynomus.mssmb2.messages.SMB2Cancel
 import com.hierynomus.mssmb2.messages.SMB2ChangeNotifyResponse
 import com.hierynomus.protocol.commons.concurrent.Futures
+import com.hierynomus.security.bc.BCSecurityProvider
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.common.SMBRuntimeException
 import com.hierynomus.smbj.connection.Connection
@@ -52,8 +54,11 @@ class SMB2DirectoryIntegrationTest extends Specification {
   def setup() {
     def config = SmbConfig
       .builder()
+      .withDialects(SMB2Dialect.SMB_3_0)
+      .withEncryptData(true)
+      .withSecurityProvider(new BCSecurityProvider())
       .withMultiProtocolNegotiate(true)
-    .withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>())
+      .withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>())
       .withSigningRequired(true).build()
     client = new SMBClient(config)
     connection = client.connect("127.0.0.1")

@@ -17,7 +17,9 @@ package com.hierynomus.smbj
 
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mssmb2.SMB2CreateDisposition
+import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2ShareAccess
+import com.hierynomus.security.bc.BCSecurityProvider
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.session.Session
@@ -33,6 +35,7 @@ class DfsIntegrationSpec extends Specification {
   def setup() {
     def config = SmbConfig
       .builder()
+      .withDialects(SMB2Dialect.SMB_2_1)
       .withMultiProtocolNegotiate(true)
       .withSigningRequired(true)
       .withDfsEnabled(true)

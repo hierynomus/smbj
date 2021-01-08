@@ -18,11 +18,14 @@ package com.hierynomus.mssmb2.messages;
 import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.mssmb2.SMB2GlobalCapability;
 import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.messages.negotiate.SMB2NegotiateContext;
+import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
 
-import java.util.UUID;
+import java.util.*;
 
 /**
  * [MS-SMB2].pdf 2.2.4 SMB2 Negotiate Response
@@ -32,13 +35,14 @@ public class SMB2NegotiateResponse extends SMB2Packet {
     private int securityMode;
     private SMB2Dialect dialect;
     private UUID serverGuid;
-    private long capabilities;
+    private Set<SMB2GlobalCapability> capabilities = EnumSet.noneOf(SMB2GlobalCapability.class);
     private int maxTransactSize;
     private int maxReadSize;
     private int maxWriteSize;
     private FileTime systemTime;
     private FileTime serverStartTime;
     private byte[] gssToken;
+    private List<SMB2NegotiateContext> negotiateContextList;
 
     @Override
     protected void readMessage(SMBBuffer buffer) throws Buffer.BufferException {
@@ -47,7 +51,7 @@ public class SMB2NegotiateResponse extends SMB2Packet {
         dialect = SMB2Dialect.lookup(buffer.readUInt16()); // DialectRevision (2 bytes)
         int negotiateContextCount = readNegotiateContextCount(buffer); // NegotiateContextCount/Reserved (2 bytes)
         serverGuid = MsDataTypes.readGuid(buffer); // ServerGuid (16 bytes)
-        capabilities = buffer.readUInt32(); // Capabilities (16 bytes)
+        capabilities = EnumWithValue.EnumUtils.toEnumSet(buffer.readUInt32(), SMB2GlobalCapability.class); // Capabilities (4 bytes)
         maxTransactSize = buffer.readUInt32AsInt(); // MaxTransactSize (4 bytes)
         maxReadSize = buffer.readUInt32AsInt(); // MaxReadSize (4 bytes)
         maxWriteSize = buffer.readUInt32AsInt(); // MaxWriteSize (4 bytes)
@@ -57,13 +61,27 @@ public class SMB2NegotiateResponse extends SMB2Packet {
         int securityBufferLength = buffer.readUInt16(); // SecurityBufferLength (2 bytes)
         int negotiateContextOffset = readNegotiateContextOffset(buffer); // NegotiateContextOffset/Reserved (2 bytes)
         gssToken = readSecurityBuffer(buffer, securityBufferOffset, securityBufferLength);
-        readNegotiateContextList(buffer, negotiateContextOffset, negotiateContextCount);
+        this.negotiateContextList = readNegotiateContextList(buffer, negotiateContextOffset, negotiateContextCount);
     }
 
-    private void readNegotiateContextList(SMBBuffer buffer, int negotiateContextOffset, @SuppressWarnings("unused") int negotiateContextCount) {
+    private List<SMB2NegotiateContext> readNegotiateContextList(SMBBuffer buffer, int negotiateContextOffset, @SuppressWarnings("unused") int negotiateContextCount) {
         if (dialect == SMB2Dialect.SMB_3_1_1) {
             buffer.rpos(negotiateContextOffset);
-            throw new UnsupportedOperationException("Cannot read NegotiateContextList yet");
+            try {
+                List<SMB2NegotiateContext> negotiateContextList = new ArrayList<>();
+                for (int i = 0; i < negotiateContextCount; i++) {
+                    // parse the negotiateContext
+                    SMB2NegotiateContext negotiateContext = SMB2NegotiateContext.factory(buffer);
+                    // add the parsed negotiateContext to list
+                    negotiateContextList.add(negotiateContext);
+                }
+                return negotiateContextList;
+            } catch (Buffer.BufferException e) {
+                // FIXME fix this issue
+                throw new IllegalArgumentException("unknown error when parse negotiateContext", e);
+            }
+        } else {
+            return Collections.emptyList();
         }
     }
 
@@ -111,7 +129,7 @@ public class SMB2NegotiateResponse extends SMB2Packet {
         return serverGuid;
     }
 
-    public long getCapabilities() {
+    public Set<SMB2GlobalCapability> getCapabilities() {
         return capabilities;
     }
 
@@ -133,5 +151,9 @@ public class SMB2NegotiateResponse extends SMB2Packet {
 
     public FileTime getServerStartTime() {
         return serverStartTime;
+    }
+
+    public List<SMB2NegotiateContext> getNegotiateContextList() {
+        return negotiateContextList;
     }
 }
