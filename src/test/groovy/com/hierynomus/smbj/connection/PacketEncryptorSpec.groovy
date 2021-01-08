@@ -15,7 +15,7 @@
  */
 package com.hierynomus.smbj.connection
 
-import com.hierynomus.mssmb2.SMB2Dialect
+
 import com.hierynomus.mssmb2.SMB2TransformHeader
 import com.hierynomus.mssmb2.SMB3EncryptionCipher
 import com.hierynomus.security.bc.BCSecurityProvider
@@ -74,7 +74,7 @@ class PacketEncryptorSpec extends Specification {
     nonce.length == nonceLength
 
     where:
-    algorithm | nonceLength
+    algorithm                        | nonceLength
     SMB3EncryptionCipher.AES_128_CCM | 11
     SMB3EncryptionCipher.AES_128_GCM | 12
   }

@@ -17,7 +17,6 @@ package com.hierynomus.smbj.connection;
 
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.security.AEADBlockCipher;
 import com.hierynomus.security.Cipher;
 import com.hierynomus.security.SecurityException;

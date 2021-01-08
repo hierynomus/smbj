@@ -67,6 +67,7 @@ public class ConnectionContext {
         this.clientGuid = clientGuid;
         this.gssNegotiateToken = new byte[0];
         this.clientCapabilities = EnumSet.copyOf(config.getClientCapabilities());
+        this.clientSecurityMode = config.isSigningRequired() ? 0x02 : 0x01;
         this.server = new Server(hostname, port);
     }
 

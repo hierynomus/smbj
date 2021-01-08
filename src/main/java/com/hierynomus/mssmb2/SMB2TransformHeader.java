@@ -51,7 +51,8 @@ public class SMB2TransformHeader implements SMBHeader {
         this.headerStartPosition = buffer.rpos(); // Keep track of the header start position.
         buffer.putRawBytes(ENCRYPTED_PROTOCOL_ID); // ProtocolId (4 bytes)
         buffer.putRawBytes(signature); // Signature (16 bytes)
-        buffer.putRawBytes(nonce); // Nonce (16 bytes)
+        buffer.putRawBytes(nonce); // Nonce (11/12 bytes) (depending on algorithm)
+        buffer.putReserved(16 - nonce.length); // Reserved (4/5 bytes)
         buffer.putUInt32(originalMessageSize); // OriginalMessageSize (4 bytes)
         buffer.putReserved2(); // Reserved (2 bytes)
         buffer.putUInt16(0x01); // Flags/EncryptionAlgorithm (2 bytes)
