@@ -15,7 +15,7 @@
  */
 package com.hierynomus.security.jce.derivationfunction;
 
-import org.bouncycastle.util.Arrays;
+import java.util.Arrays;
 
 public class CounterDerivationParameters implements DerivationParameters {
 
@@ -28,12 +28,12 @@ public class CounterDerivationParameters implements DerivationParameters {
         if (seed == null || seed.length == 0) {
             throw new IllegalArgumentException("Missing Seed for KDF");
         }
-        this.seed = Arrays.clone(seed);
+        this.seed = Arrays.copyOf(seed, seed.length);
 
         if (fixedCounterSuffix == null) {
             this.fixedCounterSuffix = new byte[0];
         } else {
-            this.fixedCounterSuffix = Arrays.clone(fixedCounterSuffix);
+            this.fixedCounterSuffix = Arrays.copyOf(fixedCounterSuffix, fixedCounterSuffix.length);
         }
 
         this.counterLength = counterLength;
