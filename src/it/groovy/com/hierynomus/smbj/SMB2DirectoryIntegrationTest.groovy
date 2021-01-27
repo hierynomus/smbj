@@ -157,5 +157,4 @@ class SMB2DirectoryIntegrationTest extends Specification {
     cleanup:
     share.rmdir("directory", true)
   }
-
 }
