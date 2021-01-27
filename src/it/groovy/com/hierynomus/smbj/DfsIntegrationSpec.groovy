@@ -92,4 +92,21 @@ class DfsIntegrationSpec extends Specification {
     cleanup:
     share.close()
   }
+
+  def "should have filename for regular directory share when dfs is enabled GH#603"() {
+    given:
+    def userShare = session.connectShare("user")
+    userShare.mkdir("a_directory")
+
+    when:
+    def dir = (userShare as DiskShare).openDirectory("a_directory", EnumSet.of(AccessMask.GENERIC_READ), null, EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ), SMB2CreateDisposition.FILE_OPEN, null)
+
+    then:
+    dir.getFileName() == "a_directory"
+
+    cleanup:
+    dir.close()
+    userShare.rmdir("a_directory", false)
+    userShare.close()
+  }
 }
