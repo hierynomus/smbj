@@ -44,6 +44,10 @@ public abstract class DiskEntry extends Open<DiskShare> {
     }
 
     public String getFileName() {
+        return name.toUncPath();
+    }
+    
+    public String getPath() {
         return name.getPath();
     }
 
