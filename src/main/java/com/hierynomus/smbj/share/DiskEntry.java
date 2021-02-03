@@ -43,10 +43,28 @@ public abstract class DiskEntry extends Open<DiskShare> {
         share.closeFileIdNoWait(fileId);
     }
 
+    /**
+     * Gets the UNC path of this disk entry.
+     * @deprecated as of 0.11.0 use {@link DiskEntry#getUncPath()} instead.
+     * @return The UNC path of this disk entry.
+     */
+    @Deprecated
     public String getFileName() {
         return name.toUncPath();
     }
-    
+
+    /**
+     * Gets the UNC path of this disk entry.
+     * @return The UNC path of this disk entry. Example: \\192.168.1.51\share\folder0\test1.txt
+     */
+    public String getUncPath() {
+        return name.toUncPath();
+    }
+
+    /**
+     * Gets the relative path of this disk entry.
+     * @return The relative path of this disk entry. Example: folder0/test1.txt
+     */
     public String getPath() {
         return name.getPath();
     }
