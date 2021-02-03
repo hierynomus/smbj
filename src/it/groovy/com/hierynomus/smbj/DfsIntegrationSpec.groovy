@@ -102,11 +102,14 @@ class DfsIntegrationSpec extends Specification {
     def dir = (userShare as DiskShare).openDirectory("a_directory", EnumSet.of(AccessMask.GENERIC_READ), null, EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ), SMB2CreateDisposition.FILE_OPEN, null)
 
     then:
-    dir.getFileName() == "a_directory"
+    dir.getPath() == "a_directory"
+    dir.getFileName() == "\\\\127.0.0.1\\user\\a_directory"
+    dir.getUncPath() == "\\\\127.0.0.1\\user\\a_directory"
 
     cleanup:
     dir.close()
     userShare.rmdir("a_directory", false)
     userShare.close()
   }
+
 }
