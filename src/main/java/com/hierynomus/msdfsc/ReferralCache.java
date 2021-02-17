@@ -89,7 +89,7 @@ public class ReferralCache {
 
     public void clear(DFSPath dfsPath) {
         List<String> pathComponents = dfsPath.getPathComponents();
-        cacheRoot.deleteExpiredReferralEntry(pathComponents.iterator());
+        cacheRoot.deleteExpiredReferralEntry(pathComponents);
     }
 
     public void put(ReferralCacheEntry referralCacheEntry) {
@@ -224,17 +224,17 @@ public class ReferralCache {
             return ENTRY_UPDATER.get(this);
         }
 
-        void deleteExpiredReferralEntry(Iterator<String> pathComponents) {
+        void deleteExpiredReferralEntry(List<String> pathComponents) {
             if (this.entry != null && this.entry.isExpired() &&
-                !this.entry.isRoot() /*&& !this.entry.isLink()*/) {
+                !this.entry.isRoot()) {
                 this.clear();
                 return;
             }
-            if (pathComponents.hasNext()) {
-                String component = pathComponents.next().toLowerCase();
+            if (pathComponents!=null && !pathComponents.isEmpty()) {
+                String component = pathComponents.get(0).toLowerCase();
                 ReferralCacheNode referralCacheNode = childNodes.get(component);
                 if (referralCacheNode != null) {
-                    referralCacheNode.deleteExpiredReferralEntry(pathComponents);
+                    referralCacheNode.deleteExpiredReferralEntry(pathComponents.subList(1,pathComponents.size()));
                 }
             }
         }
