@@ -151,7 +151,7 @@ public class Session implements AutoCloseable {
                 throw new SMBApiException(response.getHeader(), "Could not connect to " + smbPath);
             }
 
-            if (response.getCapabilities().contains(SMB2ShareCapabilities.SMB2_SHARE_CAP_ASYMMETRIC)) {
+            if (!config.isAllowAsymmetricShares() && response.getCapabilities().contains(SMB2ShareCapabilities.SMB2_SHARE_CAP_ASYMMETRIC)) {
                 throw new SMBRuntimeException("ASYMMETRIC capability unsupported");
             }
 
