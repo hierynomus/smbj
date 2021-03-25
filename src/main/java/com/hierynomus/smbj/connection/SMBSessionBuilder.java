@@ -176,6 +176,7 @@ public class SMBSessionBuilder {
                     context.setApplicationKey(deriveKey(context.getSessionKey(), KDF_APP_LABEL, KDF_APP_CONTEXT, alg));
                 }
             }
+            context.established(response);
             return session;
         }
     }
