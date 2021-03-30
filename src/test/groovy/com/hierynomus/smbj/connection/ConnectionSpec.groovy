@@ -113,6 +113,18 @@ class ConnectionSpec extends Specification {
     exc.statusCode == NtStatus.STATUS_NETWORK_SESSION_EXPIRED.value
   }
 
+  def "should initialise session flags in context once authenticated"() {
+    given:
+    def connect = client.connect("localhost")
+    def session = connect.authenticate(new AuthenticationContext("foo", "bar".toCharArray(), null))
+
+    when:
+    def guest = session.isGuest()
+
+    then:
+    !guest
+  }
+
   class EventPersister {
     def events = [] as List<SMBEvent>
 
