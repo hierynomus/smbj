@@ -161,19 +161,25 @@ public class SMBSessionBuilder {
 
             if (dialect.isSmb3x() &&
                 !response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_NULL) &&
-                !response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_GUEST) &&
-                connectionContext.supportsEncryption()) {
-                String alg = connectionContext.getCipherId().getAlgorithmName();
+                !response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_GUEST)) {
+                // derive signingKey
                 if (dialect == SMB2Dialect.SMB_3_1_1) {
-                    context.setEncryptionKey(deriveKey(context.getSessionKey(), KDF_ENC_LABEL_SMB311, context.getPreauthIntegrityHashValue(), alg));
-                    context.setDecryptionKey(deriveKey(context.getSessionKey(), KDF_DEC_LABEL_SMB311, context.getPreauthIntegrityHashValue(), alg));
                     context.setSigningKey(deriveKey(context.getSessionKey(), KDF_SIGN_LABEL_SMB311, context.getPreauthIntegrityHashValue(), AES_128_CMAC_ALGORITHM));
-                    context.setApplicationKey(deriveKey(context.getSessionKey(), KDF_APP_LABEL_SMB311, context.getPreauthIntegrityHashValue(), alg));
                 } else {
-                    context.setEncryptionKey(deriveKey(context.getSessionKey(), KDF_ENCDEC_LABEL, KDF_ENC_CONTEXT, alg));
-                    context.setDecryptionKey(deriveKey(context.getSessionKey(), KDF_ENCDEC_LABEL, KDF_DEC_CONTEXT, alg));
                     context.setSigningKey(deriveKey(context.getSessionKey(), KDF_SIGN_LABEL, KDF_SIGN_CONTEXT, AES_128_CMAC_ALGORITHM));
-                    context.setApplicationKey(deriveKey(context.getSessionKey(), KDF_APP_LABEL, KDF_APP_CONTEXT, alg));
+                }
+                // derive other key if encryption supported
+                if (connectionContext.supportsEncryption()) {
+                    String alg = connectionContext.getCipherId().getAlgorithmName();
+                    if (dialect == SMB2Dialect.SMB_3_1_1) {
+                        context.setEncryptionKey(deriveKey(context.getSessionKey(), KDF_ENC_LABEL_SMB311, context.getPreauthIntegrityHashValue(), alg));
+                        context.setDecryptionKey(deriveKey(context.getSessionKey(), KDF_DEC_LABEL_SMB311, context.getPreauthIntegrityHashValue(), alg));
+                        context.setApplicationKey(deriveKey(context.getSessionKey(), KDF_APP_LABEL_SMB311, context.getPreauthIntegrityHashValue(), alg));
+                    } else {
+                        context.setEncryptionKey(deriveKey(context.getSessionKey(), KDF_ENCDEC_LABEL, KDF_ENC_CONTEXT, alg));
+                        context.setDecryptionKey(deriveKey(context.getSessionKey(), KDF_ENCDEC_LABEL, KDF_DEC_CONTEXT, alg));
+                        context.setApplicationKey(deriveKey(context.getSessionKey(), KDF_APP_LABEL, KDF_APP_CONTEXT, alg));
+                    }
                 }
             }
             context.established(response);
