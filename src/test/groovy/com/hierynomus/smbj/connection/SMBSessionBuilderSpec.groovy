@@ -15,10 +15,13 @@
  */
 package com.hierynomus.smbj.connection
 
+import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB3EncryptionCipher
+import com.hierynomus.mssmb2.messages.SMB2SessionSetup
 import com.hierynomus.protocol.commons.ByteArrayUtils
 import com.hierynomus.security.bc.BCSecurityProvider
 import com.hierynomus.smbj.SmbConfig
+import com.hierynomus.smbj.session.SessionContext
 import spock.lang.Specification
 
 import javax.crypto.spec.SecretKeySpec
@@ -67,5 +70,49 @@ class SMBSessionBuilderSpec extends Specification {
 
     then:
     smb30xExpectedDecryptionKey == generatedKey.getEncoded()
+  }
+
+  def "should able to generate signingKey with encryption supported for Smb30x"() {
+    given:
+    def smb30xExpectedSigningKey = ByteArrayUtils.parseHex("8f5a6907bce9ec89b8f89e560d4e2e18")
+    def connectionContext = Mock(ConnectionContext)
+    connectionContext.supportsEncryption() >> true
+    connectionContext.getCipherId() >> SMB3EncryptionCipher.AES_128_CCM
+    def connection = Mock(Connection)
+    connection.getConnectionContext() >> connectionContext
+    def response = Mock(SMB2SessionSetup)
+    response.getSessionFlags() >> Collections.emptySet()
+    def context = new SessionContext()
+    context.setSessionKey(new SecretKeySpec(sessionKey, HMAC_SHA256_ALGORITHM))
+
+    when:
+    def sessionBuilder = new SMBSessionBuilder(connection, config, null)
+    sessionBuilder.deriveKeys(response, SMB2Dialect.SMB_3_0, context)
+
+    then:
+    context.getSigningKey() != null
+    smb30xExpectedSigningKey == context.getSigningKey().encoded
+  }
+
+  def "should able to generate signingKey without encryption supported for Smb30x"() {
+    given:
+    def smb30xExpectedSigningKey = ByteArrayUtils.parseHex("8f5a6907bce9ec89b8f89e560d4e2e18")
+    def connectionContext = Mock(ConnectionContext)
+    connectionContext.supportsEncryption() >> false
+    connectionContext.getCipherId() >> SMB3EncryptionCipher.AES_128_CCM
+    def connection = Mock(Connection)
+    connection.getConnectionContext() >> connectionContext
+    def response = Mock(SMB2SessionSetup)
+    response.getSessionFlags() >> Collections.emptySet()
+    def context = new SessionContext()
+    context.setSessionKey(new SecretKeySpec(sessionKey, HMAC_SHA256_ALGORITHM))
+
+    when:
+    def sessionBuilder = new SMBSessionBuilder(connection, config, null)
+    sessionBuilder.deriveKeys(response, SMB2Dialect.SMB_3_0, context)
+
+    then:
+    context.getSigningKey() != null
+    smb30xExpectedSigningKey == context.getSigningKey().encoded
   }
 }
