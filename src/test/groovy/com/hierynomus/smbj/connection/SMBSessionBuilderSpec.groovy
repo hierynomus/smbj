@@ -72,9 +72,11 @@ class SMBSessionBuilderSpec extends Specification {
     smb30xExpectedDecryptionKey == generatedKey.getEncoded()
   }
 
-  def "should able to generate signingKey with encryption supported for Smb30x"() {
+  def "should able to generate SigningKey, EncryptionKey And DecryptionKey with encryption supported for Smb30x"() {
     given:
     def smb30xExpectedSigningKey = ByteArrayUtils.parseHex("8f5a6907bce9ec89b8f89e560d4e2e18")
+    def smb30xExpectedEncryptionKey = ByteArrayUtils.parseHex("858e8cba1f7068969e825b2b538830c4")
+    def smb30xExpectedDecryptionKey = ByteArrayUtils.parseHex("df91d31ef09a01fd4d2a093c42deef46")
     def connectionContext = Mock(ConnectionContext)
     connectionContext.supportsEncryption() >> true
     connectionContext.getCipherId() >> SMB3EncryptionCipher.AES_128_CCM
@@ -92,9 +94,13 @@ class SMBSessionBuilderSpec extends Specification {
     then:
     context.getSigningKey() != null
     smb30xExpectedSigningKey == context.getSigningKey().encoded
+    context.getEncryptionKey() != null
+    smb30xExpectedEncryptionKey == context.getEncryptionKey().encoded
+    context.getDecryptionKey() != null
+    smb30xExpectedDecryptionKey == context.getDecryptionKey().encoded
   }
 
-  def "should able to generate signingKey without encryption supported for Smb30x"() {
+  def "should able to generate signingKey only without encryption supported for Smb30x"() {
     given:
     def smb30xExpectedSigningKey = ByteArrayUtils.parseHex("8f5a6907bce9ec89b8f89e560d4e2e18")
     def connectionContext = Mock(ConnectionContext)
@@ -114,5 +120,7 @@ class SMBSessionBuilderSpec extends Specification {
     then:
     context.getSigningKey() != null
     smb30xExpectedSigningKey == context.getSigningKey().encoded
+    context.getEncryptionKey() == null
+    context.getDecryptionKey() == null
   }
 }
