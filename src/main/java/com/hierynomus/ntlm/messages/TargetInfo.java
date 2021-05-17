@@ -113,6 +113,10 @@ public class TargetInfo {
         return this.targetInfo.get(key);
     }
 
+    public void putAvPairString(AvId key, String value) {
+        this.targetInfo.put(key, value);
+    }
+
     public String getAvPairString(AvId key) {
         Object obj = this.targetInfo.get(key);
         if (obj == null)

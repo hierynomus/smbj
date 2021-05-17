@@ -26,8 +26,6 @@ import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.connection.ConnectionContext;
-import com.hierynomus.smbj.connection.SMBSessionBuilder;
-import com.hierynomus.smbj.session.Session;
 import com.hierynomus.spnego.NegTokenInit;
 import com.hierynomus.spnego.NegTokenTarg;
 import com.hierynomus.spnego.SpnegoException;
@@ -96,12 +94,17 @@ public class NtlmAuthenticator implements Authenticator {
 
                 byte[] serverChallenge = serverNtlmChallenge.getServerChallenge();
                 byte[] responseKeyNT = ntlmFunctions.NTOWFv2(String.valueOf(context.getPassword()), context.getUsername(), context.getDomain());
+                TargetInfo clientTargetInfo = serverNtlmChallenge.getTargetInfo().copy();
+                EnumSet<NtlmNegotiateFlag> negotiateFlags = serverNtlmChallenge.getNegotiateFlags();
+                if (negotiateFlags.contains(NTLMSSP_REQUEST_TARGET)) {
+                    clientTargetInfo.putAvPairString(AvId.MsvAvTargetName, String.format("cifs/%s", clientTargetInfo.getAvPairString(AvId.MsvAvDnsComputerName)));
+                }
+
                 byte[] ntlmv2ClientChallenge = ntlmFunctions.getNTLMv2ClientChallenge(serverNtlmChallenge.getTargetInfo());
                 byte[] ntlmv2Response = ntlmFunctions.getNTLMv2Response(responseKeyNT, serverChallenge, ntlmv2ClientChallenge);
                 byte[] sessionkey;
 
                 byte[] userSessionKey = ntlmFunctions.hmac_md5(responseKeyNT, Arrays.copyOfRange(ntlmv2Response, 0, 16)); // first 16 bytes of ntlmv2Response is ntProofStr
-                EnumSet<NtlmNegotiateFlag> negotiateFlags = serverNtlmChallenge.getNegotiateFlags();
                 if (negotiateFlags.contains(NTLMSSP_NEGOTIATE_KEY_EXCH)
                     && (negotiateFlags.contains(NTLMSSP_NEGOTIATE_SIGN)
                     || negotiateFlags.contains(NTLMSSP_NEGOTIATE_SEAL)
