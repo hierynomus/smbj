@@ -124,12 +124,12 @@ public class NtlmAuthenticate extends NtlmPacket {
         return plainBuffer.getCompactData();
     }
 
-    private int writeOffsettedByteArrayFields(Buffer.PlainBuffer buffer, byte[] array, int offset) {
-        byte[] _array = array != null ? array : EMPTY;
-        buffer.putUInt16(_array.length); // ArrayLen
-        buffer.putUInt16(_array.length); // ArrayMaxLen
+    private int writeOffsettedByteArrayFields(Buffer.PlainBuffer buffer, byte[] bytes, int offset) {
+        byte[] arr = bytes != null ? bytes : EMPTY;
+        buffer.putUInt16(arr.length); // ArrayLen
+        buffer.putUInt16(arr.length); // ArrayMaxLen
         buffer.putUInt32(offset); // ArrayOffset
-        return offset + _array.length;
+        return offset + arr.length;
     }
 
     private byte[] ensureNotNull(byte[] possiblyNull) {

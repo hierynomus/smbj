@@ -42,7 +42,6 @@ public class SessionContext {
 
     public void established(SMB2SessionSetup response) {
         this.sessionFlags = response.getSessionFlags();
-
     }
 
     public boolean isSigningRequired() {

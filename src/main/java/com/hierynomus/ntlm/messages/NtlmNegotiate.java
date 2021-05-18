@@ -35,7 +35,6 @@ public class NtlmNegotiate extends NtlmPacket {
         NTLMSSP_NEGOTIATE_ALWAYS_SIGN,
         NTLMSSP_NEGOTIATE_KEY_EXCH,
         NTLMSSP_NEGOTIATE_NTLM,
-        NTLMSSP_NEGOTIATE_NTLM,
         NTLMSSP_REQUEST_TARGET,
         NTLMSSP_NEGOTIATE_UNICODE));
 
@@ -51,10 +50,10 @@ public class NtlmNegotiate extends NtlmPacket {
         // DomainNameFields (8 bytes)
         buffer.putUInt16(0x0); // DomainNameLen (2 bytes)
         buffer.putUInt16(0x0); // DomainNameMaxLen (2 bytes)
-        buffer.putUInt32(0x0); // DomainNameBufferOffset (4 bytes)
+        buffer.putUInt32(0x20); // DomainNameBufferOffset (4 bytes)
         // WorkstationFields (8 bytes)
         buffer.putUInt16(0x0); // WorkstationLen (2 bytes)
         buffer.putUInt16(0x0); // WorkstationMaxLen (2 bytes)
-        buffer.putUInt32(0x0); // WorkstationBufferOffset (4 bytes)
+        buffer.putUInt32(0x20); // WorkstationBufferOffset (4 bytes)
     }
 }

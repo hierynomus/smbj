@@ -17,6 +17,7 @@ package com.hierynomus.ntlm.functions;
 
 import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.ntlm.NtlmException;
+import com.hierynomus.ntlm.messages.TargetInfo;
 import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
@@ -177,13 +178,12 @@ public class NtlmFunctions {
      * @param targetInformation
      * @return
      */
-    public byte[] getNTLMv2ClientChallenge(byte[] targetInformation) {
+    public byte[] getNTLMv2ClientChallenge(TargetInfo targetInfo) {
 
         byte[] challengeFromClient = new byte[8];
         random.nextBytes(challengeFromClient);
 
         long nowAsFileTime = MsDataTypes.nowAsFileTime();
-        byte[] l_targetInfo = (targetInformation == null) ? new byte[0] : targetInformation;
         Buffer.PlainBuffer ccBuf = new Buffer.PlainBuffer(Endian.LE);
         ccBuf.putByte((byte) 0x01); // RespType (1)
         ccBuf.putByte((byte) 0x01); // HiRespType (1)
@@ -192,7 +192,9 @@ public class NtlmFunctions {
         ccBuf.putLong(nowAsFileTime); // Timestamp (8)
         ccBuf.putRawBytes(challengeFromClient); // ChallengeFromClient (8)
         ccBuf.putUInt32(0); // Reserved3 (4)
-        ccBuf.putRawBytes(l_targetInfo);
+        if (targetInfo != null) {
+            targetInfo.writeTo(ccBuf);
+        }
         ccBuf.putUInt32(0); // Last AV Pair indicator
 
         return ccBuf.getCompactData();
