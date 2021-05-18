@@ -100,7 +100,7 @@ public class NtlmAuthenticator implements Authenticator {
                     clientTargetInfo.putAvPairString(AvId.MsvAvTargetName, String.format("cifs/%s", clientTargetInfo.getAvPairString(AvId.MsvAvDnsComputerName)));
                 }
 
-                byte[] ntlmv2ClientChallenge = ntlmFunctions.getNTLMv2ClientChallenge(serverNtlmChallenge.getTargetInfo());
+                byte[] ntlmv2ClientChallenge = ntlmFunctions.getNTLMv2ClientChallenge(clientTargetInfo);
                 byte[] ntlmv2Response = ntlmFunctions.getNTLMv2Response(responseKeyNT, serverChallenge, ntlmv2ClientChallenge);
                 byte[] sessionkey;
 
