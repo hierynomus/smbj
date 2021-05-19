@@ -24,6 +24,7 @@ import com.hierynomus.protocol.commons.EnumWithValue;
  */
 public enum NtStatus implements EnumWithValue<NtStatus> {
     STATUS_SUCCESS(0x00000000L),
+    STATUS_UNSUCCESSFUL(0x00000001L),
     STATUS_TIMEOUT(0x00000102L),
     STATUS_PENDING(0x00000103L),
     STATUS_NOTIFY_CLEANUP(0x0000010BL),
