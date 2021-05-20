@@ -152,7 +152,7 @@ publishing {
 
 if (project.hasProperty("signingKeyId") || project.hasProperty("signingKey")) {
 	project.signing {
-		required { project.gradle.taskGraph.hasTask("required") }
+		required { project.gradle.taskGraph.hasTask("release") }
 		def signingKeyId = project.findProperty("signingKeyId")
 		def signingKey = project.findProperty("signingKey")
 		def signingPassword = project.findProperty("signingPassword")
