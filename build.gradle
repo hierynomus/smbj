@@ -8,7 +8,7 @@ plugins {
   id "jacoco"
   id "maven-publish"
   id "signing"
-  id 'pl.allegro.tech.build.axion-release' version '1.11.0'
+  id 'pl.allegro.tech.build.axion-release' version '1.13.2'
   id "com.github.hierynomus.license" version "0.16.1"
   id "com.bmuschko.docker-remote-api" version "6.4.0"
   // id 'ru.vyarus.java-lib' version '2.1.0'
