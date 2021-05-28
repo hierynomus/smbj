@@ -107,11 +107,7 @@ public final class SmbConfig {
     }
 
     private static SecurityProvider getDefaultSecurityProvider() {
-        if (ANDROID) {
-            return new BCSecurityProvider();
-        } else {
-            return new JceSecurityProvider();
-        }
+        return new BCSecurityProvider();
     }
 
     private static List<Factory.Named<Authenticator>> getDefaultAuthenticators() {

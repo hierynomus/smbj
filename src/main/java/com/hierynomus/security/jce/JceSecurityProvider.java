@@ -61,6 +61,6 @@ public class JceSecurityProvider implements SecurityProvider {
 
     @Override
     public DerivationFunction getDerivationFunction(String name) throws SecurityException {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("Key Derivation Function is currently only supported when using the BCSecurityProvider. Please configure: `SmbConfig.withSecurityProvider(new BCSecurityProvider())` to use SMB3 support.");
     }
 }
