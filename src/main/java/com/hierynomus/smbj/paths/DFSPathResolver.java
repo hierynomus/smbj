@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 public class DFSPathResolver implements PathResolver {
     private static final Logger logger = LoggerFactory.getLogger(DFSPathResolver.class);
@@ -61,9 +62,11 @@ public class DFSPathResolver implements PathResolver {
     private ReferralCache referralCache = new ReferralCache();
 
     private DomainCache domainCache = new DomainCache();
+    private long transactTimeout;
 
-    public DFSPathResolver(final PathResolver wrapped) {
+    public DFSPathResolver(final PathResolver wrapped, long transactTimeout) {
         this.wrapped = wrapped;
+        this.transactTimeout = transactTimeout;
         this.statusHandler = new StatusHandler() {
             @Override
             public boolean isSuccess(long statusCode) {
@@ -435,7 +438,7 @@ public class DFSPathResolver implements PathResolver {
         SMBBuffer buffer = new SMBBuffer();
         req.writeTo(buffer);
         Future<SMB2IoctlResponse> ioctl = share.ioctlAsync(FSCTL_DFS_GET_REFERRALS, true, new BufferByteChunkProvider(buffer));
-        SMB2IoctlResponse response = Futures.get(ioctl, TransportException.Wrapper);
+        SMB2IoctlResponse response = Futures.get(ioctl, transactTimeout, TimeUnit.MILLISECONDS, TransportException.Wrapper);
         return handleReferralResponse(type, response, path);
 
     }

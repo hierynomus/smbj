@@ -64,7 +64,7 @@ public class SMBClient implements Closeable {
         bus.subscribe(this);
         this.pathResolver = new SymlinkPathResolver(PathResolver.LOCAL);
         if (config.isDfsEnabled()) {
-            this.pathResolver = new DFSPathResolver(this.pathResolver);
+            this.pathResolver = new DFSPathResolver(this.pathResolver, config.getTransactTimeout());
         }
     }
 
