@@ -1,18 +1,18 @@
 /*
- * Copyright (C)2016 - SMBJ Contributors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+* Copyright (C)2016 - SMBJ Contributors
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 package com.hierynomus.smbj.share;
 
 import com.hierynomus.msdtyp.AccessMask;
@@ -44,37 +44,37 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Share implements AutoCloseable {
     private static final SMB2FileId ROOT_ID = new SMB2FileId(
-        new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF},
-        new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF}
+    new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF},
+    new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF}
     );
 
     private static final StatusHandler SUCCESS_OR_SYMLINK = new StatusHandler() {
         @Override
         public boolean isSuccess(long statusCode) {
             return statusCode == NtStatus.STATUS_SUCCESS.getValue() ||
-                statusCode == NtStatus.STATUS_STOPPED_ON_SYMLINK.getValue();
+            statusCode == NtStatus.STATUS_STOPPED_ON_SYMLINK.getValue();
         }
     };
     private static final StatusHandler SUCCESS_OR_NO_MORE_FILES_OR_NO_SUCH_FILE = new StatusHandler() {
         @Override
         public boolean isSuccess(long statusCode) {
             return statusCode == NtStatus.STATUS_SUCCESS.getValue() ||
-                statusCode == NtStatus.STATUS_NO_MORE_FILES.getValue() ||
-                statusCode == NtStatus.STATUS_NO_SUCH_FILE.getValue();
+            statusCode == NtStatus.STATUS_NO_MORE_FILES.getValue() ||
+            statusCode == NtStatus.STATUS_NO_SUCH_FILE.getValue();
         }
     };
     private static final StatusHandler SUCCESS_OR_EOF = new StatusHandler() {
         @Override
         public boolean isSuccess(long statusCode) {
             return statusCode == NtStatus.STATUS_SUCCESS.getValue() ||
-                statusCode == NtStatus.STATUS_END_OF_FILE.getValue();
+            statusCode == NtStatus.STATUS_END_OF_FILE.getValue();
         }
     };
     private static final StatusHandler SUCCESS_OR_CLOSED = new StatusHandler() {
         @Override
         public boolean isSuccess(long statusCode) {
             return statusCode == NtStatus.STATUS_SUCCESS.getValue() ||
-                statusCode == NtStatus.STATUS_FILE_CLOSED.getValue();
+            statusCode == NtStatus.STATUS_FILE_CLOSED.getValue();
         }
     };
 
@@ -146,15 +146,15 @@ public class Share implements AutoCloseable {
 
     SMB2CreateResponse createFile(SmbPath path, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask, Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         SMB2CreateRequest cr = new SMB2CreateRequest(
-            dialect,
-            sessionId, treeId,
-            impersonationLevel,
-            accessMask,
-            fileAttributes,
-            shareAccess,
-            createDisposition,
-            createOptions,
-            path
+        dialect,
+        sessionId, treeId,
+        impersonationLevel,
+        accessMask,
+        fileAttributes,
+        shareAccess,
+        createDisposition,
+        createOptions,
+        path
         );
         SMB2CreateResponse resp = sendReceive(cr, "Create", path, getCreateStatusHandler(), transactTimeout);
         return resp;
@@ -166,9 +166,9 @@ public class Share implements AutoCloseable {
 
     void flush(SMB2FileId fileId) throws SMBApiException {
         SMB2Flush flushReq = new SMB2Flush(
-            dialect,
-            fileId,
-            sessionId, treeId
+        dialect,
+        fileId,
+        sessionId, treeId
         );
         sendReceive(flushReq, "Flush", fileId, StatusHandler.SUCCESS, writeTimeout);
     }
@@ -185,33 +185,33 @@ public class Share implements AutoCloseable {
 
     SMB2QueryInfoResponse queryInfo(SMB2FileId fileId, SMB2QueryInfoRequest.SMB2QueryInfoType infoType, Set<SecurityInformation> securityInfo, FileInformationClass fileInformationClass, FileSystemInformationClass fileSystemInformationClass) {
         SMB2QueryInfoRequest qreq = new SMB2QueryInfoRequest(
-            dialect,
-            sessionId, treeId,
-            fileId, infoType,
-            fileInformationClass, fileSystemInformationClass, null, securityInfo
+        dialect,
+        sessionId, treeId,
+        fileId, infoType,
+        fileInformationClass, fileSystemInformationClass, null, securityInfo
         );
         return sendReceive(qreq, "QueryInfo", fileId, StatusHandler.SUCCESS, transactTimeout);
     }
 
     void setInfo(SMB2FileId fileId, SMB2SetInfoRequest.SMB2InfoType infoType, Set<SecurityInformation> securityInfo, FileInformationClass fileInformationClass, byte[] buffer) {
         SMB2SetInfoRequest qreq = new SMB2SetInfoRequest(
-            dialect,
-            sessionId, treeId,
-            infoType, fileId,
-            fileInformationClass, securityInfo, buffer
+        dialect,
+        sessionId, treeId,
+        infoType, fileId,
+        fileInformationClass, securityInfo, buffer
         );
         sendReceive(qreq, "SetInfo", fileId, StatusHandler.SUCCESS, transactTimeout);
     }
 
     SMB2QueryDirectoryResponse queryDirectory(SMB2FileId fileId, Set<SMB2QueryDirectoryRequest.SMB2QueryDirectoryFlags> flags, FileInformationClass informationClass, String searchPattern) {
         SMB2QueryDirectoryRequest qdr = new SMB2QueryDirectoryRequest(
-            dialect,
-            sessionId, treeId,
-            fileId, informationClass,
-            flags,
-            0,
-            searchPattern,
-            transactBufferSize
+        dialect,
+        sessionId, treeId,
+        fileId, informationClass,
+        flags,
+        0,
+        searchPattern,
+        transactBufferSize
         );
 
         return sendReceive(qdr, "Query directory", fileId, SUCCESS_OR_NO_MORE_FILES_OR_NO_SUCH_FILE, transactTimeout);
@@ -219,42 +219,42 @@ public class Share implements AutoCloseable {
 
     SMB2WriteResponse write(SMB2FileId fileId, ByteChunkProvider provider) {
         return receive(
-            writeAsync(fileId, provider),
-            "Write",
-            fileId,
-            StatusHandler.SUCCESS,
-            writeTimeout
+        writeAsync(fileId, provider),
+        "Write",
+        fileId,
+        StatusHandler.SUCCESS,
+        writeTimeout
         );
     }
 
     Future<SMB2WriteResponse> writeAsync(SMB2FileId fileId, ByteChunkProvider provider) {
         SMB2WriteRequest wreq = new SMB2WriteRequest(
-            dialect,
-            fileId,
-            sessionId, treeId,
-            provider,
-            writeBufferSize
+        dialect,
+        fileId,
+        sessionId, treeId,
+        provider,
+        writeBufferSize
         );
         return send(wreq);
     }
 
     SMB2ReadResponse read(SMB2FileId fileId, long offset, int length) {
         return receive(
-            readAsync(fileId, offset, length),
-            "Read",
-            fileId,
-            SUCCESS_OR_EOF,
-            readTimeout
+        readAsync(fileId, offset, length),
+        "Read",
+        fileId,
+        SUCCESS_OR_EOF,
+        readTimeout
         );
     }
 
     Future<SMB2ReadResponse> readAsync(SMB2FileId fileId, long offset, int length) {
         SMB2ReadRequest rreq = new SMB2ReadRequest(
-            dialect,
-            fileId,
-            sessionId, treeId,
-            offset,
-            Math.min(length, readBufferSize)
+        dialect,
+        fileId,
+        sessionId, treeId,
+        offset,
+        Math.min(length, readBufferSize)
         );
         return send(rreq);
     }
@@ -262,47 +262,47 @@ public class Share implements AutoCloseable {
     private static final EmptyByteChunkProvider EMPTY = new EmptyByteChunkProvider(0);
 
     /**
-     * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
-     * corresponding operation.
-     *
-     * @param ctlCode the control code
-     * @param isFsCtl true if the control code is an FSCTL; false if it is an IOCTL
-     * @param inData  the control code dependent input data
-     * @return the response data or <code>null</code> if the control code did not produce a response
-     */
+    * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
+    * corresponding operation.
+    *
+    * @param ctlCode the control code
+    * @param isFsCtl true if the control code is an FSCTL; false if it is an IOCTL
+    * @param inData  the control code dependent input data
+    * @return the response data or <code>null</code> if the control code did not produce a response
+    */
     public byte[] ioctl(long ctlCode, boolean isFsCtl, byte[] inData) {
         return ioctl(ROOT_ID, ctlCode, isFsCtl, inData, 0, inData.length);
     }
 
     /**
-     * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
-     * corresponding operation.
-     *
-     * @param ctlCode  the control code
-     * @param isFsCtl  true if the control code is an FSCTL; false if it is an IOCTL
-     * @param inData   the control code dependent input data
-     * @param inOffset the offset in <code>inData</code> where the input data starts
-     * @param inLength the number of bytes from <code>inData</code> to send, starting at <code>offset</code>
-     * @return the response data or <code>null</code> if the control code did not produce a response
-     */
+    * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
+    * corresponding operation.
+    *
+    * @param ctlCode  the control code
+    * @param isFsCtl  true if the control code is an FSCTL; false if it is an IOCTL
+    * @param inData   the control code dependent input data
+    * @param inOffset the offset in <code>inData</code> where the input data starts
+    * @param inLength the number of bytes from <code>inData</code> to send, starting at <code>offset</code>
+    * @return the response data or <code>null</code> if the control code did not produce a response
+    */
     public byte[] ioctl(long ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength) {
         return ioctl(ROOT_ID, ctlCode, isFsCtl, inData, inOffset, inLength);
     }
 
     /**
-     * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
-     * corresponding operation.
-     *
-     * @param ctlCode   the control code
-     * @param isFsCtl   true if the control code is an FSCTL; false if it is an IOCTL
-     * @param inData    the control code dependent input data
-     * @param inOffset  the offset in <code>inData</code> where the input data starts
-     * @param inLength  the number of bytes from <code>inData</code> to send, starting at <code>inOffset</code>
-     * @param outData   the buffer where the response data should be written
-     * @param outOffset the offset in <code>outData</code> where the output data should be written
-     * @param outLength the maximum amount of data to write in <code>outData</code>, starting at <code>outOffset</code>
-     * @return the number of bytes written to <code>outData</code>
-     */
+    * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
+    * corresponding operation.
+    *
+    * @param ctlCode   the control code
+    * @param isFsCtl   true if the control code is an FSCTL; false if it is an IOCTL
+    * @param inData    the control code dependent input data
+    * @param inOffset  the offset in <code>inData</code> where the input data starts
+    * @param inLength  the number of bytes from <code>inData</code> to send, starting at <code>inOffset</code>
+    * @param outData   the buffer where the response data should be written
+    * @param outOffset the offset in <code>outData</code> where the output data should be written
+    * @param outLength the maximum amount of data to write in <code>outData</code>, starting at <code>outOffset</code>
+    * @return the number of bytes written to <code>outData</code>
+    */
     public int ioctl(long ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength, byte[] outData, int outOffset, int outLength) {
         return ioctl(ROOT_ID, ctlCode, isFsCtl, inData, inOffset, inLength, outData, outOffset, outLength);
     }
@@ -358,10 +358,10 @@ public class Share implements AutoCloseable {
 
     SMB2LockResponse sendLockRequest(SMB2FileId fileId, short lockSequenceNumber, int lockSequenceIndex, List<SMB2LockElement> lockElements) {
         SMB2LockRequest qreq = new SMB2LockRequest(
-            dialect,
-            sessionId, treeId,
-            lockSequenceNumber, lockSequenceIndex,
-            fileId, lockElements
+        dialect,
+        sessionId, treeId,
+        lockSequenceNumber, lockSequenceIndex,
+        fileId, lockElements
         );
 
         return sendReceive(qreq, "Lock", fileId, StatusHandler.SUCCESS, transactTimeout);
@@ -418,27 +418,33 @@ public class Share implements AutoCloseable {
     }
 
     @Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((smbPath == null) ? 0 : smbPath.hashCode());
-		return result;
-	}
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((smbPath == null) ? 0 : smbPath.hashCode());
+        return result;
+    }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Share other = (Share) obj;
-		if (smbPath == null) {
-			if (other.smbPath != null)
-				return false;
-		} else if (!smbPath.equals(other.smbPath))
-			return false;
-		return true;
-	}
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+
+        Share other = (Share) obj;
+        if (smbPath == null) {
+            if (other.smbPath != null) {
+                return false;
+            }
+        } else if (!smbPath.equals(other.smbPath)) {
+            return false;
+        }
+        return true;
+    }
 }
