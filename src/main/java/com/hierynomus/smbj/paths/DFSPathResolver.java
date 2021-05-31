@@ -76,7 +76,13 @@ public class DFSPathResolver implements PathResolver {
     }
 
     @Override
-    public <T> T resolve(Session session, SMB2Packet responsePacket, final SmbPath smbPath, final ResolveAction<T> action) throws PathResolveException {
+    public <T> T resolve(Session session, SMB2Packet responsePacket, final SmbPath smbPath,
+            final ResolveAction<T> action) throws PathResolveException {
+        // If the server does not support DFS, short circuit this path resolution.
+        if (!session.getConnection().getConnectionContext().supportsDFS()) {
+            return wrapped.resolve(session, responsePacket, smbPath, action);
+        }
+
         if (smbPath.getPath() != null && responsePacket.getHeader().getStatusCode() == NtStatus.STATUS_PATH_NOT_COVERED.getValue()) {
             logger.info("DFS Share {} does not cover {}, resolve through DFS", smbPath.getShareName(), smbPath);
             return start(session, smbPath, new ResolveAction<T>() {

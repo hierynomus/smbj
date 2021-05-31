@@ -56,6 +56,9 @@ import com.hierynomus.smbj.connection.packet.SMB3DecryptingPacketHandler;
 import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
+import com.hierynomus.smbj.paths.DFSPathResolver;
+import com.hierynomus.smbj.paths.PathResolver;
+import com.hierynomus.smbj.paths.SymlinkPathResolver;
 import com.hierynomus.smbj.server.ServerList;
 import com.hierynomus.smbj.session.Session;
 
@@ -78,6 +81,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     OutstandingRequests outstandingRequests = new OutstandingRequests();
     SequenceWindow sequenceWindow;
     private SMB2MessageConverter smb2Converter = new SMB2MessageConverter();
+    private PathResolver pathResolver;
 
     private final SMBClient client;
     final ServerList serverList;
@@ -137,6 +141,12 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         new SMBProtocolNegotiator(this, config, connectionContext).negotiateDialect();
         this.signatory.init();
         this.encryptor.init(connectionContext);
+
+        this.pathResolver = new SymlinkPathResolver(PathResolver.LOCAL);
+        if (config.isDfsEnabled() && connectionContext.supportsDFS()) {
+            this.pathResolver = new DFSPathResolver(pathResolver, config.getTransactTimeout());
+        }
+
         logger.info("Successfully connected to: {}", getRemoteHostname());
     }
 
@@ -187,7 +197,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         return new SMBSessionBuilder(this, config, new SMBSessionBuilder.SessionFactory() {
             @Override
             public Session createSession(AuthenticationContext context) {
-                return new Session(Connection.this, config, context, bus, client.getPathResolver(), signatory, encryptor);
+                return new Session(Connection.this, config, context, bus, pathResolver, signatory, encryptor);
             }
         }).establish(authContext);
     }
