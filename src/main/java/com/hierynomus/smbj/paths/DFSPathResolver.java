@@ -432,7 +432,8 @@ public class DFSPathResolver implements PathResolver {
             dfsSession = connection.authenticate(auth);
         }
 
-        try (Share dfsShare = dfsSession.connectShare("IPC$")) {
+        try {
+            Share dfsShare = dfsSession.connectShare("IPC$"); // explicitly not closed as we want to re-use the cached Share for multiple requests
             return getReferral(type, dfsShare, path);
         } catch (Buffer.BufferException | IOException e) {
             throw new DFSException(e);
