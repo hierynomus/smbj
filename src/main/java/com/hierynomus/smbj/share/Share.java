@@ -1,18 +1,18 @@
 /*
-* Copyright (C)2016 - SMBJ Contributors
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (C)2016 - SMBJ Contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.hierynomus.smbj.share;
 
 import com.hierynomus.msdtyp.AccessMask;
@@ -262,47 +262,47 @@ public class Share implements AutoCloseable {
     private static final EmptyByteChunkProvider EMPTY = new EmptyByteChunkProvider(0);
 
     /**
-    * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
-    * corresponding operation.
-    *
-    * @param ctlCode the control code
-    * @param isFsCtl true if the control code is an FSCTL; false if it is an IOCTL
-    * @param inData  the control code dependent input data
-    * @return the response data or <code>null</code> if the control code did not produce a response
-    */
+     * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
+     * corresponding operation.
+     *
+     * @param ctlCode the control code
+     * @param isFsCtl true if the control code is an FSCTL; false if it is an IOCTL
+     * @param inData  the control code dependent input data
+     * @return the response data or <code>null</code> if the control code did not produce a response
+     */
     public byte[] ioctl(long ctlCode, boolean isFsCtl, byte[] inData) {
         return ioctl(ROOT_ID, ctlCode, isFsCtl, inData, 0, inData.length);
     }
 
     /**
-    * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
-    * corresponding operation.
-    *
-    * @param ctlCode  the control code
-    * @param isFsCtl  true if the control code is an FSCTL; false if it is an IOCTL
-    * @param inData   the control code dependent input data
-    * @param inOffset the offset in <code>inData</code> where the input data starts
-    * @param inLength the number of bytes from <code>inData</code> to send, starting at <code>offset</code>
-    * @return the response data or <code>null</code> if the control code did not produce a response
-    */
+     * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
+     * corresponding operation.
+     *
+     * @param ctlCode  the control code
+     * @param isFsCtl  true if the control code is an FSCTL; false if it is an IOCTL
+     * @param inData   the control code dependent input data
+     * @param inOffset the offset in <code>inData</code> where the input data starts
+     * @param inLength the number of bytes from <code>inData</code> to send, starting at <code>offset</code>
+     * @return the response data or <code>null</code> if the control code did not produce a response
+     */
     public byte[] ioctl(long ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength) {
         return ioctl(ROOT_ID, ctlCode, isFsCtl, inData, inOffset, inLength);
     }
 
     /**
-    * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
-    * corresponding operation.
-    *
-    * @param ctlCode   the control code
-    * @param isFsCtl   true if the control code is an FSCTL; false if it is an IOCTL
-    * @param inData    the control code dependent input data
-    * @param inOffset  the offset in <code>inData</code> where the input data starts
-    * @param inLength  the number of bytes from <code>inData</code> to send, starting at <code>inOffset</code>
-    * @param outData   the buffer where the response data should be written
-    * @param outOffset the offset in <code>outData</code> where the output data should be written
-    * @param outLength the maximum amount of data to write in <code>outData</code>, starting at <code>outOffset</code>
-    * @return the number of bytes written to <code>outData</code>
-    */
+     * Sends a control code directly to a specified device driver, causing the corresponding device to perform the
+     * corresponding operation.
+     *
+     * @param ctlCode   the control code
+     * @param isFsCtl   true if the control code is an FSCTL; false if it is an IOCTL
+     * @param inData    the control code dependent input data
+     * @param inOffset  the offset in <code>inData</code> where the input data starts
+     * @param inLength  the number of bytes from <code>inData</code> to send, starting at <code>inOffset</code>
+     * @param outData   the buffer where the response data should be written
+     * @param outOffset the offset in <code>outData</code> where the output data should be written
+     * @param outLength the maximum amount of data to write in <code>outData</code>, starting at <code>outOffset</code>
+     * @return the number of bytes written to <code>outData</code>
+     */
     public int ioctl(long ctlCode, boolean isFsCtl, byte[] inData, int inOffset, int inLength, byte[] outData, int outOffset, int outLength) {
         return ioctl(ROOT_ID, ctlCode, isFsCtl, inData, inOffset, inLength, outData, outOffset, outLength);
     }
