@@ -45,9 +45,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class Share implements AutoCloseable {
     private static final SMB2FileId ROOT_ID = new SMB2FileId(
             new byte[] { (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-                    (byte) 0xFF },
+                         (byte) 0xFF },
             new byte[] { (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-                    (byte) 0xFF });
+                         (byte) 0xFF });
 
     private static final StatusHandler SUCCESS_OR_SYMLINK = new StatusHandler() {
         @Override
