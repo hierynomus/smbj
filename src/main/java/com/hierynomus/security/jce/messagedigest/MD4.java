@@ -124,8 +124,8 @@ public class MD4 extends MessageDigest {
         byte[] p = pad();
         engineUpdate(p, 0, p.length);
         byte[] digest = { (byte) a, (byte) (a >>> 8), (byte) (a >>> 16), (byte) (a >>> 24), (byte) b, (byte) (b >>> 8),
-                (byte) (b >>> 16), (byte) (b >>> 24), (byte) c, (byte) (c >>> 8), (byte) (c >>> 16), (byte) (c >>> 24),
-                (byte) d, (byte) (d >>> 8), (byte) (d >>> 16), (byte) (d >>> 24) };
+                          (byte) (b >>> 16), (byte) (b >>> 24), (byte) c, (byte) (c >>> 8), (byte) (c >>> 16), (byte) (c >>> 24),
+                          (byte) d, (byte) (d >>> 8), (byte) (d >>> 16), (byte) (d >>> 24) };
 
         engineReset();
 
