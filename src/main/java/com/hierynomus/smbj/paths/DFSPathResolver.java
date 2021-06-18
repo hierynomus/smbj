@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 public class DFSPathResolver implements PathResolver {
     private static final Logger logger = LoggerFactory.getLogger(DFSPathResolver.class);
@@ -61,9 +62,11 @@ public class DFSPathResolver implements PathResolver {
     private ReferralCache referralCache = new ReferralCache();
 
     private DomainCache domainCache = new DomainCache();
+    private long transactTimeout;
 
-    public DFSPathResolver(final PathResolver wrapped) {
+    public DFSPathResolver(final PathResolver wrapped, long transactTimeout) {
         this.wrapped = wrapped;
+        this.transactTimeout = transactTimeout;
         this.statusHandler = new StatusHandler() {
             @Override
             public boolean isSuccess(long statusCode) {
@@ -73,7 +76,13 @@ public class DFSPathResolver implements PathResolver {
     }
 
     @Override
-    public <T> T resolve(Session session, SMB2Packet responsePacket, final SmbPath smbPath, final ResolveAction<T> action) throws PathResolveException {
+    public <T> T resolve(Session session, SMB2Packet responsePacket, final SmbPath smbPath,
+            final ResolveAction<T> action) throws PathResolveException {
+        // If the server does not support DFS, short circuit this path resolution.
+        if (!session.getConnection().getConnectionContext().supportsDFS()) {
+            return wrapped.resolve(session, responsePacket, smbPath, action);
+        }
+
         if (smbPath.getPath() != null && responsePacket.getHeader().getStatusCode() == NtStatus.STATUS_PATH_NOT_COVERED.getValue()) {
             logger.info("DFS Share {} does not cover {}, resolve through DFS", smbPath.getShareName(), smbPath);
             return start(session, smbPath, new ResolveAction<T>() {
@@ -423,7 +432,8 @@ public class DFSPathResolver implements PathResolver {
             dfsSession = connection.authenticate(auth);
         }
 
-        try (Share dfsShare = dfsSession.connectShare("IPC$")) {
+        try {
+            Share dfsShare = dfsSession.connectShare("IPC$"); // explicitly not closed as we want to re-use the cached Share for multiple requests
             return getReferral(type, dfsShare, path);
         } catch (Buffer.BufferException | IOException e) {
             throw new DFSException(e);
@@ -435,7 +445,7 @@ public class DFSPathResolver implements PathResolver {
         SMBBuffer buffer = new SMBBuffer();
         req.writeTo(buffer);
         Future<SMB2IoctlResponse> ioctl = share.ioctlAsync(FSCTL_DFS_GET_REFERRALS, true, new BufferByteChunkProvider(buffer));
-        SMB2IoctlResponse response = Futures.get(ioctl, TransportException.Wrapper);
+        SMB2IoctlResponse response = Futures.get(ioctl, transactTimeout, TimeUnit.MILLISECONDS, TransportException.Wrapper);
         return handleReferralResponse(type, response, path);
 
     }

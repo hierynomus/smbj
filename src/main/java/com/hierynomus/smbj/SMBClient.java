@@ -18,9 +18,6 @@ package com.hierynomus.smbj;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
-import com.hierynomus.smbj.paths.DFSPathResolver;
-import com.hierynomus.smbj.paths.PathResolver;
-import com.hierynomus.smbj.paths.SymlinkPathResolver;
 import com.hierynomus.smbj.server.ServerList;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
@@ -48,7 +45,6 @@ public class SMBClient implements Closeable {
     private SmbConfig config;
 
     private SMBEventBus bus;
-    private PathResolver pathResolver;
 
     public SMBClient() {
         this(SmbConfig.createDefaultConfig());
@@ -62,10 +58,6 @@ public class SMBClient implements Closeable {
         this.config = config;
         this.bus = bus;
         bus.subscribe(this);
-        this.pathResolver = new SymlinkPathResolver(PathResolver.LOCAL);
-        if (config.isDfsEnabled()) {
-            this.pathResolver = new DFSPathResolver(this.pathResolver);
-        }
     }
 
     /**
@@ -89,10 +81,6 @@ public class SMBClient implements Closeable {
      */
     public Connection connect(String hostname, int port) throws IOException {
         return getEstablishedOrConnect(hostname, port);
-    }
-
-    public PathResolver getPathResolver() {
-        return pathResolver;
     }
 
     private Connection getEstablishedOrConnect(String hostname, int port) throws IOException {

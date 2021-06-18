@@ -37,7 +37,7 @@ class NegTokenTargSpec extends Specification {
 
     then:
     read.negotiationResult == BigInteger.ONE
-    challenge.getAvPairString(AvId.MsvAvNbComputerName) == "WIN-S2008R2"
-    challenge.getAvPairObject(AvId.MsvAvDnsComputerName) == "WIN-S2008R2"
+    challenge.getTargetInfo().getAvPairString(AvId.MsvAvNbComputerName) == "WIN-S2008R2"
+    challenge.getTargetInfo().getAvPairObject(AvId.MsvAvDnsComputerName) == "WIN-S2008R2"
   }
 }

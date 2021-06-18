@@ -166,6 +166,10 @@ public class ConnectionContext {
         return negotiatedProtocol.getDialect().isSmb3x() && supportsEncryption();
     }
 
+    public boolean supportsDFS() {
+        return supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_DFS);
+    }
+
     /**
      * If the client implements SMB 2.1 or SMB 3.x dialect family, the client MUST perform the following:
      * If SMB2_GLOBAL_CAP_LEASING is set in the Capabilities field of the SMB2 NEGOTIATE Response, the client MUST set Connection.SupportsFileLeasing to TRUE. Otherwise, it MUST be set to FALSE.

@@ -35,6 +35,8 @@ import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static com.hierynomus.mssmb2.SMB2Dialect.*;
+
 public final class SmbConfig {
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 1024;
 
@@ -96,7 +98,7 @@ public final class SmbConfig {
             .withBufferSize(DEFAULT_BUFFER_SIZE)
             .withTransportLayerFactory(DEFAULT_TRANSPORT_LAYER_FACTORY)
             .withSoTimeout(DEFAULT_SO_TIMEOUT, DEFAULT_SO_TIMEOUT_UNIT)
-            .withDialects(SMB2Dialect.SMB_2_1, SMB2Dialect.SMB_2_0_2)
+            .withDialects(SMB_3_1_1, SMB_3_0_2, SMB_3_0, SMB_2_1, SMB_2_0_2)
             // order is important.  The authenticators listed first will be selected
             .withAuthenticators(getDefaultAuthenticators())
             .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
@@ -106,11 +108,7 @@ public final class SmbConfig {
     }
 
     private static SecurityProvider getDefaultSecurityProvider() {
-        if (ANDROID) {
-            return new BCSecurityProvider();
-        } else {
-            return new JceSecurityProvider();
-        }
+        return new BCSecurityProvider();
     }
 
     private static List<Factory.Named<Authenticator>> getDefaultAuthenticators() {

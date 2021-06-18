@@ -15,13 +15,17 @@
  */
 package com.hierynomus.smbj.connection
 
+import com.hierynomus.msdtyp.FileTime
 import com.hierynomus.mserref.NtStatus
+import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMBApiException
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest
+import com.hierynomus.mssmb2.SMB2GlobalCapability
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectResponse
 import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.SmbConfig
+import com.hierynomus.smbj.paths.DFSPathResolver
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.event.ConnectionClosed
 import com.hierynomus.smbj.event.SMBEvent
@@ -111,6 +115,57 @@ class ConnectionSpec extends Specification {
     then:
     def exc = thrown(SMBApiException)
     exc.statusCode == NtStatus.STATUS_NETWORK_SESSION_EXPIRED.value
+  }
+
+  def "should initialise session flags in context once authenticated"() {
+    given:
+    def connect = client.connect("localhost")
+    def session = connect.authenticate(new AuthenticationContext("foo", "bar".toCharArray(), null))
+
+    when:
+    def guest = session.isGuest()
+
+    then:
+    !guest
+  }
+
+  def "should not add DFS path resolver if server does not support DFS"() {
+    given:
+    config = smbConfig({ req ->
+      def resp = new SMB2NegotiateResponse()
+      resp.header.statusCode = NtStatus.STATUS_SUCCESS.value
+      resp.dialect = SMB2Dialect.SMB_3_0
+      resp.capabilities = EnumSet.noneOf(SMB2GlobalCapability.class)
+      resp.systemTime = FileTime.now();
+      return resp
+    })
+    config.dfsEnabled = true
+    client = new SMBClient(config)
+
+    when:
+    def conn = client.connect("foo")
+
+    then:
+    !(conn.pathResolver instanceof DFSPathResolver)
+  }
+  def "should add DFS path resolver if server supports DFS"() {
+    given:
+    config = smbConfig({ req ->
+      def resp = new SMB2NegotiateResponse()
+      resp.header.statusCode = NtStatus.STATUS_SUCCESS.value
+      resp.dialect = SMB2Dialect.SMB_3_0
+      resp.capabilities = EnumSet.of(SMB2GlobalCapability.SMB2_GLOBAL_CAP_DFS)
+      resp.systemTime = FileTime.now();
+      return resp
+    })
+    config.dfsEnabled = true
+    client = new SMBClient(config)
+
+    when:
+    def conn = client.connect("foo")
+
+    then:
+    conn.pathResolver instanceof DFSPathResolver
   }
 
   class EventPersister {

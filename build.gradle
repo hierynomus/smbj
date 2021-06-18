@@ -7,14 +7,15 @@ plugins {
   id "groovy"
   id "jacoco"
   id "maven-publish"
-  id 'pl.allegro.tech.build.axion-release' version '1.11.0'
-  id "com.github.hierynomus.license" version "0.15.0"
+  id "signing"
+  id 'pl.allegro.tech.build.axion-release' version '1.13.2'
+  id "com.github.hierynomus.license" version "0.16.1"
   id "com.bmuschko.docker-remote-api" version "6.4.0"
-  id "com.jfrog.bintray" version "1.8.5"
-  id 'ru.vyarus.java-lib' version '1.1.2'
-  id 'ru.vyarus.github-info' version '1.1.0'
-  id 'ru.vyarus.animalsniffer' version '1.5.0'
+  // id 'ru.vyarus.java-lib' version '2.1.0'
+  id 'ru.vyarus.github-info' version '1.2.0'
+  id 'ru.vyarus.animalsniffer' version '1.5.3'
   id 'org.sonarqube' version "2.7"
+  id "io.github.gradle-nexus.publish-plugin" version "1.0.0"
 }
 
 group = "com.hierynomus"
@@ -25,31 +26,30 @@ defaultTasks "build"
 repositories {
   mavenCentral()
   maven { url "https://jitpack.io" }
-  maven { url "http://dl.bintray.com/hierynomus/maven" }
 }
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-configurations.compile.transitive = false
+configurations.implementation.transitive = false
 
 dependencies {
   signature 'org.codehaus.mojo.signature:java17:1.0@signature'
 
-  compile SLF4J_API
-  compile BCPROV_JDK15ON
-  compile MBASSADOR
-  compile ASN_ONE
+  implementation SLF4J_API
+  implementation BCPROV_JDK15ON
+  implementation MBASSADOR
+  implementation ASN_ONE
   testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
   testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.0")
   testImplementation("org.junit.jupiter:junit-jupiter-params:5.7.0")
 
   testImplementation GROOVY_ALL
-  testRuntime CGLIB_NODEP
-  testRuntime OBJENESIS
+  testRuntimeOnly CGLIB_NODEP
+  testRuntimeOnly OBJENESIS
   testImplementation SPOCK_CORE
   testImplementation COMMONS_IO
-  testRuntime LOGBACK_CLASSIC
+  testRuntimeOnly LOGBACK_CLASSIC
 }
 
 tasks.withType(Test) {
@@ -84,6 +84,12 @@ jar {
     manifest {
        attributes  'Automatic-Module-Name': moduleName
    }
+}
+
+
+java {
+	withJavadocJar()
+	withSourcesJar()
 }
 
 // This disables the pedantic doclint feature of JDK8
@@ -129,21 +135,6 @@ tasks.withType(Test) {
   }
 }
 
-// idea {
-//   module {
-//     testSourceDirs += file("src/it/groovy")
-//     // Ugly hack, the it/resources needs to be marked as testSourceDir before it can be picked up by the iml.withXml
-//     testSourceDirs += file('src/it/resources')
-//   }
-//   module.iml.withXml {
-//     def node = it.asNode()
-//     def content = node.component.find { it.'@name' == 'NewModuleRootManager' }.content[0]
-//     content.sourceFolder.findAll { it.@url?.contains('it/resources') }.each {
-//       it.@type = 'java-test-resource'
-//     }
-//   }
-// }
-
 project.tasks.compileGroovy.onlyIf { false }
 
 github {
@@ -151,59 +142,65 @@ github {
   license 'Apache'
 }
 
-pom {
-  description 'SMB2 protocol library for communication with Windows servers'
-  url 'https://github.com/hierynomus/smbj'
-  developers {
-    developer {
-      id "hierynomus"
-      name "Jeroen van Erp"
-      email "jeroen@hierynomus.com"
-      roles {
-        role "Lead developer"
-      }
-    }
-    developer {
-      id "sbellan"
-      name "Saravanan Bellan"
-      email "sbellan@gmail.com"
-      roles {
-        role "Developer"
-      }
-    }
-  }
+publishing {
+	publications {
+		maven(MavenPublication) {
+			from(components.java)
+		}
+	}
 }
 
-if (project.hasProperty("bintrayUsername") && project.hasProperty("bintrayApiKey")) {
-  bintray {
-    user = project.property("bintrayUsername")
-    key = project.property("bintrayApiKey")
-    publish = true
-    publications = ["maven"]
-    pkg {
-      repo = "maven"
-      name = project.name
-      licenses = ["Apache-2.0"]
-      vcsUrl = "https://github.com/hierynomus/smbj.git"
-      labels = ["smb", "smb2", "smb3", "network", "windows", "file-transfer"]
-      githubRepo = "hierynomus/smbj"
-      version {
-        name = "${project.version}"
-        vcsTag = "v${project.version}"
-        released = new SimpleDateFormat('yyyy-MM-dd\'T\'HH:mm:ss.SSSZZ').format(new Date())
-        gpg {
-          sign = true
-          passphrase = project.property("signing.password")
-        }
-        mavenCentralSync {
-          sync = true
-          user = project.property("sonatypeUsername")
-          password = project.property("sonatypePassword")
-          close = 1
-        }
-      }
-    }
-  }
+if (project.hasProperty("signingKeyId") || project.hasProperty("signingKey")) {
+	project.signing {
+		required { project.gradle.taskGraph.hasTask("release") }
+		def signingKeyId = project.findProperty("signingKeyId")
+		def signingKey = project.findProperty("signingKey")
+		def signingPassword = project.findProperty("signingPassword")
+		if (signingKeyId) {
+			useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
+		} else if (signingKey) {
+			useInMemoryPgpKeys(signingKey, signingPassword)
+		}
+		sign publishing.publications.maven
+	}
+}
+
+project.plugins.withType(MavenPublishPlugin).all {
+	PublishingExtension publishing = project.extensions.getByType(PublishingExtension)
+	publishing.publications.withType(MavenPublication).all { mavenPublication ->
+		mavenPublication.pom {
+			name = "${project.name}"
+			description = "SMB2 protocol library for communication with Windows servers"
+			url = "https://github.com/hierynomus/smbj"
+			licenses {
+				license {
+					name = "The Apache License, Version 2.0"
+					url = "https://www.apache.org/licenses/LICENSE-2.0"
+				}
+			}
+			developers {
+				developer {
+					id = "hierynomus"
+					name = "Jeroen van Erp"
+					email = "jeroen@hierynomus.com"
+				}
+			}
+			scm {
+				connection = "scm:git:https://github.com/hierynomus/smbj"
+				developerConnection = "scm:git:ssh://github.com/hierynomus/smbj.git"
+				url = "https://github.com/hierynomus/smbj"
+			}
+		}
+	}
+}
+
+nexusPublishing {
+	repositories {
+		sonatype()    //sonatypeUsername and sonatypePassword properties are used automatically
+	}
+
+	connectTimeout = Duration.ofMinutes(3)
+	clientTimeout = Duration.ofMinutes(3)
 }
 
 // java.lang.invoke.MethodHandle.invokeExact(Object[]) has a @PolymorphicSignature
@@ -256,7 +253,7 @@ project.tasks.integrationTest.finalizedBy(stopItestContainer)
 
 task forkedUploadRelease(type: GradleBuild) {
   buildFile = project.buildFile
-  tasks = ["bintrayUpload"]
+  tasks = ["publishToSonatype"]
 }
 
 project.tasks.release.dependsOn([project.tasks.integrationTest, project.tasks.build])
