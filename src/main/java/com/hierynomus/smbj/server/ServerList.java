@@ -40,4 +40,13 @@ public class ServerList {
             lock.unlock();
         }
     }
+
+    public void unregister(String name) {
+        lock.lock();
+        try {
+            lookup.remove(name);
+        } finally {
+            lock.unlock();
+        }
+    }
 }
