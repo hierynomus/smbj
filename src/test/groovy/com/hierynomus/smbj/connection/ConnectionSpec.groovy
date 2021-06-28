@@ -19,6 +19,9 @@ import com.hierynomus.msdtyp.FileTime
 import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMBApiException
+import com.hierynomus.mssmb2.SMB2Dialect
+import com.hierynomus.mssmb2.SMB2MessageCommandCode
+import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse
 import com.hierynomus.mssmb2.messages.SMB2TreeConnectRequest
 import com.hierynomus.mssmb2.SMB2GlobalCapability
@@ -31,6 +34,7 @@ import com.hierynomus.smbj.event.ConnectionClosed
 import com.hierynomus.smbj.event.SMBEvent
 import com.hierynomus.smbj.event.SMBEventBus
 import com.hierynomus.smbj.event.SessionLoggedOff
+import com.hierynomus.protocol.transport.TransportException
 import net.engio.mbassy.listener.Handler
 import spock.lang.Specification
 
@@ -140,7 +144,6 @@ class ConnectionSpec extends Specification {
       return resp
     })
     config.dfsEnabled = true
-    client = new SMBClient(config)
 
     when:
     def conn = client.connect("foo")
@@ -148,6 +151,42 @@ class ConnectionSpec extends Specification {
     then:
     !(conn.pathResolver instanceof DFSPathResolver)
   }
+
+  def "should remove server from serverlist if identification changed"() {
+    given:
+    def sent = false
+    config = smbConfig({ req ->
+      req = req.packet
+      if (!sent && req instanceof SMB2NegotiateRequest) {
+        sent = true
+        def response = new SMB2NegotiateResponse()
+        response.header.message = SMB2MessageCommandCode.SMB2_NEGOTIATE
+        response.header.statusCode = NtStatus.STATUS_SUCCESS.value
+        response.dialect = SMB2Dialect.SMB_2_1
+        response.systemTime = FileTime.now();
+        response.serverGuid = UUID.fromString("ffeeddcc-bbaa-9988-7766-554433221100")
+        return response
+      }
+    })
+    client = new SMBClient(config)
+
+    when:
+    def conn = client.connect("foo")
+    conn.close()
+
+    conn = client.connect("foo")
+
+    then:
+    thrown(TransportException)
+
+    when:
+    client.getServerList().unregister("foo")
+    conn = client.connect("foo")
+
+    then:
+    noExceptionThrown()
+  }
+
   def "should add DFS path resolver if server supports DFS"() {
     given:
     config = smbConfig({ req ->
