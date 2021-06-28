@@ -130,4 +130,8 @@ public class SMBClient implements Closeable {
             }
         }
     }
+
+    public ServerList getServerList() {
+        return serverList;
+    }
 }
