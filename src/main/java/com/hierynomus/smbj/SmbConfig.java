@@ -79,8 +79,8 @@ public final class SmbConfig {
     private GSSContextConfig clientGSSContextConfig;
     private boolean encryptData;
     private String workStationName;
-
     private int soTimeout;
+    private boolean allowAsymmetricShares;
 
     public static SmbConfig createDefaultConfig() {
         return builder().build();
@@ -103,7 +103,8 @@ public final class SmbConfig {
             .withAuthenticators(getDefaultAuthenticators())
             .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
             .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig())
-            .withEncryptData(false);
+            .withEncryptData(false)
+            .withAllowAsymmetricShares(false);
     }
 
     private static SecurityProvider getDefaultSecurityProvider() {
@@ -153,6 +154,7 @@ public final class SmbConfig {
         clientGSSContextConfig = other.clientGSSContextConfig;
         encryptData = other.encryptData;
         workStationName = other.workStationName;
+        allowAsymmetricShares = other.allowAsymmetricShares;
     }
 
     public Random getRandomProvider() {
@@ -233,6 +235,10 @@ public final class SmbConfig {
 
     public boolean isEncryptData() {
         return encryptData;
+    }
+
+    public boolean isAllowAsymmetricShares() {
+        return allowAsymmetricShares;
     }
 
     public String getWorkStationName() {
@@ -454,5 +460,11 @@ public final class SmbConfig {
             config.workStationName = workStationName;
             return this;
         }
+
+        public Builder withAllowAsymmetricShares(boolean allowAsymmetricShares) {
+            config.allowAsymmetricShares = allowAsymmetricShares;
+            return this;
+        }
+
     }
 }
