@@ -100,7 +100,7 @@ public class SMB3DecryptingPacketHandler extends AbstractIncomingPacketHandler {
     @Override
     protected void doHandle(SMBPacketData<?> packetData) throws TransportException {
         SMB3EncryptedPacketData data = (SMB3EncryptedPacketData) packetData;
-        logger.info("Decrypting packet {}", data);
+        logger.debug("Decrypting packet {}", data);
 
         if (!encryptor.canDecrypt(data)) {
             next.handle(new DeadLetterPacketData(packetData.getHeader()));
