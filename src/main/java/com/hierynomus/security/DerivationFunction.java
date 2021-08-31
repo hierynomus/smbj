@@ -19,7 +19,7 @@ import com.hierynomus.security.jce.derivationfunction.DerivationParameters;
 
 public interface DerivationFunction {
 
-    void init(DerivationParameters parameters);
+    void init(DerivationParameters parameters) throws SecurityException;
 
     int generateBytes(byte[] out, int outOff, int len);
 }
