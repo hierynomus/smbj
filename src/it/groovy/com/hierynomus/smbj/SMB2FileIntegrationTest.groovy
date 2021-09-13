@@ -47,6 +47,8 @@ import spock.lang.Specification
 import spock.lang.Unroll
 
 import java.nio.charset.StandardCharsets
+import java.util.zip.GZIPInputStream
+import java.util.zip.GZIPOutputStream
 
 import static com.hierynomus.mssmb2.SMB2CreateDisposition.*
 
@@ -432,5 +434,73 @@ class SMB2FileIntegrationTest extends Specification {
     cleanup:
     share.rm("bigfile")
 
+  }
+
+  def "should transfer file using GZIPOutputStream via InputStreamByteChunkProvider to SMB share"() {
+    given:
+//    def DATA_FILE = "dataFile.txt"
+//    def DATA_FILE_ZIPPED = "dataFile.zip"
+    def DATA_FILE = File.createTempFile("dataFile", "txt")
+    def DATA_FILE_ZIPPED = File.createTempFile("dataFile", "zip")
+    def SMB_FILE = "SMBFile.txt"
+    def SMB_FILE_ZIP = "SMBFile.zip"
+    def SMB_FILE_UNZIPPED = "SMBFileUnzipped.txt"
+
+    def dst = share.openFile(SMB_FILE, EnumSet.of(AccessMask.FILE_WRITE_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OVERWRITE_IF, null)
+    def dstZipped = share.openFile(SMB_FILE_ZIP, EnumSet.of(AccessMask.FILE_WRITE_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OVERWRITE_IF, null)
+    def dstUnzipped = share.openFile(SMB_FILE_UNZIPPED, EnumSet.of(AccessMask.FILE_WRITE_DATA), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OVERWRITE_IF, null)
+
+    //Generate data which can be compressed
+    def localDataFile = new FileWriter(DATA_FILE)
+    try {
+      for (i in 0..10_000) {
+        localDataFile.append("HelloWorld")
+      }
+    } finally {
+      localDataFile.close()
+    }
+
+    //Compress data file locally
+    def fis = new FileInputStream(DATA_FILE)
+    def fos = new FileOutputStream(DATA_FILE_ZIPPED)
+    def gzipOS = new GZIPOutputStream(fos)
+    try {
+      byte[] buffer = new byte[1024]
+      int len;
+      while ((len = fis.read(buffer)) != -1) {
+        gzipOS.write(buffer, 0, len)
+      }
+    } finally {
+      gzipOS.close()
+      fos.close()
+      fis.close()
+    }
+
+    when:
+    //Write non-compressed file to SMB
+    dst.write(new InputStreamByteChunkProvider(new FileInputStream(DATA_FILE)))
+    //Write zipped file to SMB
+    dstZipped.write(new InputStreamByteChunkProvider(new FileInputStream(DATA_FILE_ZIPPED)))
+    //Unzip file using GZIPInputStream on the fly and write to SMB
+    dstUnzipped.write(new InputStreamByteChunkProvider(new GZIPInputStream(new FileInputStream(DATA_FILE_ZIPPED))))
+
+    then:
+    share.fileExists(SMB_FILE)
+    share.fileExists(SMB_FILE_ZIP)
+    share.fileExists(SMB_FILE_UNZIPPED)
+
+    def dstSize = dst.getFileInformation(FileStandardInformation.class).endOfFile
+    def dstUnzippedSize = dstUnzipped.getFileInformation(FileStandardInformation.class).endOfFile
+
+    //Neither size nor contents of file written to SMB from GZipInputStream match.
+    // SMB_FILE_UNZIPPED file arrives filled with '0x0' on SMB share
+    dstSize == dstUnzippedSize
+
+    cleanup:
+    share.rm(SMB_FILE)
+    share.rm(SMB_FILE_ZIP)
+    share.rm(SMB_FILE_UNZIPPED)
+    DATA_FILE.delete()
+    DATA_FILE_ZIPPED.delete()
   }
 }
