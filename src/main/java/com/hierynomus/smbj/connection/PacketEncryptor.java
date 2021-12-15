@@ -173,6 +173,10 @@ public class PacketEncryptor {
             return packet.getHeader();
         }
 
+        @Override
+        public int getMaxPayloadSize() {
+            return packet.getMaxPayloadSize();
+        }
 
         @Override
         public long getSequenceNumber() {
