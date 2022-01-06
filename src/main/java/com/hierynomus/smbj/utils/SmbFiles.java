@@ -80,7 +80,7 @@ public class SmbFiles {
         if (!diskShare.folderExists(path.getPath())) {
             // Ensure the parent path exists
             mkdirs(diskShare, path.getParent());
+			diskShare.mkdir(path.getPath());
         }
-        diskShare.mkdir(path.getPath());
     }
 }
