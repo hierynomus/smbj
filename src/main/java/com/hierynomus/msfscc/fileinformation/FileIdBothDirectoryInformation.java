@@ -28,10 +28,10 @@ public class FileIdBothDirectoryInformation extends FileDirectoryQueryableInform
     private final long fileAttributes;
     private final long eaSize;
     private final String shortName;
-    private final byte[] fileId; // This is not the SMB2FileId, but not sure what one can do with this id.
+    private final long fileId; // A 64-bit value that uniquely identifies a file within a given volume.
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
-    FileIdBothDirectoryInformation(long nextOffset, long fileIndex, String fileName, FileTime creationTime, FileTime lastAccessTime, FileTime lastWriteTime, FileTime changeTime, long endOfFile, long allocationSize, long fileAttributes, long eaSize, String shortName, byte[] fileId) {
+    FileIdBothDirectoryInformation(long nextOffset, long fileIndex, String fileName, FileTime creationTime, FileTime lastAccessTime, FileTime lastWriteTime, FileTime changeTime, long endOfFile, long allocationSize, long fileAttributes, long eaSize, String shortName, long fileId) {
         super(nextOffset, fileIndex, fileName);
         this.creationTime = creationTime;
         this.lastAccessTime = lastAccessTime;
@@ -81,7 +81,7 @@ public class FileIdBothDirectoryInformation extends FileDirectoryQueryableInform
         return shortName;
     }
 
-    public byte[] getFileId() {
+    public long getFileId() {
         return fileId;
     }
 }
