@@ -637,7 +637,7 @@ public class FileInformationFactory {
         byte[] shortNameBytes = buffer.readRawBytes(24); // Shortname
         String shortName = new String(shortNameBytes, 0, shortNameLen, Charsets.UTF_16LE);
         buffer.readUInt16(); // Reserved2
-        byte[] fileId = buffer.readRawBytes(8);
+        long fileId = buffer.readLong();
         String fileName = buffer.readString(Charsets.UTF_16LE, (int) fileNameLen / 2);
         FileIdBothDirectoryInformation fi = new FileIdBothDirectoryInformation(
             nextOffset, fileIndex, fileName,
@@ -667,7 +667,7 @@ public class FileInformationFactory {
         long fileNameLen = buffer.readUInt32();
         long eaSize = buffer.readUInt32();
         buffer.skip(4); // Reserved
-        byte[] fileId = buffer.readRawBytes(8);
+        long fileId = buffer.readLong();
         String fileName = buffer.readString(Charsets.UTF_16LE, (int) fileNameLen / 2);
         FileIdFullDirectoryInformation fi = new FileIdFullDirectoryInformation(
             nextOffset, fileIndex, fileName,
