@@ -16,6 +16,8 @@
 package com.hierynomus.smbj
 
 import com.hierynomus.msdtyp.AccessMask
+import com.hierynomus.msfscc.fileinformation.FileIdFullDirectoryInformation
+import com.hierynomus.msfscc.fileinformation.FileInternalInformation
 import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.security.bc.BCSecurityProvider
@@ -122,4 +124,32 @@ class IntegrationTest extends Specification {
     then:
     noExceptionThrown()
   }
+
+  def "should be able to read fileID from FileIdBothDirectoryInformation"() {
+    when:
+    def session = connection.authenticate(AUTH)
+    def share = session.connectShare(SHARE) as DiskShare
+    def children = share.list(FOLDER_THAT_EXISTS)
+    def firstChild = children.get(1);
+    def firstChildFile = share.open(FOLDER_THAT_EXISTS + '\\' + firstChild.getFileName(), EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    def fileInternalInformation = firstChildFile.getFileInformation(FileInternalInformation.class)
+
+    then:
+    firstChild.fileId == fileInternalInformation.indexNumber // both refer to the same file ID
+  }
+
+  def "should be able to read fileID from FileIdFullDirectoryInformation"() {
+    when:
+    def session = connection.authenticate(AUTH)
+    def share = session.connectShare(SHARE) as DiskShare
+    def children = share.list(FOLDER_THAT_EXISTS, FileIdFullDirectoryInformation.class)
+    def firstChild = children.get(1);
+    def firstChildFile = share.open(FOLDER_THAT_EXISTS + '\\' + firstChild.getFileName(), EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, FILE_OPEN, null)
+    def fileInternalInformation = firstChildFile.getFileInformation(FileInternalInformation.class)
+
+    then:
+    firstChild.fileId == fileInternalInformation.indexNumber // both refer to the same file ID
+  }
+
+
 }
