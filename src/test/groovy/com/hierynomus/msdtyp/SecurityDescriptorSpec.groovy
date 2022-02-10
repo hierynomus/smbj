@@ -29,7 +29,7 @@ import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.toEnumSet
 class SecurityDescriptorSpec extends Specification {
   def "should decode security descriptor"() {
     given:
-    String hex = "010004841400000030000000000000004c0000000105000000000005150000008c2d23f408cdaa9b272443ebef0300000105000000000005150000008c2d23f408cdaa9b272443eb01020000020084000500000001001800bd0002000102000000000005200000002702000000102400ff011f000105000000000005150000008c2d23f408cdaa9b272443ebef03000000101400ff011f0001010000000000010000000000101800ff011f000102000000000005200000002002000000101400ff011f00010100000000000512000000"
+    String hex = "010004841400000030000000000000004c0000000105000000000005150000008c2d23f408cdaa9b272443ebef0300000105000000000005150000008c2d23f408cdaa9b272443eb01020000020084000600000001001800bd0002000102000000000005200000002702000000102400ff011f000105000000000005150000008c2d23f408cdaa9b272443ebef03000000101400ff011f0001010000000000010000000000101800ff011f000101000000000001000000000000000000101800ff011f000102000000000005200000002002000000101400ff011f00010100000000000512000000"
     byte[] bytes = ByteArrayUtils.parseHex(hex)
 
     when:
@@ -43,7 +43,7 @@ class SecurityDescriptorSpec extends Specification {
     sd.groupSid == SID.fromString("S-1-5-21-4095946124-2611662088-3947045927-513")
 
     sd.dacl.revision == 2 as byte
-    sd.dacl.aces.size() == 5
+    sd.dacl.aces.size() == 6
 
     sd.dacl.aces.get(0).aceHeader.aceType == AceType.ACCESS_DENIED_ACE_TYPE
     sd.dacl.aces.get(0).aceHeader.aceFlags == EnumSet.noneOf(AceFlags.class)
@@ -60,15 +60,21 @@ class SecurityDescriptorSpec extends Specification {
     sd.dacl.aces.get(2).sid == SID.fromString("S-1-1-0")
     sd.dacl.aces.get(2).accessMask == 0x001f01ff
 
+    // This ACE has padding; it must not be last in order to test that padding is handled correctly.
     sd.dacl.aces.get(3).aceHeader.aceType == AceType.ACCESS_ALLOWED_ACE_TYPE
     sd.dacl.aces.get(3).aceHeader.aceFlags == EnumSet.of(INHERITED_ACE)
-    sd.dacl.aces.get(3).sid == SID.fromString("S-1-5-32-544")
+    sd.dacl.aces.get(3).sid == SID.fromString("S-1-1-0")
     sd.dacl.aces.get(3).accessMask == 0x001f01ff
 
     sd.dacl.aces.get(4).aceHeader.aceType == AceType.ACCESS_ALLOWED_ACE_TYPE
     sd.dacl.aces.get(4).aceHeader.aceFlags == EnumSet.of(INHERITED_ACE)
-    sd.dacl.aces.get(4).sid == SID.fromString("S-1-5-18")
+    sd.dacl.aces.get(4).sid == SID.fromString("S-1-5-32-544")
     sd.dacl.aces.get(4).accessMask == 0x001f01ff
+
+    sd.dacl.aces.get(5).aceHeader.aceType == AceType.ACCESS_ALLOWED_ACE_TYPE
+    sd.dacl.aces.get(5).aceHeader.aceFlags == EnumSet.of(INHERITED_ACE)
+    sd.dacl.aces.get(5).sid == SID.fromString("S-1-5-18")
+    sd.dacl.aces.get(5).accessMask == 0x001f01ff
 
     sd.sacl == null
   }
