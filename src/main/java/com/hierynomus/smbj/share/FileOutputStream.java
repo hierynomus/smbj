@@ -118,6 +118,11 @@ class FileOutputStream extends OutputStream {
         }
 
         @Override
+        public void prepareWrite(int maxBytesToPrepare) {
+            // Nothing to do
+        }
+
+        @Override
         public boolean isAvailable() {
             return buf != null && !buf.isEmpty();
         }

@@ -27,6 +27,11 @@ public class BufferByteChunkProvider extends ByteChunkProvider {
     }
 
     @Override
+    public void prepareWrite(int maxBytesToPrepare) {
+        // Everything in Buffer already, nothing to prepare
+    }
+
+    @Override
     public boolean isAvailable() {
         return buffer.available() > 0;
     }

@@ -205,6 +205,7 @@ public class Share implements AutoCloseable {
     }
 
     Future<SMB2WriteResponse> writeAsync(SMB2FileId fileId, ByteChunkProvider provider) {
+        provider.prepareWrite(writeBufferSize);
         SMB2WriteRequest wreq = new SMB2WriteRequest(dialect, fileId, sessionId, treeId, provider, writeBufferSize);
         return send(wreq);
     }
@@ -313,6 +314,9 @@ public class Share implements AutoCloseable {
     Future<SMB2IoctlResponse> ioctlAsync(SMB2FileId fileId, long ctlCode, boolean isFsCtl, ByteChunkProvider inputData,
             int maxOutputResponse) {
         ByteChunkProvider inData = inputData == null ? EMPTY : inputData;
+
+        // Ensure that the provider is initialized to send all data that can be sent (+1 so that we know whether there is too much)
+        inData.prepareWrite(transactBufferSize+1);
 
         if (inData.bytesLeft() > transactBufferSize) {
             throw new SMBRuntimeException("Input data size exceeds maximum allowed by server: " + inData.bytesLeft()

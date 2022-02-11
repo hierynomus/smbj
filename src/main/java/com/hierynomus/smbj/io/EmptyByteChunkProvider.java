@@ -21,6 +21,11 @@ public class EmptyByteChunkProvider extends ByteChunkProvider {
     }
 
     @Override
+    public void prepareWrite(int maxBytesToPrepare) {
+        // Nothing to prepare, is empty
+    }
+
+    @Override
     public boolean isAvailable() {
         return false;
     }
