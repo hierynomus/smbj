@@ -31,6 +31,7 @@ public abstract class ByteChunkProvider implements Closeable {
     private int lastWriteSize;
 
     public abstract boolean isAvailable();
+    public abstract void prepareWrite(int maxBytesToPrepare);
 
     public void writeChunk(OutputStream os) {
         lastWriteSize = 0;
@@ -71,6 +72,10 @@ public abstract class ByteChunkProvider implements Closeable {
         } catch (IOException e) {
             throw new SMBRuntimeException(e);
         }
+    }
+
+    public int getChunkSize() {
+        return chunkSize;
     }
 
     public long getOffset() {
