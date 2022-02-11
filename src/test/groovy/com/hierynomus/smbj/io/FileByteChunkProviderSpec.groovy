@@ -26,6 +26,7 @@ class FileByteChunkProviderSpec extends Specification {
     def baos = new ByteArrayOutputStream()
 
     when:
+    provider.prepareWrite(ByteChunkProvider.CHUNK_SIZE)
     provider.writeChunk(baos)
 
     then:
@@ -41,6 +42,7 @@ class FileByteChunkProviderSpec extends Specification {
     def baos = new ByteArrayOutputStream()
 
     when:
+    provider.prepareWrite(ByteChunkProvider.CHUNK_SIZE)
     provider.writeChunk(baos)
 
     then:
@@ -59,6 +61,7 @@ class FileByteChunkProviderSpec extends Specification {
     def baos = new ByteArrayOutputStream()
 
     when:
+    provider.prepareWrite(ByteChunkProvider.CHUNK_SIZE)
     provider.writeChunk(baos)
 
     then:
@@ -76,6 +79,7 @@ class FileByteChunkProviderSpec extends Specification {
     def baos = new ByteArrayOutputStream()
 
     when:
+    provider.prepareWrite(ByteChunkProvider.CHUNK_SIZE)
     provider.writeChunk(baos)
 
     then:
