@@ -8,9 +8,9 @@ plugins {
   id "jacoco"
   id "maven-publish"
   id "signing"
-  id 'pl.allegro.tech.build.axion-release' version '1.13.2'
+  id 'pl.allegro.tech.build.axion-release' version '1.13.3'
   id "com.github.hierynomus.license" version "0.16.1"
-  id "com.bmuschko.docker-remote-api" version "6.4.0"
+  id "com.bmuschko.docker-remote-api" version "7.1.0"
   // id 'ru.vyarus.java-lib' version '2.1.0'
   id 'ru.vyarus.github-info' version '1.2.0'
   id 'ru.vyarus.animalsniffer' version '1.5.3'
@@ -27,6 +27,19 @@ repositories {
   mavenCentral()
   maven { url "https://jitpack.io" }
 }
+
+scmVersion {
+  tag {
+    prefix = 'v'
+    versionSeparator = ''
+  }
+  hooks {
+    pre 'fileUpdate', [file: 'README.adoc', pattern: { v, c -> /:smbj_version: .*/}, replacement: { v, c -> ":smbj_version: $v" }]
+    pre 'commit'
+  }
+}
+
+project.version = scmVersion.version
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -64,19 +77,6 @@ license {
   }
   excludes(['com/hierynomus/protocol/commons/Base64.java', '**/*.txt', '**/*.properties', "com/hierynomus/security/jce/messagedigest/MD4.java"])
 }
-
-scmVersion {
-  tag {
-    prefix = 'v'
-    versionSeparator = ''
-  }
-  hooks {
-    pre 'fileUpdate', [file: 'README.adoc', pattern: { v, c -> /:smbj_version: .*/}, replacement: { v, c -> ":smbj_version: $v" }]
-    pre 'commit'
-  }
-}
-
-project.version = scmVersion.version
 
 jar {
     inputs.property("moduleName", moduleName)
@@ -153,10 +153,8 @@ publishing {
 project.signing {
   required { project.gradle.taskGraph.hasTask("release") }
 	sign publishing.publications.maven
-}
 
-if (project.hasProperty("signingKeyId") || project.hasProperty("signingKey")) {
-	project.signing {
+  if (project.hasProperty("signingKeyId") || project.hasProperty("signingKey")) {
 		def signingKeyId = project.findProperty("signingKeyId")
 		def signingKey = project.findProperty("signingKey")
 		def signingPassword = project.findProperty("signingPassword")
@@ -165,7 +163,6 @@ if (project.hasProperty("signingKeyId") || project.hasProperty("signingKey")) {
 		} else if (signingKey) {
 			useInMemoryPgpKeys(signingKey, signingPassword)
 		}
-		sign publishing.publications.maven
 	}
 }
 
@@ -189,11 +186,11 @@ project.plugins.withType(MavenPublishPlugin).all {
 					email = "jeroen@hierynomus.com"
 				}
 			}
-			scm {
-				connection = "scm:git:https://github.com/hierynomus/smbj"
-				developerConnection = "scm:git:ssh://github.com/hierynomus/smbj.git"
-				url = "https://github.com/hierynomus/smbj"
-			}
+      scm {
+        url = "https://github.com/hierynomus/${project.name}"
+        connection = "scm:git@github.com:hierynomus/${project.name}.git"
+        developerConnection = "scm:git@github.com:hierynomus/${project.name}.git"
+      }
 		}
 	}
 }
@@ -257,7 +254,7 @@ project.tasks.integrationTest.finalizedBy(stopItestContainer)
 
 task forkedUploadRelease(type: GradleBuild) {
   buildFile = project.buildFile
-  tasks = ["publishToSonatype"]
+  tasks = ["clean", "publishToSonatype", "closeAndReleaseSonatypeStagingRepository"]
 }
 
 project.tasks.release.dependsOn([project.tasks.integrationTest, project.tasks.build])
