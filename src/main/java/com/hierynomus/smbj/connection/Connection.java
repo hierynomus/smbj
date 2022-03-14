@@ -168,10 +168,10 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
      * @throws IOException If any error occurred during close-ing.
      */
     public void close(boolean force) throws IOException {
-        if (!force && !release()) {
-            return;
-        }
         try {
+            if (!force && !release()) {
+                return;
+            }
             if (!force) {
                 for (Session session : sessionTable.activeSessions()) {
                     try {
