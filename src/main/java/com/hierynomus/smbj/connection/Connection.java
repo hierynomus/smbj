@@ -15,19 +15,12 @@
  */
 package com.hierynomus.smbj.connection;
 
-import static com.hierynomus.mssmb2.SMB2Packet.SINGLE_CREDIT_PAYLOAD_SIZE;
-import static java.lang.String.format;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.UUID;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
-
 import com.hierynomus.mssmb.SMB1PacketFactory;
-import com.hierynomus.mssmb2.*;
+import com.hierynomus.mssmb2.SMB2MessageConverter;
+import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.SMB2PacketFactory;
+import com.hierynomus.mssmb2.SMB3CompressedPacketFactory;
+import com.hierynomus.mssmb2.SMB3EncryptedPacketFactory;
 import com.hierynomus.mssmb2.messages.SMB2Cancel;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
@@ -61,11 +54,20 @@ import com.hierynomus.smbj.paths.PathResolver;
 import com.hierynomus.smbj.paths.SymlinkPathResolver;
 import com.hierynomus.smbj.server.ServerList;
 import com.hierynomus.smbj.session.Session;
-
+import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import net.engio.mbassy.listener.Handler;
+import java.io.Closeable;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.UUID;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
+
+import static com.hierynomus.mssmb2.SMB2Packet.SINGLE_CREDIT_PAYLOAD_SIZE;
+import static java.lang.String.format;
 
 /**
  * A connection to a server.
@@ -168,23 +170,30 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
      * @throws IOException If any error occurred during close-ing.
      */
     public void close(boolean force) throws IOException {
+        if (!force && !release()) {
+            return;
+        }
         try {
-            if (!force && !release()) {
-                return;
-            }
             if (!force) {
-                for (Session session : sessionTable.activeSessions()) {
-                    try {
-                        session.close();
-                    } catch (IOException e) {
-                        logger.warn("Exception while closing session {}", session.getSessionId(), e);
-                    }
-                }
+                closeSessions();
             }
         } finally {
             transport.disconnect();
             logger.info("Closed connection to {}", getRemoteHostname());
             bus.publish(new ConnectionClosed(connectionContext.getServer().getServerName(), connectionContext.getServer().getPort()));
+        }
+    }
+
+    /**
+     * Close silently currently opened sessions
+     */
+    public void closeSessions() {
+        for (Session session : sessionTable.activeSessions()) {
+            try {
+                session.close();
+            } catch (IOException e) {
+                logger.warn("Exception while closing session {}", session.getSessionId(), e);
+            }
         }
     }
 
