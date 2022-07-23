@@ -37,13 +37,22 @@ public class DFSPath {
     }
 
     public DFSPath replacePrefix(String prefixToReplace, String target) {
+        return replacePrefix(prefixToReplace, splitPath(target));
+    }
+
+    public DFSPath replacePrefix(String prefixToReplace, DFSPath target) {
+        return replacePrefix(prefixToReplace, target.getPathComponents());
+    }
+
+    private DFSPath replacePrefix(String prefixToReplace, List<String> targetComponents) {
         List<String> componentsToReplace = splitPath(prefixToReplace);
         List<String> replacedComponents = new ArrayList<>();
-        replacedComponents.addAll(splitPath(target));
+        replacedComponents.addAll(targetComponents);
         for (int i = componentsToReplace.size(); i < pathComponents.size(); i++) {
             replacedComponents.add(pathComponents.get(i));
         }
         return new DFSPath(replacedComponents);
+
     }
 
     public boolean hasOnlyOnePathComponent() {

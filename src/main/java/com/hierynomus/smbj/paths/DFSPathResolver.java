@@ -336,7 +336,7 @@ public class DFSPathResolver implements PathResolver {
             referralCache.clear(state.path);
             return step1(session, state);
         }
-        ReferralResult result = sendDfsReferralRequest(DfsRequestType.LINK, rootReferralCacheEntry.getTargetHint().getTargetPath(), session, state.path);
+        ReferralResult result = sendDfsReferralRequest(DfsRequestType.LINK, rootReferralCacheEntry.getTargetHint().getTargetPath().getPathComponents().get(0), session, state.path);
         if (!NtStatus.isSuccess(result.status)) {
             return step14(session, state, result);
         }

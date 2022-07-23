@@ -1,19 +1,16 @@
 = smbj - SMB2/SMB3 client library for Java
 Jeroen van Erp
 :smbj_groupid: com.hierynomus
-:smbj_version: 0.11.1
+:smbj_version: 0.11.5
 :source-highlighter: pygments
 
 To get started, have a look at one of the examples. Hopefully you will find the API pleasant to work with :)
 
-image:https://api.bintray.com/packages/hierynomus/maven/smbj/images/download.svg[link="https://bintray.com/hierynomus/maven/smbj/_latestVersion"]
-image:https://travis-ci.org/hierynomus/smbj.svg?branch=master["Build Status", link="https://travis-ci.org/hierynomus/smbj"]
-image:https://api.codacy.com/project/badge/Grade/ae8ba8e308734bfbab92fa226853ce91["Codacy code quality", link="https://www.codacy.com/app/jeroen_2/smbj?utm_source=github.com&utm_medium=referral&utm_content=hierynomus/smbj&utm_campaign=Badge_Grade"]
+image:https://github.com/hierynomus/smbj/actions/workflows/gradle.yml/badge.svg["Build SMBJ", link="https://github.com/hierynomus/smbj/actions/workflows/gradle.yml"]
+image:https://app.codacy.com/project/badge/Grade/cf3df44c64c84035b58b054b4e219c24["Codacy Grade", link="https://app.codecov.io/gh/hierynomus/smbj"]
 image:https://codecov.io/gh/hierynomus/smbj/branch/master/graph/badge.svg["codecov", link="https://codecov.io/gh/hierynomus/smbj"]
 image:http://www.javadoc.io/badge/com.hierynomus/smbj.svg?color=blue["JavaDocs", link="http://www.javadoc.io/doc/com.hierynomus/smbj"]
 image:https://maven-badges.herokuapp.com/maven-central/com.hierynomus/smbj/badge.svg["Maven Central",link="https://maven-badges.herokuapp.com/maven-central/com.hierynomus/smbj"]
-
-image:https://www.ej-technologies.com/images/product_banners/jprofiler_small.png["Java profiler", link="http://www.ej-technologies.com/products/jprofiler/overview.html"]
 
 == Getting SMBJ
 

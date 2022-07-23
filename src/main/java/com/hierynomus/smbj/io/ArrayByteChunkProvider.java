@@ -21,6 +21,11 @@ public class ArrayByteChunkProvider extends ByteChunkProvider {
     private int bufferOffset;
     private int remaining;
 
+    @Override
+    public void prepareWrite(int maxBytesToPrepare) {
+        // Everything in memory already, nothing to prepare
+    }
+
     public ArrayByteChunkProvider(byte[] data, long fileOffset) {
         this(data, 0, data.length, fileOffset);
     }

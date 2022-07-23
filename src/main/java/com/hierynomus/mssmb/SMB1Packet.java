@@ -38,11 +38,11 @@ public class SMB1Packet extends SMBPacket<SMB1PacketData, SMB1Header> {
      * @param buffer
      */
     protected void writeTo(SMBBuffer buffer) {
-        throw new UnsupportedOperationException("Should be implemented by specific message type");
+        throw new UnsupportedOperationException("Sending SMBv1 messages not supported in SMBJ");
     }
 
     @Override
     protected void read(SMB1PacketData packetData) throws Buffer.BufferException {
-        throw new UnsupportedOperationException("Receiving SMBv1 Messages not supported in SMBJ");
+        throw new UnsupportedOperationException("Receiving SMBv1 messages not supported in SMBJ");
     }
 }

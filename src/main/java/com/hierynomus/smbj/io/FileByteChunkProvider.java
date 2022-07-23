@@ -48,6 +48,11 @@ public class FileByteChunkProvider extends ByteChunkProvider {
     }
 
     @Override
+    public void prepareWrite(int maxBytesToPrepare) {
+        underlyingProvider.prepareWrite(maxBytesToPrepare);
+    }
+
+    @Override
     protected int getChunk(byte[] chunk) throws IOException {
         return underlyingProvider.getChunk(chunk);
     }

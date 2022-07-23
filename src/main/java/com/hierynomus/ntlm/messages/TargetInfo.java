@@ -85,7 +85,7 @@ public class TargetInfo {
                     break;
                 case MsvAvFlags:
                     buffer.putUInt16(4); // AvLen (2 bytes)
-                    buffer.putUInt32((int) getAvPairObject(key), Endian.LE);
+                    buffer.putUInt32((long) getAvPairObject(key), Endian.LE);
                     break;
                 case MsvAvTimestamp:
                     buffer.putUInt16(8); // AvLen (2 bytes)

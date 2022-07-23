@@ -100,6 +100,7 @@ public abstract class ACE {
                 throw new IllegalStateException("Unknown ACE type: " + header.getAceType());
         }
 
+        buffer.rpos(startPos + header.getAceSize());
         return ace;
     }
 

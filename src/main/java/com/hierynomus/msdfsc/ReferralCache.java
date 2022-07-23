@@ -63,15 +63,15 @@ public class ReferralCache {
     private ReferralCacheNode cacheRoot = new ReferralCacheNode("<root>");
 
     public static class TargetSetEntry {
-        final String targetPath;
+        final DFSPath targetPath;
         final boolean targetSetBoundary;
 
         public TargetSetEntry(String targetPath, boolean targetSetBoundary) {
-            this.targetPath = targetPath;
+            this.targetPath = new DFSPath(targetPath);
             this.targetSetBoundary = targetSetBoundary;
         }
 
-        public String getTargetPath() {
+        public DFSPath getTargetPath() {
             return targetPath;
         }
 
