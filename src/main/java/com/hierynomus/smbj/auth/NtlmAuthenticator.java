@@ -124,8 +124,8 @@ public class NtlmAuthenticator implements Authenticator {
                 // If NTLM v2 is used, KeyExchangeKey MUST be set to the given 128-bit SessionBaseKey value.
 
                 // MIC (16 bytes) provided if in AvPairType is key MsvAvFlags with value & 0x00000002 is true
-                Object msAvTimestamp = serverNtlmChallenge.getTargetInfo().getAvPairObject(AvId.MsvAvTimestamp);
-                if (msAvTimestamp != null) {
+                Object msvAvFlags = serverNtlmChallenge.getTargetInfo().getAvPairObject(AvId.MsvAvFlags);
+                if (msvAvFlags instanceof Long && ((long) msvAvFlags & 0x00000002) > 0) {
                     // MIC should be calculated
                     NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
                         context.getUsername(), context.getDomain(), workStationName, sessionkey, EnumWithValue.EnumUtils.toLong(negotiateFlags),
