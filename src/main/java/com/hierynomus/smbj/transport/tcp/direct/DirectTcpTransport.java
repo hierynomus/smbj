@@ -31,7 +31,9 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static java.lang.String.format;
 
@@ -42,7 +44,7 @@ public class DirectTcpTransport<D extends PacketData<?>, P extends Packet<?>> im
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final PacketHandlers<D, P> handlers;
 
-    private final ReentrantLock writeLock = new ReentrantLock();
+    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     private SocketFactory socketFactory = new ProxySocketFactory();
     private int soTimeout;
@@ -62,23 +64,28 @@ public class DirectTcpTransport<D extends PacketData<?>, P extends Packet<?>> im
     @Override
     public void write(P packet) throws TransportException {
         logger.trace("Acquiring write lock to send packet << {} >>", packet);
-        writeLock.lock();
+        // isConnected only locks readlock, so check first and check once write lock
+        // is acquired to prevent race
+        if (!isConnected()) {
+            throw new TransportException(format("Cannot write %s as transport is disconnected", packet));
+        }
+
+        lock.writeLock().lock();
         try {
             if (!isConnected()) {
-                throw new TransportException(format("Cannot write %s as transport is disconnected", packet));
+                throw new TransportException(format("Cannot write %s as transport got disconnected", packet));
             }
-            try {
-                logger.debug("Writing packet {}", packet);
-                Buffer<?> packetData = handlers.getSerializer().write(packet);
-                writeDirectTcpPacketHeader(packetData.available());
-                writePacketData(packetData);
-                output.flush();
-                logger.trace("Packet {} sent, lock released.", packet);
-            } catch (IOException ioe) {
-                throw new TransportException(ioe);
-            }
+
+            logger.debug("Writing packet {}", packet);
+            Buffer<?> packetData = handlers.getSerializer().write(packet);
+            writeDirectTcpPacketHeader(packetData.available());
+            writePacketData(packetData);
+            output.flush();
+            logger.trace("Packet {} sent, lock released.", packet);
+        } catch (IOException ioe) {
+            throw new TransportException(ioe);
         } finally {
-            writeLock.unlock();
+            lock.writeLock().unlock();
         }
     }
 
@@ -99,32 +106,45 @@ public class DirectTcpTransport<D extends PacketData<?>, P extends Packet<?>> im
 
     @Override
     public void disconnect() throws IOException {
-        writeLock.lock();
+        if (!isConnected()) {
+            return;
+        }
+
+        lock.writeLock().lock();
         try {
+            // check again to prevent race
             if (!isConnected()) {
                 return;
             }
 
             packetReaderThread.stop();
+
             if (socket.getInputStream() != null) {
                 socket.getInputStream().close();
             }
+
             if (output != null) {
                 output.close();
                 output = null;
             }
+
             if (socket != null) {
                 socket.close();
                 socket = null;
             }
         } finally {
-            writeLock.unlock();
+            lock.writeLock().unlock();
         }
     }
 
     @Override
     public boolean isConnected() {
-        return (socket != null) && socket.isConnected() && !socket.isClosed();
+        lock.readLock().lock();
+        try {
+            return (socket != null) && socket.isConnected() && !socket.isClosed();
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     public void setSocketFactory(SocketFactory socketFactory) {
