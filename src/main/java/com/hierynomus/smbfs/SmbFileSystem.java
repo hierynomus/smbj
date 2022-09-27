@@ -17,11 +17,13 @@ package com.hierynomus.smbfs;
 
 import com.hierynomus.msfscc.fileinformation.FileAllInformation;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
+import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
 
 import java.io.IOException;
+import java.nio.file.AccessMode;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystem;
@@ -147,15 +149,29 @@ public class SmbFileSystem extends FileSystem {
         }
     }
 
-    public <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> type) throws IOException {
+    <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> type) throws IOException {
 
         if (type != BasicFileAttributes.class)
             throw new UnsupportedOperationException(type.getName());
 
-        try (DiskShare ds = (DiskShare) session.connectShare(share)) {
-            FileAllInformation fileInformation = ds.getFileInformation(path.toString());
+        try {
+            try (DiskShare ds = (DiskShare) session.connectShare(share)) {
+                FileAllInformation fileInformation = ds.getFileInformation(path.toString());
 
-            return type.cast(new SmbFileAttributes(fileInformation));
+                return type.cast(new SmbFileAttributes(fileInformation));
+            }
+        } catch (SMBApiException e) {
+            throw new IOException(e);
+        }
+    }
+
+    void checkAccess(Path path, AccessMode... modes) throws IOException {
+        try {
+            try (DiskShare ds = (DiskShare) session.connectShare(share)) {
+                ds.getFileInformation(path.toString());
+            }
+        } catch (SMBApiException e) {
+            throw new IOException(e);
         }
     }
 }

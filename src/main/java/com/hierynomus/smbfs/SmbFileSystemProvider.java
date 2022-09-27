@@ -225,8 +225,9 @@ public class SmbFileSystemProvider extends FileSystemProvider {
     }
 
     @Override
-    public void checkAccess(Path path, AccessMode... modes) {
-        throw toBeImplemented();
+    public void checkAccess(Path path, AccessMode... modes) throws IOException {
+        requireSmbPath(path).getFileSystem()
+            .checkAccess(path, modes);
     }
 
     @Override
