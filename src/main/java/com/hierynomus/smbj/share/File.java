@@ -195,9 +195,10 @@ public class File extends DiskEntry {
      * @param fileOffset The offset, in bytes, into the file to which the data should be written
      * @return the actual number of bytes that was written to the file
      */
-    public long write(ByteBuffer buffer, long fileOffset) {
+    public int write(ByteBuffer buffer, long fileOffset) {
         ByteChunkProvider provider = new ByteBufferByteChunkProvider(buffer, fileOffset);
-        return write(provider);
+        // size of a ByteBuffer is represented by an int, so this cannot be higher than that
+        return (int)write(provider);
     }
 
 

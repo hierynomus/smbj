@@ -22,8 +22,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static com.hierynomus.smbfs.ToBeImplementedException.toBeImplemented;
-
 class SmbFileChannel implements SeekableByteChannel {
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -34,9 +32,10 @@ class SmbFileChannel implements SeekableByteChannel {
     private long position;
     private volatile boolean closed;
 
-    SmbFileChannel(DiskShare share, File file) {
+    SmbFileChannel(DiskShare share, File file, long position) {
         this.share = share;
         this.file = file;
+        this.position = position;
     }
 
     @Override
@@ -56,7 +55,16 @@ class SmbFileChannel implements SeekableByteChannel {
 
     @Override
     public int write(ByteBuffer src) throws IOException {
-        throw toBeImplemented();
+        lock.lock();
+        try {
+            int written = file.write(src, position);
+            if (written >= 0)
+                position += written;
+
+            return written;
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override

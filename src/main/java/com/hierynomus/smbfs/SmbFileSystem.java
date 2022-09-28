@@ -192,7 +192,11 @@ public class SmbFileSystem extends FileSystem {
 
         DiskShare ds = (DiskShare) session.connectShare(share);
         File file = ds.openFile(path.toString(), accessMasks, null, null, disposition, createOptions);
-        return new SmbFileChannel(ds, file);
+        long position = 0;
+        if (options.contains(StandardOpenOption.APPEND))
+            position = file.getLength();
+
+        return new SmbFileChannel(ds, file, position);
     }
 
     private static Set<AccessMask> accessMasks(Set<? extends OpenOption> options) {
@@ -221,12 +225,10 @@ public class SmbFileSystem extends FileSystem {
         if (options.contains(StandardOpenOption.CREATE_NEW))
             return SMB2CreateDisposition.FILE_CREATE;
 
-        if (options.contains(StandardOpenOption.WRITE)) {
-            if (options.contains(StandardOpenOption.TRUNCATE_EXISTING))
-                return SMB2CreateDisposition.FILE_SUPERSEDE;
+        if (options.contains(StandardOpenOption.WRITE) &&
+            options.contains(StandardOpenOption.TRUNCATE_EXISTING)) {
 
-            if (!options.contains(StandardOpenOption.APPEND))
-                return SMB2CreateDisposition.FILE_OVERWRITE_IF;
+            return SMB2CreateDisposition.FILE_OVERWRITE_IF;
         }
 
         if (options.contains(StandardOpenOption.CREATE))

@@ -23,6 +23,7 @@ import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.testing.TestingUtils.ConsumerWithError;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -37,6 +38,7 @@ import java.util.function.Consumer;
 
 import static com.hierynomus.smbj.testing.TestingUtils.PASSWORD;
 import static com.hierynomus.smbj.testing.TestingUtils.USER;
+import static java.nio.charset.Charset.defaultCharset;
 
 public class SambaContainer extends GenericContainer<SambaContainer> {
 
@@ -135,6 +137,14 @@ public class SambaContainer extends GenericContainer<SambaContainer> {
 
     public URI publicUri() {
         return URI.create("smb://" + USER + ":" + PASSWORD + "@" + getHost() + ":" + getFirstMappedPort() + "/public");
+    }
+
+    public URI userUri() {
+        return URI.create("smb://" + USER + ":" + PASSWORD + "@" + getHost() + ":" + getFirstMappedPort() + "/user");
+    }
+
+    public String readFileFromContainer(String file) {
+        return copyFileFromContainer(file, input -> IOUtils.toString(input, defaultCharset()));
     }
 }
 
