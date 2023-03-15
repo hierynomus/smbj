@@ -43,8 +43,8 @@ public class SmbFiles {
      * @throws java.io.FileNotFoundException
      * @throws java.io.IOException
      */
-    public static int copy(File source, DiskShare share, String destPath, boolean overwrite) throws IOException {
-        int r = 0;
+    public static long copy(File source, DiskShare share, String destPath, boolean overwrite) throws IOException {
+        long r = 0;
         if (source != null && source.exists() && source.canRead() && source.isFile()) {
 
             try (InputStream is = new java.io.FileInputStream(source)) {

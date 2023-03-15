@@ -56,7 +56,7 @@ public class SMB2Writer {
      *                   should be written
      * @return the actual number of bytes that was written to the file
      */
-    public int write(byte[] buffer, long fileOffset) {
+    public long write(byte[] buffer, long fileOffset) {
         return write(buffer, fileOffset, 0, buffer.length);
     }
 
@@ -70,7 +70,7 @@ public class SMB2Writer {
      * @param length     the number of bytes that are written
      * @return the actual number of bytes that was written to the file
      */
-    public int write(byte[] buffer, long fileOffset, int offset, int length) {
+    public long write(byte[] buffer, long fileOffset, int offset, int length) {
         return write(new ArrayByteChunkProvider(buffer, offset, length, fileOffset), null);
     }
 
@@ -82,7 +82,7 @@ public class SMB2Writer {
      * @param provider the byte chunk provider
      * @return the actual number of bytes that was written to the file
      */
-    public int write(ByteChunkProvider provider) {
+    public long write(ByteChunkProvider provider) {
         return write(provider, null);
     }
 
@@ -96,7 +96,7 @@ public class SMB2Writer {
      *                         has been written to the file
      * @return the actual number of bytes that was written to the file
      */
-    public int write(ByteChunkProvider provider, ProgressListener progressListener) {
+    public long write(ByteChunkProvider provider, ProgressListener progressListener) {
         int bytesWritten = 0;
         while (provider.isAvailable()) {
             logger.debug("Writing to {} from offset {}", this.entryName, provider.getOffset());
@@ -118,7 +118,7 @@ public class SMB2Writer {
      * @param length     the number of bytes that are written
      * @return A Future containing the total number of bytes written
      */
-    public Future<Integer> writeAsync(byte[] buffer, long fileOffset, int offset, int length) {
+    public Future<Long> writeAsync(byte[] buffer, long fileOffset, int offset, int length) {
         return writeAsync(new ArrayByteChunkProvider(buffer, offset, length, fileOffset));
     }
 
@@ -130,18 +130,18 @@ public class SMB2Writer {
      * @param provider the byte chunk provider
      * @return the List of write response future
      */
-    public Future<Integer> writeAsync(ByteChunkProvider provider) {
-        final List<Future<Integer>> wrespFutureList = new ArrayList<Future<Integer>>();
+    public Future<Long> writeAsync(ByteChunkProvider provider) {
+        final List<Future<Long>> wrespFutureList = new ArrayList<Future<Long>>();
         while (provider.isAvailable()) {
             // maybe more than one time, need array list to store the write response future
             logger.debug("Sending async write request to {} from offset {}", this.entryName, provider.getOffset());
             Future<SMB2WriteResponse> resp = share.writeAsync(fileId, provider);
-            final int bytesWritten = provider.getLastWriteSize();
+            final long bytesWritten = provider.getLastWriteSize();
             wrespFutureList.add(Futures.transform(resp,
-                    new AFuture.Function<SMB2WriteResponse, Integer>() {
+                    new AFuture.Function<SMB2WriteResponse, Long>() {
                         @Override
-                        public Integer apply(SMB2WriteResponse t) {
-                            int receivedBytes = t.getBytesWritten();
+                        public Long apply(SMB2WriteResponse t) {
+                            long receivedBytes = t.getBytesWritten();
                             if (receivedBytes == bytesWritten) {
                                 return bytesWritten;
                             }
@@ -152,10 +152,10 @@ public class SMB2Writer {
                     }));
         }
 
-        return Futures.transform(Futures.sequence(wrespFutureList), new AFuture.Function<List<Integer>, Integer>(){
-            public Integer apply(List<Integer> a) {
-                int sum = 0;
-                for (Integer i : a) {
+        return Futures.transform(Futures.sequence(wrespFutureList), new AFuture.Function<List<Long>, Long>(){
+            public Long apply(List<Long> a) {
+                long sum = 0;
+                for (Long i : a) {
                     sum += i;
                 }
                 return sum;
