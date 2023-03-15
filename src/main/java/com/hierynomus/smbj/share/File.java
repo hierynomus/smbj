@@ -57,7 +57,7 @@ public class File extends DiskEntry {
      * @param fileOffset The offset, in bytes, into the file to which the data should be written
      * @return the actual number of bytes that was written to the file
      */
-    public int write(byte[] buffer, long fileOffset) {
+    public long write(byte[] buffer, long fileOffset) {
         return writer.write(buffer, fileOffset);
     }
 
@@ -70,7 +70,7 @@ public class File extends DiskEntry {
      * @param length     the number of bytes that are written
      * @return the actual number of bytes that was written to the file
      */
-    public int write(byte[] buffer, long fileOffset, int offset, int length) {
+    public long write(byte[] buffer, long fileOffset, int offset, int length) {
         return writer.write(buffer, fileOffset, offset, length);
     }
 
@@ -81,7 +81,7 @@ public class File extends DiskEntry {
      * @param provider the byte chunk provider
      * @return the actual number of bytes that was written to the file
      */
-    public int write(ByteChunkProvider provider) {
+    public long write(ByteChunkProvider provider) {
         return writer.write(provider);
     }
 
@@ -93,7 +93,7 @@ public class File extends DiskEntry {
      * @param progressListener an optional callback that will be invoked when data has been written to the file
      * @return the actual number of bytes that was written to the file
      */
-    public int write(ByteChunkProvider provider, ProgressListener progressListener) {
+    public long write(ByteChunkProvider provider, ProgressListener progressListener) {
         return writer.write(provider, progressListener);
     }
 
@@ -105,7 +105,7 @@ public class File extends DiskEntry {
      * @param length     the number of bytes that are written
      * @return A Future containing the total number of bytes written to the remote.
      */
-    public Future<Integer> writeAsync(byte[] buffer, long fileOffset, int offset, int length) {
+    public Future<Long> writeAsync(byte[] buffer, long fileOffset, int offset, int length) {
         return writer.writeAsync(buffer, fileOffset, offset, length);
     }
 
@@ -116,7 +116,7 @@ public class File extends DiskEntry {
      * @param provider the byte chunk provider
      * @return A future containing the total number of bytes written to the remote.
      */
-    public Future<Integer> writeAsync(ByteChunkProvider provider) {
+    public Future<Long> writeAsync(ByteChunkProvider provider) {
         return writer.writeAsync(provider);
     }
 
