@@ -232,8 +232,8 @@ task stopItestContainer(type: DockerStopContainer) {
     targetContainerId createItestContainer.getContainerId()
 }
 
-// project.tasks.integrationTest.dependsOn(startItestContainer)
-// project.tasks.integrationTest.finalizedBy(stopItestContainer)
+project.tasks.integrationTest.dependsOn(startItestContainer)
+project.tasks.integrationTest.finalizedBy(stopItestContainer)
 
 task forkedUploadRelease(type: GradleBuild) {
   buildFile = project.buildFile
