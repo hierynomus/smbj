@@ -80,7 +80,9 @@ jar {
     inputs.property("moduleName", moduleName)
 
     manifest {
-       attributes  'Automatic-Module-Name': moduleName
+       attributes 'Automatic-Module-Name': moduleName
+       attributes 'Implenentation-Title': project.name
+       attributes 'Implementation-Version': project.version
    }
 }
 
@@ -230,8 +232,8 @@ task stopItestContainer(type: DockerStopContainer) {
     targetContainerId createItestContainer.getContainerId()
 }
 
-project.tasks.integrationTest.dependsOn(startItestContainer)
-project.tasks.integrationTest.finalizedBy(stopItestContainer)
+// project.tasks.integrationTest.dependsOn(startItestContainer)
+// project.tasks.integrationTest.finalizedBy(stopItestContainer)
 
 task forkedUploadRelease(type: GradleBuild) {
   buildFile = project.buildFile
