@@ -155,3 +155,14 @@ The implementation is based on the following specifications:
 - https://msdn.microsoft.com/en-us/library/cc231196.aspx[[MS-ERREF\]: Windows Error Codes]
 - https://msdn.microsoft.com/en-us/library/cc231987.aspx[[MS-FSCC\]: File System Control Codes]
 - https://msdn.microsoft.com/en-us/library/cc226982.aspx[[MS-DFSC\]: Distributed File System (DFS): Referral Protocol]
+
+== Changelog
+
+=== 0.12.0 (2023-??-??)
+* Do not send SNB2EncryptionCapabilities if the withEncryptData is set to false (Fixes https://github.com/hierynomus/smbj/issues/747[#747])
+* Added Implementation-Version and Implementation-Name to MANIFEST.MF (Fixes https://github.com/hierynomus/smbj/issues/743[#743])
+* Upgraded Gradle to 8.0.2
+* Bytes written by the SMB2Writer are now returned as long, correctly reporting on files >2GB (Fixes https://github.com/hierynomus/smbj/issues/740[#740])
+* Reduce the amount of locking in Connection and DirectTcpTransport
+* Fixed Cannot resolve path exception in DFS by specifying the correct TargetHint (Fixes https://github.com/hierynomus/smbj/issues/419[#419])
+* Fixed ClassCastException in TargetInfo (Fixes https://github.com/hierynomus/smbj/issues/712[#712])
