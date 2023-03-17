@@ -56,11 +56,13 @@ public class SMB2NegotiateRequest extends SMB2Packet {
             List<SMB2NegotiateContext> contexts = new ArrayList<>();
             List<SMB3HashAlgorithm> hashAlgorithmList = Arrays.asList(SMB3HashAlgorithm.SHA_512);
             contexts.add(new SMB2PreauthIntegrityCapabilities(hashAlgorithmList, salt));
-            // [MS-SMB2].pdf <104> Section 3.2.4.2.2.2: Windows 10, Windows Server 2016, and
-            // Windows Server operating system initialize with AES-128-GCM(0x0002)
-            // followed by AES-128-CCM(0x0001).
-            List<SMB3EncryptionCipher> cipherList = Arrays.asList(SMB3EncryptionCipher.AES_128_GCM, SMB3EncryptionCipher.AES_128_CCM);
-            contexts.add(new SMB2EncryptionCapabilities(cipherList));
+            if (this.capabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION)) { // SMB2_GLOBAL_CAP_ENCRYPTION is only present if isEncryptionSupported is true
+                // [MS-SMB2].pdf <104> Section 3.2.4.2.2.2: Windows 10, Windows Server 2016, and
+                // Windows Server operating system initialize with AES-128-GCM(0x0002)
+                // followed by AES-128-CCM(0x0001).
+                List<SMB3EncryptionCipher> cipherList = Arrays.asList(SMB3EncryptionCipher.AES_128_GCM, SMB3EncryptionCipher.AES_128_CCM);
+                contexts.add(new SMB2EncryptionCapabilities(cipherList));
+            }
             return contexts;
         }
         return Collections.emptyList();
