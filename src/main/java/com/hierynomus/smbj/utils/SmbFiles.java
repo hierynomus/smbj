@@ -67,7 +67,9 @@ public class SmbFiles {
 
     /**
      * Create a set of nested sub-directories in the given path, for example, 2345 \ 3456 \ 4453 \ 123123.txt
+     * @deprecated use static {@link SmbFileUtil#mkdirs(DiskShare, String)} method instead
      */
+    @Deprecated
     public void mkdirs(DiskShare diskShare, String path) throws SMBApiException {
         SmbPath smbPath = new SmbPath(diskShare.getSmbPath(), path);
         mkdirs(diskShare, smbPath);
@@ -75,7 +77,9 @@ public class SmbFiles {
 
     /**
      * Create a set of nested sub-directories in the given path, for example, 2345 \ 3456 \ 4453 \ 123123.txt
+     * @deprecated use static {@link SmbFileUtil#mkdirs(DiskShare, SmbPath)} method instead
      */
+    @Deprecated
     public void mkdirs(DiskShare diskShare, SmbPath path) throws SMBApiException {
         if (!diskShare.folderExists(path.getPath())) {
             // Ensure the parent path exists
