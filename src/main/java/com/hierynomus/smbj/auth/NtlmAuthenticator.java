@@ -123,7 +123,7 @@ public class NtlmAuthenticator implements Authenticator {
 
                 // If NTLM v2 is used, KeyExchangeKey MUST be set to the given 128-bit SessionBaseKey value.
 
-                // MIC (16 bytes) provided if in AvPairType is key MsvAvFlags with value & 0x00000002 is true
+                // MIC (16 bytes) provided if MsAvTimestamp is present
                 Object msAvTimestamp = serverNtlmChallenge.getTargetInfo().getAvPairObject(AvId.MsvAvTimestamp);
                 if (msAvTimestamp != null) {
                     // MIC should be calculated
@@ -131,6 +131,15 @@ public class NtlmAuthenticator implements Authenticator {
                         context.getUsername(), context.getDomain(), workStationName, sessionkey, EnumWithValue.EnumUtils.toLong(negotiateFlags),
                         true
                     );
+
+                    // Set MsAvFlags bit 0x2 to indicate that the client is providing a MIC
+                    if (serverNtlmChallenge.getTargetInfo().hasAvPair(AvId.MsvAvFlags)) {
+                        long flags = (long) serverNtlmChallenge.getTargetInfo().getAvPairObject(AvId.MsvAvFlags);
+                        flags = flags | 0x2;
+                        serverNtlmChallenge.getTargetInfo().putAvPairObject(AvId.MsvAvFlags, flags);
+                    } else {
+                        serverNtlmChallenge.getTargetInfo().putAvPairObject(AvId.MsvAvFlags, 0x2L);
+                    }
 
                     // TODO correct hash should be tested
 

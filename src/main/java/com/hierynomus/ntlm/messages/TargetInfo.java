@@ -113,6 +113,14 @@ public class TargetInfo {
         return this.targetInfo.get(key);
     }
 
+    public void putAvPairObject(AvId key, Object value) {
+        this.targetInfo.put(key, value);
+    }
+
+    public boolean hasAvPair(AvId key) {
+        return this.targetInfo.containsKey(key);
+    }
+
     public void putAvPairString(AvId key, String value) {
         this.targetInfo.put(key, value);
     }
