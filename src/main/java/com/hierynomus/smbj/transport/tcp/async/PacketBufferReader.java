@@ -37,7 +37,7 @@ public class PacketBufferReader {
 
 
     public byte[] readNext() {
-        readBuffer.flip(); // prepare to process received data
+        ((java.nio.Buffer) readBuffer).flip(); // prepare to process received data (cast is to avoid Java 8/9 compatibility issues)
         byte[] bytes = null;
         if (isAwaitingHeader() && isHeaderAvailable()) {
             currentPacketLength = readPacketHeader();

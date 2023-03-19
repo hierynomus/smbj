@@ -165,7 +165,7 @@ public class AsyncDirectTcpTransport<D extends PacketData<?>, P extends Packet<?
         toSend.order(ByteOrder.BIG_ENDIAN);
         toSend.putInt(packetData.available()); // also writes the initial 0 byte
         toSend.put(packetData.array(), packetData.rpos(), packetData.available());
-        toSend.flip();
+        ((java.nio.Buffer) toSend).flip(); // Java8/9 compatibility
         try {
             packetData.skip(dataSize);
         } catch (BufferException e) {
