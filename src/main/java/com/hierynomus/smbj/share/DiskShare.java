@@ -274,6 +274,7 @@ public class DiskShare extends Share {
 							.filter(entry -> !entry.getFileName().equals("."))
 							.filter(entry -> !entry.getFileName().equals(".."))
 							.filter(entry -> !SmbFileAttributeUtils.isDirectory(entry.getFileAttributes()))
+							.map(info -> mapFullFilePath(path, info))
 							.collect(Collectors.toList()));
 				}
 			}
@@ -284,6 +285,11 @@ public class DiskShare extends Share {
         }
         return filesInformation;
     }
+
+	public FileIdBothDirectoryInformation mapFullFilePath(String path, FileIdBothDirectoryInformation info) {
+		info.setFullPath(path + "/" + info.getFileName());
+		return info;
+	}
     /**
      * Equivalent to calling {@link #list(String, Class, String, EnumSet<AccessMask>) list(path, informationClass, null, null)}.
      *
