@@ -20,7 +20,7 @@ import com.hierynomus.protocol.commons.EnumWithValue;
 public enum AvId implements EnumWithValue<AvId> {
     MsvAvEOL(0x00L),
     MsvAvNbComputerName(0x01L),
-    MsvAvNdDomainName(0x02L),
+    MsvAvNbDomainName(0x02L),
     MsvAvDnsComputerName(0x03L),
     MsvAvDnsDomainName(0x04L),
     MsvAvDnsTreeName(0x05L),
@@ -28,7 +28,7 @@ public enum AvId implements EnumWithValue<AvId> {
     MsvAvTimestamp(0x07L),
     MsvAvSingleHost(0x08L),
     MsvAvTargetName(0x09L),
-    MsvChannelBindings(0x0AL);
+    MsvAvChannelBindings(0x0AL);
 
     private final long value;
 

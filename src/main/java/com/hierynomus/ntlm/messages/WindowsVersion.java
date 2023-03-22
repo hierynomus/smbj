@@ -18,6 +18,8 @@ package com.hierynomus.ntlm.messages;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
+import java.util.Objects;
+
 /**
  * [MS-NLMP].pdf 2.2.2.10 VERSION
  */
@@ -77,6 +79,13 @@ public class WindowsVersion {
     private int productBuild;
     private NtlmRevisionCurrent ntlmRevision;
 
+    WindowsVersion(ProductMajorVersion majorVersion, ProductMinorVersion minorVersion, int productBuild, NtlmRevisionCurrent ntlmRevision) {
+        this.majorVersion = majorVersion;
+        this.minorVersion = minorVersion;
+        this.productBuild = productBuild;
+        this.ntlmRevision = ntlmRevision;
+    }
+
     WindowsVersion() {
     }
 
@@ -92,5 +101,18 @@ public class WindowsVersion {
     @Override
     public String toString() {
         return String.format("WindowsVersion[%s, %s, %d, %s]", majorVersion, minorVersion, productBuild, ntlmRevision);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        WindowsVersion that = (WindowsVersion) o;
+        return productBuild == that.productBuild && majorVersion == that.majorVersion && minorVersion == that.minorVersion && ntlmRevision == that.ntlmRevision;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(majorVersion, minorVersion, productBuild, ntlmRevision);
     }
 }

@@ -46,7 +46,7 @@ public class TargetInfo {
                     // End of sequence
                     return this;
                 case MsvAvNbComputerName:
-                case MsvAvNdDomainName:
+                case MsvAvNbDomainName:
                 case MsvAvDnsComputerName:
                 case MsvAvDnsDomainName:
                 case MsvAvDnsTreeName:
@@ -61,7 +61,7 @@ public class TargetInfo {
                     break;
                 case MsvAvSingleHost:
                     break;
-                case MsvChannelBindings:
+                case MsvAvChannelBindings:
                     break;
                 default:
                     throw new IllegalStateException("Encountered unhandled AvId: " + avId);
@@ -74,7 +74,7 @@ public class TargetInfo {
             buffer.putUInt16((int) key.getValue()); // AvId (2 bytes)
             switch (key) {
                 case MsvAvNbComputerName:
-                case MsvAvNdDomainName:
+                case MsvAvNbDomainName:
                 case MsvAvDnsComputerName:
                 case MsvAvDnsDomainName:
                 case MsvAvDnsTreeName:
@@ -93,7 +93,7 @@ public class TargetInfo {
                     MsDataTypes.putFileTime(ft, buffer);
                     break;
                 case MsvAvSingleHost:
-                case MsvChannelBindings:
+                case MsvAvChannelBindings:
                     break;
                 default:
                     throw new IllegalStateException("Encountered unhandled AvId: " + key);
