@@ -29,37 +29,45 @@ import static com.hierynomus.ntlm.messages.Utils.*;
  * [MS-NLMP].pdf 2.2.1.1 NEGOTIATE_MESSAGE
  */
 public class NtlmNegotiate extends NtlmPacket {
-    public static final long DEFAULT_FLAGS = EnumUtils.toLong(EnumSet.of(
-        NTLMSSP_NEGOTIATE_NTLM,
-        NTLMSSP_NEGOTIATE_VERSION,
-        NTLMSSP_NEGOTIATE_UNICODE));
+    public static final Set<NtlmNegotiateFlag> DEFAULT_FLAGS = EnumSet.of(
+            NTLMSSP_NEGOTIATE_NTLM,
+            NTLMSSP_NEGOTIATE_VERSION,
+            NTLMSSP_NEGOTIATE_UNICODE);
 
-    private long flags;
+    private EnumSet<NtlmNegotiateFlag> flags;
     private byte[] domain;
     private byte[] workstation;
+    private WindowsVersion version;
 
-    public NtlmNegotiate(Set<NtlmNegotiateFlag> flags, String domain, String workstation) {
-        this.flags = EnumUtils.toLong(flags) | DEFAULT_FLAGS;
-        this.domain = domain == null ? new byte[0] : unicode(domain);
-        this.workstation = workstation == null ? new byte[0] : unicode(workstation);
+    public NtlmNegotiate(Set<NtlmNegotiateFlag> flags, String domain, String workstation, WindowsVersion version) {
+        this.flags = EnumSet.copyOf(flags);
+        this.flags.addAll(DEFAULT_FLAGS);
+        this.domain = ensureNotNull(domain);
+        this.workstation = ensureNotNull(workstation);
+        this.version = version;
     }
 
     public void write(Buffer.PlainBuffer buffer) {
         buffer.putString("NTLMSSP\0", Charsets.UTF_8); // Signature (8 bytes)
         buffer.putUInt32(0x01); // MessageType (4 bytes)
 
-        // Write the negotiateFlags as Big Endian, as this is a byte[] in the spec and not an integral value
-        buffer.putUInt32(flags); // NegotiateFlags (4 bytes)
+        // Write the negotiateFlags as Big Endian, as this is a byte[] in the spec and
+        // not an integral value
+        buffer.putUInt32(EnumUtils.toLong(flags)); // NegotiateFlags (4 bytes)
 
-        int offset = 0x20;
+        int offset = 0x28;
         // DomainNameFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, domain, offset);
         // WorkstationFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, workstation, offset);
 
-        // DomainName (variable)
-        buffer.putRawBytes(domain);
-        // Workstation (variable)
-        buffer.putRawBytes(workstation);
+        if (flags.contains(NTLMSSP_NEGOTIATE_VERSION)) {
+            version.writeTo(buffer); // Version (8 bytes)
+        } else {
+            buffer.putUInt64(0); // Reserved (8 bytes)
+        }
+
+        buffer.putRawBytes(domain); // DomainName (variable)
+        buffer.putRawBytes(workstation); // Workstation (variable)
     }
 }

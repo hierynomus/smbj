@@ -25,7 +25,7 @@ import java.util.Objects;
  */
 public class WindowsVersion {
 
-    enum ProductMajorVersion implements EnumWithValue<ProductMajorVersion> {
+    public enum ProductMajorVersion implements EnumWithValue<ProductMajorVersion> {
         WINDOWS_MAJOR_VERSION_5(0x05),
         WINDOWS_MAJOR_VERSION_6(0x06),
         WINDOWS_MAJOR_VERSION_10(0x0A);
@@ -42,7 +42,7 @@ public class WindowsVersion {
         }
     }
 
-    enum ProductMinorVersion implements EnumWithValue<ProductMinorVersion> {
+    public enum ProductMinorVersion implements EnumWithValue<ProductMinorVersion> {
         WINDOWS_MINOR_VERSION_0(0x00),
         WINDOWS_MINOR_VERSION_1(0x01),
         WINDOWS_MINOR_VERSION_2(0x02),
@@ -59,7 +59,7 @@ public class WindowsVersion {
         }
     }
 
-    enum NtlmRevisionCurrent implements EnumWithValue<NtlmRevisionCurrent> {
+    public enum NtlmRevisionCurrent implements EnumWithValue<NtlmRevisionCurrent> {
         NTLMSSP_REVISION_W2K3(0x0F);
 
         private long value;
@@ -79,7 +79,7 @@ public class WindowsVersion {
     private int productBuild;
     private NtlmRevisionCurrent ntlmRevision;
 
-    WindowsVersion(ProductMajorVersion majorVersion, ProductMinorVersion minorVersion, int productBuild, NtlmRevisionCurrent ntlmRevision) {
+    public WindowsVersion(ProductMajorVersion majorVersion, ProductMinorVersion minorVersion, int productBuild, NtlmRevisionCurrent ntlmRevision) {
         this.majorVersion = majorVersion;
         this.minorVersion = minorVersion;
         this.productBuild = productBuild;
@@ -96,6 +96,14 @@ public class WindowsVersion {
         buffer.skip(3); // Reserved (3 bytes)
         this.ntlmRevision = EnumWithValue.EnumUtils.valueOf(buffer.readByte(), NtlmRevisionCurrent.class, null); // NTLMRevisionCurrent (1 byte)
         return this;
+    }
+
+    void writeTo(Buffer.PlainBuffer buffer) {
+        buffer.putByte((byte) majorVersion.value); // ProductMajorVersion (1 byte)
+        buffer.putByte((byte) minorVersion.value); // ProductMinorVersion (1 byte)
+        buffer.putUInt16(productBuild); // ProductBuild (2 bytes)
+        buffer.putRawBytes(new byte[]{0,0,0}); // Reserved (3 bytes)
+        buffer.putByte((byte) ntlmRevision.getValue());
     }
 
     @Override

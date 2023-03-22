@@ -58,11 +58,6 @@ class NtlmV1Functions {
      * DES(UpperCase(Passwd)[7..13], "KGS!@#$%"))
      * EndDefine
      * </code>
-     *
-     * @param password
-     * @param username
-     * @param userDomain
-     * @return
      */
     @SuppressWarnings("PMD.MethodNamingConventions")
     public byte[] LMOWFv1(String password, String username, String userDomain) {

@@ -20,7 +20,6 @@ import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 
-import static com.hierynomus.ntlm.functions.NtlmFunctions.unicode;
 import static com.hierynomus.ntlm.messages.Utils.*;
 
 /**

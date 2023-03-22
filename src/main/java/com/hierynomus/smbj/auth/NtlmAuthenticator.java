@@ -55,6 +55,7 @@ public class NtlmAuthenticator implements Authenticator {
     private String workStationName;
     private State state;
     private Set<NtlmNegotiateFlag> negotiateFlags;
+    private WindowsVersion windowsVersion;
 
     public static class Factory implements com.hierynomus.protocol.commons.Factory.Named<Authenticator> {
         @Override
@@ -78,20 +79,7 @@ public class NtlmAuthenticator implements Authenticator {
                 return null;
             } else if (this.state == State.NEGOTIATE) {
                 logger.debug("Initialized Authentication of {} using NTLM", context.getUsername());
-                this.negotiateFlags = EnumSet.of(NTLMSSP_NEGOTIATE_128, NTLMSSP_REQUEST_TARGET, NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY);
-                if (!context.isAnonymous()) {
-                    this.negotiateFlags.add(NTLMSSP_NEGOTIATE_SIGN);
-                    this.negotiateFlags.add(NTLMSSP_NEGOTIATE_ALWAYS_SIGN);
-                    this.negotiateFlags.add(NTLMSSP_NEGOTIATE_KEY_EXCH);
-                } else if (context.isGuest()) {
-                    this.negotiateFlags.add(NTLMSSP_NEGOTIATE_KEY_EXCH);
-                } else {
-                    this.negotiateFlags.add(NTLMSSP_NEGOTIATE_ANONYMOUS);
-                }
-                NtlmNegotiate ntlmNegotiate = new NtlmNegotiate(negotiateFlags, workStationName, context.getDomain());
-                this.state = State.AUTHENTICATE;
-                response.setNegToken(negTokenInit(ntlmNegotiate));
-                return response;
+                return doNegotiate(context, gssToken);
             } else {
                 logger.debug("Received token: {}", ByteArrayUtils.printHex(gssToken));
                 NtlmV2Functions ntlmFunctions = new NtlmV2Functions(random, securityProvider);
@@ -173,6 +161,34 @@ public class NtlmAuthenticator implements Authenticator {
         }
     }
 
+    private AuthenticateResponse doNegotiate(AuthenticationContext context, byte[] gssToken) throws SpnegoException {
+        AuthenticateResponse response = new AuthenticateResponse();
+        this.negotiateFlags = EnumSet.of(NTLMSSP_NEGOTIATE_128, NTLMSSP_REQUEST_TARGET,
+                NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY);
+        if (!context.isAnonymous()) {
+            this.negotiateFlags.add(NTLMSSP_NEGOTIATE_SIGN);
+            this.negotiateFlags.add(NTLMSSP_NEGOTIATE_ALWAYS_SIGN);
+            this.negotiateFlags.add(NTLMSSP_NEGOTIATE_KEY_EXCH);
+        } else if (context.isGuest()) {
+            this.negotiateFlags.add(NTLMSSP_NEGOTIATE_KEY_EXCH);
+        } else {
+            this.negotiateFlags.add(NTLMSSP_NEGOTIATE_ANONYMOUS);
+        }
+
+        if (context.getDomain() != null && !context.getDomain().isEmpty()) {
+            this.negotiateFlags.add(NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED);
+        }
+
+        if (this.workStationName != null && !this.workStationName.isEmpty()) {
+            this.negotiateFlags.add(NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED);
+        }
+
+        NtlmNegotiate ntlmNegotiate = new NtlmNegotiate(negotiateFlags, workStationName, context.getDomain(), windowsVersion);
+        this.state = State.AUTHENTICATE;
+        response.setNegToken(negTokenInit(ntlmNegotiate));
+        return response;
+    }
+
     private TargetInfo createClientTargetInfo(NtlmChallenge serverNtlmChallenge) {
         TargetInfo clientTargetInfo = serverNtlmChallenge.getTargetInfo().copy();
         // MIC (16 bytes) provided if MsAvTimestamp is present
@@ -221,6 +237,7 @@ public class NtlmAuthenticator implements Authenticator {
         this.securityProvider = config.getSecurityProvider();
         this.random = config.getRandomProvider();
         this.workStationName = config.getWorkStationName();
+        this.windowsVersion = config.getWindowsVersion();
         this.state = State.NEGOTIATE;
     }
 

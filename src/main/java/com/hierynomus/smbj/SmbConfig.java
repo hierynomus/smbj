@@ -17,6 +17,10 @@ package com.hierynomus.smbj;
 
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2GlobalCapability;
+import com.hierynomus.ntlm.messages.WindowsVersion;
+import com.hierynomus.ntlm.messages.WindowsVersion.NtlmRevisionCurrent;
+import com.hierynomus.ntlm.messages.WindowsVersion.ProductMajorVersion;
+import com.hierynomus.ntlm.messages.WindowsVersion.ProductMinorVersion;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.socket.ProxySocketFactory;
 import com.hierynomus.security.SecurityProvider;
@@ -79,6 +83,7 @@ public final class SmbConfig {
     private GSSContextConfig clientGSSContextConfig;
     private boolean encryptData;
     private String workStationName;
+    private WindowsVersion windowsVersion;
 
     private int soTimeout;
 
@@ -103,7 +108,8 @@ public final class SmbConfig {
             .withAuthenticators(getDefaultAuthenticators())
             .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
             .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig())
-            .withEncryptData(false);
+            .withEncryptData(false)
+            .withWindowsVersion(new WindowsVersion(ProductMajorVersion.WINDOWS_MAJOR_VERSION_6, ProductMinorVersion.WINDOWS_MINOR_VERSION_1, 0, NtlmRevisionCurrent.NTLMSSP_REVISION_W2K3));
     }
 
     private static SecurityProvider getDefaultSecurityProvider() {
@@ -153,6 +159,7 @@ public final class SmbConfig {
         clientGSSContextConfig = other.clientGSSContextConfig;
         encryptData = other.encryptData;
         workStationName = other.workStationName;
+        windowsVersion = other.windowsVersion;
     }
 
     public Random getRandomProvider() {
@@ -237,6 +244,10 @@ public final class SmbConfig {
 
     public String getWorkStationName() {
         return workStationName;
+    }
+
+    public WindowsVersion getWindowsVersion() {
+        return windowsVersion;
     }
 
     public Set<SMB2GlobalCapability> getClientCapabilities() {
@@ -452,6 +463,11 @@ public final class SmbConfig {
 
         public Builder withWorkStationName(String workStationName) {
             config.workStationName = workStationName;
+            return this;
+        }
+
+        public Builder withWindowsVersion(WindowsVersion windowsVersion) {
+            config.windowsVersion = windowsVersion;
             return this;
         }
     }
