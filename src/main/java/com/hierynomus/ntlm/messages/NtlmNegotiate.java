@@ -19,26 +19,30 @@ import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
 import java.util.EnumSet;
+import java.util.Set;
 
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
+import static com.hierynomus.ntlm.functions.NtlmFunctions.unicode;
+import static com.hierynomus.ntlm.messages.Utils.*;
 
 /**
  * [MS-NLMP].pdf 2.2.1.1 NEGOTIATE_MESSAGE
  */
 public class NtlmNegotiate extends NtlmPacket {
     public static final long DEFAULT_FLAGS = EnumUtils.toLong(EnumSet.of(
-        NTLMSSP_NEGOTIATE_56,
-        NTLMSSP_NEGOTIATE_128,
-        NTLMSSP_NEGOTIATE_TARGET_INFO,
-        NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY,
-        NTLMSSP_NEGOTIATE_SIGN,
-        NTLMSSP_NEGOTIATE_ALWAYS_SIGN,
-        NTLMSSP_NEGOTIATE_KEY_EXCH,
         NTLMSSP_NEGOTIATE_NTLM,
-        NTLMSSP_REQUEST_TARGET,
+        NTLMSSP_NEGOTIATE_VERSION,
         NTLMSSP_NEGOTIATE_UNICODE));
 
-    private long flags = DEFAULT_FLAGS;
+    private long flags;
+    private byte[] domain;
+    private byte[] workstation;
+
+    public NtlmNegotiate(Set<NtlmNegotiateFlag> flags, String domain, String workstation) {
+        this.flags = EnumUtils.toLong(flags) | DEFAULT_FLAGS;
+        this.domain = domain == null ? new byte[0] : unicode(domain);
+        this.workstation = workstation == null ? new byte[0] : unicode(workstation);
+    }
 
     public void write(Buffer.PlainBuffer buffer) {
         buffer.putString("NTLMSSP\0", Charsets.UTF_8); // Signature (8 bytes)
@@ -47,13 +51,15 @@ public class NtlmNegotiate extends NtlmPacket {
         // Write the negotiateFlags as Big Endian, as this is a byte[] in the spec and not an integral value
         buffer.putUInt32(flags); // NegotiateFlags (4 bytes)
 
+        int offset = 0x20;
         // DomainNameFields (8 bytes)
-        buffer.putUInt16(0x0); // DomainNameLen (2 bytes)
-        buffer.putUInt16(0x0); // DomainNameMaxLen (2 bytes)
-        buffer.putUInt32(0x20); // DomainNameBufferOffset (4 bytes)
+        offset = writeOffsettedByteArrayFields(buffer, domain, offset);
         // WorkstationFields (8 bytes)
-        buffer.putUInt16(0x0); // WorkstationLen (2 bytes)
-        buffer.putUInt16(0x0); // WorkstationMaxLen (2 bytes)
-        buffer.putUInt32(0x20); // WorkstationBufferOffset (4 bytes)
+        offset = writeOffsettedByteArrayFields(buffer, workstation, offset);
+
+        // DomainName (variable)
+        buffer.putRawBytes(domain);
+        // Workstation (variable)
+        buffer.putRawBytes(workstation);
     }
 }

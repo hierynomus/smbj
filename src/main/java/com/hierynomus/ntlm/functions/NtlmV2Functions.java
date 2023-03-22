@@ -1,3 +1,18 @@
+/*
+ * Copyright (C)2016 - SMBJ Contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.hierynomus.ntlm.functions;
 
 import java.util.Random;
@@ -55,11 +70,6 @@ public class NtlmV2Functions {
      * Set NTProofStr to HMAC_MD5(ResponseKeyNT,
      * ConcatenationOf(CHALLENGE_MESSAGE.ServerChallenge,temp))
      * Set NtChallengeResponse to ConcatenationOf(NTProofStr, temp)
-     *
-     * @param responseKeyNT
-     * @param serverChallenge
-     * @param ntlmv2ClientChallenge (temp from above)
-     * @return
      */
     public byte[] getNTLMv2Response(byte[] responseKeyNT, byte[] serverChallenge, byte[] ntlmv2ClientChallenge) {
         byte[] ntProofStr = ntProofStr(responseKeyNT, serverChallenge, ntlmv2ClientChallenge);
@@ -78,9 +88,6 @@ public class NtlmV2Functions {
      * 3.3.2 NTLM v2 Authentication
      * Set temp to ConcatenationOf(Responserversion, HiResponserversion, Z(6), Time,
      * ClientChallenge, Z(4), ServerName, Z(4))
-     *
-     * @param targetInformation
-     * @return
      */
     public byte[] clientChallenge(TargetInfo targetInfo) {
         byte[] clientChallenge = new byte[8];

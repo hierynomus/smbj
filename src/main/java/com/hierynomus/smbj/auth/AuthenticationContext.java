@@ -48,6 +48,13 @@ public class AuthenticationContext {
         return domain;
     }
 
+    public boolean isAnonymous() {
+        return username.isEmpty() && password.length == 0;
+    }
+
+    public boolean isGuest() {
+        return username.equals("Guest") && password.length == 0;
+    }
 
     @Override
     public String toString() {

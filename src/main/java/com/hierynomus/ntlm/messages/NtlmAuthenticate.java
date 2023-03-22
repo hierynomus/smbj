@@ -21,12 +21,12 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 
 import static com.hierynomus.ntlm.functions.NtlmFunctions.unicode;
+import static com.hierynomus.ntlm.messages.Utils.*;
 
 /**
  * [MS-NLMP].pdf 2.2.1.3 AUTHENTICATE_MESSAGE
  */
 public class NtlmAuthenticate extends NtlmPacket {
-    private static byte[] EMPTY = new byte[0];
     private byte[] lmResponse;
     private byte[] ntResponse;
     private byte[] userName;
@@ -122,21 +122,5 @@ public class NtlmAuthenticate extends NtlmPacket {
         plainBuffer.putRawBytes(reserved); // Reserver 3 bytes
         plainBuffer.putByte((byte) 0x0F); // NTLM Revision Current
         return plainBuffer.getCompactData();
-    }
-
-    private int writeOffsettedByteArrayFields(Buffer.PlainBuffer buffer, byte[] bytes, int offset) {
-        byte[] arr = bytes != null ? bytes : EMPTY;
-        buffer.putUInt16(arr.length); // ArrayLen
-        buffer.putUInt16(arr.length); // ArrayMaxLen
-        buffer.putUInt32(offset); // ArrayOffset
-        return offset + arr.length;
-    }
-
-    private byte[] ensureNotNull(byte[] possiblyNull) {
-        return possiblyNull != null ? possiblyNull : EMPTY;
-    }
-
-    private byte[] ensureNotNull(String possiblyNull) {
-        return possiblyNull != null ? unicode(possiblyNull) : EMPTY;
     }
 }

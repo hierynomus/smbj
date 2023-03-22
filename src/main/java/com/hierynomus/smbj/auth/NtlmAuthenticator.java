@@ -38,17 +38,23 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Random;
+import java.util.Set;
 
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
 
 public class NtlmAuthenticator implements Authenticator {
+    enum State { NEGOTIATE, AUTHENTICATE, COMPLETE; };
+
     private static final Logger logger = LoggerFactory.getLogger(NtlmAuthenticator.class);
 
     // The OID for NTLMSSP
     private static final ASN1ObjectIdentifier NTLMSSP = new ASN1ObjectIdentifier("1.3.6.1.4.1.311.2.2.10");
     private SecurityProvider securityProvider;
     private Random random;
+
     private String workStationName;
+    private State state;
+    private Set<NtlmNegotiateFlag> negotiateFlags;
 
     public static class Factory implements com.hierynomus.protocol.commons.Factory.Named<Authenticator> {
         @Override
@@ -62,20 +68,28 @@ public class NtlmAuthenticator implements Authenticator {
         }
     }
 
-    private boolean initialized = false;
-    private boolean completed = false;
 
     @Override
     public AuthenticateResponse authenticate(final AuthenticationContext context, final byte[] gssToken,
             ConnectionContext connectionContext) throws IOException {
         try {
             AuthenticateResponse response = new AuthenticateResponse();
-            if (completed) {
+            if (this.state == State.COMPLETE) {
                 return null;
-            } else if (!initialized) {
+            } else if (this.state == State.NEGOTIATE) {
                 logger.debug("Initialized Authentication of {} using NTLM", context.getUsername());
-                NtlmNegotiate ntlmNegotiate = new NtlmNegotiate();
-                initialized = true;
+                this.negotiateFlags = EnumSet.of(NTLMSSP_NEGOTIATE_128, NTLMSSP_REQUEST_TARGET, NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY);
+                if (!context.isAnonymous()) {
+                    this.negotiateFlags.add(NTLMSSP_NEGOTIATE_SIGN);
+                    this.negotiateFlags.add(NTLMSSP_NEGOTIATE_ALWAYS_SIGN);
+                    this.negotiateFlags.add(NTLMSSP_NEGOTIATE_KEY_EXCH);
+                } else if (context.isGuest()) {
+                    this.negotiateFlags.add(NTLMSSP_NEGOTIATE_KEY_EXCH);
+                } else {
+                    this.negotiateFlags.add(NTLMSSP_NEGOTIATE_ANONYMOUS);
+                }
+                NtlmNegotiate ntlmNegotiate = new NtlmNegotiate(negotiateFlags, workStationName, context.getDomain());
+                this.state = State.AUTHENTICATE;
                 response.setNegToken(negTokenInit(ntlmNegotiate));
                 return response;
             } else {
@@ -121,8 +135,7 @@ public class NtlmAuthenticator implements Authenticator {
                     response.setSessionKey(sessionkey);
                 }
 
-                completed = true;
-
+                this.state = State.COMPLETE;
                 // If NTLM v2 is used, KeyExchangeKey MUST be set to the given 128-bit
                 // SessionBaseKey value.
 
@@ -162,10 +175,8 @@ public class NtlmAuthenticator implements Authenticator {
 
     private TargetInfo createClientTargetInfo(NtlmChallenge serverNtlmChallenge) {
         TargetInfo clientTargetInfo = serverNtlmChallenge.getTargetInfo().copy();
-        boolean requireMIC = false;
         // MIC (16 bytes) provided if MsAvTimestamp is present
         if (serverNtlmChallenge.getTargetInfo().hasAvPair(AvId.MsvAvTimestamp)) {
-            requireMIC = true;
             // Set MsAvFlags bit 0x2 to indicate that the client is providing a MIC
             if (clientTargetInfo.hasAvPair(AvId.MsvAvFlags)) {
                 long flags = (long) clientTargetInfo.getAvPairObject(AvId.MsvAvFlags);
@@ -210,6 +221,7 @@ public class NtlmAuthenticator implements Authenticator {
         this.securityProvider = config.getSecurityProvider();
         this.random = config.getRandomProvider();
         this.workStationName = config.getWorkStationName();
+        this.state = State.NEGOTIATE;
     }
 
     @Override
