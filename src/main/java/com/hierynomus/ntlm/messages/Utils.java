@@ -19,6 +19,8 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 
 import static com.hierynomus.ntlm.functions.NtlmFunctions.unicode;
 
+import java.nio.charset.Charset;
+
 class Utils {
     public static byte[] EMPTY = new byte[0];
 
@@ -44,4 +46,7 @@ class Utils {
         return possiblyNull != null ? unicode(possiblyNull) : EMPTY;
     }
 
+    static byte[] oem(String s) {
+        return s != null ? s.getBytes(Charset.forName("Cp850")) : EMPTY;
+    }
 }

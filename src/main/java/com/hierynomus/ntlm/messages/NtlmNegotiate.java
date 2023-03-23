@@ -42,8 +42,8 @@ public class NtlmNegotiate extends NtlmPacket {
     public NtlmNegotiate(Set<NtlmNegotiateFlag> flags, String domain, String workstation, WindowsVersion version) {
         this.flags = EnumSet.copyOf(flags);
         this.flags.addAll(DEFAULT_FLAGS);
-        this.domain = ensureNotNull(domain);
-        this.workstation = ensureNotNull(workstation);
+        this.domain = domain != null ? oem(domain) : EMPTY;
+        this.workstation = workstation != null ? oem(workstation) : EMPTY;
         this.version = version;
     }
 
