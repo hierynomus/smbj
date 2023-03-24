@@ -22,26 +22,27 @@ import com.hierynomus.protocol.commons.buffer.Endian;
 
 import static com.hierynomus.ntlm.messages.Utils.*;
 
+import java.util.Set;
+
 /**
  * [MS-NLMP].pdf 2.2.1.3 AUTHENTICATE_MESSAGE
  */
-public class NtlmAuthenticate extends NtlmPacket {
+public class NtlmAuthenticate extends NtlmMessage {
+
     private byte[] lmResponse;
     private byte[] ntResponse;
     private byte[] userName;
     private byte[] domainName;
     private byte[] workstation;
     private byte[] encryptedRandomSessionKey;
-    private long negotiateFlags;
-    private boolean useMic;
     private byte[] mic;
 
     public NtlmAuthenticate(
         byte[] lmResponse, byte[] ntResponse,
         String userName, String domainName, String workstation,
-        byte[] encryptedRandomSessionKey, long negotiateFlags,
-        boolean useMic) {
-        super();
+        byte[] encryptedRandomSessionKey, Set<NtlmNegotiateFlag> negotiateFlags,
+        WindowsVersion version) {
+        super(negotiateFlags, version);
         this.lmResponse = ensureNotNull(lmResponse);
         this.ntResponse = ensureNotNull(ntResponse);
         this.userName = ensureNotNull(userName);
@@ -49,17 +50,19 @@ public class NtlmAuthenticate extends NtlmPacket {
         this.workstation = ensureNotNull(workstation);
         this.encryptedRandomSessionKey = ensureNotNull(encryptedRandomSessionKey);
         this.negotiateFlags = negotiateFlags;
-        this.useMic = useMic;
     }
 
     @Override
     public void write(Buffer.PlainBuffer buffer) {
 
-        writeAutentificateMessage(buffer);
+        writeNtlmAuthenticate(buffer);
 
-        if (useMic) {
-            // MIC (16 bytes) provided if in AvPairType is key MsvAvFlags with value & 0x00000002 is true
+        // MIC (16 bytes)
+        if (mic != null) {
             buffer.putRawBytes(mic);
+        } else {
+            buffer.putUInt64(0L);
+            buffer.putUInt64(0L);
         }
 
         // Payload
@@ -75,35 +78,28 @@ public class NtlmAuthenticate extends NtlmPacket {
         this.mic = mic;
     }
 
-    public void writeAutentificateMessage(Buffer.PlainBuffer buffer) {
+    public void writeNtlmAuthenticate(Buffer.PlainBuffer buffer) {
         buffer.putString("NTLMSSP\0", Charsets.UTF_8); // Signature (8 bytes)
         buffer.putUInt32(0x03); // MessageType (4 bytes)
 
-        int offset = 64; // for the offset
-
-        if (useMic) {
-            offset += 16;
-        }
-
-        if (EnumWithValue.EnumUtils.isSet(negotiateFlags, NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
-            offset += 8;
-        }
-
+        int offset = 88; // for the offset
         offset = writeOffsettedByteArrayFields(buffer, lmResponse, offset); // LmChallengeResponseFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, ntResponse, offset); // NtChallengeResponseFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, domainName, offset); // DomainNameFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, userName, offset); // UserNameFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, workstation, offset); // WorkstationFields (8 bytes)
-        if (EnumWithValue.EnumUtils.isSet(negotiateFlags, NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH)) {
+        if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH)) { // TODO probably unnecessary check
             offset = writeOffsettedByteArrayFields(buffer, encryptedRandomSessionKey, offset);
         } else {
             offset = writeOffsettedByteArrayFields(buffer, EMPTY, offset);
         }
 
-        buffer.putUInt32(negotiateFlags); // NegotiateFlags (4 bytes)
+        buffer.putUInt32(EnumWithValue.EnumUtils.toLong(negotiateFlags)); // NegotiateFlags (4 bytes)
 
-        if (EnumWithValue.EnumUtils.isSet(negotiateFlags, NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
+        if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
             buffer.putRawBytes(getVersion()); // Version (8 bytes)
+        } else {
+            buffer.putUInt64(0L);
         }
     }
 

@@ -79,6 +79,7 @@ public class NtlmChallenge extends NtlmPacket {
     }
 
     private void readTargetNameFields(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+        // These are not set if negotiateFlags does not contain NTLMSSP_REQUEST_TARGET, but these are only read afterwards
         targetNameLen = buffer.readUInt16(); // TargetNameLen (2 bytes)
         buffer.skip(2); // TargetNameMaxLen (2 bytes)
         targetNameBufferOffset = buffer.readUInt32AsInt(); // TargetNameBufferOffset (4 bytes)

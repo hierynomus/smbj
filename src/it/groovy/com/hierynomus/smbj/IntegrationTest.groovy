@@ -22,6 +22,7 @@ import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.security.bc.BCSecurityProvider
 import com.hierynomus.smbj.auth.AuthenticationContext
+import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.share.Directory
 import com.hierynomus.smbj.share.DiskShare
 import com.hierynomus.smbj.share.File
@@ -40,7 +41,7 @@ class IntegrationTest extends Specification {
 
   def config = SmbConfig.builder().withDialects(SMB2Dialect.SMB_3_0).withEncryptData(true).withSigningRequired(true).withMultiProtocolNegotiate(true).withDfsEnabled(true).withSecurityProvider(new BCSecurityProvider()).build()
   def client = new SMBClient(config)
-  def connection = _
+  Connection connection = null
 
   def setup() {
     connection = client.connect(IP)

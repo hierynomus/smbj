@@ -28,23 +28,15 @@ import static com.hierynomus.ntlm.messages.Utils.*;
 /**
  * [MS-NLMP].pdf 2.2.1.1 NEGOTIATE_MESSAGE
  */
-public class NtlmNegotiate extends NtlmPacket {
-    public static final Set<NtlmNegotiateFlag> DEFAULT_FLAGS = EnumSet.of(
-            NTLMSSP_NEGOTIATE_NTLM,
-            NTLMSSP_NEGOTIATE_VERSION,
-            NTLMSSP_NEGOTIATE_UNICODE);
+public class NtlmNegotiate extends NtlmMessage {
 
-    private EnumSet<NtlmNegotiateFlag> flags;
     private byte[] domain;
     private byte[] workstation;
-    private WindowsVersion version;
 
     public NtlmNegotiate(Set<NtlmNegotiateFlag> flags, String domain, String workstation, WindowsVersion version) {
-        this.flags = EnumSet.copyOf(flags);
-        this.flags.addAll(DEFAULT_FLAGS);
+        super(flags, version);
         this.domain = domain != null ? oem(domain) : EMPTY;
         this.workstation = workstation != null ? oem(workstation) : EMPTY;
-        this.version = version;
     }
 
     public void write(Buffer.PlainBuffer buffer) {
@@ -53,7 +45,7 @@ public class NtlmNegotiate extends NtlmPacket {
 
         // Write the negotiateFlags as Big Endian, as this is a byte[] in the spec and
         // not an integral value
-        buffer.putUInt32(EnumUtils.toLong(flags)); // NegotiateFlags (4 bytes)
+        buffer.putUInt32(EnumUtils.toLong(negotiateFlags)); // NegotiateFlags (4 bytes)
 
         int offset = 0x28;
         // DomainNameFields (8 bytes)
@@ -61,7 +53,7 @@ public class NtlmNegotiate extends NtlmPacket {
         // WorkstationFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, workstation, offset);
 
-        if (flags.contains(NTLMSSP_NEGOTIATE_VERSION)) {
+        if (negotiateFlags.contains(NTLMSSP_NEGOTIATE_VERSION)) {
             version.writeTo(buffer); // Version (8 bytes)
         } else {
             buffer.putUInt64(0); // Reserved (8 bytes)
