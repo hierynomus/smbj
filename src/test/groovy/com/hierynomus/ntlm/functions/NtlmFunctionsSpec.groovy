@@ -123,7 +123,6 @@ class NtlmFunctionsSpec extends Specification {
     computedResponse.getNtResponse()[0..15] == [0x68, 0xcd, 0x0a, 0xb8, 0x51, 0xe5, 0x1c, 0x96, 0xaa, 0xbc, 0x92, 0x7b, 0xeb, 0xef, 0x6a, 0x1c] as byte[]
 
     where:
-    provider << [new JceSecurityProvider()]
-    // TODO note the BC SecurityProviders seem to be giving different results.
+    provider << providers
   }
 }

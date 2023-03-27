@@ -23,6 +23,7 @@ public class PredictableRandom extends Random {
 
     public void init(byte[] bytes) {
         this.randomBytes = bytes;
+        this.idx = 0;
     }
 
     @Override
