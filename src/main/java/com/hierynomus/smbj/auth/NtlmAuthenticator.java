@@ -29,6 +29,7 @@ import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_REQUEST_TAR
 
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -175,7 +176,11 @@ public class NtlmAuthenticator implements Authenticator {
         // Ensure we set TARGET_INFO
         negotiateFlags.add(NTLMSSP_NEGOTIATE_TARGET_INFO);
         TargetInfo clientTargetInfo = createClientTargetInfo(serverNtlmChallenge);
-        long time = ((FileTime) clientTargetInfo.getAvPairObject(AvId.MsvAvTimestamp)).getWindowsTimeStamp();
+
+        long time = FileTime.now().getWindowsTimeStamp();
+        if (clientTargetInfo.hasAvPair(AvId.MsvAvTimestamp)) {
+            time = ((FileTime) clientTargetInfo.getAvPairObject(AvId.MsvAvTimestamp)).getWindowsTimeStamp();
+        }
         ComputedNtlmV2Response computedNtlmV2Response = functions.computeResponse(context.getUsername(), context.getDomain(), context.getPassword(), serverNtlmChallenge, time, clientTargetInfo);
 
         byte[] sessionBaseKey = computedNtlmV2Response.getSessionBaseKey();
@@ -228,8 +233,6 @@ public class NtlmAuthenticator implements Authenticator {
 //            } else {
 //                clientTargetInfo.putAvPairObject(AvId.MsvAvFlags, 0x2L);
 //            }
-        } else {
-            clientTargetInfo.putAvPairObject(AvId.MsvAvTimestamp, MsDataTypes.nowAsFileTime()); // TODO! This is not in the examples
         }
 
         // Should be clientSuppliedeTargetName
@@ -271,6 +274,7 @@ public class NtlmAuthenticator implements Authenticator {
         this.workStationName = config.getNtlmConfig().getWorkstationName();
         this.windowsVersion = config.getNtlmConfig().getWindowsVersion();
         this.state = State.NEGOTIATE;
+        this.negotiateFlags = new HashSet<>();
         this.functions = new NtlmV2Functions(random, securityProvider);
     }
 
