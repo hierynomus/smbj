@@ -102,7 +102,7 @@ public final class SmbConfig {
     }
 
     public static Builder builder() {
-        return new Builder()
+        Builder b =  new Builder()
             .withClientGuid(UUID.randomUUID())
             .withRandomProvider(new SecureRandom())
             .withSecurityProvider(getDefaultSecurityProvider())
@@ -118,8 +118,11 @@ public final class SmbConfig {
             .withAuthenticators(getDefaultAuthenticators())
             .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
             .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig())
-            .withEncryptData(false)
-            .withNtlmConfig(NtlmConfig.builder().withWindowsVersion(new WindowsVersion(ProductMajorVersion.WINDOWS_MAJOR_VERSION_6, ProductMinorVersion.WINDOWS_MINOR_VERSION_1, 0, NtlmRevisionCurrent.NTLMSSP_REVISION_W2K3)).build());
+            .withEncryptData(false);
+
+        b.withNtlmConfig().withWindowsVersion(new WindowsVersion(ProductMajorVersion.WINDOWS_MAJOR_VERSION_6, ProductMinorVersion.WINDOWS_MINOR_VERSION_1, 0, NtlmRevisionCurrent.NTLMSSP_REVISION_W2K3));
+
+        return b;
     }
 
     private static SecurityProvider getDefaultSecurityProvider() {
@@ -276,9 +279,11 @@ public final class SmbConfig {
 
     public static class Builder {
         private SmbConfig config;
+        private NtlmConfig.Builder ntlmConfigBuilder;
 
         Builder() {
             config = new SmbConfig();
+            ntlmConfigBuilder = NtlmConfig.builder();
         }
 
         public Builder withRandomProvider(Random random) {
@@ -445,6 +450,8 @@ public final class SmbConfig {
                 throw new IllegalStateException("If encryption is enabled, at least one dialect should be SMB3.x compatible");
             }
 
+            config.ntlmConfig = ntlmConfigBuilder.build();
+
             return new SmbConfig(config);
         }
 
@@ -472,18 +479,17 @@ public final class SmbConfig {
         }
 
         /**
-         * NOTE: Calling this deprecated method will override the potentially already set NtlmConfig
+         *
          *
          * @deprecated Moved into withNtlmConfig(NtlmConfig.builder().withWorkstationName(..).build())
          * */
         public Builder withWorkStationName(String workStationName) {
-            config.ntlmConfig = NtlmConfig.builder().withWorkstationName(workStationName).build();
+            ntlmConfigBuilder.withWorkstationName(workStationName);
             return this;
         }
 
-        public Builder withNtlmConfig(NtlmConfig ntlmConfig) {
-            config.ntlmConfig = ntlmConfig;
-            return this;
+        public NtlmConfig.Builder withNtlmConfig() {
+            return ntlmConfigBuilder;
         }
     }
 }
