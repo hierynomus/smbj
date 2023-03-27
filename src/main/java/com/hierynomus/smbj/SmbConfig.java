@@ -35,6 +35,7 @@ import javax.net.SocketFactory;
 
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2GlobalCapability;
+import com.hierynomus.ntlm.NtlmConfig;
 import com.hierynomus.ntlm.messages.WindowsVersion;
 import com.hierynomus.ntlm.messages.WindowsVersion.NtlmRevisionCurrent;
 import com.hierynomus.ntlm.messages.WindowsVersion.ProductMajorVersion;
@@ -92,8 +93,7 @@ public final class SmbConfig {
     private long transactTimeout;
     private GSSContextConfig clientGSSContextConfig;
     private boolean encryptData;
-    private String workStationName;
-    private WindowsVersion windowsVersion;
+    private NtlmConfig ntlmConfig;
 
     private int soTimeout;
 
@@ -119,7 +119,7 @@ public final class SmbConfig {
             .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
             .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig())
             .withEncryptData(false)
-            .withWindowsVersion(new WindowsVersion(ProductMajorVersion.WINDOWS_MAJOR_VERSION_6, ProductMinorVersion.WINDOWS_MINOR_VERSION_1, 0, NtlmRevisionCurrent.NTLMSSP_REVISION_W2K3));
+            .withNtlmConfig(NtlmConfig.builder().withWindowsVersion(new WindowsVersion(ProductMajorVersion.WINDOWS_MAJOR_VERSION_6, ProductMinorVersion.WINDOWS_MINOR_VERSION_1, 0, NtlmRevisionCurrent.NTLMSSP_REVISION_W2K3)).build());
     }
 
     private static SecurityProvider getDefaultSecurityProvider() {
@@ -168,8 +168,7 @@ public final class SmbConfig {
         useMultiProtocolNegotiate = other.useMultiProtocolNegotiate;
         clientGSSContextConfig = other.clientGSSContextConfig;
         encryptData = other.encryptData;
-        workStationName = other.workStationName;
-        windowsVersion = other.windowsVersion;
+        ntlmConfig = other.ntlmConfig;
     }
 
     public Random getRandomProvider() {
@@ -252,12 +251,13 @@ public final class SmbConfig {
         return encryptData;
     }
 
+    /** @deprecated Moved into getNtlmConfig().getWorkStationName() */
     public String getWorkStationName() {
-        return workStationName;
+        return getNtlmConfig().getWorkstationName();
     }
 
-    public WindowsVersion getWindowsVersion() {
-        return windowsVersion;
+    public NtlmConfig getNtlmConfig() {
+        return ntlmConfig;
     }
 
     public Set<SMB2GlobalCapability> getClientCapabilities() {
@@ -471,13 +471,18 @@ public final class SmbConfig {
             return this;
         }
 
+        /**
+         * NOTE: Calling this deprecated method will override the potentially already set NtlmConfig
+         *
+         * @deprecated Moved into withNtlmConfig(NtlmConfig.builder().withWorkstationName(..).build())
+         * */
         public Builder withWorkStationName(String workStationName) {
-            config.workStationName = workStationName;
+            config.ntlmConfig = NtlmConfig.builder().withWorkstationName(workStationName).build();
             return this;
         }
 
-        public Builder withWindowsVersion(WindowsVersion windowsVersion) {
-            config.windowsVersion = windowsVersion;
+        public Builder withNtlmConfig(NtlmConfig ntlmConfig) {
+            config.ntlmConfig = ntlmConfig;
             return this;
         }
     }

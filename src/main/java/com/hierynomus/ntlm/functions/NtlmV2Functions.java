@@ -61,7 +61,7 @@ public class NtlmV2Functions {
      * EndDefine
      * </code>
      */
-    public ComputedNtlmV2Response computeResponse(String username, String domain, char[] password, NtlmChallenge serverNtlmChallenge, TargetInfo clientTargetInfo) {
+    public ComputedNtlmV2Response computeResponse(String username, String domain, char[] password, NtlmChallenge serverNtlmChallenge, long time, TargetInfo clientTargetInfo) {
         // Create the client nonce
         byte[] clientChallenge = new byte[8];
         random.nextBytes(clientChallenge);
@@ -72,9 +72,8 @@ public class NtlmV2Functions {
         byte[] lmResponse = getLmV2Response(responseKeyLM, serverNtlmChallenge.getServerChallenge(),
                     clientChallenge);
 
-        FileTime ts = (FileTime) clientTargetInfo.getAvPairObject(AvId.MsvAvTimestamp);
         byte[] ntResponse = getNtV2Response(responseKeyNT, serverNtlmChallenge.getServerChallenge(),
-                clientChallenge, ts.getWindowsTimeStamp(), clientTargetInfo);
+                clientChallenge, time, clientTargetInfo);
 
         byte[] ntProofStr = Arrays.copyOfRange(ntResponse, 0, 16);
         byte[] sessionBaseKey = getSessionBaseKey(responseKeyNT, ntProofStr);

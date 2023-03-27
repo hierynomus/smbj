@@ -16,6 +16,7 @@
 package com.hierynomus.ntlm.messages;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.hierynomus.msdtyp.FileTime;
@@ -31,15 +32,14 @@ import org.slf4j.LoggerFactory;
 public class TargetInfo {
     private static final Logger logger = LoggerFactory.getLogger(TargetInfo.class);
 
-    private Map<AvId, Object> targetInfo = new HashMap<>();
+    private Map<AvId, Object> targetInfo = new LinkedHashMap<>(); // Keep ordering to make tests predictable, not strictly needed for protocol
 
-    TargetInfo() {}
+    public TargetInfo() {}
 
-    TargetInfo readFrom(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+    public TargetInfo readFrom(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
         while (true) {
             int l = buffer.readUInt16();
             AvId avId = EnumWithValue.EnumUtils.valueOf(l, AvId.class, null); // AvId (2 bytes)
-            logger.trace("NTLM channel contains {}({}) TargetInfo", avId, l);
             int avLen = buffer.readUInt16(); // AvLen (2 bytes)
             switch (avId) {
                 case MsvAvEOL:
@@ -66,6 +66,7 @@ public class TargetInfo {
                 default:
                     throw new IllegalStateException("Encountered unhandled AvId: " + avId);
             }
+            logger.trace("Read TargetInfo {}({}) --> {}", avId, l, targetInfo.get(avId));
         }
     }
 
