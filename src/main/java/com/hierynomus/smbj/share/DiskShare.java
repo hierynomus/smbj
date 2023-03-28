@@ -379,6 +379,10 @@ public class DiskShare extends Share {
      * Remove the directory at the given path.
      */
     public void rmdir(String path, boolean recursive) throws SMBApiException {
+        if (path == null || path.isEmpty()) {
+            throw new IllegalArgumentException("rmdir: path should be non-null and non-empty");
+        }
+
         if (recursive) {
             List<FileIdBothDirectoryInformation> list = list(path);
             for (FileIdBothDirectoryInformation fi : list) {
