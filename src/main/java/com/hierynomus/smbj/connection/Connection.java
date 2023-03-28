@@ -357,8 +357,11 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
 
         /**
          * [MS-SMB2] 3.2.4.24 Application Requests Canceling an Operation
+         *
+         * No status is returned to the application for the cancel request.
          */
         @Override
+        @SuppressWarnings("FutureReturnValueIgnored")
         public void cancel() {
             SMB2Cancel cancel = new SMB2Cancel(connectionContext.getNegotiatedProtocol().getDialect(),
                 sessionId,
@@ -366,7 +369,6 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
                 request.getAsyncId());
             try {
                 sessionTable.find(sessionId).send(cancel);
-                // transport.write(cancel);
             } catch (TransportException e) {
                 logger.error("Failed to send {}", cancel);
             }
