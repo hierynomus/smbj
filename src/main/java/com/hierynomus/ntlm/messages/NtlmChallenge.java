@@ -18,6 +18,8 @@ package com.hierynomus.ntlm.messages;
 import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.Endian;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +40,7 @@ public class NtlmChallenge extends NtlmPacket {
     private int targetInfoBufferOffset;
     private String targetName;
     private TargetInfo targetInfo;
+    private byte[] rawTargetInfo;
 
     @Override
     public void read(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
@@ -57,7 +60,8 @@ public class NtlmChallenge extends NtlmPacket {
         if (targetInfoLen > 0) {
             // Move to where buffer begins
             buffer.rpos(targetInfoBufferOffset);
-            this.targetInfo = new TargetInfo().readFrom(buffer);
+            rawTargetInfo = buffer.readRawBytes(targetInfoLen); // Save a copy of the raw bytes
+            this.targetInfo = new TargetInfo().readFrom(new Buffer.PlainBuffer(rawTargetInfo, Endian.LE));
         }
     }
 
@@ -109,6 +113,10 @@ public class NtlmChallenge extends NtlmPacket {
 
     public TargetInfo getTargetInfo() {
         return targetInfo;
+    }
+
+    public byte[] getRawTargetInfo() {
+        return rawTargetInfo;
     }
 
     public WindowsVersion getVersion() {

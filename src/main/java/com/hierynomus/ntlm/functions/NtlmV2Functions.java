@@ -61,7 +61,7 @@ public class NtlmV2Functions {
      * EndDefine
      * </code>
      */
-    public ComputedNtlmV2Response computeResponse(String username, String domain, char[] password, NtlmChallenge serverNtlmChallenge, long time, TargetInfo clientTargetInfo) {
+    public ComputedNtlmV2Response computeResponse(String username, String domain, char[] password, NtlmChallenge serverNtlmChallenge, long time, byte[] clientTargetInfo) {
         // Create the client nonce
         byte[] clientChallenge = new byte[8];
         random.nextBytes(clientChallenge);
@@ -140,7 +140,7 @@ public class NtlmV2Functions {
      * </code>
 
      */
-    public byte[] getNtV2Response(byte[] responseKeyNT, byte[] serverChallenge, byte[] clientChallenge, long time, TargetInfo targetInfo) {
+    public byte[] getNtV2Response(byte[] responseKeyNT, byte[] serverChallenge, byte[] clientChallenge, long time, byte[] targetInfo) {
         byte[] temp = ntResponseTemp(clientChallenge, time, targetInfo);
         byte[] ntProofStr = ntProofStr(responseKeyNT, serverChallenge, temp);
 
@@ -173,7 +173,7 @@ public class NtlmV2Functions {
      * ClientChallenge, Z(4), ServerName, Z(4))
      * </code>
      */
-    byte[] ntResponseTemp(byte[] clientChallenge, long time, TargetInfo targetInfo) {
+    byte[] ntResponseTemp(byte[] clientChallenge, long time, byte[] targetInfo) {
         Buffer.PlainBuffer ccBuf = new Buffer.PlainBuffer(Endian.LE);
         ccBuf.putByte((byte) 0x01); // RespType (1)
         ccBuf.putByte((byte) 0x01); // HiRespType (1)
@@ -182,9 +182,7 @@ public class NtlmV2Functions {
         ccBuf.putLong(time); // Timestamp (8)
         ccBuf.putRawBytes(clientChallenge); // ChallengeFromClient (8)
         ccBuf.putUInt32(0); // Reserved3 (4)
-        if (targetInfo != null) {
-            targetInfo.writeTo(ccBuf);
-        }
+        ccBuf.putRawBytes(targetInfo); // TargetInfoFields (variable)
         ccBuf.putUInt32(0); // Reserved4 (4)
 
         return ccBuf.getCompactData();
