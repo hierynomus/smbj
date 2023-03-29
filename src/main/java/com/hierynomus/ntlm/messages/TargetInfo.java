@@ -134,4 +134,10 @@ public class TargetInfo {
             return String.valueOf(obj);
     }
 
+    @Override
+    public String toString() {
+        return "TargetInfo{" +
+            "targetInfo=" + targetInfo +
+            '}';
+    }
 }

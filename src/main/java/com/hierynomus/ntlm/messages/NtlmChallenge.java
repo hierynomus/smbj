@@ -15,6 +15,7 @@
  */
 package com.hierynomus.ntlm.messages;
 
+import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
@@ -121,5 +122,16 @@ public class NtlmChallenge extends NtlmPacket {
 
     public WindowsVersion getVersion() {
         return version;
+    }
+
+    @Override
+    public String toString() {
+        return "NtlmChallenge{\n" +
+                "  targetName='" + targetName + "',\n" +
+                "  negotiateFlags=" + negotiateFlags + ",\n" +
+                "  serverChallenge=" + ByteArrayUtils.printHex(serverChallenge) + ",\n" +
+                "  version=" + version + ",\n" +
+                "  targetInfo=" + targetInfo + "\n" +
+                '}';
     }
 }

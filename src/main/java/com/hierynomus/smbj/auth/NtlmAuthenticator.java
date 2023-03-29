@@ -111,6 +111,7 @@ public class NtlmAuthenticator implements Authenticator {
                 } catch (Buffer.BufferException e) {
                     throw new IOException(e);
                 }
+                logger.trace("Received NTLM challenge: {}", serverNtlmChallenge);
                 logger.debug("Received NTLM challenge from: {}", serverNtlmChallenge.getTargetName());
 
                 // Only keep the negotiate flags that the server indicated it supports
@@ -157,6 +158,7 @@ public class NtlmAuthenticator implements Authenticator {
         }
 
         this.negotiateMessage = new NtlmNegotiate(negotiateFlags, workStationName, context.getDomain(), windowsVersion);
+        logger.trace("Sending NTLM negotiate message: {}", this.negotiateMessage);
         response.setNegToken(negTokenInit(negotiateMessage));
         return response;
     }
@@ -216,6 +218,7 @@ public class NtlmAuthenticator implements Authenticator {
             msg.setMic(mic);
         }
         response.setSessionKey(exportedSessionKey);
+        logger.trace("Sending NTLM authenticate message: {}", msg);
         response.setNegToken(negTokenTarg(msg));
 
         return response;

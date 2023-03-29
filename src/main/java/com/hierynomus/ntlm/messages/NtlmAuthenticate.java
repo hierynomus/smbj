@@ -15,6 +15,8 @@
  */
 package com.hierynomus.ntlm.messages;
 
+import com.hierynomus.ntlm.functions.NtlmFunctions;
+import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
@@ -117,5 +119,18 @@ public class NtlmAuthenticate extends NtlmMessage {
         plainBuffer.putRawBytes(reserved); // Reserver 3 bytes
         plainBuffer.putByte((byte) 0x0F); // NTLM Revision Current
         return plainBuffer.getCompactData();
+    }
+
+    @Override
+    public String toString() {
+        return "NtlmAuthenticate{\n" +
+            "  mic=" + ByteArrayUtils.printHex(mic) + ",\n" +
+            "  lmResponse=" + ByteArrayUtils.printHex(lmResponse) + ",\n" +
+            "  ntResponse=" + ByteArrayUtils.printHex(ntResponse) + ",\n" +
+            "  domainName='" + NtlmFunctions.unicode(domainName) + "',\n" +
+            "  userName='" + NtlmFunctions.unicode(userName) + "',\n" +
+            "  workstation='" + NtlmFunctions.unicode(workstation) + "',\n" +
+            "  encryptedRandomSessionKey=[<secret>],\n" +
+            '}';
     }
 }

@@ -46,6 +46,10 @@ public class NtlmFunctions {
         return string == null ? new byte[0] : string.getBytes(UNICODE);
     }
 
+    public static String unicode(byte[] bytes) {
+        return new String(bytes, UNICODE);
+    }
+
     /**
      * [MS-NLMP].pdf 6 Appendix A: Cryptographic Operations Reference
      * (MD4(M)).

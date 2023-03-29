@@ -15,15 +15,16 @@
  */
 package com.hierynomus.ntlm.messages;
 
-import com.hierynomus.protocol.commons.Charsets;
-import com.hierynomus.protocol.commons.buffer.Buffer;
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION;
+import static com.hierynomus.ntlm.messages.Utils.EMPTY;
+import static com.hierynomus.ntlm.messages.Utils.oem;
+import static com.hierynomus.ntlm.messages.Utils.writeOffsettedByteArrayFields;
 
-import java.util.EnumSet;
 import java.util.Set;
 
-import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
-import static com.hierynomus.ntlm.functions.NtlmFunctions.unicode;
-import static com.hierynomus.ntlm.messages.Utils.*;
+import com.hierynomus.protocol.commons.Charsets;
+import com.hierynomus.protocol.commons.EnumWithValue.EnumUtils;
+import com.hierynomus.protocol.commons.buffer.Buffer;
 
 /**
  * [MS-NLMP].pdf 2.2.1.1 NEGOTIATE_MESSAGE
@@ -61,5 +62,15 @@ public class NtlmNegotiate extends NtlmMessage {
 
         buffer.putRawBytes(domain); // DomainName (variable)
         buffer.putRawBytes(workstation); // Workstation (variable)
+    }
+
+    @Override
+    public String toString() {
+        return "NtlmNegotiate{\n" +
+                "  domain='" + new String(domain) + "'',\n" +
+                "  workstation='" + new String(workstation) + "',\n" +
+                "  negotiateFlags=" + negotiateFlags + ",\n" +
+                "  version=" + version + "\n" +
+                "}";
     }
 }
