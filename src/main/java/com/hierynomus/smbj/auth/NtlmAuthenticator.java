@@ -183,7 +183,7 @@ public class NtlmAuthenticator implements Authenticator {
         if (clientTargetInfo.hasAvPair(AvId.MsvAvTimestamp)) {
             time = ((FileTime) clientTargetInfo.getAvPairObject(AvId.MsvAvTimestamp)).getWindowsTimeStamp();
         }
-        ComputedNtlmV2Response computedNtlmV2Response = functions.computeResponse(context.getUsername(), context.getDomain(), context.getPassword(), serverNtlmChallenge, time, serverNtlmChallenge.getRawTargetInfo());
+        ComputedNtlmV2Response computedNtlmV2Response = functions.computeResponse(context.getUsername(), context.getDomain(), context.getPassword(), serverNtlmChallenge, time, clientTargetInfo);
 
         byte[] sessionBaseKey = computedNtlmV2Response.getSessionBaseKey();
         byte[] ntResponse = computedNtlmV2Response.getNtResponse();
