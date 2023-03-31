@@ -47,9 +47,17 @@ public class NtlmFunctions {
     }
 
     public static String unicode(byte[] bytes) {
-        return new String(bytes, UNICODE);
+        return bytes != null ? new String(bytes, UNICODE) : "";
     }
 
+
+    public static byte[] oem(String s) {
+        return s != null ? s.getBytes(Charset.forName("Cp850")) : new byte[0];
+    }
+
+    public static String oem(byte[] bytes) {
+        return bytes != null ? new String(bytes, Charset.forName("Cp850")) : "";
+    }
     /**
      * [MS-NLMP].pdf 6 Appendix A: Cryptographic Operations Reference
      * (MD4(M)).

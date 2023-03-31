@@ -19,8 +19,6 @@ import java.util.Random;
 
 import org.bouncycastle.util.Arrays;
 
-import com.hierynomus.msdtyp.FileTime;
-import com.hierynomus.ntlm.messages.AvId;
 import com.hierynomus.ntlm.messages.NtlmChallenge;
 import com.hierynomus.ntlm.messages.TargetInfo;
 import com.hierynomus.protocol.commons.buffer.Buffer;

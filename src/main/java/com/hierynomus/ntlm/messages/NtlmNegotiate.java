@@ -17,11 +17,11 @@ package com.hierynomus.ntlm.messages;
 
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION;
 import static com.hierynomus.ntlm.messages.Utils.EMPTY;
-import static com.hierynomus.ntlm.messages.Utils.oem;
 import static com.hierynomus.ntlm.messages.Utils.writeOffsettedByteArrayFields;
 
 import java.util.Set;
 
+import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.EnumWithValue.EnumUtils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
@@ -36,8 +36,8 @@ public class NtlmNegotiate extends NtlmMessage {
 
     public NtlmNegotiate(Set<NtlmNegotiateFlag> flags, String domain, String workstation, WindowsVersion version) {
         super(flags, version);
-        this.domain = domain != null ? oem(domain) : EMPTY;
-        this.workstation = workstation != null ? oem(workstation) : EMPTY;
+        this.domain = domain != null ? NtlmFunctions.oem(domain) : EMPTY;
+        this.workstation = workstation != null ? NtlmFunctions.oem(workstation) : EMPTY;
     }
 
     public void write(Buffer.PlainBuffer buffer) {
@@ -67,8 +67,8 @@ public class NtlmNegotiate extends NtlmMessage {
     @Override
     public String toString() {
         return "NtlmNegotiate{\n" +
-                "  domain='" + new String(domain) + "'',\n" +
-                "  workstation='" + new String(workstation) + "',\n" +
+                "  domain='" + NtlmFunctions.oem(domain) + "'',\n" +
+                "  workstation='" + NtlmFunctions.oem(workstation) + "',\n" +
                 "  negotiateFlags=" + negotiateFlags + ",\n" +
                 "  version=" + version + "\n" +
                 "}";

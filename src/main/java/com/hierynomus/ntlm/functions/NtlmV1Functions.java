@@ -27,11 +27,9 @@ import com.hierynomus.security.SecurityProvider;
 class NtlmV1Functions {
     static final byte[] LMOWFv1_SECRET = new byte[] { 0x4B, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25 }; // KGS!@#$%
 
-    private Random random;
     private SecurityProvider securityProvider;
 
     public NtlmV1Functions(Random random, SecurityProvider securityProvider) {
-        this.random = random;
         this.securityProvider = securityProvider;
     }
 

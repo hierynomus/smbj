@@ -39,7 +39,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
-import com.hierynomus.msdtyp.MsDataTypes;
 import com.hierynomus.ntlm.NtlmException;
 import com.hierynomus.ntlm.functions.ComputedNtlmV2Response;
 import com.hierynomus.ntlm.functions.NtlmFunctions;
@@ -157,7 +156,7 @@ public class NtlmAuthenticator implements Authenticator {
             this.negotiateFlags.add(NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED);
         }
 
-        this.negotiateMessage = new NtlmNegotiate(negotiateFlags, workStationName, context.getDomain(), windowsVersion);
+        this.negotiateMessage = new NtlmNegotiate(negotiateFlags, context.getDomain(), workStationName, windowsVersion);
         logger.trace("Sending NTLM negotiate message: {}", this.negotiateMessage);
         response.setNegToken(negTokenInit(negotiateMessage));
         return response;
