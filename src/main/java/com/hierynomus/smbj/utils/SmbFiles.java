@@ -68,18 +68,21 @@ public class SmbFiles {
     /**
      * Create a set of nested sub-directories in the given path, for example, 2345 \ 3456 \ 4453 \ 123123.txt
      */
-    public void mkdirs(DiskShare diskShare, String path) throws SMBApiException {
+    public static void mkdirs(DiskShare diskShare, String path, boolean pathIsFile) throws SMBApiException {
         SmbPath smbPath = new SmbPath(diskShare.getSmbPath(), path);
-        mkdirs(diskShare, smbPath);
+        mkdirs(diskShare, smbPath, pathIsFile);
     }
 
     /**
      * Create a set of nested sub-directories in the given path, for example, 2345 \ 3456 \ 4453 \ 123123.txt
      */
-    public void mkdirs(DiskShare diskShare, SmbPath path) throws SMBApiException {
+    public static void mkdirs(DiskShare diskShare, SmbPath path, boolean pathIsFile) throws SMBApiException {
+        if (pathIsFile) {
+            path = path.getParent();
+        }
         if (!diskShare.folderExists(path.getPath())) {
             // Ensure the parent path exists
-            mkdirs(diskShare, path.getParent());
+            mkdirs(diskShare, path.getParent(), false);
             diskShare.mkdir(path.getPath());
         }
     }
