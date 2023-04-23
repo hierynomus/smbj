@@ -18,6 +18,7 @@ package com.hierynomus.smbj.share;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -184,6 +185,42 @@ public class File extends DiskEntry {
             destStream.write(buf, 0, numRead);
         }
         is.close();
+    }
+    
+    /**
+     * Write the data in a {@link ByteBuffer} to this file at position fileOffset.
+     *
+     * @param buffer     the data to write
+     * @param fileOffset The offset, in bytes, into the file to which the data should be written
+     * @return the actual number of bytes that was written to the file
+     */
+    public long write(ByteBuffer buffer, long fileOffset) {
+        int length = buffer.remaining();
+        byte[] data = new byte[length];
+        buffer.get(data);
+        return write(data, fileOffset, 0, length);
+    }
+
+
+    /**
+     * Read data from this file starting at position fileOffset into the given {@link ByteBuffer}.
+     *
+     * @param buffer     the {@link ByteBuffer} to write into
+     * @param fileOffset The offset, in bytes, into the file from which the data should be read
+     * @return the actual number of bytes that were read; or -1 if the end of the file was reached
+     */
+    public long read(ByteBuffer buffer, long fileOffset) {
+        int remaining = buffer.remaining();
+
+        SMB2ReadResponse response = share.read(fileId, fileOffset, remaining);
+        if (response.getHeader().getStatusCode() == NtStatus.STATUS_END_OF_FILE.getValue()) {
+            return -1;
+        } else {
+            byte[] data = response.getData();
+            int bytesRead = Math.min(remaining, data.length);
+            buffer.put(data, 0, bytesRead);
+            return bytesRead;
+        }
     }
 
     /**
