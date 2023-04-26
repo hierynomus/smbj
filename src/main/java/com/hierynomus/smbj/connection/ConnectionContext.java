@@ -32,6 +32,9 @@ import com.hierynomus.smbj.server.Server;
 
 public class ConnectionContext {
 
+    private static final int SIGNING_ENABLED = 0x01;
+    private static final int SIGNING_REQUIRED = 0x02;
+
     private WindowsVersion windowsVersion;
     private String netBiosName;
     // All SMB2 Dialect
@@ -67,7 +70,7 @@ public class ConnectionContext {
         this.clientGuid = clientGuid;
         this.gssNegotiateToken = new byte[0];
         this.clientCapabilities = EnumSet.copyOf(config.getClientCapabilities());
-        this.clientSecurityMode = config.isSigningRequired() ? 0x02 : 0x01;
+        this.clientSecurityMode = config.isSigningRequired() ? SIGNING_REQUIRED : SIGNING_ENABLED;
         this.server = new Server(hostname, port);
     }
 
@@ -88,11 +91,11 @@ public class ConnectionContext {
     }
 
     public boolean isServerRequiresSigning() {
-        return (server.getSecurityMode() & 0x02) > 0;
+        return (server.getSecurityMode() & SIGNING_REQUIRED) > 0;
     }
 
     public boolean isServerSigningEnabled() {
-        return (server.getSecurityMode() & 0x01) > 0;
+        return (server.getSecurityMode() & SIGNING_ENABLED) > 0;
     }
 
     int getServerSecurityMode() {

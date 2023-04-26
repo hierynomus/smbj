@@ -20,6 +20,7 @@ import com.hierynomus.ntlm.messages.WindowsVersion;
 public class NtlmConfig {
     private WindowsVersion windowsVersion;
     private String workstationName;
+    private boolean integrity;
 
     public static NtlmConfig defaultConfig() {
         return builder().build();
@@ -35,6 +36,7 @@ public class NtlmConfig {
     private NtlmConfig(NtlmConfig other) {
         this.windowsVersion = other.windowsVersion;
         this.workstationName = other.workstationName;
+        this.integrity = other.integrity;
     }
 
     public WindowsVersion getWindowsVersion() {
@@ -45,11 +47,16 @@ public class NtlmConfig {
         return workstationName;
     }
 
+    public boolean isIntegrityEnabled() {
+        return integrity;
+    }
+
     public static class Builder {
         private NtlmConfig config;
 
         public Builder() {
             config = new NtlmConfig();
+            config.integrity = true;
         }
 
         public Builder withWindowsVersion(WindowsVersion windowsVersion) {
@@ -59,6 +66,11 @@ public class NtlmConfig {
 
         public Builder withWorkstationName(String workstationName) {
             config.workstationName = workstationName;
+            return this;
+        }
+
+        public Builder withIntegrity(boolean integrity) {
+            config.integrity = integrity;
             return this;
         }
 
