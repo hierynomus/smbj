@@ -38,12 +38,13 @@ public class NtlmAuthenticate extends NtlmMessage {
     private byte[] workstation;
     private byte[] encryptedRandomSessionKey;
     private byte[] mic;
+    private boolean isIntegrityEnabled;
 
     public NtlmAuthenticate(
         byte[] lmResponse, byte[] ntResponse,
         String userName, String domainName, String workstation,
         byte[] encryptedRandomSessionKey, Set<NtlmNegotiateFlag> negotiateFlags,
-        WindowsVersion version) {
+        WindowsVersion version, boolean isIntegrityEnabled) {
         super(negotiateFlags, version);
         this.lmResponse = ensureNotNull(lmResponse);
         this.ntResponse = ensureNotNull(ntResponse);
@@ -52,19 +53,30 @@ public class NtlmAuthenticate extends NtlmMessage {
         this.workstation = ensureNotNull(workstation);
         this.encryptedRandomSessionKey = ensureNotNull(encryptedRandomSessionKey);
         this.negotiateFlags = negotiateFlags;
+        this.isIntegrityEnabled = isIntegrityEnabled;
     }
 
     @Override
     public void write(Buffer.PlainBuffer buffer) {
+        int baseMessageSize = 64;
+        if (!isIntegrityEnabled) {
+            baseMessageSize += 16;
+        }
 
-        writeNtlmAuthenticate(buffer);
+        if (!negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
+            baseMessageSize += 8;
+        }
+
+        writeNtlmAuthenticate(buffer, baseMessageSize);
 
         // MIC (16 bytes)
         if (mic != null) {
             buffer.putRawBytes(mic);
+        } else if (isIntegrityEnabled) {
+            buffer.putUInt64(0L);
+            buffer.putUInt64(0L);
         } else {
-            buffer.putUInt64(0L);
-            buffer.putUInt64(0L);
+            // Skipping MIC, not enabled.
         }
 
         // Payload
@@ -80,11 +92,11 @@ public class NtlmAuthenticate extends NtlmMessage {
         this.mic = mic;
     }
 
-    public void writeNtlmAuthenticate(Buffer.PlainBuffer buffer) {
+    public void writeNtlmAuthenticate(Buffer.PlainBuffer buffer, int baseMessageSize) {
         buffer.putString("NTLMSSP\0", Charsets.UTF_8); // Signature (8 bytes)
         buffer.putUInt32(0x03); // MessageType (4 bytes)
 
-        int offset = 88; // for the offset
+        int offset = baseMessageSize; // for the offset
         offset = writeOffsettedByteArrayFields(buffer, lmResponse, offset); // LmChallengeResponseFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, ntResponse, offset); // NtChallengeResponseFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, domainName, offset); // DomainNameFields (8 bytes)
@@ -124,7 +136,7 @@ public class NtlmAuthenticate extends NtlmMessage {
     @Override
     public String toString() {
         return "NtlmAuthenticate{\n" +
-            "  mic=" + ByteArrayUtils.printHex(mic) + ",\n" +
+            "  mic=" + mic != null ? ByteArrayUtils.printHex(mic) : "[]" + ",\n" +
             "  lmResponse=" + ByteArrayUtils.printHex(lmResponse) + ",\n" +
             "  ntResponse=" + ByteArrayUtils.printHex(ntResponse) + ",\n" +
             "  domainName='" + NtlmFunctions.unicode(domainName) + "',\n" +

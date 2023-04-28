@@ -169,7 +169,7 @@ public class NtlmAuthenticator implements Authenticator {
 
         // [MS-NLMP] 3.2.2 -- Special case for anonymous authentication
         if (context.isAnonymous()) {
-            NtlmAuthenticate msg = new NtlmAuthenticate(null, null, context.getUsername(), context.getDomain(), config.getWorkstationName(), null, negotiateFlags, config.getWindowsVersion());
+            NtlmAuthenticate msg = new NtlmAuthenticate(null, null, context.getUsername(), context.getDomain(), config.getWorkstationName(), null, negotiateFlags, config.getWindowsVersion(), config.isIntegrityEnabled());
             response.setNegToken(negTokenTarg(msg));
             return response;
         }
@@ -206,7 +206,7 @@ public class NtlmAuthenticator implements Authenticator {
 
         // TODO client/server signing/sealing keys
 
-        NtlmAuthenticate msg = new NtlmAuthenticate(lmResponse, ntResponse, context.getUsername(), context.getDomain(), config.getWorkstationName(), encryptedRandomSessionKey, negotiateFlags, config.getWindowsVersion());
+        NtlmAuthenticate msg = new NtlmAuthenticate(lmResponse, ntResponse, context.getUsername(), context.getDomain(), config.getWorkstationName(), encryptedRandomSessionKey, negotiateFlags, config.getWindowsVersion(), config.isIntegrityEnabled());
         if (config.isIntegrityEnabled() && serverNtlmChallenge.getTargetInfo().hasAvPair(AvId.MsvAvTimestamp)) {
             // Calculate MIC
             Buffer.PlainBuffer micBuffer = new Buffer.PlainBuffer(Endian.LE);
