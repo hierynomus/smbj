@@ -40,6 +40,7 @@ import com.hierynomus.smbj.ProgressListener;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.io.ArrayByteChunkProvider;
+import com.hierynomus.smbj.io.ByteBufferByteChunkProvider;
 import com.hierynomus.smbj.io.ByteChunkProvider;
 
 public class File extends DiskEntry {
@@ -186,7 +187,7 @@ public class File extends DiskEntry {
         }
         is.close();
     }
-    
+
     /**
      * Write the data in a {@link ByteBuffer} to this file at position fileOffset.
      *
@@ -195,10 +196,8 @@ public class File extends DiskEntry {
      * @return the actual number of bytes that was written to the file
      */
     public long write(ByteBuffer buffer, long fileOffset) {
-        int length = buffer.remaining();
-        byte[] data = new byte[length];
-        buffer.get(data);
-        return write(data, fileOffset, 0, length);
+        ByteChunkProvider provider = new ByteBufferByteChunkProvider(buffer, fileOffset);
+        return write(provider);
     }
 
 
