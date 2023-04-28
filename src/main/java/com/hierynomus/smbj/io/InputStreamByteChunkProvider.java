@@ -15,72 +15,42 @@
  */
 package com.hierynomus.smbj.io;
 
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.buffer.Endian;
-import com.hierynomus.smbj.common.SMBRuntimeException;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class InputStreamByteChunkProvider extends ByteChunkProvider {
+import com.hierynomus.smbj.common.SMBRuntimeException;
+
+public class InputStreamByteChunkProvider extends CachingByteChunkProvider {
 
     private BufferedInputStream is;
-    private BufferByteChunkProvider cachingProvider;
-    private Buffer<Buffer.PlainBuffer> buffer;
+    private boolean close;
 
     public InputStreamByteChunkProvider(InputStream is) {
-        this.buffer = new Buffer.PlainBuffer(Endian.BE);
-        this.cachingProvider = new BufferByteChunkProvider(buffer);
+        super();
         if (is instanceof BufferedInputStream)
             this.is = (BufferedInputStream) is;
-        else
+        else {
             this.is = new BufferedInputStream(is);
-    }
-
-    @Override
-    public void prepareWrite(int maxBytesToPrepare) {
-        if (is == null) {
-            return;
+            this.close = true; // We control the is, so we close it
         }
 
-        byte[] chunk = new byte[1024];
+    }
 
-        // Before each prepareWrite, compact the buffer to minimize size growth
-        buffer.compact();
-        
-        int bytesNeeded = maxBytesToPrepare - buffer.available();
-        int read;
-        try {
-            while (bytesNeeded > 0) {
-                read = is.read(chunk, 0, chunk.length);
-                if (read == -1) {
-                    break;
-                }
-
-                // Write the data to the buffer
-                buffer.putRawBytes(chunk, 0, read);
-                bytesNeeded -= read;
-            }
-        } catch (IOException e) {
-            throw new SMBRuntimeException(e);
+    @Override
+    int prepareChunk(byte[] chunk, int bytesNeeded) throws IOException {
+        int toRead = Math.min(bytesNeeded, chunk.length);
+        if (toRead == 0) {
+            return -1;
         }
-    }
 
-    @Override
-    protected int getChunk(byte[] chunk) throws IOException {
-        return cachingProvider.getChunk(chunk);
-    }
-
-    @Override
-    public int bytesLeft() {
-        return cachingProvider.bytesLeft();
+        return is.read(chunk, 0, toRead);
     }
 
     @Override
     public boolean isAvailable() {
         try {
-            return cachingProvider.isAvailable() || is.available() > 0;
+            return super.isAvailable() || (is != null && is.available() > 0);
         } catch (IOException e) {
             throw new SMBRuntimeException(e);
         }
@@ -88,9 +58,9 @@ public class InputStreamByteChunkProvider extends ByteChunkProvider {
 
     @Override
     public void close() throws IOException {
-        cachingProvider.close();
+        super.close();
 
-        if (is != null) {
+        if (is != null && close) {
             try {
                 is.close();
             } finally {
