@@ -38,13 +38,14 @@ public class NtlmAuthenticate extends NtlmMessage {
     private byte[] workstation;
     private byte[] encryptedRandomSessionKey;
     private byte[] mic;
-    private boolean isIntegrityEnabled;
+    private boolean integrityEnabled;
+    private boolean omitVersion;
 
     public NtlmAuthenticate(
         byte[] lmResponse, byte[] ntResponse,
         String userName, String domainName, String workstation,
         byte[] encryptedRandomSessionKey, Set<NtlmNegotiateFlag> negotiateFlags,
-        WindowsVersion version, boolean isIntegrityEnabled) {
+        WindowsVersion version, boolean isIntegrityEnabled, boolean isOmitVersion) {
         super(negotiateFlags, version);
         this.lmResponse = ensureNotNull(lmResponse);
         this.ntResponse = ensureNotNull(ntResponse);
@@ -53,17 +54,18 @@ public class NtlmAuthenticate extends NtlmMessage {
         this.workstation = ensureNotNull(workstation);
         this.encryptedRandomSessionKey = ensureNotNull(encryptedRandomSessionKey);
         this.negotiateFlags = negotiateFlags;
-        this.isIntegrityEnabled = isIntegrityEnabled;
+        this.integrityEnabled = isIntegrityEnabled;
+        this.omitVersion = isOmitVersion;
     }
 
     @Override
     public void write(Buffer.PlainBuffer buffer) {
         int baseMessageSize = 64;
-        if (!isIntegrityEnabled) {
+        if (integrityEnabled) {
             baseMessageSize += 16;
         }
 
-        if (!negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
+        if (!omitVersion) {
             baseMessageSize += 8;
         }
 
@@ -72,7 +74,7 @@ public class NtlmAuthenticate extends NtlmMessage {
         // MIC (16 bytes)
         if (mic != null) {
             buffer.putRawBytes(mic);
-        } else if (isIntegrityEnabled) {
+        } else if (integrityEnabled) {
             buffer.putUInt64(0L);
             buffer.putUInt64(0L);
         } else {
@@ -110,9 +112,10 @@ public class NtlmAuthenticate extends NtlmMessage {
 
         buffer.putUInt32(EnumWithValue.EnumUtils.toLong(negotiateFlags)); // NegotiateFlags (4 bytes)
 
+        // If `omitVersion`, we skip rendering the Version, as some servers don't like it.
         if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
             buffer.putRawBytes(getVersion()); // Version (8 bytes)
-        } else {
+        } else if (!omitVersion) {
             buffer.putUInt64(0L);
         }
     }

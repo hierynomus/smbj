@@ -23,7 +23,6 @@ import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
 class NtlmMessage extends NtlmPacket {
     protected static Set<NtlmNegotiateFlag> DEFAULT_FLAGS = EnumSet.of(
             NTLMSSP_NEGOTIATE_NTLM,
-            NTLMSSP_NEGOTIATE_VERSION,
             NTLMSSP_NEGOTIATE_UNICODE);
 
     protected Set<NtlmNegotiateFlag> negotiateFlags;

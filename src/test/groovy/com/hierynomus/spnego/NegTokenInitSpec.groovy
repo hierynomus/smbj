@@ -64,10 +64,11 @@ class NegTokenInitSpec extends Specification {
       NTLMSSP_NEGOTIATE_ALWAYS_SIGN,
       NTLMSSP_NEGOTIATE_KEY_EXCH,
       NTLMSSP_NEGOTIATE_NTLM,
+      NTLMSSP_NEGOTIATE_VERSION,
       NTLMSSP_NEGOTIATE_UNICODE)
 
     when:
-    new NtlmNegotiate(flags, "", "", new WindowsVersion(WINDOWS_MAJOR_VERSION_6, WINDOWS_MINOR_VERSION_1, 0, NTLMSSP_REVISION_W2K3)).write(ntlmBuffer)
+    new NtlmNegotiate(flags, "", "", new WindowsVersion(WINDOWS_MAJOR_VERSION_6, WINDOWS_MINOR_VERSION_1, 0, NTLMSSP_REVISION_W2K3), false).write(ntlmBuffer)
     initToken.addSupportedMech(new ASN1ObjectIdentifier("1.3.6.1.4.1.311.2.2.10"))
     initToken.setMechToken(ntlmBuffer.compactData)
     initToken.write(spnegoBuffer)

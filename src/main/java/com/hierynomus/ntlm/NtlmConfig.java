@@ -21,6 +21,7 @@ public class NtlmConfig {
     private WindowsVersion windowsVersion;
     private String workstationName;
     private boolean integrity;
+    private boolean omitVersion;
 
     public static NtlmConfig defaultConfig() {
         return builder().build();
@@ -37,6 +38,7 @@ public class NtlmConfig {
         this.windowsVersion = other.windowsVersion;
         this.workstationName = other.workstationName;
         this.integrity = other.integrity;
+        this.omitVersion = other.omitVersion;
     }
 
     public WindowsVersion getWindowsVersion() {
@@ -51,12 +53,17 @@ public class NtlmConfig {
         return integrity;
     }
 
+    public boolean isOmitVersion() {
+        return omitVersion;
+    }
+
     public static class Builder {
         private NtlmConfig config;
 
         public Builder() {
             config = new NtlmConfig();
             config.integrity = true;
+            config.omitVersion = false;
         }
 
         public Builder withWindowsVersion(WindowsVersion windowsVersion) {
@@ -71,6 +78,11 @@ public class NtlmConfig {
 
         public Builder withIntegrity(boolean integrity) {
             config.integrity = integrity;
+            return this;
+        }
+
+        public Builder withOmitVersion(boolean omitVersion) {
+            config.omitVersion = omitVersion;
             return this;
         }
 

@@ -106,7 +106,7 @@ public class TargetInfo {
 
     public TargetInfo copy() {
         TargetInfo c = new TargetInfo();
-        c.targetInfo = new HashMap<>(targetInfo);
+        c.targetInfo = new LinkedHashMap<>(targetInfo);
         return c;
     }
 

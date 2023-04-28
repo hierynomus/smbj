@@ -33,8 +33,9 @@ public class NtlmNegotiate extends NtlmMessage {
 
     private byte[] domain;
     private byte[] workstation;
+    private boolean omitVersion;
 
-    public NtlmNegotiate(Set<NtlmNegotiateFlag> flags, String domain, String workstation, WindowsVersion version) {
+    public NtlmNegotiate(Set<NtlmNegotiateFlag> flags, String domain, String workstation, WindowsVersion version, boolean omitVersion) {
         super(flags, version);
         this.domain = domain != null ? NtlmFunctions.oem(domain) : EMPTY;
         this.workstation = workstation != null ? NtlmFunctions.oem(workstation) : EMPTY;
@@ -48,15 +49,19 @@ public class NtlmNegotiate extends NtlmMessage {
         // not an integral value
         buffer.putUInt32(EnumUtils.toLong(negotiateFlags)); // NegotiateFlags (4 bytes)
 
-        int offset = 0x28;
+        int offset = 0x20;
+        if (!omitVersion) {
+            offset += 8; // Version (8 bytes)
+        }
         // DomainNameFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, domain, offset);
         // WorkstationFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, workstation, offset);
 
+        // if `omitVersion`, omit this field, because some implementations (e.g. Windows 2000) don't like it
         if (negotiateFlags.contains(NTLMSSP_NEGOTIATE_VERSION)) {
             version.writeTo(buffer); // Version (8 bytes)
-        } else {
+        } else if (!omitVersion) {
             buffer.putUInt64(0); // Reserved (8 bytes)
         }
 
