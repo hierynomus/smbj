@@ -114,12 +114,7 @@ public class NtlmAuthenticator implements Authenticator {
                 logger.debug("Received NTLM challenge from: {}", serverNtlmChallenge.getTargetName());
 
                 // Only keep the negotiate flags that the server indicated it supports
-                this.negotiateFlags.removeIf(new Predicate<NtlmNegotiateFlag>() {
-                    @Override
-                    public boolean test(NtlmNegotiateFlag ntlmNegotiateFlag) {
-                        return !serverNtlmChallenge.getNegotiateFlags().contains(ntlmNegotiateFlag);
-                    }
-                });
+                this.negotiateFlags.removeIf(ntlmNegotiateFlag -> !serverNtlmChallenge.getNegotiateFlags().contains(ntlmNegotiateFlag));
 
                 if (!this.negotiateFlags.contains(NTLMSSP_NEGOTIATE_128)) {
                     throw new NtlmException("Server does not support 128-bit encryption");
@@ -138,7 +133,7 @@ public class NtlmAuthenticator implements Authenticator {
         AuthenticateResponse response = new AuthenticateResponse();
         this.negotiateFlags = EnumSet.of(NTLMSSP_NEGOTIATE_128, NTLMSSP_REQUEST_TARGET,
                 NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY);
-        if (config.getWindowsVersion() != null) {
+        if (!config.isOmitVersion() && config.getWindowsVersion() != null) {
             this.negotiateFlags.add(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION);
         }
 
@@ -232,13 +227,13 @@ public class NtlmAuthenticator implements Authenticator {
         // MIC (16 bytes) provided if MsAvTimestamp is present
         if (config.isIntegrityEnabled() && serverNtlmChallenge.getTargetInfo().hasAvPair(AvId.MsvAvTimestamp)) {
            // Set MsAvFlags bit 0x2 to indicate that the client is providing a MIC
-           if (clientTargetInfo.hasAvPair(AvId.MsvAvFlags)) {
-               long flags = (long) clientTargetInfo.getAvPairObject(AvId.MsvAvFlags);
-               flags = flags | 0x2;
-               clientTargetInfo.putAvPairObject(AvId.MsvAvFlags, flags);
-           } else {
-               clientTargetInfo.putAvPairObject(AvId.MsvAvFlags, 0x2L);
-           }
+//           if (clientTargetInfo.hasAvPair(AvId.MsvAvFlags)) {
+//               long flags = (long) clientTargetInfo.getAvPairObject(AvId.MsvAvFlags);
+//               flags = flags | 0x2;
+//               clientTargetInfo.putAvPairObject(AvId.MsvAvFlags, flags);
+//           } else {
+//               clientTargetInfo.putAvPairObject(AvId.MsvAvFlags, 0x2L);
+//           }
         }
 
         // Should be clientSuppliedeTargetName

@@ -139,7 +139,7 @@ public class NtlmAuthenticate extends NtlmMessage {
     @Override
     public String toString() {
         return "NtlmAuthenticate{\n" +
-            "  mic=" + mic != null ? ByteArrayUtils.printHex(mic) : "[]" + ",\n" +
+            "  mic=" + (mic != null ? ByteArrayUtils.printHex(mic) : "[]") + ",\n" +
             "  lmResponse=" + ByteArrayUtils.printHex(lmResponse) + ",\n" +
             "  ntResponse=" + ByteArrayUtils.printHex(ntResponse) + ",\n" +
             "  domainName='" + NtlmFunctions.unicode(domainName) + "',\n" +
