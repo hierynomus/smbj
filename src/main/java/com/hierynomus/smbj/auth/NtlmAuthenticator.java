@@ -41,6 +41,7 @@ import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.ntlm.NtlmConfig;
 import com.hierynomus.ntlm.NtlmException;
 import com.hierynomus.ntlm.av.AvId;
+import com.hierynomus.ntlm.av.AvPairFlags;
 import com.hierynomus.ntlm.av.AvPairString;
 import com.hierynomus.ntlm.av.AvPairTimestamp;
 import com.hierynomus.ntlm.functions.ComputedNtlmV2Response;
@@ -228,13 +229,13 @@ public class NtlmAuthenticator implements Authenticator {
         // MIC (16 bytes) provided if MsAvTimestamp is present
         if (config.isIntegrityEnabled() && serverNtlmChallenge.getTargetInfo().hasAvPair(AvId.MsvAvTimestamp)) {
            // Set MsAvFlags bit 0x2 to indicate that the client is providing a MIC
-//           if (clientTargetInfo.hasAvPair(AvId.MsvAvFlags)) {
-//               long flags = (long) clientTargetInfo.getAvPairObject(AvId.MsvAvFlags);
-//               flags = flags | 0x2;
-//               clientTargetInfo.putAvPairObject(AvId.MsvAvFlags, flags);
-//           } else {
-//               clientTargetInfo.putAvPairObject(AvId.MsvAvFlags, 0x2L);
-//           }
+          if (clientTargetInfo.hasAvPair(AvId.MsvAvFlags)) {
+              long flags = (long) clientTargetInfo.getAvPair(AvId.MsvAvFlags).getValue();
+              flags = flags | 0x2;
+              clientTargetInfo.putAvPair(new AvPairFlags(flags));
+          } else {
+              clientTargetInfo.putAvPair(new AvPairFlags(0x2L));
+          }
         }
 
         // Should be clientSuppliedeTargetName

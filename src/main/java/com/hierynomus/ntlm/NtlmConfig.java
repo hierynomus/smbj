@@ -62,7 +62,7 @@ public class NtlmConfig {
 
         public Builder() {
             config = new NtlmConfig();
-            config.integrity = true;
+            config.integrity = false; // TODO temporarily disabled until we can figure out why it fails (probably mechListMIC in NegTokenTarg)
             config.omitVersion = false;
         }
 
