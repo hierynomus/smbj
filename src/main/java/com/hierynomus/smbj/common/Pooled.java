@@ -28,6 +28,7 @@ public class Pooled<A extends Pooled<A>> {
      * Takes a lease on the pooled object.
      * @return <code>this</code> if the object is still valid (has at least 1 lease), else <code>null</code>
      */
+    @SuppressWarnings("unchecked")
     public A lease() {
         if (leases.getAndIncrement() > 0) {
             return (A) this;

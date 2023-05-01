@@ -25,6 +25,7 @@ class ExtendedGSSContext {
     private static final Method inquireSecContext = getInquireSecContextMethod();
     private static Object krb5GetSessionKeyConst;
 
+    @SuppressWarnings("unchecked")
     private static Method getInquireSecContextMethod() {
         Class<?> extendedContextClass;
         Class<?> inquireTypeClass;
@@ -42,6 +43,7 @@ class ExtendedGSSContext {
                 throw exception;
             }
         }
+
         krb5GetSessionKeyConst = Enum.valueOf(inquireTypeClass.asSubclass(Enum.class), "KRB5_GET_SESSION_KEY");
         try {
             return extendedContextClass.getDeclaredMethod("inquireSecContext", inquireTypeClass);

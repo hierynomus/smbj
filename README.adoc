@@ -159,6 +159,7 @@ The implementation is based on the following specifications:
 == Changelog
 
 === 0.12.0 (2023-??-??)
+* Ensure we call flip() on Buffer to avoid Java8/9 compatibility issues (Fixes https://github.com/hierynomus/smbj/issues/705[#705])
 * Do not send SNB2EncryptionCapabilities if the withEncryptData is set to false (Fixes https://github.com/hierynomus/smbj/issues/747[#747])
 * Added Implementation-Version and Implementation-Name to MANIFEST.MF (Fixes https://github.com/hierynomus/smbj/issues/743[#743])
 * Upgraded Gradle to 8.0.2

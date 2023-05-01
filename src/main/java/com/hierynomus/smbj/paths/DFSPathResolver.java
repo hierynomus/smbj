@@ -526,10 +526,6 @@ public class DFSPathResolver implements PathResolver {
             this.status = status;
         }
 
-        private ReferralResult(ReferralCache.ReferralCacheEntry referralCacheEntry) {
-            this.referralCacheEntry = referralCacheEntry;
-        }
-
         private ReferralResult(DomainCache.DomainCacheEntry domainCacheEntry) {
             this.domainCacheEntry = domainCacheEntry;
         }

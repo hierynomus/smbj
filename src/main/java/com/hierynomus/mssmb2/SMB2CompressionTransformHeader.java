@@ -15,6 +15,8 @@
  */
 package com.hierynomus.mssmb2;
 
+import java.util.Arrays;
+
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smb.SMBBuffer;
@@ -28,7 +30,7 @@ import com.hierynomus.smbj.common.Check;
  * This optional header is only valid for the SMB 3.1.1 dialect<73>.
  */
 public class SMB2CompressionTransformHeader implements SMBHeader {
-    public static final byte[] COMPRESSED_PROTOCOL_ID = {(byte) 0xFC, 'S', 'M', 'B'};
+    private static final byte[] COMPRESSED_PROTOCOL_ID = {(byte) 0xFC, 'S', 'M', 'B'};
     private int headerStartPosition;
     private int originalCompressedSegmentSize;
     private SMB3CompressionAlgorithm compressionAlgorithm;
@@ -73,5 +75,9 @@ public class SMB2CompressionTransformHeader implements SMBHeader {
 
     public int getOffset() {
         return offset;
+    }
+
+    public static boolean isCompressed(byte[] header) {
+        return Arrays.equals(COMPRESSED_PROTOCOL_ID, header);
     }
 }
