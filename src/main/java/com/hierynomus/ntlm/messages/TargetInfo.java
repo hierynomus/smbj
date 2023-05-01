@@ -15,123 +15,79 @@
  */
 package com.hierynomus.ntlm.messages;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-import com.hierynomus.msdtyp.FileTime;
-import com.hierynomus.msdtyp.MsDataTypes;
-import com.hierynomus.protocol.commons.Charsets;
-import com.hierynomus.protocol.commons.EnumWithValue;
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.buffer.Endian;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.hierynomus.ntlm.av.AvId;
+import com.hierynomus.ntlm.av.AvPair;
+import com.hierynomus.ntlm.av.AvPairEnd;
+import com.hierynomus.ntlm.av.AvPairFactory;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+
 public class TargetInfo {
     private static final Logger logger = LoggerFactory.getLogger(TargetInfo.class);
 
-    private Map<AvId, Object> targetInfo = new LinkedHashMap<>(); // Keep ordering to make tests predictable, not strictly needed for protocol
+    private List<AvPair<?>> targetInfo = new ArrayList<>();
 
     public TargetInfo() {}
 
     public TargetInfo readFrom(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
         while (true) {
-            int l = buffer.readUInt16();
-            AvId avId = EnumWithValue.EnumUtils.valueOf(l, AvId.class, null); // AvId (2 bytes)
-            int avLen = buffer.readUInt16(); // AvLen (2 bytes)
-            switch (avId) {
-                case MsvAvEOL:
-                    // End of sequence
-                    return this;
-                case MsvAvNbComputerName:
-                case MsvAvNbDomainName:
-                case MsvAvDnsComputerName:
-                case MsvAvDnsDomainName:
-                case MsvAvDnsTreeName:
-                case MsvAvTargetName:
-                    targetInfo.put(avId, buffer.readString(Charsets.UTF_16LE, avLen / 2));
-                    break;
-                case MsvAvFlags:
-                    targetInfo.put(avId, buffer.readUInt32(Endian.LE));
-                    break;
-                case MsvAvTimestamp:
-                    targetInfo.put(avId, MsDataTypes.readFileTime(buffer));
-                    break;
-                case MsvAvSingleHost:
-                    break;
-                case MsvAvChannelBindings:
-                    break;
-                default:
-                    throw new IllegalStateException("Encountered unhandled AvId: " + avId);
+            AvPair<?> p = AvPairFactory.read(buffer);
+            if (p.getAvId() == AvId.MsvAvEOL) {
+                break;
             }
-            logger.trace("Read TargetInfo {}({}) --> {}", avId, l, targetInfo.get(avId));
+            logger.trace("Read TargetInfo {} --> {}", p.getAvId(), p.getValue());
+            targetInfo.add(p);
         }
+
+        return this;
     }
 
     public void writeTo(Buffer.PlainBuffer buffer) {
-        for (AvId key : targetInfo.keySet()) {
-            buffer.putUInt16((int) key.getValue()); // AvId (2 bytes)
-            switch (key) {
-                case MsvAvNbComputerName:
-                case MsvAvNbDomainName:
-                case MsvAvDnsComputerName:
-                case MsvAvDnsDomainName:
-                case MsvAvDnsTreeName:
-                case MsvAvTargetName:
-                    String val = getAvPairString(key);
-                    buffer.putUInt16(val.length() * 2); // AvLen (2 bytes)
-                    buffer.putString(val, Charsets.UTF_16LE);
-                    break;
-                case MsvAvFlags:
-                    buffer.putUInt16(4); // AvLen (2 bytes)
-                    buffer.putUInt32((long) getAvPairObject(key), Endian.LE);
-                    break;
-                case MsvAvTimestamp:
-                    buffer.putUInt16(8); // AvLen (2 bytes)
-                    FileTime ft = (FileTime) getAvPairObject(key);
-                    MsDataTypes.putFileTime(ft, buffer);
-                    break;
-                case MsvAvSingleHost:
-                case MsvAvChannelBindings:
-                    break;
-                default:
-                    throw new IllegalStateException("Encountered unhandled AvId: " + key);
-            }
+        for (AvPair<?> pair : targetInfo) {
+            logger.trace("Writing TargetInfo {} --> {}", pair.getAvId(), pair.getValue());
+            pair.write(buffer);
         }
-        buffer.putUInt16((int) AvId.MsvAvEOL.getValue()); // AvId (2 bytes)
-        buffer.putUInt16(0); // AvLen (2 bytes)
+        new AvPairEnd().write(buffer);
     }
 
     public TargetInfo copy() {
         TargetInfo c = new TargetInfo();
-        c.targetInfo = new LinkedHashMap<>(targetInfo);
+        c.targetInfo = new ArrayList<>(targetInfo);
         return c;
     }
 
-    public Object getAvPairObject(AvId key) {
-        return this.targetInfo.get(key);
+    @SuppressWarnings("unchecked")
+    public <T extends AvPair<?>> T getAvPair(AvId key) {
+        for (AvPair<?> avPair : targetInfo) {
+            if (avPair.getAvId() == key) {
+                return (T) avPair;
+            }
+        }
+        return null;
     }
 
-    public void putAvPairObject(AvId key, Object value) {
-        this.targetInfo.put(key, value);
+    public void putAvPair(AvPair<?> pair) {
+        for (AvPair<?> avPair : targetInfo) {
+            if (avPair.getAvId() == pair.getAvId()) {
+                targetInfo.remove(avPair);
+                break;
+            }
+        }
+        this.targetInfo.add(pair);
     }
 
     public boolean hasAvPair(AvId key) {
-        return this.targetInfo.containsKey(key);
-    }
-
-    public void putAvPairString(AvId key, String value) {
-        this.targetInfo.put(key, value);
-    }
-
-    public String getAvPairString(AvId key) {
-        Object obj = this.targetInfo.get(key);
-        if (obj == null)
-            return null;
-        else
-            return String.valueOf(obj);
+        for (AvPair<?> avPair : targetInfo) {
+            if (avPair.getAvId() == key) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

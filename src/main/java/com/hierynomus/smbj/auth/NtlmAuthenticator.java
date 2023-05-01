@@ -32,25 +32,25 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
-import java.util.function.Predicate;
 
-import com.hierynomus.msdtyp.FileTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
+import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.ntlm.NtlmConfig;
 import com.hierynomus.ntlm.NtlmException;
+import com.hierynomus.ntlm.av.AvId;
+import com.hierynomus.ntlm.av.AvPairString;
+import com.hierynomus.ntlm.av.AvPairTimestamp;
 import com.hierynomus.ntlm.functions.ComputedNtlmV2Response;
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.ntlm.functions.NtlmV2Functions;
-import com.hierynomus.ntlm.messages.AvId;
 import com.hierynomus.ntlm.messages.NtlmAuthenticate;
 import com.hierynomus.ntlm.messages.NtlmChallenge;
 import com.hierynomus.ntlm.messages.NtlmNegotiate;
 import com.hierynomus.ntlm.messages.NtlmNegotiateFlag;
 import com.hierynomus.ntlm.messages.TargetInfo;
-import com.hierynomus.ntlm.messages.WindowsVersion;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
@@ -164,7 +164,8 @@ public class NtlmAuthenticator implements Authenticator {
     private AuthenticateResponse doAuthenticate(AuthenticationContext context, NtlmChallenge serverNtlmChallenge, byte[] ntlmChallengeBytes) throws SpnegoException {
         AuthenticateResponse response = new AuthenticateResponse();
         response.setWindowsVersion(serverNtlmChallenge.getVersion());
-        response.setNetBiosName(serverNtlmChallenge.getTargetInfo().getAvPairString(AvId.MsvAvNbComputerName));
+        AvPairString nbComputerName = serverNtlmChallenge.getTargetInfo().getAvPair(AvId.MsvAvNbComputerName);
+        response.setNetBiosName(nbComputerName != null ? nbComputerName.getValue() : null);
 
         // [MS-NLMP] 3.2.2 -- Special case for anonymous authentication
         if (context.isAnonymous()) {
@@ -179,7 +180,7 @@ public class NtlmAuthenticator implements Authenticator {
 
         long time = FileTime.now().getWindowsTimeStamp();
         if (clientTargetInfo.hasAvPair(AvId.MsvAvTimestamp)) {
-            time = ((FileTime) clientTargetInfo.getAvPairObject(AvId.MsvAvTimestamp)).getWindowsTimeStamp();
+            time = ((AvPairTimestamp) clientTargetInfo.getAvPair(AvId.MsvAvTimestamp)).getValue().getWindowsTimeStamp();
         }
         ComputedNtlmV2Response computedNtlmV2Response = functions.computeResponse(context.getUsername(), context.getDomain(), context.getPassword(), serverNtlmChallenge, time, clientTargetInfo);
 
@@ -238,10 +239,13 @@ public class NtlmAuthenticator implements Authenticator {
 
         // Should be clientSuppliedeTargetName
         if (serverNtlmChallenge.getNegotiateFlags().contains(NTLMSSP_REQUEST_TARGET)) {
-            clientTargetInfo.putAvPairString(AvId.MsvAvTargetName,
-                    String.format("cifs/%s", clientTargetInfo.getAvPairString(AvId.MsvAvDnsComputerName)));
+            AvPairString dnsComputerName = clientTargetInfo.getAvPair(AvId.MsvAvDnsComputerName);
+            if (dnsComputerName != null) {
+                String targetName = String.format("cifs/%s", dnsComputerName.getValue());
+                clientTargetInfo.putAvPair(new AvPairString(AvId.MsvAvTargetName, targetName));
+            }
         } else {
-            clientTargetInfo.putAvPairString(AvId.MsvAvTargetName, "");
+            clientTargetInfo.putAvPair(new AvPairString(AvId.MsvAvTargetName, ""));
         }
 
         return clientTargetInfo;

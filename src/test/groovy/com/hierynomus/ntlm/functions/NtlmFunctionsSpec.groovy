@@ -17,7 +17,8 @@ package com.hierynomus.ntlm.functions
 
 import com.hierynomus.msdtyp.FileTime
 import com.hierynomus.msdtyp.MsDataTypes
-import com.hierynomus.ntlm.messages.AvId
+import com.hierynomus.ntlm.av.AvId
+import com.hierynomus.ntlm.av.AvPairString
 import com.hierynomus.ntlm.messages.NtlmChallenge
 import com.hierynomus.ntlm.messages.TargetInfo
 import com.hierynomus.protocol.commons.buffer.Buffer
@@ -109,8 +110,8 @@ class NtlmFunctionsSpec extends Specification {
     def f = new NtlmV2Functions(random, provider)
     random.init([0xaa,0xaa,0xaa,0xaa,0xaa,0xaa,0xaa,0xaa,0x55,0x55,0x55,0x55,0x55,0x55,0x55,0x55,0x55,0x55,0x55,0x55,0x55,0x55,0x55,0x55] as byte[])
     def targetInfo = new TargetInfo()
-    targetInfo.putAvPairObject(AvId.MsvAvNbDomainName, "Domain")
-    targetInfo.putAvPairObject(AvId.MsvAvNbComputerName, "Server")
+    targetInfo.putAvPair(new AvPairString(AvId.MsvAvNbDomainName, "Domain"))
+    targetInfo.putAvPair(new AvPairString(AvId.MsvAvNbComputerName, "Server"))
     def serverChallenge = new NtlmChallenge()
     serverChallenge.serverChallenge = [0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef] as byte[]
 

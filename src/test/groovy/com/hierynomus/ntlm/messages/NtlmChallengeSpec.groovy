@@ -17,6 +17,7 @@ package com.hierynomus.ntlm.messages
 
 import com.hierynomus.protocol.commons.buffer.Buffer
 import com.hierynomus.protocol.commons.buffer.Endian
+import com.hierynomus.ntlm.av.AvId
 import spock.lang.Specification
 
 class NtlmChallengeSpec extends Specification implements SampleMessages {
@@ -63,7 +64,7 @@ class NtlmChallengeSpec extends Specification implements SampleMessages {
     m.serverChallenge == serverChallenge
     m.version == windowsVersion
     m.targetName == targetName
-    m.targetInfo.getAvPairObject(AvId.MsvAvNbComputerName) == "Server" // NetBIOS Server name
-    m.targetInfo.getAvPairObject(AvId.MsvAvNbDomainName) == "Domain" // NetBIOS Domain name
+    m.targetInfo.getAvPair(AvId.MsvAvNbComputerName).getValue() == "Server" // NetBIOS Server name
+    m.targetInfo.getAvPair(AvId.MsvAvNbDomainName).getValue() == "Domain" // NetBIOS Domain name
   }
 }
