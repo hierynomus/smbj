@@ -24,6 +24,10 @@ public class AvPairFlags extends AvPair<Long> {
         super(AvId.MsvAvFlags);
     }
 
+    public AvPairFlags(long value) {
+        super(AvId.MsvAvFlags, value);
+    }
+
     @Override
     public void write(Buffer<?> buffer) {
         buffer.putUInt16((int) this.avId.getValue()); // AvId (2 bytes)

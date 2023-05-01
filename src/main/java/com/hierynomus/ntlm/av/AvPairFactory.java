@@ -24,6 +24,10 @@ public class AvPairFactory {
     public static AvPair<?> read(Buffer<?> buffer) throws BufferException {
         int l = buffer.readUInt16();
         AvId avId = EnumWithValue.EnumUtils.valueOf(l, AvId.class, null); // AvId (2 bytes)
+        if (avId == null) {
+            throw new IllegalStateException("Encountered unknown AvId: " + l);
+        }
+
         switch (avId) {
             case MsvAvEOL:
                 return new AvPairEnd().read(buffer);
