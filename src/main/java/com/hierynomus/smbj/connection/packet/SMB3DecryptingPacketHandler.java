@@ -117,13 +117,13 @@ public class SMB3DecryptingPacketHandler extends AbstractIncomingPacketHandler {
         byte[] decrypted = encryptor.decrypt(data, session.getSessionContext().getDecryptionKey());
 
         byte[] decryptedProtocolId = Arrays.copyOf(decrypted, 4);
-        if (Arrays.equals(decryptedProtocolId, SMB2TransformHeader.ENCRYPTED_PROTOCOL_ID)) {
+        if (SMB2TransformHeader.isEncrypted(decryptedProtocolId)) {
             logger.error("Encountered a nested encrypted packet in packet {}, disconnecting the transport", packetData);
             throw new TransportException("Cannot nest an encrypted packet in encrypted packet " + packetData);
-        } else if (Arrays.equals(decryptedProtocolId, SMB2CompressionTransformHeader.COMPRESSED_PROTOCOL_ID)) {
+        } else if (SMB2CompressionTransformHeader.isCompressed(decryptedProtocolId)) {
             handleCompressedPacket(packetData, decrypted);
             return;
-        } else if (Arrays.equals(decryptedProtocolId, SMB2PacketHeader.PROTOCOL_ID)) {
+        } else if (SMB2PacketHeader.isPacketHeader(decryptedProtocolId)) {
             handleSMB2Packet(decrypted, data);
             return;
         } else {
