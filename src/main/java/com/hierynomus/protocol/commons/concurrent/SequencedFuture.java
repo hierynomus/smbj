@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * SequencedFuture transforms a List<Future<V>> into a Future<List<V>>
+ * SequencedFuture transforms a {@code List<Future<V>>} into a {@code Future<List<V>>}.
  */
 public class SequencedFuture<V> extends AFuture<List<V>> {
     private List<Future<V>> futures;

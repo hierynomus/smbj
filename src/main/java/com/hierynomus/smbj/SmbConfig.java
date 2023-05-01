@@ -254,7 +254,11 @@ public final class SmbConfig {
         return encryptData;
     }
 
-    /** @deprecated Moved into getNtlmConfig().getWorkStationName() */
+    /**
+     * Get the work station name to be used in the NTLM authentication.
+     *
+     * @deprecated Moved into getNtlmConfig().getWorkStationName()
+     */
     public String getWorkStationName() {
         return getNtlmConfig().getWorkstationName();
     }
@@ -479,7 +483,7 @@ public final class SmbConfig {
         }
 
         /**
-         *
+         * Set the workstation name to be used in the NTLM authentication.
          *
          * @deprecated Moved into withNtlmConfig(NtlmConfig.builder().withWorkstationName(..).build())
          * */

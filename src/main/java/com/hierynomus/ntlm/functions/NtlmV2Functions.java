@@ -38,7 +38,7 @@ public class NtlmV2Functions {
      * [MS-NLMP].pdf 3.3.2 NTLM v2 authentication.
      * <p/>
      *
-     * <code>
+     * {@code
      * Define ComputeResponse(NegFlg, ResponseKeyNT, ResponseKeyLM,
      * CHALLENGE_MESSAGE.ServerChallenge, ClientChallenge, Time, ServerName) As
      * If (User is set to "" && Passwd is set to "")
@@ -57,7 +57,7 @@ public class NtlmV2Functions {
      * EndIf
      * Set SessionBaseKey to HMAC_MD5(ResponseKeyNT, NTProofStr)
      * EndDefine
-     * </code>
+     * }
      */
     public ComputedNtlmV2Response computeResponse(String username, String domain, char[] password, NtlmChallenge serverNtlmChallenge, long time, TargetInfo clientTargetInfo) {
         // Create the client nonce

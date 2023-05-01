@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * computer joined to a domain. This cache contains a list of trusted domains in
  * both NetBIOS and fully qualified domain name forms, in addition to a list of
  * DC host names for each domain. Conceptually, this is an array of tuples of
- * the form <DomainName, DCHint, DCList>. Cache lookup involves finding a
+ * the form {@code <DomainName, DCHint, DCList>}. Cache lookup involves finding a
  * DomainCache entry with a matching DomainName. This can be used to check for a
  * valid domain name or to find a DC host name for a given domain name. DCHint
  * identifies a DC host name from DCList that is the DC that was last
