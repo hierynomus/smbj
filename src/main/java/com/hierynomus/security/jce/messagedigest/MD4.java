@@ -1,5 +1,4 @@
 package com.hierynomus.security.jce.messagedigest;
-//package org.apache.mina.proxy.utils;
 
 import java.security.DigestException;
 import java.security.MessageDigest;

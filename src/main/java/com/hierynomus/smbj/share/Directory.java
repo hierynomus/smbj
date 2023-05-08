@@ -117,7 +117,7 @@ public class Directory extends DiskEntry implements Iterable<FileIdBothDirectory
      * response.
      *
      * @param completionFilter   types of changes to monitor
-     * @param recursive          monitor changes on any file or directory contained
+     * @param watchTree          monitor changes on any file or directory contained
      *                           beneath the directory
      * @return a Future to be used to retrieve the change notify response packet
      */

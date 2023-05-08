@@ -171,9 +171,9 @@ public class Share implements AutoCloseable {
         sendReceive(closeReq, "Close", fileId, SUCCESS_OR_CLOSED, transactTimeout);
     }
 
-    void closeFileIdNoWait(SMB2FileId fileId) throws SMBApiException {
+    Future<SMB2Close> closeFileIdNoWait(SMB2FileId fileId) throws SMBApiException {
         SMB2Close closeReq = new SMB2Close(dialect, sessionId, treeId, fileId);
-        send(closeReq);
+        return send(closeReq);
     }
 
     SMB2QueryInfoResponse queryInfo(SMB2FileId fileId, SMB2QueryInfoRequest.SMB2QueryInfoType infoType,

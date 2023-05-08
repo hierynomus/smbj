@@ -347,7 +347,7 @@ public class FileInformationFactory {
     }
 
     /**
-     * [MS-SMB2] 2.2.34 SMB2 QUERY_DIRECTORY Response for FileInformationClass->FileIdBothDirectoryInformation
+     * [MS-SMB2] 2.2.34 SMB2 QUERY_DIRECTORY Response for FileInformationClass-&gt;FileIdBothDirectoryInformation
      *
      * @param data
      * @param decoder

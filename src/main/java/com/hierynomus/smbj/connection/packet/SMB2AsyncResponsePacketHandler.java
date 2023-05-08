@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
  *
  * If SMB2_FLAGS_ASYNC_COMMAND is set in the Flags field of the SMB2 header of the response and the Status field in the
  * SMB2 header is STATUS_PENDING, the client MUST mark the request in Connection.OutstandingRequests as being handled
- * asynchronously by storing the AsyncId of the response in Request.AsyncId. The client SHOULD<153> extend the
+ * asynchronously by storing the AsyncId of the response in Request.AsyncId. The client SHOULD&lt;153&gt; extend the
  * Request Expiration Timer, as specified in section 3.2.6.1. Processing of this response is now complete.
  *
  * If SMB2_FLAGS_ASYNC_COMMAND is set in the Flags field of the SMB2 header and Status is not STATUS_PENDING,

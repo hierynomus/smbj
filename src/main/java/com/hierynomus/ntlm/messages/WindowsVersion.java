@@ -18,12 +18,14 @@ package com.hierynomus.ntlm.messages;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
+import java.util.Objects;
+
 /**
  * [MS-NLMP].pdf 2.2.2.10 VERSION
  */
 public class WindowsVersion {
 
-    enum ProductMajorVersion implements EnumWithValue<ProductMajorVersion> {
+    public enum ProductMajorVersion implements EnumWithValue<ProductMajorVersion> {
         WINDOWS_MAJOR_VERSION_5(0x05),
         WINDOWS_MAJOR_VERSION_6(0x06),
         WINDOWS_MAJOR_VERSION_10(0x0A);
@@ -40,7 +42,7 @@ public class WindowsVersion {
         }
     }
 
-    enum ProductMinorVersion implements EnumWithValue<ProductMinorVersion> {
+    public enum ProductMinorVersion implements EnumWithValue<ProductMinorVersion> {
         WINDOWS_MINOR_VERSION_0(0x00),
         WINDOWS_MINOR_VERSION_1(0x01),
         WINDOWS_MINOR_VERSION_2(0x02),
@@ -57,7 +59,7 @@ public class WindowsVersion {
         }
     }
 
-    enum NtlmRevisionCurrent implements EnumWithValue<NtlmRevisionCurrent> {
+    public enum NtlmRevisionCurrent implements EnumWithValue<NtlmRevisionCurrent> {
         NTLMSSP_REVISION_W2K3(0x0F);
 
         private long value;
@@ -77,6 +79,13 @@ public class WindowsVersion {
     private int productBuild;
     private NtlmRevisionCurrent ntlmRevision;
 
+    public WindowsVersion(ProductMajorVersion majorVersion, ProductMinorVersion minorVersion, int productBuild, NtlmRevisionCurrent ntlmRevision) {
+        this.majorVersion = majorVersion;
+        this.minorVersion = minorVersion;
+        this.productBuild = productBuild;
+        this.ntlmRevision = ntlmRevision;
+    }
+
     WindowsVersion() {
     }
 
@@ -89,8 +98,29 @@ public class WindowsVersion {
         return this;
     }
 
+    void writeTo(Buffer.PlainBuffer buffer) {
+        buffer.putByte((byte) majorVersion.value); // ProductMajorVersion (1 byte)
+        buffer.putByte((byte) minorVersion.value); // ProductMinorVersion (1 byte)
+        buffer.putUInt16(productBuild); // ProductBuild (2 bytes)
+        buffer.putRawBytes(new byte[]{0,0,0}); // Reserved (3 bytes)
+        buffer.putByte((byte) ntlmRevision.getValue());
+    }
+
     @Override
     public String toString() {
         return String.format("WindowsVersion[%s, %s, %d, %s]", majorVersion, minorVersion, productBuild, ntlmRevision);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        WindowsVersion that = (WindowsVersion) o;
+        return productBuild == that.productBuild && majorVersion == that.majorVersion && minorVersion == that.minorVersion && ntlmRevision == that.ntlmRevision;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(majorVersion, minorVersion, productBuild, ntlmRevision);
     }
 }

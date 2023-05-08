@@ -15,6 +15,7 @@
  */
 package com.hierynomus.ntlm.messages;
 
+import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
@@ -79,6 +80,7 @@ public class NtlmChallenge extends NtlmPacket {
     }
 
     private void readTargetNameFields(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+        // These are not set if negotiateFlags does not contain NTLMSSP_REQUEST_TARGET, but these are only read afterwards
         targetNameLen = buffer.readUInt16(); // TargetNameLen (2 bytes)
         buffer.skip(2); // TargetNameMaxLen (2 bytes)
         targetNameBufferOffset = buffer.readUInt32AsInt(); // TargetNameBufferOffset (4 bytes)
@@ -112,5 +114,16 @@ public class NtlmChallenge extends NtlmPacket {
 
     public WindowsVersion getVersion() {
         return version;
+    }
+
+    @Override
+    public String toString() {
+        return "NtlmChallenge{\n" +
+                "  targetName='" + targetName + "',\n" +
+                "  negotiateFlags=" + negotiateFlags + ",\n" +
+                "  serverChallenge=" + ByteArrayUtils.printHex(serverChallenge) + ",\n" +
+                "  version=" + version + ",\n" +
+                "  targetInfo=" + targetInfo + "\n" +
+                '}';
     }
 }

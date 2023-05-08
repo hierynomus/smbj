@@ -13,31 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.ntlm.messages;
+package com.hierynomus.test;
 
-import com.hierynomus.protocol.commons.EnumWithValue;
+import java.util.Random;
 
-public enum AvId implements EnumWithValue<AvId> {
-    MsvAvEOL(0x00L),
-    MsvAvNbComputerName(0x01L),
-    MsvAvNdDomainName(0x02L),
-    MsvAvDnsComputerName(0x03L),
-    MsvAvDnsDomainName(0x04L),
-    MsvAvDnsTreeName(0x05L),
-    MsvAvFlags(0x06L),
-    MsvAvTimestamp(0x07L),
-    MsvAvSingleHost(0x08L),
-    MsvAvTargetName(0x09L),
-    MsvChannelBindings(0x0AL);
+public class PredictableRandom extends Random {
+    private byte[] randomBytes;
+    private int idx;
 
-    private final long value;
-
-    AvId(long i) {
-        this.value = i;
+    public void init(byte[] bytes) {
+        this.randomBytes = bytes;
+        this.idx = 0;
     }
 
     @Override
-    public long getValue() {
-        return value;
+    public void nextBytes(byte[] bytes) {
+        for (int i = 0; i < bytes.length; i++) {
+            bytes[i] = randomBytes[(idx + i) % randomBytes.length];
+        }
+        idx = (idx + bytes.length) % randomBytes.length;
     }
 }

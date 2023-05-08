@@ -30,14 +30,14 @@ import org.slf4j.LoggerFactory;
  * <p>
  * If the client receives a response that does not conform to the structures specified in 2,
  * the client MUST discard the response and fail the corresponding application request with an error
- * indicating that an invalid network response was received. The client MAY<154> also disconnect the connection.
+ * indicating that an invalid network response was received. The client MAY&lt;154&gt; also disconnect the connection.
  * <p>
  * The client MUST process the response based on the Command field of the SMB2 header of the response.
  * When the processing is completed, the corresponding request MUST be removed from Connection.OutstandingRequests.
  * The corresponding request MUST also be removed from Open.OutstandingRequests, if it exists.
  * <p>
  * If the command that is received is not a valid command, or if the server returned a command that did not match
- * the command of the request, the client SHOULD<155> fail the application request with an implementation-specific
+ * the command of the request, the client SHOULD&lt;155&gt; fail the application request with an implementation-specific
  * error that indicates an invalid network response was received.
  */
 public class SMB2ProcessResponsePacketHandler extends SMB2PacketHandler {

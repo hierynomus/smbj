@@ -27,7 +27,7 @@ import com.hierynomus.smbj.common.Check;
  * [MS-SMB2] 2.2.42 SMB2 COMPRESSION_TRANSFORM_HEADER
  * <p>
  * The SMB2 COMPRESSION_TRANSFORM_HEADER is used by the client or server when sending compressed messages.
- * This optional header is only valid for the SMB 3.1.1 dialect<73>.
+ * This optional header is only valid for the SMB 3.1.1 dialect&lt;73&gt;.
  */
 public class SMB2CompressionTransformHeader implements SMBHeader {
     private static final byte[] COMPRESSED_PROTOCOL_ID = {(byte) 0xFC, 'S', 'M', 'B'};
