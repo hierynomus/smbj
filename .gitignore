@@ -24,3 +24,8 @@ test-output/
 *.pdf
 .vscode/
 .java-version
+
+.metals
+.bloop
+
+MacIntegrationTest.*
