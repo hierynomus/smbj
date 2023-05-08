@@ -27,3 +27,4 @@ test-output/
 
 .metals
 .bloop
+MacIntegrationTest.*
