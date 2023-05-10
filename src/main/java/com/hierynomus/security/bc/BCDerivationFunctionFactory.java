@@ -16,7 +16,6 @@
 package com.hierynomus.security.bc;
 
 import com.hierynomus.protocol.commons.Factory;
-import com.hierynomus.security.AEADBlockCipher;
 import com.hierynomus.security.DerivationFunction;
 import com.hierynomus.security.jce.derivationfunction.CounterDerivationParameters;
 import com.hierynomus.security.jce.derivationfunction.DerivationParameters;

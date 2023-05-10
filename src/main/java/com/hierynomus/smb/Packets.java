@@ -21,9 +21,9 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 public class Packets {
     /**
      * Get the serialized packet bytes.
-     * @param packet
-     * @return
-     * @throws Buffer.BufferException
+     *
+     * @param packet The packet to serialize.
+     * @return The serialized packet bytes.
      */
     public static byte[] getPacketBytes(SMBPacket<?, ?> packet) {
         SMBBuffer buffer = packet.getBuffer();
