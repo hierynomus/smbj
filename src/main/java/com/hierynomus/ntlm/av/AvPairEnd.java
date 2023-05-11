@@ -13,31 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.ntlm.messages;
+package com.hierynomus.ntlm.av;
 
-import com.hierynomus.protocol.commons.EnumWithValue;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
 
-public enum AvId implements EnumWithValue<AvId> {
-    MsvAvEOL(0x00L),
-    MsvAvNbComputerName(0x01L),
-    MsvAvNdDomainName(0x02L),
-    MsvAvDnsComputerName(0x03L),
-    MsvAvDnsDomainName(0x04L),
-    MsvAvDnsTreeName(0x05L),
-    MsvAvFlags(0x06L),
-    MsvAvTimestamp(0x07L),
-    MsvAvSingleHost(0x08L),
-    MsvAvTargetName(0x09L),
-    MsvChannelBindings(0x0AL);
+public class AvPairEnd extends AvPair<Void> {
 
-    private final long value;
-
-    AvId(long i) {
-        this.value = i;
+    public AvPairEnd() {
+        super(AvId.MsvAvEOL);
     }
 
     @Override
-    public long getValue() {
-        return value;
+    public void write(Buffer<?> buffer) {
+        buffer.putUInt16((int) this.avId.getValue()); // AvId (2 bytes)
+        buffer.putUInt16(0); // AvLen (2 bytes)
+    }
+
+    @Override
+    public AvPair<Void> read(Buffer<?> buffer) throws BufferException {
+        buffer.readUInt16(); // AvLen (2 bytes)
+        return this;
     }
 }

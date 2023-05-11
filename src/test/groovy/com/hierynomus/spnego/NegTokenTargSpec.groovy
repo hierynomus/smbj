@@ -15,7 +15,7 @@
  */
 package com.hierynomus.spnego
 
-import com.hierynomus.ntlm.messages.AvId
+import com.hierynomus.ntlm.av.AvId
 import com.hierynomus.ntlm.messages.NtlmChallenge
 import com.hierynomus.protocol.commons.ByteArrayUtils
 import com.hierynomus.protocol.commons.buffer.Buffer

@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.auth;
 
 import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
+import com.hierynomus.ntlm.av.AvId;
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.ntlm.messages.*;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
