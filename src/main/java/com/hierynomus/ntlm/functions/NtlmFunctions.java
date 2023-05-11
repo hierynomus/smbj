@@ -192,7 +192,9 @@ public class NtlmFunctions {
         ccBuf.putLong(nowAsFileTime); // Timestamp (8)
         ccBuf.putRawBytes(challengeFromClient); // ChallengeFromClient (8)
         ccBuf.putUInt32(0); // Reserved3 (4)
-        targetInformation.writeTo(ccBuf); // AvPairs (variable)
+        if (targetInformation != null) {
+            targetInformation.writeTo(ccBuf); // AvPairs (variable)
+        }
         ccBuf.putUInt32(0); // Last AV Pair indicator
 
         return ccBuf.getCompactData();

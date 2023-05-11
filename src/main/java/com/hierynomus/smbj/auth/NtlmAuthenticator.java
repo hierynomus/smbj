@@ -17,6 +17,7 @@ package com.hierynomus.smbj.auth;
 
 import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
 import com.hierynomus.ntlm.av.AvId;
+import com.hierynomus.ntlm.av.AvPairFlags;
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.ntlm.messages.*;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
@@ -93,7 +94,9 @@ public class NtlmAuthenticator implements Authenticator {
                 logger.debug("Received NTLM challenge from: {}", challenge.getTargetName());
 
                 response.setWindowsVersion(challenge.getVersion());
-                response.setNetBiosName(challenge.getAvPairString(AvId.MsvAvNbComputerName));
+                if (challenge.getTargetInfo() != null && challenge.getTargetInfo().hasAvPair(AvId.MsvAvNbComputerName)) {
+                    response.setNetBiosName((String) challenge.getTargetInfo().getAvPair(AvId.MsvAvNbComputerName).getValue());
+                }
 
                 byte[] serverChallenge = challenge.getServerChallenge();
                 byte[] responseKeyNT = ntlmFunctions.NTOWFv2(String.valueOf(context.getPassword()), context.getUsername(), context.getDomain());
@@ -122,8 +125,8 @@ public class NtlmAuthenticator implements Authenticator {
                 // If NTLM v2 is used, KeyExchangeKey MUST be set to the given 128-bit SessionBaseKey value.
 
                 // MIC (16 bytes) provided if in AvPairType is key MsvAvFlags with value & 0x00000002 is true
-                Object msvAvFlags = challenge.getAvPairObject(AvId.MsvAvFlags);
-                if (msvAvFlags instanceof Long && ((long) msvAvFlags & 0x00000002) > 0) {
+                AvPairFlags pair = challenge.getTargetInfo() != null ? challenge.getTargetInfo().getAvPair(AvId.MsvAvFlags) : null;
+                if (pair != null && (pair.getValue() & 0x00000002) > 0) {
                     // MIC should be calculated
                     NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
                         context.getUsername(), context.getDomain(), workStationName, sessionkey, EnumWithValue.EnumUtils.toLong(negotiateFlags),
