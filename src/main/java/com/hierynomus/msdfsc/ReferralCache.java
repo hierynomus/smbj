@@ -52,8 +52,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
  * operation using the ReferralCache entry if all attempts to refresh it
  * fail.&lt;4&gt; TargetHint identifies a target in TargetList that was last
  * successfully used by the DFS client. TargetList consists of tuples of the
- * form {@code <TargetPath, TargetSetBoundary>}, where TargetPath is the string
- * pointed
+ * form {@code <TargetPath, TargetSetBoundary>}, where TargetPath is the string pointed
  * to by the NetworkAddressOffset field (as specified in sections 2.2.5.2,
  * 2.2.5.3, and 2.2.5.4). TargetSetBoundary is only present in V4 referrals and
  * reflects the value from the TargetSetBoundary of the referral entry (as

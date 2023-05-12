@@ -15,88 +15,26 @@
  */
 package com.hierynomus.ntlm.functions;
 
-import com.hierynomus.msdtyp.MsDataTypes;
+import static com.hierynomus.security.Cipher.CryptMode.ENCRYPT;
+
+import java.nio.charset.Charset;
+
 import com.hierynomus.ntlm.NtlmException;
-import com.hierynomus.ntlm.messages.TargetInfo;
 import com.hierynomus.protocol.commons.Charsets;
-import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.security.Cipher;
 import com.hierynomus.security.SecurityException;
 import com.hierynomus.security.SecurityProvider;
-
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.Random;
-
-import static com.hierynomus.security.Cipher.CryptMode.ENCRYPT;
 
 /**
  * NTLM Helper functions
  */
 public class NtlmFunctions {
 
-    static final byte[] LMOWFv1_SECRET = new byte[]{0x4B, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25}; // KGS!@#$%
-
     public static final Charset UNICODE = Charsets.UTF_16LE;
 
-    private final Random random;
-    private final SecurityProvider securityProvider;
-
-    public NtlmFunctions(Random random, SecurityProvider securityProvider) {
-        this.random = random;
-        this.securityProvider = securityProvider;
+    private NtlmFunctions() {
     }
 
-    /**
-     * [MS-NLMP].pdf 3.3.2 NTLM v2 authentication (NTOWF v2).
-     * <p/>
-     * <code>
-     * Define NTOWFv2(Passwd, User, UserDom) as HMAC_MD5( MD4(UNICODE(Passwd)), UNICODE(ConcatenationOf( Uppercase(User), UserDom ) ) )
-     * EndDefine
-     * </code>
-     */
-    @SuppressWarnings("PMD.MethodNamingConventions")
-    public byte[] NTOWFv2(String password, String username, String userDomain) {
-        byte[] keyBytes = NTOWFv1(password, username, userDomain);
-        byte[] usernameBytes = unicode(username.toUpperCase());
-        byte[] userDomainBytes = unicode(userDomain);
-        return hmac_md5(keyBytes, usernameBytes, userDomainBytes);
-    }
-
-    /**
-     * [MS-NLMP].pdf 3.3.2 NTLM v2 authentication (NTOWF v2).
-     * <p/>
-     * <code>
-     * Define LMOWFv2(Passwd, User, UserDom) as NTOWFv2(Passwd, User, UserDom)
-     * EndDefine
-     * </code>
-     */
-    @SuppressWarnings("PMD.MethodNamingConventions")
-    public byte[] LMOWFv2(String password, String username, String userDomain) {
-        return NTOWFv2(password, username, userDomain);
-    }
-
-    /**
-     * [MS-NLMP].pdf 3.3.1 NTLM v1 authentication (NTOWF v1).
-     * <p/>
-     * <code>
-     * Define NTOWFv1(Passwd, User, UserDom) as MD4(UNICODE(Passwd))
-     * EndDefine
-     * </code>
-     */
-    @SuppressWarnings("PMD.MethodNamingConventions")
-    public byte[] NTOWFv1(String password, String username, String userDomain) {
-        byte[] bytes = unicode(password);
-        try {
-            com.hierynomus.security.MessageDigest md4 = securityProvider.getDigest("MD4");
-            md4.update(bytes);
-            return md4.digest();
-        } catch (SecurityException e) {
-            throw new NtlmException(e);
-        }
-    }
 
     /**
      * [MS-NLMP].pdf 6 Appendix A: Cryptographic Operations Reference (UNICODE(string)).
@@ -108,6 +46,36 @@ public class NtlmFunctions {
         return string == null ? new byte[0] : string.getBytes(UNICODE);
     }
 
+    public static String unicode(byte[] bytes) {
+        return bytes != null ? new String(bytes, UNICODE) : "";
+    }
+
+
+    public static byte[] oem(String s) {
+        return s != null ? s.getBytes(Charset.forName("Cp850")) : new byte[0];
+    }
+
+    public static String oem(byte[] bytes) {
+        return bytes != null ? new String(bytes, Charset.forName("Cp850")) : "";
+    }
+    /**
+     * [MS-NLMP].pdf 6 Appendix A: Cryptographic Operations Reference
+     * (MD4(M)).
+     *
+     * @param m The string to calculcate the MD4 hash of.
+     * @return The 2-byte little endian byte order encoding of the Unicode UTF-16
+     *         representation of the string.
+     */
+    static byte[] md4(SecurityProvider securityProvider, byte[] m) {
+        try {
+            com.hierynomus.security.MessageDigest md4 = securityProvider.getDigest("MD4");
+            md4.update(m);
+            return md4.digest();
+        } catch (SecurityException e) {
+            throw new NtlmException(e);
+        }
+    }
+
     /**
      * [MS-NLMP].pdf 6 Appendix A: Cryptographic Operations Reference (HMAC_MD5(K, M)).
      *
@@ -116,7 +84,7 @@ public class NtlmFunctions {
      * @return The 16-byte HMAC-keyed MD5 message digest of the byte string M using the key K
      */
     @SuppressWarnings("PMD.MethodNamingConventions")
-    public byte[] hmac_md5(byte[] key, byte[]... message) {
+    public static byte[] hmac_md5(SecurityProvider securityProvider, byte[] key, byte[]... message) {
         try {
             com.hierynomus.security.Mac hmacMD5 = securityProvider.getMac("HmacMD5");
             hmacMD5.init(key);
@@ -130,105 +98,20 @@ public class NtlmFunctions {
     }
 
     /**
-     * [MS-NLMP].pdf 3.3.1 NTLM v1 authentication (LMOWF v1).
-     * <p/>
-     * <code>
-     * Define LMOWFv1(Passwd, User, UserDom) as
-     * ConcatenationOf(
-     * DES(UpperCase(Passwd)[0..6], "KGS!@#$%"),
-     * DES(UpperCase(Passwd)[7..13], "KGS!@#$%"))
-     * EndDefine
-     * </code>
+     * [MS-NLMP].pdf 6 Appendix A: Cryptographic Operations Reference
+     * (RC4K(K, D)).
      *
-     * @param password
-     * @param username
-     * @param userDomain
-     * @return
+     * @param k The key to initialize the RC4 cipher with.
+     * @param d The data to encrypt.
+     * @return The encrypted data.
      */
-    @SuppressWarnings("PMD.MethodNamingConventions")
-    public byte[] LMOWFv1(String password, String username, String userDomain) {
+    public static byte[] rc4k(SecurityProvider securityProvider, byte[] k, byte[] d) throws NtlmException {
+        byte[] out = new byte[d.length];
         try {
-            byte[] bytes = password.toUpperCase().getBytes("US-ASCII");
-            if (bytes.length != 14) {
-                bytes = Arrays.copyOf(bytes, 14);
-            }
-            Cipher leftCipher = getDESCipher(Arrays.copyOfRange(bytes, 0, 7));
-            Cipher rightCipher = getDESCipher(Arrays.copyOfRange(bytes, 7, 14));
-
-            byte[] lmHash = new byte[16];
-            int outOff = leftCipher.update(LMOWFv1_SECRET, 0, LMOWFv1_SECRET.length, lmHash, 0);
-            outOff += leftCipher.doFinal(lmHash, outOff);
-            outOff += rightCipher.update(LMOWFv1_SECRET, 0, LMOWFv1_SECRET.length, lmHash, outOff);
-            outOff += rightCipher.doFinal(lmHash, outOff);
-            if (outOff != 16) {
-                throw new NtlmException("Incorrect lmHash calculated");
-            }
-            return lmHash;
-        } catch (UnsupportedEncodingException | SecurityException e) {
-            throw new NtlmException(e);
-        }
-    }
-
-    /**
-     * [MS-NLMP].pdf 2.2.2.7 NTLM v2: NTLMv2_CLIENT_CHALLENGE
-     * <p>
-     * 3.3.2 NTLM v2 Authentication
-     * Set temp to ConcatenationOf(Responserversion, HiResponserversion, Z(6), Time, ClientChallenge, Z(4), ServerName, Z(4))
-     *
-     * @param targetInformation
-     * @return
-     */
-    public byte[] getNTLMv2ClientChallenge(TargetInfo targetInformation) {
-
-        byte[] challengeFromClient = new byte[8];
-        random.nextBytes(challengeFromClient);
-
-        long nowAsFileTime = MsDataTypes.nowAsFileTime();
-        Buffer.PlainBuffer ccBuf = new Buffer.PlainBuffer(Endian.LE);
-        ccBuf.putByte((byte) 0x01); // RespType (1)
-        ccBuf.putByte((byte) 0x01); // HiRespType (1)
-        ccBuf.putUInt16(0); // Reserved1 (2)
-        ccBuf.putUInt32(0); // Reserved2 (4)
-        ccBuf.putLong(nowAsFileTime); // Timestamp (8)
-        ccBuf.putRawBytes(challengeFromClient); // ChallengeFromClient (8)
-        ccBuf.putUInt32(0); // Reserved3 (4)
-        if (targetInformation != null) {
-            targetInformation.writeTo(ccBuf); // AvPairs (variable)
-        }
-        ccBuf.putUInt32(0); // Last AV Pair indicator
-
-        return ccBuf.getCompactData();
-    }
-
-    /**
-     * 3.3.2 NTLM v2 Authentication
-     * <p>
-     * Set NTProofStr to HMAC_MD5(ResponseKeyNT, ConcatenationOf(CHALLENGE_MESSAGE.ServerChallenge,temp))
-     * Set NtChallengeResponse to ConcatenationOf(NTProofStr, temp)
-     *
-     * @param responseKeyNT
-     * @param serverChallenge
-     * @param ntlmv2ClientChallenge (temp from above)
-     * @return
-     */
-    public byte[] getNTLMv2Response(byte[] responseKeyNT, byte[] serverChallenge, byte[] ntlmv2ClientChallenge) {
-
-        byte[] ntProofStr = hmac_md5(responseKeyNT, serverChallenge, ntlmv2ClientChallenge);
-
-        byte[] ntChallengeResponse = new byte[ntProofStr.length + ntlmv2ClientChallenge.length];
-        System.arraycopy(ntProofStr, 0, ntChallengeResponse, 0, ntProofStr.length);
-        System.arraycopy(ntlmv2ClientChallenge, 0, ntChallengeResponse, ntProofStr.length, ntlmv2ClientChallenge.length);
-
-        return ntChallengeResponse;
-    }
-
-
-    public byte[] encryptRc4(byte[] key, byte[] val) throws NtlmException {
-        Cipher c = getRC4Cipher(key);
-        byte[] out = new byte[val.length];
-        try {
-            int bytes = c.update(val, 0, val.length, out, 0);
-            c.doFinal(out, bytes);
+            Cipher cipher = securityProvider.getCipher("RC4");
+            cipher.init(ENCRYPT, k);
+            int bytes = cipher.update(d, 0, d.length, out, 0);
+            cipher.doFinal(out, bytes);
         } catch (SecurityException e) {
             throw new NtlmException(e);
         }
@@ -258,7 +141,7 @@ public class NtlmFunctions {
         return key;
     }
 
-    private Cipher getDESCipher(byte[] key) {
+    static Cipher getDESCipher(SecurityProvider securityProvider, byte[] key) {
         try {
             Cipher cipher = securityProvider.getCipher("DES/ECB/NoPadding");
             cipher.init(ENCRYPT, setupKey(key));
@@ -268,16 +151,4 @@ public class NtlmFunctions {
         }
 
     }
-
-    private Cipher getRC4Cipher(byte[] key) {
-        try {
-            Cipher cipher = securityProvider.getCipher("RC4");
-            cipher.init(ENCRYPT, key);
-            return cipher;
-        } catch (SecurityException e) {
-            throw new NtlmException(e);
-        }
-
-    }
-
 }
