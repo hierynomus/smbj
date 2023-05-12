@@ -15,34 +15,38 @@
  */
 package com.hierynomus.ntlm.messages;
 
+import com.hierynomus.ntlm.functions.NtlmFunctions;
+import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 
-import static com.hierynomus.ntlm.functions.NtlmFunctions.unicode;
+import static com.hierynomus.ntlm.messages.Utils.*;
+
+import java.util.Set;
 
 /**
  * [MS-NLMP].pdf 2.2.1.3 AUTHENTICATE_MESSAGE
  */
-public class NtlmAuthenticate extends NtlmPacket {
-    private static byte[] EMPTY = new byte[0];
+public class NtlmAuthenticate extends NtlmMessage {
+
     private byte[] lmResponse;
     private byte[] ntResponse;
     private byte[] userName;
     private byte[] domainName;
     private byte[] workstation;
     private byte[] encryptedRandomSessionKey;
-    private long negotiateFlags;
     private boolean useMic;
     private byte[] mic;
 
     public NtlmAuthenticate(
         byte[] lmResponse, byte[] ntResponse,
         String userName, String domainName, String workstation,
-        byte[] encryptedRandomSessionKey, long negotiateFlags,
+            byte[] encryptedRandomSessionKey, Set<NtlmNegotiateFlag> negotiateFlags,
+        WindowsVersion version,
         boolean useMic) {
-        super();
+        super(negotiateFlags, version);
         this.lmResponse = ensureNotNull(lmResponse);
         this.ntResponse = ensureNotNull(ntResponse);
         this.userName = ensureNotNull(userName);
@@ -86,7 +90,7 @@ public class NtlmAuthenticate extends NtlmPacket {
             offset += 16;
         }
 
-        if (EnumWithValue.EnumUtils.isSet(negotiateFlags, NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
+        if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
             offset += 8;
         }
 
@@ -95,15 +99,15 @@ public class NtlmAuthenticate extends NtlmPacket {
         offset = writeOffsettedByteArrayFields(buffer, domainName, offset); // DomainNameFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, userName, offset); // UserNameFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, workstation, offset); // WorkstationFields (8 bytes)
-        if (EnumWithValue.EnumUtils.isSet(negotiateFlags, NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH)) {
+        if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH)) {
             offset = writeOffsettedByteArrayFields(buffer, encryptedRandomSessionKey, offset);
         } else {
             offset = writeOffsettedByteArrayFields(buffer, EMPTY, offset);
         }
 
-        buffer.putUInt32(negotiateFlags); // NegotiateFlags (4 bytes)
+        buffer.putUInt32(EnumWithValue.EnumUtils.toLong(negotiateFlags)); // NegotiateFlags (4 bytes)
 
-        if (EnumWithValue.EnumUtils.isSet(negotiateFlags, NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
+        if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
             buffer.putRawBytes(getVersion()); // Version (8 bytes)
         }
     }
@@ -124,19 +128,17 @@ public class NtlmAuthenticate extends NtlmPacket {
         return plainBuffer.getCompactData();
     }
 
-    private int writeOffsettedByteArrayFields(Buffer.PlainBuffer buffer, byte[] bytes, int offset) {
-        byte[] arr = bytes != null ? bytes : EMPTY;
-        buffer.putUInt16(arr.length); // ArrayLen
-        buffer.putUInt16(arr.length); // ArrayMaxLen
-        buffer.putUInt32(offset); // ArrayOffset
-        return offset + arr.length;
-    }
 
-    private byte[] ensureNotNull(byte[] possiblyNull) {
-        return possiblyNull != null ? possiblyNull : EMPTY;
-    }
-
-    private byte[] ensureNotNull(String possiblyNull) {
-        return possiblyNull != null ? unicode(possiblyNull) : EMPTY;
+    @Override
+    public String toString() {
+        return "NtlmAuthenticate{\n" +
+                "  mic=" + (mic != null ? ByteArrayUtils.printHex(mic) : "[]") + ",\n" +
+                "  lmResponse=" + ByteArrayUtils.printHex(lmResponse) + ",\n" +
+                "  ntResponse=" + ByteArrayUtils.printHex(ntResponse) + ",\n" +
+                "  domainName='" + NtlmFunctions.unicode(domainName) + "',\n" +
+                "  userName='" + NtlmFunctions.unicode(userName) + "',\n" +
+                "  workstation='" + NtlmFunctions.unicode(workstation) + "',\n" +
+                "  encryptedRandomSessionKey=[<secret>],\n" +
+                '}';
     }
 }

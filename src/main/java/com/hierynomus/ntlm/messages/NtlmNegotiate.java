@@ -19,14 +19,15 @@ import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
 import java.util.EnumSet;
+import java.util.Set;
 
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
 
 /**
  * [MS-NLMP].pdf 2.2.1.1 NEGOTIATE_MESSAGE
  */
-public class NtlmNegotiate extends NtlmPacket {
-    public static final long DEFAULT_FLAGS = EnumUtils.toLong(EnumSet.of(
+public class NtlmNegotiate extends NtlmMessage {
+    public static final Set<NtlmNegotiateFlag> DEFAULT_FLAGS = EnumSet.of(
         NTLMSSP_NEGOTIATE_56,
         NTLMSSP_NEGOTIATE_128,
         NTLMSSP_NEGOTIATE_TARGET_INFO,
@@ -37,16 +38,19 @@ public class NtlmNegotiate extends NtlmPacket {
         NTLMSSP_NEGOTIATE_NTLM,
         NTLMSSP_NEGOTIATE_NTLM,
         NTLMSSP_REQUEST_TARGET,
-        NTLMSSP_NEGOTIATE_UNICODE));
+        NTLMSSP_NEGOTIATE_UNICODE);
 
-    private long flags = DEFAULT_FLAGS;
+    public NtlmNegotiate() {
+        super(DEFAULT_FLAGS, null);
+    }
 
     public void write(Buffer.PlainBuffer buffer) {
         buffer.putString("NTLMSSP\0", Charsets.UTF_8); // Signature (8 bytes)
         buffer.putUInt32(0x01); // MessageType (4 bytes)
 
-        // Write the negotiateFlags as Big Endian, as this is a byte[] in the spec and not an integral value
-        buffer.putUInt32(flags); // NegotiateFlags (4 bytes)
+        // Write the negotiateFlags as Big Endian, as this is a byte[] in the spec and
+        // not an integral value
+        buffer.putUInt32(EnumUtils.toLong(negotiateFlags)); // NegotiateFlags (4 bytes)
 
         // DomainNameFields (8 bytes)
         buffer.putUInt16(0x0); // DomainNameLen (2 bytes)
@@ -57,4 +61,15 @@ public class NtlmNegotiate extends NtlmPacket {
         buffer.putUInt16(0x0); // WorkstationMaxLen (2 bytes)
         buffer.putUInt32(0x0); // WorkstationBufferOffset (4 bytes)
     }
+
+    @Override
+    public String toString() {
+        return "NtlmNegotiate{\n" +
+                // "  domain='" + NtlmFunctions.oem(domain) + "'',\n" +
+                // "  workstation='" + NtlmFunctions.oem(workstation) + "',\n" +
+                "  negotiateFlags=" + negotiateFlags + ",\n" +
+                "  version=" + version + "\n" +
+                "}";
+    }
+
 }

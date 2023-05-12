@@ -64,7 +64,7 @@ import java.util.Arrays;
  * first SMB2 header is not equal to the SessionId field in SMB2 TRANSFORM_HEADER of response,
  * the client MUST discard the message.</li>
  * <li>For each response in a compounded response, if the SessionId field of SMB2 header is not equal to the
- * SessionId field in the SMB2 TRANSFORM_HEADER, the client SHOULD<150> discard the entire compounded response
+ * SessionId field in the SMB2 TRANSFORM_HEADER, the client SHOULD&lt;150&gt; discard the entire compounded response
  * and stop processing.</li>
  * </ul>
  * </li>

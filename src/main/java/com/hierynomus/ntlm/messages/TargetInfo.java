@@ -32,8 +32,7 @@ public class TargetInfo {
 
     private List<AvPair<?>> targetInfo = new ArrayList<>();
 
-    public TargetInfo() {
-    }
+    public TargetInfo() {}
 
     public TargetInfo readFrom(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
         while (true) {
@@ -94,7 +93,7 @@ public class TargetInfo {
     @Override
     public String toString() {
         return "TargetInfo{" +
-                "targetInfo=" + targetInfo +
-                '}';
+            "targetInfo=" + targetInfo +
+            '}';
     }
 }

@@ -15,16 +15,14 @@
  */
 package com.hierynomus.ntlm.messages;
 
-import java.util.EnumSet;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.hierynomus.ntlm.av.AvId;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.EnumSet;
 
 /**
  * [MS-NLMP].pdf 2.2.1.2 CHALLENGE_MESSAGE
@@ -117,7 +115,6 @@ public class NtlmChallenge extends NtlmPacket {
     public WindowsVersion getVersion() {
         return version;
     }
-
 
     @Override
     public String toString() {
