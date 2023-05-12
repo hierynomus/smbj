@@ -18,7 +18,6 @@ package com.hierynomus.ntlm.messages;
 import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
-import java.util.EnumSet;
 import java.util.Set;
 
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
@@ -27,21 +26,9 @@ import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
  * [MS-NLMP].pdf 2.2.1.1 NEGOTIATE_MESSAGE
  */
 public class NtlmNegotiate extends NtlmMessage {
-    public static final Set<NtlmNegotiateFlag> DEFAULT_FLAGS = EnumSet.of(
-        NTLMSSP_NEGOTIATE_56,
-        NTLMSSP_NEGOTIATE_128,
-        NTLMSSP_NEGOTIATE_TARGET_INFO,
-        NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY,
-        NTLMSSP_NEGOTIATE_SIGN,
-        NTLMSSP_NEGOTIATE_ALWAYS_SIGN,
-        NTLMSSP_NEGOTIATE_KEY_EXCH,
-        NTLMSSP_NEGOTIATE_NTLM,
-        NTLMSSP_NEGOTIATE_NTLM,
-        NTLMSSP_REQUEST_TARGET,
-        NTLMSSP_NEGOTIATE_UNICODE);
 
-    public NtlmNegotiate() {
-        super(DEFAULT_FLAGS, null);
+    public NtlmNegotiate(Set<NtlmNegotiateFlag> negotiateFlags) {
+        super(negotiateFlags, null);
     }
 
     public void write(Buffer.PlainBuffer buffer) {

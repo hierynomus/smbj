@@ -15,13 +15,31 @@
  */
 package com.hierynomus.smbj;
 
+import static com.hierynomus.mssmb2.SMB2Dialect.SMB_2_0_2;
+import static com.hierynomus.mssmb2.SMB2Dialect.SMB_2_1;
+import static com.hierynomus.mssmb2.SMB2Dialect.SMB_3_0;
+import static com.hierynomus.mssmb2.SMB2Dialect.SMB_3_0_2;
+import static com.hierynomus.mssmb2.SMB2Dialect.SMB_3_1_1;
+
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import javax.net.SocketFactory;
+
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2GlobalCapability;
+import com.hierynomus.ntlm.NtlmConfig;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.socket.ProxySocketFactory;
 import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.security.bc.BCSecurityProvider;
-import com.hierynomus.security.jce.JceSecurityProvider;
 import com.hierynomus.smb.SMBPacket;
 import com.hierynomus.smb.SMBPacketData;
 import com.hierynomus.smbj.auth.Authenticator;
@@ -29,13 +47,6 @@ import com.hierynomus.smbj.auth.NtlmAuthenticator;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.transport.TransportLayerFactory;
 import com.hierynomus.smbj.transport.tcp.direct.DirectTcpTransportFactory;
-
-import javax.net.SocketFactory;
-import java.security.SecureRandom;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-
-import static com.hierynomus.mssmb2.SMB2Dialect.*;
 
 public final class SmbConfig {
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 1024;
@@ -78,7 +89,7 @@ public final class SmbConfig {
     private long transactTimeout;
     private GSSContextConfig clientGSSContextConfig;
     private boolean encryptData;
-    private String workStationName;
+    private NtlmConfig ntlmConfig;
 
     private int soTimeout;
 
@@ -87,7 +98,7 @@ public final class SmbConfig {
     }
 
     public static Builder builder() {
-        return new Builder()
+        Builder b =  new Builder()
             .withClientGuid(UUID.randomUUID())
             .withRandomProvider(new SecureRandom())
             .withSecurityProvider(getDefaultSecurityProvider())
@@ -104,6 +115,8 @@ public final class SmbConfig {
             .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
             .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig())
             .withEncryptData(false);
+
+        return b;
     }
 
     private static SecurityProvider getDefaultSecurityProvider() {
@@ -152,7 +165,7 @@ public final class SmbConfig {
         useMultiProtocolNegotiate = other.useMultiProtocolNegotiate;
         clientGSSContextConfig = other.clientGSSContextConfig;
         encryptData = other.encryptData;
-        workStationName = other.workStationName;
+        ntlmConfig = other.ntlmConfig;
     }
 
     public Random getRandomProvider() {
@@ -235,8 +248,17 @@ public final class SmbConfig {
         return encryptData;
     }
 
+    /**
+     * Get the work station name to be used in the NTLM authentication.
+     *
+     * @deprecated Moved into getNtlmConfig().getWorkStationName()
+     */
     public String getWorkStationName() {
-        return workStationName;
+        return getNtlmConfig().getWorkstationName();
+    }
+
+    public NtlmConfig getNtlmConfig() {
+        return ntlmConfig;
     }
 
     public Set<SMB2GlobalCapability> getClientCapabilities() {
@@ -255,9 +277,11 @@ public final class SmbConfig {
 
     public static class Builder {
         private SmbConfig config;
+        private NtlmConfig.Builder ntlmConfigBuilder;
 
         Builder() {
             config = new SmbConfig();
+            ntlmConfigBuilder = NtlmConfig.builder();
         }
 
         public Builder withRandomProvider(Random random) {
@@ -424,6 +448,8 @@ public final class SmbConfig {
                 throw new IllegalStateException("If encryption is enabled, at least one dialect should be SMB3.x compatible");
             }
 
+            config.ntlmConfig = ntlmConfigBuilder.build();
+
             return new SmbConfig(config);
         }
 
@@ -450,9 +476,19 @@ public final class SmbConfig {
             return this;
         }
 
+        /**
+         * Set the workstation name to be used in the NTLM authentication.
+         *
+         * @deprecated Moved into
+         *             withNtlmConfig(NtlmConfig.builder().withWorkstationName(..).build())
+         */
         public Builder withWorkStationName(String workStationName) {
-            config.workStationName = workStationName;
+            ntlmConfigBuilder.withWorkstationName(workStationName);
             return this;
+        }
+
+        public NtlmConfig.Builder withNtlmConfig() {
+            return ntlmConfigBuilder;
         }
     }
 }

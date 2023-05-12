@@ -22,6 +22,21 @@ import com.hierynomus.protocol.commons.buffer.Buffer
 import com.hierynomus.protocol.commons.buffer.Endian
 import spock.lang.Specification
 
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_128
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_56
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_ALWAYS_SIGN
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_NTLM
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SIGN
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_TARGET_INFO
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_UNICODE
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_REQUEST_TARGET
+import static com.hierynomus.ntlm.messages.WindowsVersion.NtlmRevisionCurrent.NTLMSSP_REVISION_W2K3
+import static com.hierynomus.ntlm.messages.WindowsVersion.ProductMajorVersion.WINDOWS_MAJOR_VERSION_6
+import static com.hierynomus.ntlm.messages.WindowsVersion.ProductMinorVersion.WINDOWS_MINOR_VERSION_1
+
 class NegTokenInitSpec extends Specification {
 
   def "should correctly decode GSS-API negInitToken"() {
@@ -41,9 +56,19 @@ class NegTokenInitSpec extends Specification {
     def initToken = new NegTokenInit()
     def ntlmBuffer = new Buffer.PlainBuffer(Endian.LE)
     def spnegoBuffer = new Buffer.PlainBuffer(Endian.LE)
+    def flags = EnumSet.of(NTLMSSP_NEGOTIATE_56,
+      NTLMSSP_NEGOTIATE_128,
+      NTLMSSP_NEGOTIATE_TARGET_INFO,
+      NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY,
+      NTLMSSP_NEGOTIATE_SIGN,
+      NTLMSSP_NEGOTIATE_ALWAYS_SIGN,
+      NTLMSSP_NEGOTIATE_KEY_EXCH,
+      NTLMSSP_NEGOTIATE_NTLM,
+      NTLMSSP_REQUEST_TARGET,
+      NTLMSSP_NEGOTIATE_UNICODE)
 
     when:
-    new NtlmNegotiate().write(ntlmBuffer)
+    new NtlmNegotiate(flags).write(ntlmBuffer)
     initToken.addSupportedMech(new ASN1ObjectIdentifier("1.3.6.1.4.1.311.2.2.10"))
     initToken.setMechToken(ntlmBuffer.compactData)
     initToken.write(spnegoBuffer)

@@ -15,21 +15,34 @@
  */
 package com.hierynomus.smbj.auth;
 
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_56;
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_128;
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_ALWAYS_SIGN;
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_ANONYMOUS;
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY;
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH;
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_NTLM;
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED;
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED;
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SEAL;
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SIGN;
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_TARGET_INFO;
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_UNICODE;
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_REQUEST_TARGET;
 
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
 import com.hierynomus.msdtyp.MsDataTypes;
+import com.hierynomus.ntlm.NtlmConfig;
 import com.hierynomus.ntlm.av.AvId;
 import com.hierynomus.ntlm.av.AvPairFlags;
 import com.hierynomus.ntlm.functions.ComputedNtlmV2Response;
@@ -39,12 +52,7 @@ import com.hierynomus.ntlm.messages.NtlmAuthenticate;
 import com.hierynomus.ntlm.messages.NtlmChallenge;
 import com.hierynomus.ntlm.messages.NtlmNegotiate;
 import com.hierynomus.ntlm.messages.NtlmNegotiateFlag;
-import com.hierynomus.ntlm.messages.WindowsVersion;
-import com.hierynomus.ntlm.messages.WindowsVersion.NtlmRevisionCurrent;
-import com.hierynomus.ntlm.messages.WindowsVersion.ProductMajorVersion;
-import com.hierynomus.ntlm.messages.WindowsVersion.ProductMinorVersion;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
-import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.security.SecurityProvider;
@@ -64,11 +72,12 @@ public class NtlmAuthenticator implements Authenticator {
     private static final ASN1ObjectIdentifier NTLMSSP = new ASN1ObjectIdentifier("1.3.6.1.4.1.311.2.2.10");
     private SecurityProvider securityProvider;
     private Random random;
-    private String workStationName;
     private NtlmV2Functions functions;
+    private NtlmConfig config;
 
     // Context buildup
     private State state;
+    private Set<NtlmNegotiateFlag> negotiateFlags;
     private NtlmNegotiate negotiateMessage;
 
     public static class Factory implements com.hierynomus.protocol.commons.Factory.Named<Authenticator> {
@@ -116,7 +125,20 @@ public class NtlmAuthenticator implements Authenticator {
 
     private AuthenticateResponse doNegotiate(AuthenticationContext context, byte[] gssToken) throws SpnegoException {
         AuthenticateResponse response = new AuthenticateResponse();
-        this.negotiateMessage = new NtlmNegotiate();
+        this.negotiateFlags = EnumSet.of(
+            NTLMSSP_NEGOTIATE_56,
+            NTLMSSP_NEGOTIATE_128,
+            NTLMSSP_NEGOTIATE_TARGET_INFO,
+            NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY,
+            NTLMSSP_NEGOTIATE_SIGN,
+            NTLMSSP_NEGOTIATE_ALWAYS_SIGN,
+            NTLMSSP_NEGOTIATE_KEY_EXCH,
+            NTLMSSP_NEGOTIATE_NTLM,
+            NTLMSSP_NEGOTIATE_NTLM,
+            NTLMSSP_REQUEST_TARGET,
+            NTLMSSP_NEGOTIATE_UNICODE);
+
+        this.negotiateMessage = new NtlmNegotiate(negotiateFlags);
         logger.trace("Sending NTLM negotiate message: {}", this.negotiateMessage);
         response.setNegToken(negTokenInit(this.negotiateMessage));
         return response;
@@ -157,8 +179,6 @@ public class NtlmAuthenticator implements Authenticator {
         // If NTLM v2 is used, KeyExchangeKey MUST be set to the given 128-bit
         // SessionBaseKey value.
 
-        WindowsVersion version = new WindowsVersion(ProductMajorVersion.WINDOWS_MAJOR_VERSION_6,
-                ProductMinorVersion.WINDOWS_MINOR_VERSION_1, 7600, NtlmRevisionCurrent.NTLMSSP_REVISION_W2K3);
         // MIC (16 bytes) provided if in AvPairType is key MsvAvFlags with value &
         // 0x00000002 is true
         AvPairFlags pair = serverNtlmChallenge.getTargetInfo() != null
@@ -167,7 +187,7 @@ public class NtlmAuthenticator implements Authenticator {
         if (pair != null && (pair.getValue() & 0x00000002) > 0) {
             // MIC should be calculated
             NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
-                    context.getUsername(), context.getDomain(), workStationName, sessionkey, negotiateFlags, version,
+                    context.getUsername(), context.getDomain(), config.getWorkstationName(), sessionkey, negotiateFlags, config.getWindowsVersion(),
                     true);
 
             // TODO correct hash should be tested
@@ -184,7 +204,7 @@ public class NtlmAuthenticator implements Authenticator {
             return response;
         } else {
             NtlmAuthenticate resp = new NtlmAuthenticate(new byte[0], ntlmv2Response,
-                    context.getUsername(), context.getDomain(), workStationName, sessionkey, negotiateFlags, version,
+                    context.getUsername(), context.getDomain(), config.getWorkstationName(), sessionkey, negotiateFlags, config.getWindowsVersion(),
                     false);
             response.setNegToken(negTokenTarg(resp));
             return response;
@@ -216,8 +236,9 @@ public class NtlmAuthenticator implements Authenticator {
     public void init(SmbConfig config) {
         this.securityProvider = config.getSecurityProvider();
         this.random = config.getRandomProvider();
-        this.workStationName = config.getWorkStationName();
+        this.config = config.getNtlmConfig();
         this.state = State.NEGOTIATE;
+        this.negotiateFlags = new HashSet<>();
         this.functions = new NtlmV2Functions(random, securityProvider);
     }
 
