@@ -64,7 +64,7 @@ import com.hierynomus.spnego.NegTokenTarg;
 import com.hierynomus.spnego.SpnegoException;
 
 public class NtlmAuthenticator implements Authenticator {
-    enum State { NEGOTIATE, AUTHENTICATE, COMPLETE };
+    enum State { NEGOTIATE, AUTHENTICATE, COMPLETE; };
 
     private static final Logger logger = LoggerFactory.getLogger(NtlmAuthenticator.class);
 
@@ -93,18 +93,18 @@ public class NtlmAuthenticator implements Authenticator {
     }
 
     @Override
-    public AuthenticateResponse authenticate(final AuthenticationContext context, final byte[] gssToken, ConnectionContext connectionContext) throws IOException {
+    public AuthenticateResponse authenticate(final AuthenticationContext context, final byte[] gssToken,
+            ConnectionContext connectionContext) throws IOException {
         try {
-            if (state == State.COMPLETE) {
+            if (this.state == State.COMPLETE) {
                 return null;
-            } else if (state == State.NEGOTIATE) {
+            } else if (this.state == State.NEGOTIATE) {
                 logger.debug("Initialized Authentication of {} using NTLM", context.getUsername());
                 this.state = State.AUTHENTICATE;
                 return doNegotiate(context, gssToken);
             } else {
                 logger.debug("Received token: {}", ByteArrayUtils.printHex(gssToken));
                 NegTokenTarg negTokenTarg = new NegTokenTarg().read(gssToken);
-                BigInteger negotiationResult = negTokenTarg.getNegotiationResult();
                 NtlmChallenge serverNtlmChallenge = new NtlmChallenge();
                 try {
                     serverNtlmChallenge.read(new Buffer.PlainBuffer(negTokenTarg.getResponseToken(), Endian.LE));
@@ -125,20 +125,31 @@ public class NtlmAuthenticator implements Authenticator {
 
     private AuthenticateResponse doNegotiate(AuthenticationContext context, byte[] gssToken) throws SpnegoException {
         AuthenticateResponse response = new AuthenticateResponse();
-        this.negotiateFlags = EnumSet.of(
-            NTLMSSP_NEGOTIATE_56,
-            NTLMSSP_NEGOTIATE_128,
-            NTLMSSP_NEGOTIATE_TARGET_INFO,
-            NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY,
-            NTLMSSP_NEGOTIATE_SIGN,
-            NTLMSSP_NEGOTIATE_ALWAYS_SIGN,
-            NTLMSSP_NEGOTIATE_KEY_EXCH,
-            NTLMSSP_NEGOTIATE_NTLM,
-            NTLMSSP_NEGOTIATE_NTLM,
-            NTLMSSP_REQUEST_TARGET,
-            NTLMSSP_NEGOTIATE_UNICODE);
+        this.negotiateFlags = EnumSet.of(NTLMSSP_NEGOTIATE_128, NTLMSSP_REQUEST_TARGET,
+                NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY);
+        if (!config.isOmitVersion() && config.getWindowsVersion() != null) {
+            this.negotiateFlags.add(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION);
+        }
 
-        this.negotiateMessage = new NtlmNegotiate(negotiateFlags);
+        if (!context.isAnonymous()) {
+            this.negotiateFlags.add(NTLMSSP_NEGOTIATE_SIGN);
+            this.negotiateFlags.add(NTLMSSP_NEGOTIATE_ALWAYS_SIGN);
+            this.negotiateFlags.add(NTLMSSP_NEGOTIATE_KEY_EXCH);
+        } else if (context.isGuest()) {
+            this.negotiateFlags.add(NTLMSSP_NEGOTIATE_KEY_EXCH);
+        } else {
+            this.negotiateFlags.add(NTLMSSP_NEGOTIATE_ANONYMOUS);
+        }
+
+        if (context.getDomain() != null && !context.getDomain().isEmpty()) {
+            this.negotiateFlags.add(NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED);
+        }
+
+        if (this.config.getWorkstationName() != null && !this.config.getWorkstationName().isEmpty()) {
+            this.negotiateFlags.add(NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED);
+        }
+
+        this.negotiateMessage = new NtlmNegotiate(negotiateFlags, context.getDomain(), config.getWorkstationName(), config.getWindowsVersion(), config.isOmitVersion());
         logger.trace("Sending NTLM negotiate message: {}", this.negotiateMessage);
         response.setNegToken(negTokenInit(this.negotiateMessage));
         return response;

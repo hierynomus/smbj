@@ -23,6 +23,7 @@ import com.hierynomus.ntlm.messages.WindowsVersion.ProductMinorVersion;
 public class NtlmConfig {
     private WindowsVersion windowsVersion;
     private String workstationName;
+    private boolean omitVersion;
 
     public static NtlmConfig defaultConfig() {
         return builder().build();
@@ -38,6 +39,7 @@ public class NtlmConfig {
     private NtlmConfig(NtlmConfig other) {
         this.windowsVersion = other.windowsVersion;
         this.workstationName = other.workstationName;
+        this.omitVersion = other.omitVersion;
     }
 
     public WindowsVersion getWindowsVersion() {
@@ -48,12 +50,17 @@ public class NtlmConfig {
         return workstationName;
     }
 
+    public boolean isOmitVersion() {
+        return omitVersion;
+    }
+
     public static class Builder {
         private NtlmConfig config;
 
         public Builder() {
             config = new NtlmConfig();
             config.windowsVersion = new WindowsVersion(ProductMajorVersion.WINDOWS_MAJOR_VERSION_6, ProductMinorVersion.WINDOWS_MINOR_VERSION_1, 7600, NtlmRevisionCurrent.NTLMSSP_REVISION_W2K3);
+            config.omitVersion = false;
         }
 
         public Builder withWindowsVersion(WindowsVersion windowsVersion) {
@@ -71,6 +78,7 @@ public class NtlmConfig {
         }
 
         public Builder withOmitVersion(boolean omitVersion) {
+            config.omitVersion = omitVersion;
             return this;
         }
 

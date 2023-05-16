@@ -17,6 +17,7 @@ package com.hierynomus.spnego
 
 import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier
 import com.hierynomus.ntlm.messages.NtlmNegotiate
+import com.hierynomus.ntlm.messages.WindowsVersion
 import com.hierynomus.protocol.commons.ByteArrayUtils
 import com.hierynomus.protocol.commons.buffer.Buffer
 import com.hierynomus.protocol.commons.buffer.Endian
@@ -68,7 +69,7 @@ class NegTokenInitSpec extends Specification {
       NTLMSSP_NEGOTIATE_UNICODE)
 
     when:
-    new NtlmNegotiate(flags).write(ntlmBuffer)
+    new NtlmNegotiate(flags, "", "", new WindowsVersion(WINDOWS_MAJOR_VERSION_6, WINDOWS_MINOR_VERSION_1, 7600, NTLMSSP_REVISION_W2K3), true).write(ntlmBuffer)
     initToken.addSupportedMech(new ASN1ObjectIdentifier("1.3.6.1.4.1.311.2.2.10"))
     initToken.setMechToken(ntlmBuffer.compactData)
     initToken.write(spnegoBuffer)
