@@ -44,8 +44,7 @@ public class NtlmAuthenticate extends NtlmMessage {
         byte[] lmResponse, byte[] ntResponse,
         String userName, String domainName, String workstation,
             byte[] encryptedRandomSessionKey, Set<NtlmNegotiateFlag> negotiateFlags,
-        WindowsVersion version,
-        boolean useMic) {
+        WindowsVersion version) {
         super(negotiateFlags, version);
         this.lmResponse = ensureNotNull(lmResponse);
         this.ntResponse = ensureNotNull(ntResponse);
@@ -54,7 +53,6 @@ public class NtlmAuthenticate extends NtlmMessage {
         this.workstation = ensureNotNull(workstation);
         this.encryptedRandomSessionKey = ensureNotNull(encryptedRandomSessionKey);
         this.negotiateFlags = negotiateFlags;
-        this.useMic = useMic;
     }
 
     @Override
@@ -62,7 +60,7 @@ public class NtlmAuthenticate extends NtlmMessage {
 
         writeAutentificateMessage(buffer);
 
-        if (useMic) {
+        if (mic != null) {
             // MIC (16 bytes) provided if in AvPairType is key MsvAvFlags with value & 0x00000002 is true
             buffer.putRawBytes(mic);
         }
