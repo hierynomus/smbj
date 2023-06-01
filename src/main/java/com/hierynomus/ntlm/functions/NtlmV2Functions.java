@@ -73,7 +73,7 @@ public class NtlmV2Functions {
         byte[] ntResponse = getNtV2Response(responseKeyNT, serverNtlmChallenge.getServerChallenge(),
                 clientChallenge, time, clientTargetInfo);
 
-        byte[] ntProofStr = Arrays.copyOfRange(ntResponse, 0, 16);
+        byte[] ntProofStr = Arrays.copyOfRange(ntResponse, 0, 16); // first 16 bytes of ntlmv2Response is ntProofStr
         byte[] sessionBaseKey = getSessionBaseKey(responseKeyNT, ntProofStr);
 
         return new ComputedNtlmV2Response(ntResponse, lmResponse, sessionBaseKey);

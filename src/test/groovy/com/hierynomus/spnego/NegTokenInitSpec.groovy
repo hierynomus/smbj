@@ -32,7 +32,7 @@ import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_N
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SIGN
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_TARGET_INFO
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_UNICODE
-import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_REQUEST_TARGET
 import static com.hierynomus.ntlm.messages.WindowsVersion.NtlmRevisionCurrent.NTLMSSP_REVISION_W2K3
 import static com.hierynomus.ntlm.messages.WindowsVersion.ProductMajorVersion.WINDOWS_MAJOR_VERSION_6
 import static com.hierynomus.ntlm.messages.WindowsVersion.ProductMinorVersion.WINDOWS_MINOR_VERSION_1
@@ -64,11 +64,11 @@ class NegTokenInitSpec extends Specification {
       NTLMSSP_NEGOTIATE_ALWAYS_SIGN,
       NTLMSSP_NEGOTIATE_KEY_EXCH,
       NTLMSSP_NEGOTIATE_NTLM,
-      NTLMSSP_NEGOTIATE_VERSION,
+      NTLMSSP_REQUEST_TARGET,
       NTLMSSP_NEGOTIATE_UNICODE)
 
     when:
-    new NtlmNegotiate(flags, "", "", new WindowsVersion(WINDOWS_MAJOR_VERSION_6, WINDOWS_MINOR_VERSION_1, 0, NTLMSSP_REVISION_W2K3), false).write(ntlmBuffer)
+    new NtlmNegotiate(flags, "", "", new WindowsVersion(WINDOWS_MAJOR_VERSION_6, WINDOWS_MINOR_VERSION_1, 7600, NTLMSSP_REVISION_W2K3), true).write(ntlmBuffer)
     initToken.addSupportedMech(new ASN1ObjectIdentifier("1.3.6.1.4.1.311.2.2.10"))
     initToken.setMechToken(ntlmBuffer.compactData)
     initToken.write(spnegoBuffer)

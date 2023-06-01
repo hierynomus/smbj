@@ -16,6 +16,9 @@
 package com.hierynomus.ntlm;
 
 import com.hierynomus.ntlm.messages.WindowsVersion;
+import com.hierynomus.ntlm.messages.WindowsVersion.NtlmRevisionCurrent;
+import com.hierynomus.ntlm.messages.WindowsVersion.ProductMajorVersion;
+import com.hierynomus.ntlm.messages.WindowsVersion.ProductMinorVersion;
 
 public class NtlmConfig {
     private WindowsVersion windowsVersion;
@@ -62,6 +65,7 @@ public class NtlmConfig {
 
         public Builder() {
             config = new NtlmConfig();
+            config.windowsVersion = new WindowsVersion(ProductMajorVersion.WINDOWS_MAJOR_VERSION_6, ProductMinorVersion.WINDOWS_MINOR_VERSION_1, 7600, NtlmRevisionCurrent.NTLMSSP_REVISION_W2K3);
             config.integrity = false; // TODO temporarily disabled until we can figure out why it fails (probably mechListMIC in NegTokenTarg)
             config.omitVersion = false;
         }

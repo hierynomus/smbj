@@ -36,10 +36,6 @@ import javax.net.SocketFactory;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2GlobalCapability;
 import com.hierynomus.ntlm.NtlmConfig;
-import com.hierynomus.ntlm.messages.WindowsVersion;
-import com.hierynomus.ntlm.messages.WindowsVersion.NtlmRevisionCurrent;
-import com.hierynomus.ntlm.messages.WindowsVersion.ProductMajorVersion;
-import com.hierynomus.ntlm.messages.WindowsVersion.ProductMinorVersion;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.socket.ProxySocketFactory;
 import com.hierynomus.security.SecurityProvider;
@@ -119,8 +115,6 @@ public final class SmbConfig {
             .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
             .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig())
             .withEncryptData(false);
-
-        b.withNtlmConfig().withWindowsVersion(new WindowsVersion(ProductMajorVersion.WINDOWS_MAJOR_VERSION_6, ProductMinorVersion.WINDOWS_MINOR_VERSION_1, 0, NtlmRevisionCurrent.NTLMSSP_REVISION_W2K3));
 
         return b;
     }
@@ -485,8 +479,9 @@ public final class SmbConfig {
         /**
          * Set the workstation name to be used in the NTLM authentication.
          *
-         * @deprecated Moved into withNtlmConfig(NtlmConfig.builder().withWorkstationName(..).build())
-         * */
+         * @deprecated Moved into
+         *             withNtlmConfig(NtlmConfig.builder().withWorkstationName(..).build())
+         */
         public Builder withWorkStationName(String workStationName) {
             ntlmConfigBuilder.withWorkstationName(workStationName);
             return this;
