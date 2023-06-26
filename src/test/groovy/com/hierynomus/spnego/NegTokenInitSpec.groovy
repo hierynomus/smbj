@@ -32,7 +32,6 @@ import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_N
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_SIGN
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_TARGET_INFO
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_UNICODE
-import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_REQUEST_TARGET
 import static com.hierynomus.ntlm.messages.WindowsVersion.NtlmRevisionCurrent.NTLMSSP_REVISION_W2K3
 import static com.hierynomus.ntlm.messages.WindowsVersion.ProductMajorVersion.WINDOWS_MAJOR_VERSION_6

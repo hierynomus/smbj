@@ -37,7 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
-import com.hierynomus.msdtyp.MsDataTypes;
+import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.ntlm.NtlmConfig;
 import com.hierynomus.ntlm.NtlmException;
 import com.hierynomus.ntlm.av.AvId;
@@ -148,12 +148,14 @@ public class NtlmAuthenticator implements Authenticator {
             this.negotiateFlags.add(NTLMSSP_NEGOTIATE_ANONYMOUS);
         }
 
-        if (Strings.isNotBlank(context.getDomain())) {
-            this.negotiateFlags.add(NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED);
-        }
+        if (!this.negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
+            if (Strings.isNotBlank(context.getDomain())) {
+                this.negotiateFlags.add(NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED);
+            }
 
-        if (Strings.isNotBlank(config.getWorkstationName())) {
-            this.negotiateFlags.add(NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED);
+            if (Strings.isNotBlank(config.getWorkstationName())) {
+                this.negotiateFlags.add(NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED);
+            }
         }
 
         this.negotiateMessage = new NtlmNegotiate(negotiateFlags, context.getDomain(), config.getWorkstationName(), config.getWindowsVersion(), config.isOmitVersion());
@@ -172,7 +174,7 @@ public class NtlmAuthenticator implements Authenticator {
         // [MS-NLMP] 3.2.2 -- Special case for anonymous authentication
         if (context.isAnonymous()) {
             NtlmAuthenticate msg = new NtlmAuthenticate(null, null, context.getUsername(), context.getDomain(),
-                    config.getWorkstationName(), null, negotiateFlags, config.getWindowsVersion());
+                config.getWorkstationName(), null, negotiateFlags, config.getWindowsVersion());
             response.setNegToken(negTokenTarg(msg));
             return response;
         }
@@ -181,9 +183,9 @@ public class NtlmAuthenticator implements Authenticator {
         negotiateFlags.add(NTLMSSP_NEGOTIATE_TARGET_INFO);
         TargetInfo clientTargetInfo = createClientTargetInfo(serverNtlmChallenge);
 
-        ComputedNtlmV2Response computedNtlmV2Response = functions.computeResponse(context.getUsername(),
-                context.getDomain(), context.getPassword(), serverNtlmChallenge, MsDataTypes.nowAsFileTime(),
-                clientTargetInfo);
+        long time = FileTime.now().getWindowsTimeStamp();
+        ComputedNtlmV2Response computedNtlmV2Response = functions.computeResponse(context.getUsername(), context.getDomain(), context.getPassword(), serverNtlmChallenge, time, clientTargetInfo);
+
         byte[] sessionBaseKey = computedNtlmV2Response.getSessionBaseKey();
         byte[] ntResponse = computedNtlmV2Response.getNtResponse();
         byte[] lmResponse = new byte[0]; // computedNtlmV2Response.getLmResponse();
@@ -195,7 +197,7 @@ public class NtlmAuthenticator implements Authenticator {
         if (serverFlags.contains(NTLMSSP_NEGOTIATE_KEY_EXCH) && (serverFlags.contains(NTLMSSP_NEGOTIATE_SEAL) || serverFlags.contains(NTLMSSP_NEGOTIATE_SIGN) || serverFlags.contains(NTLMSSP_NEGOTIATE_ALWAYS_SIGN))) {
             exportedSessionKey = new byte[16];
             random.nextBytes(exportedSessionKey);
-            encryptedRandomSessionKey = NtlmFunctions.rc4k(securityProvider, sessionBaseKey, exportedSessionKey);
+            encryptedRandomSessionKey = NtlmFunctions.rc4k(securityProvider, keyExchangeKey, exportedSessionKey);
         } else {
             exportedSessionKey = keyExchangeKey;
             encryptedRandomSessionKey = exportedSessionKey; // TODO
@@ -210,11 +212,12 @@ public class NtlmAuthenticator implements Authenticator {
         AvPairFlags pair = serverNtlmChallenge.getTargetInfo() != null ? serverNtlmChallenge.getTargetInfo().getAvPair(AvId.MsvAvFlags) : null;
         if (pair != null && (pair.getValue() & 0x00000002) > 0) {
             // Calculate MIC
+            msg.setMic(new byte[16]);
             // TODO correct hash should be tested
             Buffer.PlainBuffer micBuffer = new Buffer.PlainBuffer(Endian.LE);
             negotiateMessage.write(micBuffer); // negotiateMessage
             micBuffer.putRawBytes(serverNtlmChallenge.getServerChallenge()); // challengeMessage
-            msg.writeAutentificateMessage(micBuffer); // authentificateMessage
+            msg.write(micBuffer); // authentificateMessage
 
             byte[] mic = NtlmFunctions.hmac_md5(securityProvider, sessionBaseKey, micBuffer.getCompactData());
             msg.setMic(mic);

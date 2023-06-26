@@ -21,6 +21,7 @@ import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
+import com.hierynomus.protocol.commons.buffer.Buffer.PlainBuffer;
 
 import static com.hierynomus.ntlm.messages.Utils.*;
 
@@ -37,13 +38,13 @@ public class NtlmAuthenticate extends NtlmMessage {
     private byte[] domainName;
     private byte[] workstation;
     private byte[] encryptedRandomSessionKey;
-    private boolean useMic;
     private byte[] mic;
+    private int baseMessageSize;
 
     public NtlmAuthenticate(
         byte[] lmResponse, byte[] ntResponse,
         String userName, String domainName, String workstation,
-            byte[] encryptedRandomSessionKey, Set<NtlmNegotiateFlag> negotiateFlags,
+        byte[] encryptedRandomSessionKey, Set<NtlmNegotiateFlag> negotiateFlags,
         WindowsVersion version) {
         super(negotiateFlags, version);
         this.lmResponse = ensureNotNull(lmResponse);
@@ -53,16 +54,46 @@ public class NtlmAuthenticate extends NtlmMessage {
         this.workstation = ensureNotNull(workstation);
         this.encryptedRandomSessionKey = ensureNotNull(encryptedRandomSessionKey);
         this.negotiateFlags = negotiateFlags;
+        this.baseMessageSize = getBaseMessageSize();
+    }
+
+    private int getBaseMessageSize() {
+        int baseMessageSize = 64;
+        if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION) || mic != null) {
+            baseMessageSize += 8;
+        }
+
+        if (mic != null) {
+            baseMessageSize += 16;
+        }
+
+        return baseMessageSize;
     }
 
     @Override
-    public void write(Buffer.PlainBuffer buffer) {
+    public void write(PlainBuffer buffer) {
 
-        writeAutentificateMessage(buffer);
+        buffer.putString("NTLMSSP\0", Charsets.UTF_8); // Signature (8 bytes)
+        buffer.putUInt32(0x03); // MessageType (4 bytes)
+
+        int offset = baseMessageSize; // for the offset
+        offset = writeOffsettedByteArrayFields(buffer, lmResponse, offset); // LmChallengeResponseFields (8 bytes)
+        offset = writeOffsettedByteArrayFields(buffer, ntResponse, offset); // NtChallengeResponseFields (8 bytes)
+        offset = writeOffsettedByteArrayFields(buffer, domainName, offset); // DomainNameFields (8 bytes)
+        offset = writeOffsettedByteArrayFields(buffer, userName, offset); // UserNameFields (8 bytes)
+        offset = writeOffsettedByteArrayFields(buffer, workstation, offset); // WorkstationFields (8 bytes)
+        offset = writeOffsettedByteArrayFields(buffer, encryptedRandomSessionKey, offset); // EncryptedRandomSessionKeyFields (8 bytes)
+
+        buffer.putUInt32(EnumWithValue.EnumUtils.toLong(negotiateFlags)); // NegotiateFlags (4 bytes)
+
+        if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
+            buffer.putRawBytes(getVersion()); // Version (8 bytes)
+        } else if (mic != null) {
+            buffer.putUInt64(0L); // If the MIC is present, the Version field MUST be present.
+        }
 
         if (mic != null) {
-            // MIC (16 bytes) provided if in AvPairType is key MsvAvFlags with value & 0x00000002 is true
-            buffer.putRawBytes(mic);
+            buffer.putRawBytes(mic, 0, 16); // MIC (16 bytes)
         }
 
         // Payload
@@ -76,38 +107,6 @@ public class NtlmAuthenticate extends NtlmMessage {
 
     public void setMic(byte[] mic) {
         this.mic = mic;
-    }
-
-    public void writeAutentificateMessage(Buffer.PlainBuffer buffer) {
-        buffer.putString("NTLMSSP\0", Charsets.UTF_8); // Signature (8 bytes)
-        buffer.putUInt32(0x03); // MessageType (4 bytes)
-
-        int offset = 64; // for the offset
-
-        if (useMic) {
-            offset += 16;
-        }
-
-        if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
-            offset += 8;
-        }
-
-        offset = writeOffsettedByteArrayFields(buffer, lmResponse, offset); // LmChallengeResponseFields (8 bytes)
-        offset = writeOffsettedByteArrayFields(buffer, ntResponse, offset); // NtChallengeResponseFields (8 bytes)
-        offset = writeOffsettedByteArrayFields(buffer, domainName, offset); // DomainNameFields (8 bytes)
-        offset = writeOffsettedByteArrayFields(buffer, userName, offset); // UserNameFields (8 bytes)
-        offset = writeOffsettedByteArrayFields(buffer, workstation, offset); // WorkstationFields (8 bytes)
-        if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_KEY_EXCH)) {
-            offset = writeOffsettedByteArrayFields(buffer, encryptedRandomSessionKey, offset);
-        } else {
-            offset = writeOffsettedByteArrayFields(buffer, EMPTY, offset);
-        }
-
-        buffer.putUInt32(EnumWithValue.EnumUtils.toLong(negotiateFlags)); // NegotiateFlags (4 bytes)
-
-        if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION)) {
-            buffer.putRawBytes(getVersion()); // Version (8 bytes)
-        }
     }
 
     /**
