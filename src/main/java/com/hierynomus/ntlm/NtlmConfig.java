@@ -15,6 +15,9 @@
  */
 package com.hierynomus.ntlm;
 
+import java.security.SecureRandom;
+import java.util.Random;
+
 import com.hierynomus.ntlm.messages.WindowsVersion;
 import com.hierynomus.ntlm.messages.WindowsVersion.NtlmRevisionCurrent;
 import com.hierynomus.ntlm.messages.WindowsVersion.ProductMajorVersion;
@@ -23,14 +26,16 @@ import com.hierynomus.ntlm.messages.WindowsVersion.ProductMinorVersion;
 public class NtlmConfig {
     private WindowsVersion windowsVersion;
     private String workstationName;
+    private boolean integrity;
     private boolean omitVersion;
+    private byte[] machineID;
 
     public static NtlmConfig defaultConfig() {
-        return builder().build();
+        return builder(new SecureRandom()).build();
     }
 
-    public static Builder builder() {
-        return new Builder();
+    public static Builder builder(Random r) {
+        return new Builder(r);
     }
 
     private NtlmConfig() {
@@ -39,7 +44,9 @@ public class NtlmConfig {
     private NtlmConfig(NtlmConfig other) {
         this.windowsVersion = other.windowsVersion;
         this.workstationName = other.workstationName;
+        this.integrity = other.integrity;
         this.omitVersion = other.omitVersion;
+        this.machineID = other.machineID;
     }
 
     public WindowsVersion getWindowsVersion() {
@@ -50,17 +57,28 @@ public class NtlmConfig {
         return workstationName;
     }
 
+    public boolean isIntegrityEnabled() {
+        return integrity;
+    }
+
     public boolean isOmitVersion() {
         return omitVersion;
+    }
+
+    public byte[] getMachineID() {
+        return machineID;
     }
 
     public static class Builder {
         private NtlmConfig config;
 
-        public Builder() {
+        public Builder(Random r) {
             config = new NtlmConfig();
             config.windowsVersion = new WindowsVersion(ProductMajorVersion.WINDOWS_MAJOR_VERSION_6, ProductMinorVersion.WINDOWS_MINOR_VERSION_1, 7600, NtlmRevisionCurrent.NTLMSSP_REVISION_W2K3);
+            config.integrity = false;
             config.omitVersion = false;
+            config.machineID = new byte[32];
+            r.nextBytes(config.machineID);
         }
 
         public Builder withWindowsVersion(WindowsVersion windowsVersion) {
@@ -74,11 +92,23 @@ public class NtlmConfig {
         }
 
         public Builder withIntegrity(boolean integrity) {
+            config.integrity = integrity;
             return this;
         }
 
         public Builder withOmitVersion(boolean omitVersion) {
             config.omitVersion = omitVersion;
+            return this;
+        }
+
+        public Builder withMachineID(byte[] machineID) {
+            if (machineID == null) {
+                throw new IllegalArgumentException("MachineID must not be null");
+            }
+            if (machineID.length != 32) {
+                throw new IllegalArgumentException("MachineID must be 32 bytes");
+            }
+            config.machineID = machineID;
             return this;
         }
 

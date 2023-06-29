@@ -39,7 +39,6 @@ public class NtlmAuthenticate extends NtlmMessage {
     private byte[] workstation;
     private byte[] encryptedRandomSessionKey;
     private byte[] mic;
-    private int baseMessageSize;
 
     public NtlmAuthenticate(
         byte[] lmResponse, byte[] ntResponse,
@@ -54,7 +53,6 @@ public class NtlmAuthenticate extends NtlmMessage {
         this.workstation = ensureNotNull(workstation);
         this.encryptedRandomSessionKey = ensureNotNull(encryptedRandomSessionKey);
         this.negotiateFlags = negotiateFlags;
-        this.baseMessageSize = getBaseMessageSize();
     }
 
     private int getBaseMessageSize() {
@@ -76,7 +74,7 @@ public class NtlmAuthenticate extends NtlmMessage {
         buffer.putString("NTLMSSP\0", Charsets.UTF_8); // Signature (8 bytes)
         buffer.putUInt32(0x03); // MessageType (4 bytes)
 
-        int offset = baseMessageSize; // for the offset
+        int offset = getBaseMessageSize(); // for the offset
         offset = writeOffsettedByteArrayFields(buffer, lmResponse, offset); // LmChallengeResponseFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, ntResponse, offset); // NtChallengeResponseFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, domainName, offset); // DomainNameFields (8 bytes)

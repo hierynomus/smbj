@@ -25,6 +25,11 @@ public class AvPairSingleHost extends AvPair<byte[]> {
         super(AvId.MsvAvSingleHost);
     }
 
+    public AvPairSingleHost(byte[] value, byte[] machineID) {
+        super(AvId.MsvAvSingleHost, value);
+        this.machineID = machineID;
+    }
+
     public AvPairSingleHost read(Buffer<?> buffer) throws BufferException {
         buffer.readUInt16(); // AvLen (2 bytes)
         buffer.readUInt32(); // Size (4 bytes)

@@ -100,7 +100,6 @@ public final class SmbConfig {
     public static Builder builder() {
         Builder b =  new Builder()
             .withClientGuid(UUID.randomUUID())
-            .withRandomProvider(new SecureRandom())
             .withSecurityProvider(getDefaultSecurityProvider())
             .withSocketFactory(new ProxySocketFactory())
             .withSigningRequired(false)
@@ -141,6 +140,7 @@ public final class SmbConfig {
 
     private SmbConfig() {
         dialects = EnumSet.noneOf(SMB2Dialect.class);
+        random = new SecureRandom();
         authenticators = new ArrayList<>();
     }
 
@@ -281,7 +281,7 @@ public final class SmbConfig {
 
         Builder() {
             config = new SmbConfig();
-            ntlmConfigBuilder = NtlmConfig.builder();
+            ntlmConfigBuilder = NtlmConfig.builder(config.random);
         }
 
         public Builder withRandomProvider(Random random) {

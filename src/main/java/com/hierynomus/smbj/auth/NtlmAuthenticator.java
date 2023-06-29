@@ -41,8 +41,12 @@ import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.ntlm.NtlmConfig;
 import com.hierynomus.ntlm.NtlmException;
 import com.hierynomus.ntlm.av.AvId;
+import com.hierynomus.ntlm.av.AvPairChannelBindings;
+import com.hierynomus.ntlm.av.AvPairFactory;
 import com.hierynomus.ntlm.av.AvPairFlags;
+import com.hierynomus.ntlm.av.AvPairSingleHost;
 import com.hierynomus.ntlm.av.AvPairString;
+import com.hierynomus.ntlm.av.AvPairTimestamp;
 import com.hierynomus.ntlm.functions.ComputedNtlmV2Response;
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.ntlm.functions.NtlmV2Functions;
@@ -184,6 +188,9 @@ public class NtlmAuthenticator implements Authenticator {
         TargetInfo clientTargetInfo = createClientTargetInfo(serverNtlmChallenge);
 
         long time = FileTime.now().getWindowsTimeStamp();
+        if (clientTargetInfo != null && clientTargetInfo.hasAvPair(AvId.MsvAvTimestamp)) {
+            time = ((AvPairTimestamp) clientTargetInfo.getAvPair(AvId.MsvAvTimestamp)).getValue().getWindowsTimeStamp();
+        }
         ComputedNtlmV2Response computedNtlmV2Response = functions.computeResponse(context.getUsername(), context.getDomain(), context.getPassword(), serverNtlmChallenge, time, clientTargetInfo);
 
         byte[] sessionBaseKey = computedNtlmV2Response.getSessionBaseKey();
@@ -209,7 +216,7 @@ public class NtlmAuthenticator implements Authenticator {
         NtlmAuthenticate msg = new NtlmAuthenticate(lmResponse, ntResponse, context.getUsername(), context.getDomain(), config.getWorkstationName(), encryptedRandomSessionKey, serverFlags, config.getWindowsVersion());
         // MIC (16 bytes) provided if in AvPairType is key MsvAvFlags with value &
         // 0x00000002 is true
-        AvPairFlags pair = serverNtlmChallenge.getTargetInfo() != null ? serverNtlmChallenge.getTargetInfo().getAvPair(AvId.MsvAvFlags) : null;
+        AvPairFlags pair = clientTargetInfo != null ? clientTargetInfo.getAvPair(AvId.MsvAvFlags) : null;
         if (pair != null && (pair.getValue() & 0x00000002) > 0) {
             // Calculate MIC
             msg.setMic(new byte[16]);
@@ -227,10 +234,25 @@ public class NtlmAuthenticator implements Authenticator {
         response.setNegToken(negTokenTarg(msg));
 
         return response;
-}
+    }
 
     private TargetInfo createClientTargetInfo(NtlmChallenge serverNtlmChallenge) {
+        if (serverNtlmChallenge.getTargetInfo() == null) {
+            return null;
+        }
+
         TargetInfo clientTargetInfo = serverNtlmChallenge.getTargetInfo().copy();
+
+        // MIC (16 bytes) provided if MsAvTimestamp is present
+        if (config.isIntegrityEnabled() && serverNtlmChallenge.getTargetInfo().hasAvPair(AvId.MsvAvTimestamp)) {
+            // Set MsAvFlags bit 0x2 to indicate that the client is providing a MIC
+            long flags = 0x02L;
+            if (clientTargetInfo.hasAvPair(AvId.MsvAvFlags)) {
+                flags |= (long) clientTargetInfo.getAvPair(AvId.MsvAvFlags).getValue();
+            }
+
+            clientTargetInfo.putAvPair(new AvPairFlags(flags));
+        }
 
         // Should be clientSuppliedeTargetName
         if (serverNtlmChallenge.getNegotiateFlags().contains(NTLMSSP_REQUEST_TARGET)) {
@@ -242,6 +264,10 @@ public class NtlmAuthenticator implements Authenticator {
         } else {
             clientTargetInfo.putAvPair(new AvPairString(AvId.MsvAvTargetName, ""));
         }
+
+        // TODO MS-NLMP 3.1.5.1.2 page 46
+        // clientTargetInfo.putAvPair(new AvPairChannelBindings(new byte[16]));
+        // clientTargetInfo.putAvPair(new AvPairSingleHost(new byte[8], config.getMachineID()));
 
         return clientTargetInfo;
     }
