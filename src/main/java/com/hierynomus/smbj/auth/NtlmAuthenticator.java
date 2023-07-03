@@ -195,7 +195,7 @@ public class NtlmAuthenticator implements Authenticator {
 
         byte[] sessionBaseKey = computedNtlmV2Response.getSessionBaseKey();
         byte[] ntResponse = computedNtlmV2Response.getNtResponse();
-        byte[] lmResponse = new byte[0]; // computedNtlmV2Response.getLmResponse();
+        byte[] lmResponse = new byte[0]; // computedNtlmV2Response.getLmResponse(); // Z(24)
 
         byte[] encryptedRandomSessionKey;
         byte[] exportedSessionKey;
