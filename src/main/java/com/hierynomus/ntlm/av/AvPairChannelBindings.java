@@ -24,6 +24,10 @@ public class AvPairChannelBindings extends AvPair<byte[]> {
         super(AvId.MsvAvChannelBindings);
     }
 
+    public AvPairChannelBindings(byte[] value) {
+        super(AvId.MsvAvChannelBindings, value);
+    }
+
     @Override
     public void write(Buffer<?> buffer) {
         buffer.putUInt16((int) this.avId.getValue()); // AvId (2 bytes)

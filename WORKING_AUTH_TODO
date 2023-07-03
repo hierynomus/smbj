@@ -1,0 +1,12 @@
+Missing commit: 10001efcf7b5beee6994fb0e4a3680a6503f6eab
+Extract TargetInfo to separate class and correct offsets for NtlmNegotiate (#630)
+
+* Extract TargetInfo to separate class and correct offsets for NtlmNegotiate
+
+* Add Target SPN AvId if NTLMSSP_REQUEST_TARGET set
+
+* Use clientTargetInfo to calculate NTLM clientChallenge
+------
+Missing commit: 3e454de9a29db2ef0896af60573378ea7ba4fa4b
+Fix ClassCastException (fixes \#712)
+------
