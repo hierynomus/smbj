@@ -8,7 +8,7 @@ plugins {
   id "jacoco"
   id "maven-publish"
   id "signing"
-  id 'pl.allegro.tech.build.axion-release' version '1.14.4'
+  id 'pl.allegro.tech.build.axion-release' version '1.15.3'
   id "com.github.hierynomus.license" version "0.16.1"
   id "com.bmuschko.docker-remote-api" version "9.2.1"
   // id 'ru.vyarus.java-lib' version '2.1.0'
@@ -242,6 +242,8 @@ task forkedUploadRelease(type: GradleBuild) {
 
 project.tasks.release.dependsOn([project.tasks.integrationTest, project.tasks.build])
 project.tasks.release.finalizedBy(project.tasks.forkedUploadRelease)
+
+project.tasks.verifyRelease.dependsOn([project.tasks.buildItestImage, project.tasks.createItestContainer, project.tasks.compileIntegrationTestGroovy, project.tasks.compileTestGroovy, project.tasks.compileIntegrationTestJava])
 
 project.tasks.jacocoTestReport.dependsOn(project.tasks.test)
 project.tasks.check.dependsOn(project.tasks.jacocoTestReport)
