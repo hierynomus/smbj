@@ -243,7 +243,5 @@ task forkedUploadRelease(type: GradleBuild) {
 project.tasks.release.dependsOn([project.tasks.integrationTest, project.tasks.build])
 project.tasks.release.finalizedBy(project.tasks.forkedUploadRelease)
 
-project.tasks.verifyRelease.dependsOn([project.tasks.buildItestImage, project.tasks.createItestContainer, project.tasks.compileIntegrationTestGroovy, project.tasks.compileTestGroovy, project.tasks.compileIntegrationTestJava])
-
 project.tasks.jacocoTestReport.dependsOn(project.tasks.test)
 project.tasks.check.dependsOn(project.tasks.jacocoTestReport)
