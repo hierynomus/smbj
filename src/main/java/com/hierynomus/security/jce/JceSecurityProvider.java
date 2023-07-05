@@ -17,6 +17,7 @@ package com.hierynomus.security.jce;
 
 import com.hierynomus.security.*;
 import com.hierynomus.security.SecurityException;
+import com.hierynomus.security.mac.HmacT64;
 
 import java.security.Provider;
 
@@ -46,6 +47,9 @@ public class JceSecurityProvider implements SecurityProvider {
 
     @Override
     public Mac getMac(String name) throws SecurityException {
+        if ("HMACT64".equals(name)) {
+            return new HmacT64(getDigest("MD5"));
+        }
         return new JceMac(name, jceProvider, providerName);
     }
 

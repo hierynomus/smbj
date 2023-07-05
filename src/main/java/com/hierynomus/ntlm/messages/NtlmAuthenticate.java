@@ -39,8 +39,6 @@ public class NtlmAuthenticate extends NtlmMessage {
     private byte[] workstation;
     private byte[] encryptedRandomSessionKey;
     private byte[] mic;
-    private boolean integrityEnabled;
-    private boolean omitVersion;
 
     public NtlmAuthenticate(
         byte[] lmResponse, byte[] ntResponse,

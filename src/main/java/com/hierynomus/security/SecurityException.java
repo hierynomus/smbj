@@ -17,6 +17,10 @@ package com.hierynomus.security;
 
 @SuppressWarnings("serial")
 public class SecurityException extends Exception {
+    public SecurityException(String message) {
+        super(message);
+    }
+
     public SecurityException(Exception e) {
         super(e);
     }

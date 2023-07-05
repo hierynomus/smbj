@@ -47,8 +47,18 @@ public class JceMessageDigest implements MessageDigest {
     }
 
     @Override
+    public void update(byte b) {
+        md.update(b);
+    }
+
+    @Override
     public void update(byte[] bytes) {
         md.update(bytes);
+    }
+
+    @Override
+    public void update(byte[] bytes, int offset, int len) {
+        md.update(bytes, offset, len);
     }
 
     @Override

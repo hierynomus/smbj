@@ -30,7 +30,7 @@ import java.util.List;
 
 import static com.hierynomus.spnego.ObjectIdentifiers.SPNEGO;
 
-abstract class SpnegoToken {
+public abstract class SpnegoToken {
 
     private int tokenTagNo;
     private String tokenName;
@@ -58,7 +58,8 @@ abstract class SpnegoToken {
 
     protected void parseSpnegoToken(ASN1Object<?> spnegoToken) throws SpnegoException {
         if (!(spnegoToken instanceof ASN1TaggedObject) || ((ASN1TaggedObject) spnegoToken).getTagNo() != tokenTagNo) {
-            throw new SpnegoException("Expected to find the " + tokenName + " (CHOICE [" + tokenTagNo + "]) header, not: " + spnegoToken);
+            throw new SpnegoException(
+                    "Expected to find the " + tokenName + " (CHOICE [" + tokenTagNo + "]) header, not: " + spnegoToken);
         }
 
         ASN1Object<?> negToken = ((ASN1TaggedObject) spnegoToken).getObject();
@@ -68,12 +69,15 @@ abstract class SpnegoToken {
 
         for (ASN1Object<?> asn1Object : (ASN1Sequence) negToken) {
             if (!(asn1Object instanceof ASN1TaggedObject)) {
-                throw new SpnegoException("Expected an ASN.1 TaggedObject as " + tokenName + " contents, not: " + asn1Object);
+                throw new SpnegoException(
+                        "Expected an ASN.1 TaggedObject as " + tokenName + " contents, not: " + asn1Object);
             }
             ASN1TaggedObject asn1TaggedObject = (ASN1TaggedObject) asn1Object;
             parseTagged(asn1TaggedObject);
         }
     }
+
+    public abstract void write(Buffer<?> buffer) throws SpnegoException;
 
     protected abstract void parseTagged(ASN1TaggedObject asn1TaggedObject) throws SpnegoException;
 

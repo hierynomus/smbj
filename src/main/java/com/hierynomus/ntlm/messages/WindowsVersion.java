@@ -123,4 +123,8 @@ public class WindowsVersion {
     public int hashCode() {
         return Objects.hash(majorVersion, minorVersion, productBuild, ntlmRevision);
     }
+
+    public NtlmRevisionCurrent getNtlmRevision() {
+        return ntlmRevision;
+    }
 }

@@ -41,10 +41,7 @@ import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.ntlm.NtlmConfig;
 import com.hierynomus.ntlm.NtlmException;
 import com.hierynomus.ntlm.av.AvId;
-import com.hierynomus.ntlm.av.AvPairChannelBindings;
-import com.hierynomus.ntlm.av.AvPairFactory;
 import com.hierynomus.ntlm.av.AvPairFlags;
-import com.hierynomus.ntlm.av.AvPairSingleHost;
 import com.hierynomus.ntlm.av.AvPairString;
 import com.hierynomus.ntlm.av.AvPairTimestamp;
 import com.hierynomus.ntlm.functions.ComputedNtlmV2Response;
@@ -65,6 +62,7 @@ import com.hierynomus.smbj.connection.ConnectionContext;
 import com.hierynomus.spnego.NegTokenInit;
 import com.hierynomus.spnego.NegTokenTarg;
 import com.hierynomus.spnego.SpnegoException;
+import com.hierynomus.spnego.SpnegoToken;
 import com.hierynomus.utils.Strings;
 
 public class NtlmAuthenticator implements Authenticator {
@@ -82,7 +80,7 @@ public class NtlmAuthenticator implements Authenticator {
     // Context buildup
     private State state;
     private Set<NtlmNegotiateFlag> negotiateFlags;
-    private NtlmNegotiate negotiateMessage;
+    private byte[] negotiateMessage;
 
     public static class Factory implements com.hierynomus.protocol.commons.Factory.Named<Authenticator> {
         @Override
@@ -162,9 +160,10 @@ public class NtlmAuthenticator implements Authenticator {
             }
         }
 
-        this.negotiateMessage = new NtlmNegotiate(negotiateFlags, context.getDomain(), config.getWorkstationName(), config.getWindowsVersion(), config.isOmitVersion());
+        NtlmNegotiate negotiateMessage = new NtlmNegotiate(negotiateFlags, context.getDomain(), config.getWorkstationName(), config.getWindowsVersion(), config.isOmitVersion());
         logger.trace("Sending NTLM negotiate message: {}", this.negotiateMessage);
         response.setNegToken(negTokenInit(negotiateMessage));
+        response.setNegotiateFlags(negotiateFlags);
         return response;
     }
 
@@ -222,17 +221,15 @@ public class NtlmAuthenticator implements Authenticator {
             msg.setMic(new byte[16]);
             // TODO correct hash should be tested
             Buffer.PlainBuffer micBuffer = new Buffer.PlainBuffer(Endian.LE);
-            negotiateMessage.write(micBuffer); // negotiateMessage
-            micBuffer.putRawBytes(serverNtlmChallenge.getServerChallenge()); // challengeMessage
             msg.write(micBuffer); // authentificateMessage
 
-            byte[] mic = NtlmFunctions.hmac_md5(securityProvider, sessionBaseKey, micBuffer.getCompactData());
+            byte[] mic = NtlmFunctions.hmac_md5(securityProvider, exportedSessionKey, negotiateMessage, ntlmChallengeBytes, micBuffer.getCompactData());
             msg.setMic(mic);
         }
         response.setSessionKey(exportedSessionKey);
         logger.trace("Sending NTLM authenticate message: {}", msg);
         response.setNegToken(negTokenTarg(msg));
-
+        response.setNegotiateFlags(negotiateFlags);
         return response;
     }
 
@@ -272,25 +269,22 @@ public class NtlmAuthenticator implements Authenticator {
         return clientTargetInfo;
     }
 
-    private byte[] negTokenInit(NtlmNegotiate ntlmNegotiate) throws SpnegoException {
+    private SpnegoToken negTokenInit(NtlmNegotiate ntlmNegotiate) throws SpnegoException {
         NegTokenInit negTokenInit = new NegTokenInit();
         negTokenInit.addSupportedMech(NTLMSSP);
         Buffer.PlainBuffer ntlmBuffer = new Buffer.PlainBuffer(Endian.LE);
         ntlmNegotiate.write(ntlmBuffer);
-        negTokenInit.setMechToken(ntlmBuffer.getCompactData());
-        Buffer.PlainBuffer negTokenBuffer = new Buffer.PlainBuffer(Endian.LE);
-        negTokenInit.write(negTokenBuffer);
-        return negTokenBuffer.getCompactData();
+        this.negotiateMessage = ntlmBuffer.getCompactData();
+        negTokenInit.setMechToken(this.negotiateMessage);
+        return negTokenInit;
     }
 
-    private byte[] negTokenTarg(NtlmAuthenticate resp) throws SpnegoException {
+    private SpnegoToken negTokenTarg(NtlmAuthenticate resp) throws SpnegoException {
         NegTokenTarg targ = new NegTokenTarg();
         Buffer.PlainBuffer ntlmBuffer = new Buffer.PlainBuffer(Endian.LE);
         resp.write(ntlmBuffer);
         targ.setResponseToken(ntlmBuffer.getCompactData());
-        Buffer.PlainBuffer negTokenBuffer = new Buffer.PlainBuffer(Endian.LE);
-        targ.write(negTokenBuffer);
-        return negTokenBuffer.getCompactData();
+        return targ;
     }
 
     @Override

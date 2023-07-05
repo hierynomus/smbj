@@ -21,6 +21,7 @@ import com.hierynomus.security.DerivationFunction;
 import com.hierynomus.security.Mac;
 import com.hierynomus.security.MessageDigest;
 import com.hierynomus.security.SecurityProvider;
+import com.hierynomus.security.mac.HmacT64;
 
 /**
  * Generic BouncyCastle abstraction, in order to use Bouncy Castle directly when available.
@@ -35,6 +36,9 @@ public class BCSecurityProvider implements SecurityProvider {
 
     @Override
     public Mac getMac(String name) {
+        if ("HMACT64".equals(name)) {
+            return new HmacT64(getDigest("MD5"));
+        }
         return new BCMac(name);
     }
 

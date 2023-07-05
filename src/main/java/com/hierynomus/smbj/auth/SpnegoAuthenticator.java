@@ -29,6 +29,7 @@ import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.GSSContextConfig;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.connection.ConnectionContext;
+import com.hierynomus.spnego.RawToken;
 
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSException;
@@ -95,7 +96,7 @@ public class SpnegoAuthenticator implements Authenticator {
                 logger.trace("Received token: {}", ByteArrayUtils.printHex(newToken));
             }
 
-            AuthenticateResponse response = new AuthenticateResponse(newToken);
+            AuthenticateResponse response = new AuthenticateResponse(new RawToken(newToken));
             if (gssContext.isEstablished()) {
                 Key key = ExtendedGSSContext.krb5GetSessionKey(gssContext);
                 if (key != null) {
