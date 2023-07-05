@@ -16,7 +16,11 @@
 package com.hierynomus.security;
 
 public interface MessageDigest {
+    void update(byte b);
+
     void update(byte[] bytes);
+
+    void update(byte[] bytes, int offset, int len);
 
     byte[] digest();
 

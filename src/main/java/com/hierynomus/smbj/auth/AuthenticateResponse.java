@@ -15,18 +15,23 @@
  */
 package com.hierynomus.smbj.auth;
 
+import java.util.Set;
+
+import com.hierynomus.ntlm.messages.NtlmNegotiateFlag;
 import com.hierynomus.ntlm.messages.WindowsVersion;
+import com.hierynomus.spnego.SpnegoToken;
 
 public class AuthenticateResponse {
-    private byte[] negToken;
+    private SpnegoToken negToken;
     private byte[] sessionKey;
     private WindowsVersion windowsVersion;
     private String netBiosName;
+    private Set<NtlmNegotiateFlag> negotiateFlags;
 
     public AuthenticateResponse() {
     }
 
-    public AuthenticateResponse(byte [] negToken) {
+    public AuthenticateResponse(SpnegoToken negToken) {
         this.negToken = negToken;
     }
 
@@ -38,11 +43,11 @@ public class AuthenticateResponse {
         this.windowsVersion = windowsVersion;
     }
 
-    public byte[] getNegToken() {
+    public SpnegoToken getNegToken() {
         return negToken;
     }
 
-    public void setNegToken(byte[] negToken) {
+    public void setNegToken(SpnegoToken negToken) {
         this.negToken = negToken;
     }
 
@@ -60,5 +65,13 @@ public class AuthenticateResponse {
 
     public void setNetBiosName(String netBiosName) {
         this.netBiosName = netBiosName;
+    }
+
+    public Set<NtlmNegotiateFlag> getNegotiateFlags() {
+        return negotiateFlags;
+    }
+
+    public void setNegotiateFlags(Set<NtlmNegotiateFlag> negotiateFlags) {
+        this.negotiateFlags = negotiateFlags;
     }
 }

@@ -19,6 +19,7 @@ import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.security.MessageDigest;
 import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.MD4Digest;
+import org.bouncycastle.crypto.digests.MD5Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.digests.SHA512Digest;
 
@@ -47,6 +48,12 @@ public class BCMessageDigest implements MessageDigest {
                 return new MD4Digest();
             }
         });
+        lookup.put("MD5", new Factory<Digest>() {
+            @Override
+            public Digest create() {
+                return new MD5Digest();
+            }
+        });
     }
 
     private final Digest digest;
@@ -64,8 +71,18 @@ public class BCMessageDigest implements MessageDigest {
     }
 
     @Override
+    public void update(byte b) {
+        digest.update(b);
+    }
+
+    @Override
     public void update(byte[] bytes) {
         digest.update(bytes, 0, bytes.length);
+    }
+
+    @Override
+    public void update(byte[] bytes, int offset, int len) {
+        digest.update(bytes, offset, len);
     }
 
     @Override

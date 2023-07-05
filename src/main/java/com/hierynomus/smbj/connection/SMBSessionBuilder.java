@@ -22,6 +22,8 @@ import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.protocol.commons.Factory;
+import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.security.DerivationFunction;
 import com.hierynomus.security.MessageDigest;
@@ -32,6 +34,8 @@ import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticateResponse;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.Authenticator;
+import com.hierynomus.smbj.auth.NtlmAuthenticator;
+import com.hierynomus.smbj.auth.NtlmSealer;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.session.SMB2GuestSigningRequiredException;
 import com.hierynomus.smbj.session.Session;
@@ -40,6 +44,8 @@ import com.hierynomus.smbj.utils.DigestUtil;
 import com.hierynomus.spnego.NegTokenInit;
 import com.hierynomus.spnego.NegTokenInit2;
 import com.hierynomus.spnego.SpnegoException;
+import com.hierynomus.spnego.SpnegoToken;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,6 +107,10 @@ public class SMBSessionBuilder {
     public Session establish(AuthenticationContext authContext) {
         try {
             Authenticator authenticator = getAuthenticator(authContext);
+            if (authenticator instanceof NtlmAuthenticator && config.getNtlmConfig().isIntegrityEnabled()) {
+                authenticator = new NtlmSealer((NtlmAuthenticator) authenticator);
+            }
+
             BuilderContext ctx = newContext(authContext, authenticator);
 
             authenticator.init(config);
@@ -183,7 +193,15 @@ public class SMBSessionBuilder {
         connectionContext.setNetBiosName(resp.getNetBiosName());
 
         ctx.sessionKey = resp.getSessionKey();
-        ctx.securityContext = resp.getNegToken();
+
+        SpnegoToken token = resp.getNegToken();
+        Buffer.PlainBuffer negTokenBuffer = new Buffer.PlainBuffer(Endian.LE);
+        try {
+            token.write(negTokenBuffer);
+        } catch (SpnegoException e) {
+            throw new IOException(e);
+        }
+        ctx.securityContext = negTokenBuffer.getCompactData();
     }
 
     private BuilderContext initiateSessionSetup(BuilderContext ctx, byte[] securityContext) throws TransportException {
