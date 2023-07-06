@@ -38,7 +38,7 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Release
-        run: ./gradlew release -Prelease.disableChecks -Prelease.pushTagsOnly -Prelease.customUsername=${{ github.actor }} -Prelease.customPassword=${{ github.token }}
+        run: ./gradlew clean publishToSonatype closeAndReleaseSonatypeStagingRepository
         env:
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNINGKEY }}
           ORG_GRADLE_PROJECT_signingKeyId: ${{ secrets.SIGNINGKEYID }}
