@@ -75,7 +75,7 @@ public class NtlmConfig {
         public Builder(Random r) {
             config = new NtlmConfig();
             config.windowsVersion = new WindowsVersion(ProductMajorVersion.WINDOWS_MAJOR_VERSION_6, ProductMinorVersion.WINDOWS_MINOR_VERSION_1, 7600, NtlmRevisionCurrent.NTLMSSP_REVISION_W2K3);
-            config.integrity = false;
+            config.integrity = true;
             config.omitVersion = false;
             config.machineID = new byte[32];
             r.nextBytes(config.machineID);

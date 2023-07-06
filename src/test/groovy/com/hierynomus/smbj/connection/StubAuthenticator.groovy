@@ -22,6 +22,7 @@ import com.hierynomus.smbj.auth.AuthenticateResponse
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.auth.Authenticator
 import com.hierynomus.smbj.session.Session
+import com.hierynomus.spnego.RawToken
 
 class StubAuthenticator implements Authenticator {
   static class Factory implements com.hierynomus.protocol.commons.Factory.Named<StubAuthenticator> {
@@ -49,7 +50,7 @@ class StubAuthenticator implements Authenticator {
 
   @Override
   AuthenticateResponse authenticate(AuthenticationContext context, byte[] gssToken, ConnectionContext connectionContext) throws IOException {
-    def resp = new AuthenticateResponse(new byte[0])
+    def resp = new AuthenticateResponse(new RawToken(new byte[0]))
     resp.sessionKey = ByteArrayUtils.parseHex("09921d4431b171b977370bf8910900f9")
     return resp
   }

@@ -22,6 +22,8 @@ import java.nio.charset.Charset;
 import com.hierynomus.ntlm.NtlmException;
 import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.security.Cipher;
+import com.hierynomus.security.Mac;
+import com.hierynomus.security.MessageDigest;
 import com.hierynomus.security.SecurityException;
 import com.hierynomus.security.SecurityProvider;
 
@@ -68,7 +70,7 @@ public class NtlmFunctions {
      */
     static byte[] md4(SecurityProvider securityProvider, byte[] m) {
         try {
-            com.hierynomus.security.MessageDigest md4 = securityProvider.getDigest("MD4");
+            MessageDigest md4 = securityProvider.getDigest("MD4");
             md4.update(m);
             return md4.digest();
         } catch (SecurityException e) {
@@ -86,12 +88,24 @@ public class NtlmFunctions {
     @SuppressWarnings("PMD.MethodNamingConventions")
     public static byte[] hmac_md5(SecurityProvider securityProvider, byte[] key, byte[]... message) {
         try {
-            com.hierynomus.security.Mac hmacMD5 = securityProvider.getMac("HmacMD5");
+            Mac hmacMD5 = securityProvider.getMac("HMACT64");
             hmacMD5.init(key);
             for (byte[] aMessage : message) {
                 hmacMD5.update(aMessage);
             }
             return hmacMD5.doFinal();
+        } catch (SecurityException e) {
+            throw new NtlmException(e);
+        }
+    }
+
+    public static byte[] md5(SecurityProvider securityProvider, byte[]... message) {
+        try {
+            MessageDigest md5 = securityProvider.getDigest("MD5");
+            for (byte[] aMessage : message) {
+                md5.update(aMessage);
+            }
+            return md5.digest();
         } catch (SecurityException e) {
             throw new NtlmException(e);
         }
