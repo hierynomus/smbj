@@ -15,6 +15,8 @@
  */
 package com.hierynomus.security.bc;
 
+import java.util.Objects;
+
 import com.hierynomus.security.AEADBlockCipher;
 import com.hierynomus.security.Cipher;
 import com.hierynomus.security.DerivationFunction;
@@ -36,7 +38,7 @@ public class BCSecurityProvider implements SecurityProvider {
 
     @Override
     public Mac getMac(String name) {
-        if ("HMACT64".equals(name)) {
+        if (Objects.equals(name, "HMACT64")) {
             return new HmacT64(getDigest("MD5"));
         }
         return new BCMac(name);
