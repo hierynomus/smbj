@@ -158,11 +158,15 @@ The implementation is based on the following specifications:
 
 == Changelog
 
-=== 0.12.0 (2023-??-??)
+=== 0.12.0 (2023-07-06)
+* Support signing and sealing of NTLM authentication
+* Reworked NTLM authentication (Fixes https://github.com/hierynomus/smbj/issues/653[#653])
+* Upgraded Gradle to 8.2
+* Add support for reading / writing NIO ByteBuffers
+* Ensure path is set for rmdir to prevent accidents (Fixes https://github.com/hierynomus/smbj/issues/756[#756])
 * Ensure we call flip() on Buffer to avoid Java8/9 compatibility issues (Fixes https://github.com/hierynomus/smbj/issues/705[#705])
 * Do not send SNB2EncryptionCapabilities if the withEncryptData is set to false (Fixes https://github.com/hierynomus/smbj/issues/747[#747])
 * Added Implementation-Version and Implementation-Name to MANIFEST.MF (Fixes https://github.com/hierynomus/smbj/issues/743[#743])
-* Upgraded Gradle to 8.0.2
 * Bytes written by the SMB2Writer are now returned as long, correctly reporting on files >2GB (Fixes https://github.com/hierynomus/smbj/issues/740[#740])
 * Reduce the amount of locking in Connection and DirectTcpTransport
 * Fixed Cannot resolve path exception in DFS by specifying the correct TargetHint (Fixes https://github.com/hierynomus/smbj/issues/419[#419])
