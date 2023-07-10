@@ -23,7 +23,6 @@ dependencies {
   implementation BCPROV_JDK15ON
   implementation MBASSADOR
   implementation ASN_ONE
-  testImplementation GROOVY_ALL
   testRuntimeOnly CGLIB_NODEP
   testRuntimeOnly OBJENESIS
   testImplementation SPOCK_CORE

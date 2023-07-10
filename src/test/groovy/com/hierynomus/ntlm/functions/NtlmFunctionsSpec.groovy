@@ -26,7 +26,6 @@ import com.hierynomus.protocol.commons.buffer.Endian
 import com.hierynomus.security.bc.BCSecurityProvider
 import com.hierynomus.security.jce.JceSecurityProvider
 import com.hierynomus.test.PredictableRandom
-import org.apache.tools.ant.taskdefs.Tar
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import spock.lang.Specification
 import spock.lang.Unroll

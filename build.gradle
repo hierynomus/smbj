@@ -91,7 +91,7 @@ testing {
       useJUnitJupiter()
       dependencies {
         implementation SLF4J_API
-        implementation GROOVY_ALL
+        // implementation GROOVY_ALL
         runtimeOnly CGLIB_NODEP
         runtimeOnly OBJENESIS
         implementation SPOCK_CORE
