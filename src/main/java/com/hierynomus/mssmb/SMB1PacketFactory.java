@@ -28,6 +28,6 @@ public class SMB1PacketFactory implements PacketFactory<SMB1PacketData> {
 
     @Override
     public boolean canHandle(byte[] data) {
-        return data[0] == (byte) 0xFF && data[1] == 'S' && data[2] == 'M' && data[3] == 'B';
+        return data.length >= 4 && data[0] == (byte) 0xFF && data[1] == 'S' && data[2] == 'M' && data[3] == 'B';
     }
 }

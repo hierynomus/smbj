@@ -28,6 +28,6 @@ public class SMB3CompressedPacketFactory implements PacketFactory<SMB3Compressed
 
     @Override
     public boolean canHandle(byte[] data) {
-        return data[0] == (byte) 0xFC && data[1] == 'S' && data[2] == 'M' && data[3] == 'B';
+        return data.length >= 4 && data[0] == (byte) 0xFC && data[1] == 'S' && data[2] == 'M' && data[3] == 'B';
     }
 }
