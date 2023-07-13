@@ -158,6 +158,9 @@ The implementation is based on the following specifications:
 
 == Changelog
 
+=== 0.12.1 (2023-07-13)
+* Fix NPE when using SpnegoAuthenticator (Fixes https://github.com/hierynomus/issues/775[#775])
+
 === 0.12.0 (2023-07-06)
 * Support signing and sealing of NTLM authentication
 * Reworked NTLM authentication (Fixes https://github.com/hierynomus/smbj/issues/653[#653])
