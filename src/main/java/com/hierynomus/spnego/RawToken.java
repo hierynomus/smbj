@@ -15,8 +15,6 @@
  */
 package com.hierynomus.spnego;
 
-import java.io.IOException;
-
 import com.hierynomus.asn1.types.constructed.ASN1TaggedObject;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
@@ -35,6 +33,8 @@ public class RawToken extends SpnegoToken {
 
     @Override
     public void write(Buffer<?> buffer) throws SpnegoException {
-        buffer.putRawBytes(rawToken);
+        if (rawToken != null) {
+            buffer.putRawBytes(rawToken);
+        }
     }
 }
