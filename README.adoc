@@ -158,8 +158,12 @@ The implementation is based on the following specifications:
 
 == Changelog
 
+=== 0.12.2 (2023-08-07)
+* Added missing applicationKey getter to SessionContext (Merged https://github.com/hierynomus/smbj/pulls/776[#776])
+* Fix error with anonymous authentication (Fixes https://github.com/hierynomus/smbj/issues/779[#779])
+
 === 0.12.1 (2023-07-13)
-* Fix NPE when using SpnegoAuthenticator (Fixes https://github.com/hierynomus/issues/775[#775])
+* Fix NPE when using SpnegoAuthenticator (Fixes https://github.com/hierynomus/smbj/issues/775[#775])
 
 === 0.12.0 (2023-07-06)
 * Support signing and sealing of NTLM authentication
