@@ -133,6 +133,9 @@ testing {
       }
 
       sources {
+        java {
+          srcDirs = ['src/it/java']
+        }
         groovy {
           srcDirs = ['src/it/groovy']
         }
