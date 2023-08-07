@@ -96,6 +96,10 @@ public class SessionContext {
         return encryptionKey;
     }
 
+    public SecretKey getApplicationKey() {
+        return applicationKey;
+    }
+
     public void setEncryptionKey(SecretKey encryptionKey) {
         this.encryptionKey = encryptionKey;
     }
