@@ -107,7 +107,7 @@ public class SMBSessionBuilder {
     public Session establish(AuthenticationContext authContext) {
         try {
             Authenticator authenticator = getAuthenticator(authContext);
-            if (authenticator instanceof NtlmAuthenticator && config.getNtlmConfig().isIntegrityEnabled()) {
+            if (authenticator instanceof NtlmAuthenticator && config.getNtlmConfig().isIntegrityEnabled() && !(authContext.isAnonymous() && !(authContext.isGuest()))) {
                 authenticator = new NtlmSealer((NtlmAuthenticator) authenticator);
             }
 
@@ -163,7 +163,9 @@ public class SMBSessionBuilder {
 
             SessionContext context = session.getSessionContext();
             processAuthenticationToken(ctx, response.getSecurityBuffer());
-            context.setSessionKey(new SecretKeySpec(ctx.sessionKey, HMAC_SHA256_ALGORITHM));
+            if (!ctx.authContext.isAnonymous() && !ctx.authContext.isGuest()) {
+                context.setSessionKey(new SecretKeySpec(ctx.sessionKey, HMAC_SHA256_ALGORITHM));
+            }
             if (dialect == SMB2Dialect.SMB_3_1_1) {
                 updatePreauthIntegrityValue(ctx, context, ctx.request);
             }

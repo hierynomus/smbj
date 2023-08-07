@@ -98,24 +98,28 @@ public final class SmbConfig {
     }
 
     public static Builder builder() {
-        Builder b =  new Builder()
-            .withClientGuid(UUID.randomUUID())
-            .withSecurityProvider(getDefaultSecurityProvider())
-            .withSocketFactory(new ProxySocketFactory())
-            .withSigningRequired(false)
-            .withDfsEnabled(false)
-            .withMultiProtocolNegotiate(false)
-            .withBufferSize(DEFAULT_BUFFER_SIZE)
-            .withTransportLayerFactory(DEFAULT_TRANSPORT_LAYER_FACTORY)
-            .withSoTimeout(DEFAULT_SO_TIMEOUT, DEFAULT_SO_TIMEOUT_UNIT)
-            .withDialects(SMB_3_1_1, SMB_3_0_2, SMB_3_0, SMB_2_1, SMB_2_0_2)
-            // order is important.  The authenticators listed first will be selected
-            .withAuthenticators(getDefaultAuthenticators())
-            .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
-            .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig())
-            .withEncryptData(false);
+        Builder b = new Builder()
+                .withClientGuid(UUID.randomUUID())
+                .withSecurityProvider(getDefaultSecurityProvider())
+                .withSocketFactory(new ProxySocketFactory())
+                .withSigningRequired(false)
+                .withDfsEnabled(false)
+                .withMultiProtocolNegotiate(false)
+                .withBufferSize(DEFAULT_BUFFER_SIZE)
+                .withTransportLayerFactory(DEFAULT_TRANSPORT_LAYER_FACTORY)
+                .withSoTimeout(DEFAULT_SO_TIMEOUT, DEFAULT_SO_TIMEOUT_UNIT)
+                .withDialects(SMB_3_1_1, SMB_3_0_2, SMB_3_0, SMB_2_1, SMB_2_0_2)
+                // order is important.  The authenticators listed first will be selected
+                .withAuthenticators(getDefaultAuthenticators())
+                .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
+                .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig())
+                .withEncryptData(false);
 
         return b;
+    }
+
+    public static Builder builder(SmbConfig baseConfig) {
+        return new Builder(baseConfig);
     }
 
     private static SecurityProvider getDefaultSecurityProvider() {
@@ -282,6 +286,11 @@ public final class SmbConfig {
         Builder() {
             config = new SmbConfig();
             ntlmConfigBuilder = NtlmConfig.builder(config.random);
+        }
+
+        Builder(SmbConfig baseConfig) {
+            config = new SmbConfig(baseConfig);
+            ntlmConfigBuilder = NtlmConfig.builder(config.ntlmConfig);
         }
 
         public Builder withRandomProvider(Random random) {
