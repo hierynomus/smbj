@@ -229,7 +229,9 @@ class SMBProtocolNegotiator {
         } else if (temp.validate(cachedServer)) {
             negotiationContext.server = cachedServer;
         } else {
-            throw new TransportException(String.format("Different server found for same hostname '%s', disconnecting...", temp.getServerName()));
+            connection.serverList.unregister(temp.getServerName());
+            connection.serverList.registerServer(temp);
+            negotiationContext.server = temp;
         }
     }
 
