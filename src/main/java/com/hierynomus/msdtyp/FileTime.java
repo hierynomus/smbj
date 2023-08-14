@@ -15,6 +15,7 @@
  */
 package com.hierynomus.msdtyp;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
@@ -27,6 +28,10 @@ public class FileTime {
 
     public static FileTime fromDate(Date date) {
         return new FileTime(date.getTime() * NANO100_TO_MILLI + WINDOWS_TO_UNIX_EPOCH);
+    }
+
+    public static FileTime fromInstant(Instant instant) {
+        return new FileTime(instant.toEpochMilli() * NANO100_TO_MILLI + WINDOWS_TO_UNIX_EPOCH);
     }
 
     public static FileTime now() {
@@ -56,6 +61,10 @@ public class FileTime {
 
     public long toEpoch(TimeUnit unit) {
         return unit.convert((windowsTimeStamp - WINDOWS_TO_UNIX_EPOCH) * NANO100_TO_NANO, TimeUnit.NANOSECONDS);
+    }
+
+    public Instant toInstant() {
+        return Instant.ofEpochMilli(toEpochMillis());
     }
 
     public Date toDate() {
