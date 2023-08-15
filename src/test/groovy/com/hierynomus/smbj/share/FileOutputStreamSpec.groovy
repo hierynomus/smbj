@@ -26,10 +26,10 @@ import com.hierynomus.mssmb2.messages.SMB2WriteResponse
 import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.auth.AuthenticationContext
-import com.hierynomus.smbj.connection.BasicPacketProcessor
 import com.hierynomus.smbj.connection.Connection
-import com.hierynomus.smbj.connection.StubAuthenticator
-import com.hierynomus.smbj.connection.StubTransportLayerFactory
+import com.hierynomus.smbj.testing.PacketProcessor.DefaultPacketProcessor
+import com.hierynomus.smbj.testing.StubAuthenticator
+import com.hierynomus.smbj.testing.StubTransportLayerFactory
 import spock.lang.Specification
 
 class FileOutputStreamSpec extends Specification {
@@ -39,7 +39,7 @@ class FileOutputStreamSpec extends Specification {
 
   def setup() {
     devNull = new ByteArrayOutputStream()
-    def responder = new BasicPacketProcessor({ req ->
+    def responder = new DefaultPacketProcessor().wrap({ req ->
       if (req.packet instanceof SMB2CreateRequest)
         return createResponse()
       if (req.packet instanceof SMB2WriteRequest)
@@ -51,7 +51,7 @@ class FileOutputStreamSpec extends Specification {
     def config = SmbConfig.builder()
       .withReadBufferSize(1024)
       .withDfsEnabled(false)
-      .withTransportLayerFactory(new StubTransportLayerFactory(responder.&processPacket))
+      .withTransportLayerFactory(new StubTransportLayerFactory(responder))
       .withAuthenticators(new StubAuthenticator.Factory())
       .build()
     def client = new SMBClient(config)

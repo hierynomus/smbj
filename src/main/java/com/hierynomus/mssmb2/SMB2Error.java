@@ -30,7 +30,7 @@ public class SMB2Error {
 
     private List<SMB2ErrorData> errorData = new ArrayList<>();
 
-    SMB2Error() {
+    public SMB2Error() {
     }
 
     SMB2Error read(SMB2PacketHeader header, SMBBuffer buffer) throws Buffer.BufferException {

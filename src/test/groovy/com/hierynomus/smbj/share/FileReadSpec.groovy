@@ -19,6 +19,7 @@ import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mserref.NtStatus
 import com.hierynomus.msfscc.FileAttributes
 import com.hierynomus.mssmb2.*
+import com.hierynomus.mssmb2.SMB2Packet
 import com.hierynomus.mssmb2.messages.SMB2CreateRequest
 import com.hierynomus.mssmb2.messages.SMB2CreateResponse
 import com.hierynomus.mssmb2.messages.SMB2ReadRequest
@@ -27,10 +28,11 @@ import com.hierynomus.protocol.commons.ByteArrayUtils
 import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.auth.AuthenticationContext
-import com.hierynomus.smbj.connection.BasicPacketProcessor
 import com.hierynomus.smbj.connection.Connection
-import com.hierynomus.smbj.connection.StubAuthenticator
-import com.hierynomus.smbj.connection.StubTransportLayerFactory
+import com.hierynomus.smbj.testing.PacketProcessor
+import com.hierynomus.smbj.testing.PacketProcessor.DefaultPacketProcessor
+import com.hierynomus.smbj.testing.StubAuthenticator
+import com.hierynomus.smbj.testing.StubTransportLayerFactory
 import spock.lang.Specification
 
 import java.security.DigestOutputStream
@@ -42,12 +44,11 @@ class FileReadSpec extends Specification {
   private MessageDigest digest
   private File file
   private Connection connection
-  private BasicPacketProcessor responder
+  private PacketProcessor responder
 
   def setup() {
     fileData = randomData(42, 12345)
-
-    responder = new BasicPacketProcessor({ req ->
+    responder = new DefaultPacketProcessor().wrap({ req ->
       req = req.packet
       if (req instanceof SMB2CreateRequest)
         return createResponse()
@@ -60,7 +61,7 @@ class FileReadSpec extends Specification {
     def config = SmbConfig.builder()
       .withReadBufferSize(1024)
       .withDfsEnabled(false)
-      .withTransportLayerFactory(new StubTransportLayerFactory(responder.&processPacket))
+      .withTransportLayerFactory(new StubTransportLayerFactory(responder))
       .withAuthenticators(new StubAuthenticator.Factory())
       .build()
     def client = new SMBClient(config)
@@ -136,12 +137,12 @@ class FileReadSpec extends Specification {
 
   def "should read entire file contents via input stream in IBM mode"() {
     when:
-    responder.addBehaviour { SMB2Packet req ->
+    responder = responder.wrap({ SMB2Packet req ->
       if (req instanceof SMB2ReadRequest)
         return read(req, fileData, true)
 
       null
-    }
+    })
     def out = new DigestOutputStream(new ByteArrayOutputStream(), digest)
     def buffer = new byte[10]
 

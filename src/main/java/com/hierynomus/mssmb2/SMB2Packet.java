@@ -28,7 +28,7 @@ public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2PacketHeader> {
     protected int structureSize;
     private SMB2Error error;
 
-    protected SMB2Packet() {
+    public SMB2Packet() {
         super(new SMB2PacketHeader());
     }
 
@@ -142,6 +142,10 @@ public class SMB2Packet extends SMBPacket<SMB2PacketData, SMB2PacketHeader> {
 
     public SMB2Error getError() {
         return error;
+    }
+
+    public void setError(SMB2Error error) {
+        this.error = error;
     }
 
     /**

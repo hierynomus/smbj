@@ -156,4 +156,16 @@ public class SMB2NegotiateResponse extends SMB2Packet {
     public List<SMB2NegotiateContext> getNegotiateContextList() {
         return negotiateContextList;
     }
+
+    public void setDialect(SMB2Dialect dialect) {
+        this.dialect = dialect;
+    }
+
+    public void setSystemTime(FileTime systemTime) {
+        this.systemTime = systemTime;
+    }
+
+    public void setServerGuid(UUID serverGuid) {
+        this.serverGuid = serverGuid;
+    }
 }

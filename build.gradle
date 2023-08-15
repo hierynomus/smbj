@@ -90,6 +90,7 @@ testing {
     configureEach {
       useJUnitJupiter()
       dependencies {
+        implementation project()
         implementation SLF4J_API
         // implementation GROOVY_ALL
         runtimeOnly CGLIB_NODEP
@@ -119,19 +120,7 @@ testing {
       }
     }
 
-    test {
-      sources {
-        groovy {
-          srcDirs = ['src/test/groovy']
-        }
-      }
-    }
-
     integrationTest(JvmTestSuite) {
-      dependencies {
-        implementation project()
-      }
-
       sources {
         java {
           srcDirs = ['src/it/java']
