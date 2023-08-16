@@ -26,33 +26,33 @@ import com.hierynomus.smbj.connection.ConnectionContext;
 import com.hierynomus.spnego.RawToken;
 
 public class StubAuthenticator implements Authenticator {
-  public static class Factory implements com.hierynomus.protocol.commons.Factory.Named<Authenticator> {
+    public static class Factory implements com.hierynomus.protocol.commons.Factory.Named<Authenticator> {
 
-    @Override
-    public String getName() {
-        return "stub";
+        @Override
+        public String getName() {
+            return "stub";
+        }
+
+        @Override
+        public StubAuthenticator create() {
+            return new StubAuthenticator();
+        }
     }
 
     @Override
-    public StubAuthenticator create() {
-        return new StubAuthenticator();
+    public void init(SmbConfig config) {
     }
-  }
 
-  @Override
-  public void init(SmbConfig config) {
+    @Override
+    public boolean supports(AuthenticationContext context) {
+        return true;
+    }
 
-  }
-
-  @Override
-  public boolean supports(AuthenticationContext context) {
-      return true;
-  }
-
-  @Override
-  public AuthenticateResponse authenticate(AuthenticationContext context, byte[] gssToken, ConnectionContext connectionContext) throws IOException {
-    AuthenticateResponse resp = new AuthenticateResponse(new RawToken(new byte[0]));
-    resp.setSessionKey(ByteArrayUtils.parseHex("09921d4431b171b977370bf8910900f9"));
-    return resp;
-  }
+    @Override
+    public AuthenticateResponse authenticate(AuthenticationContext context, byte[] gssToken,
+            ConnectionContext connectionContext) throws IOException {
+        AuthenticateResponse resp = new AuthenticateResponse(new RawToken(new byte[0]));
+        resp.setSessionKey(ByteArrayUtils.parseHex("09921d4431b171b977370bf8910900f9"));
+        return resp;
+    }
 }

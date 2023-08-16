@@ -57,7 +57,7 @@ public class StubTransportLayerFactory<D extends PacketData<?>, P extends Packet
             this.receiver = receiver;
             if (this.receiver instanceof Connection) {
                 ((Connection) this.receiver).setMessageConverter(new StubMessageConverter());
-              }
+            }
 
             this.processPacket = processPacket;
         }
