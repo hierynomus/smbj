@@ -15,14 +15,14 @@
  */
 package com.hierynomus.smbj
 
-import com.hierynomus.smbj.connection.BasicPacketProcessor
-import com.hierynomus.smbj.connection.StubTransportLayerFactory
+import com.hierynomus.smbj.testing.PacketProcessor.DefaultPacketProcessor
+import com.hierynomus.smbj.testing.StubTransportLayerFactory
 import spock.lang.Specification
 
 class SMBClientSpec extends Specification {
 
-  def processor = new BasicPacketProcessor({ req -> null })
-  def config = SmbConfig.builder().withTransportLayerFactory(new StubTransportLayerFactory(processor.&processPacket)).build()
+  def processor = new DefaultPacketProcessor()
+  def config = SmbConfig.builder().withTransportLayerFactory(new StubTransportLayerFactory(processor)).build()
 
   def "should return same connection for same host/port combo"() {
     given:

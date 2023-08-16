@@ -35,18 +35,22 @@ import com.hierynomus.smbj.event.SMBEvent
 import com.hierynomus.smbj.event.SMBEventBus
 import com.hierynomus.smbj.event.SessionLoggedOff
 import com.hierynomus.protocol.transport.TransportException
+import com.hierynomus.smbj.testing.PacketProcessor.NoOpPacketProcessor
+import com.hierynomus.smbj.testing.PacketProcessor.DefaultPacketProcessor
+import com.hierynomus.smbj.testing.StubAuthenticator
+import com.hierynomus.smbj.testing.StubTransportLayerFactory
 import net.engio.mbassy.listener.Handler
 import spock.lang.Specification
 
 class ConnectionSpec extends Specification {
 
   def bus = new SMBEventBus()
-  def packetProcessor = { req -> null }
+  def packetProcessor = new NoOpPacketProcessor()
   def config = smbConfig(packetProcessor)
 
   private SmbConfig smbConfig(packetProcessor) {
     SmbConfig.builder()
-      .withTransportLayerFactory(new StubTransportLayerFactory(new BasicPacketProcessor(packetProcessor).&processPacket))
+      .withTransportLayerFactory(new StubTransportLayerFactory(new DefaultPacketProcessor().wrap(packetProcessor)))
       .withAuthenticators(new StubAuthenticator.Factory())
       .build()
   }
@@ -150,41 +154,6 @@ class ConnectionSpec extends Specification {
 
     then:
     !(conn.pathResolver instanceof DFSPathResolver)
-  }
-
-  def "should remove server from serverlist if identification changed"() {
-    given:
-    def sent = false
-    config = smbConfig({ req ->
-      req = req.packet
-      if (!sent && req instanceof SMB2NegotiateRequest) {
-        sent = true
-        def response = new SMB2NegotiateResponse()
-        response.header.message = SMB2MessageCommandCode.SMB2_NEGOTIATE
-        response.header.statusCode = NtStatus.STATUS_SUCCESS.value
-        response.dialect = SMB2Dialect.SMB_2_1
-        response.systemTime = FileTime.now();
-        response.serverGuid = UUID.fromString("ffeeddcc-bbaa-9988-7766-554433221100")
-        return response
-      }
-    })
-    client = new SMBClient(config)
-
-    when:
-    def conn = client.connect("foo")
-    conn.close()
-
-    conn = client.connect("foo")
-
-    then:
-    thrown(TransportException)
-
-    when:
-    client.getServerList().unregister("foo")
-    conn = client.connect("foo")
-
-    then:
-    noExceptionThrown()
   }
 
   def "should add DFS path resolver if server supports DFS"() {

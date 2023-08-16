@@ -25,6 +25,9 @@ import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.event.ConnectionClosed
 import com.hierynomus.smbj.event.SMBEventBus
+import com.hierynomus.smbj.testing.PacketProcessor.DefaultPacketProcessor
+import com.hierynomus.smbj.testing.StubAuthenticator
+import com.hierynomus.smbj.testing.StubTransportLayerFactory
 import spock.lang.Specification
 
 class ProtocolNegotiatorSpec extends Specification {
@@ -32,7 +35,7 @@ class ProtocolNegotiatorSpec extends Specification {
 
   private SmbConfig buildConfig(SmbConfig.Builder builder, packetProcessor) {
     builder
-      .withTransportLayerFactory(new StubTransportLayerFactory(new BasicPacketProcessor(packetProcessor).&processPacket))
+      .withTransportLayerFactory(new StubTransportLayerFactory(new DefaultPacketProcessor().wrap(packetProcessor)))
       .withAuthenticators(new StubAuthenticator.Factory())
       .build()
   }

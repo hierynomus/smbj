@@ -80,7 +80,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     private SessionTable preauthSessionTable = new SessionTable();
     OutstandingRequests outstandingRequests = new OutstandingRequests();
     SequenceWindow sequenceWindow;
-    private SMB2MessageConverter smb2Converter = new SMB2MessageConverter();
+    private SMB2MessageConverter messageConverter = new SMB2MessageConverter();
     private PathResolver pathResolver;
 
     private final SMBClient client;
@@ -119,7 +119,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
                     new SMB2SignatureVerificationPacketHandler(sessionTable, signatory).setNext(
                         new SMB2CreditGrantingPacketHandler(sequenceWindow).setNext(
                             new SMB2AsyncResponsePacketHandler(outstandingRequests).setNext(
-                                new SMB2ProcessResponsePacketHandler(smb2Converter, outstandingRequests).setNext(
+                                new SMB2ProcessResponsePacketHandler(messageConverter, outstandingRequests).setNext(
                                     new SMB1PacketHandler().setNext(new DeadLetterPacketHandler()))))))));
     }
 
@@ -381,5 +381,9 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
 
     SessionTable getPreauthSessionTable() {
         return preauthSessionTable;
+    }
+
+    public void setMessageConverter(SMB2MessageConverter smb2Converter) {
+        this.messageConverter = smb2Converter;
     }
 }

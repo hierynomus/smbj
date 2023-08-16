@@ -48,6 +48,10 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
         maximalAccess = toEnumSet(buffer.readUInt32(), AccessMask.class); // MaximalAccess (4 bytes)
     }
 
+    public void setShareType(byte shareType) {
+        this.shareType = shareType;
+    }
+
     /**
      * Whether the ShareType returned is SMB2_SHARE_TYPE_DISK (0x01)
      *
@@ -79,8 +83,16 @@ public class SMB2TreeConnectResponse extends SMB2Packet {
         return shareFlags;
     }
 
+    public void setShareFlags(Set<SMB2ShareFlags> shareFlags) {
+        this.shareFlags = shareFlags;
+    }
+
     public Set<SMB2ShareCapabilities> getCapabilities() {
         return capabilities;
+    }
+
+    public void setCapabilities(Set<SMB2ShareCapabilities> capabilities) {
+        this.capabilities = capabilities;
     }
 
     public Set<AccessMask> getMaximalAccess() {

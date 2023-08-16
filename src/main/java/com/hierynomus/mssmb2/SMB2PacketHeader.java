@@ -107,7 +107,7 @@ public class SMB2PacketHeader implements SMBHeader {
         this.messageId = messageId;
     }
 
-    void setMessageType(SMB2MessageCommandCode messageType) {
+    public void setMessageType(SMB2MessageCommandCode messageType) {
         this.message = messageType;
     }
 
@@ -151,8 +151,16 @@ public class SMB2PacketHeader implements SMBHeader {
         this.creditRequest = creditRequest;
     }
 
+    public int getCreditRequest() {
+        return creditRequest;
+    }
+
     public int getCreditResponse() {
         return creditResponse;
+    }
+
+    public void setCreditResponse(int creditResponse) {
+        this.creditResponse = creditResponse;
     }
 
     public void setAsyncId(long asyncId) {
