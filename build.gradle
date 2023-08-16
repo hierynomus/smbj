@@ -97,6 +97,7 @@ testing {
         runtimeOnly OBJENESIS
         implementation SPOCK_CORE
         implementation COMMONS_IO
+        implementation "org.mockito:mockito-core:5.4.0"
         runtimeOnly LOGBACK_CLASSIC
       }
 

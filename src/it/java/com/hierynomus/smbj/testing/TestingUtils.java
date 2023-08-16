@@ -15,8 +15,6 @@
  */
 package com.hierynomus.smbj.testing;
 
-import java.util.function.Consumer;
-
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.connection.Connection;

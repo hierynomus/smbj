@@ -114,6 +114,10 @@ public class PacketEncryptor {
         return b.getCompactData();
     }
 
+    public void setCipher(SMB3EncryptionCipher cipher) {
+        this.cipher = cipher;
+    }
+
     public class EncryptedPacketWrapper extends SMB2Packet {
         private final SMB2Packet packet;
         private final SecretKey encryptionKey;

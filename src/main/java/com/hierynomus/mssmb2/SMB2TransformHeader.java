@@ -29,7 +29,7 @@ import com.hierynomus.smbj.common.Check;
  * The SMB2 TRANSFORM_HEADER is only valid for the SMB 3.x dialect family.
  */
 public class SMB2TransformHeader implements SMBHeader {
-    private static final byte[] ENCRYPTED_PROTOCOL_ID = {(byte) 0xFD, 'S', 'M', 'B'};
+    public static final byte[] ENCRYPTED_PROTOCOL_ID = {(byte) 0xFD, 'S', 'M', 'B'};
     private int headerStartPosition;
     private byte[] signature;
     private byte[] nonce;
