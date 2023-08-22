@@ -137,4 +137,8 @@ public class SMB2NegotiateRequest extends SMB2Packet {
             buffer.putReserved4(); // Capabilities (4 bytes)
         }
     }
+
+    public List<SMB2NegotiateContext> getNegotiateContextList() {
+        return negotiateContextList;
+    }
 }

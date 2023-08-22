@@ -13,23 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.msdtyp
+package com.hierynomus.msdtyp;
 
-import com.hierynomus.smb.SMBBuffer
-import spock.lang.Specification
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class MsDataTypesSpec extends Specification {
+import java.util.UUID;
 
-  def "should read/write UUID correctly"() {
-    given:
-    def buffer = new SMBBuffer()
-    def uuid = UUID.fromString("fbbd1895-af40-48a4-a183-8dabeb1e901a")
+import org.junit.jupiter.api.Test;
 
-    when:
-    MsDataTypes.putGuid(uuid, buffer)
+import com.hierynomus.smb.SMBBuffer;
 
-    then:
-    buffer.printHex() == "95 18 bd fb 40 af a4 48 a1 83 8d ab eb 1e 90 1a"
-    MsDataTypes.readGuid(buffer) == uuid
-  }
+public class MsDataTypesTest {
+    @Test
+    public void shouldReadWriteUUIDCorrect() throws Exception {
+        SMBBuffer buffer = new SMBBuffer();
+        UUID uuid = UUID.fromString("fbbd1895-af40-48a4-a183-8dabeb1e901a");
+
+        MsDataTypes.putGuid(uuid, buffer);
+        assertEquals("95 18 bd fb 40 af a4 48 a1 83 8d ab eb 1e 90 1a", buffer.printHex());
+        assertEquals(uuid, MsDataTypes.readGuid(buffer));
+    }
 }

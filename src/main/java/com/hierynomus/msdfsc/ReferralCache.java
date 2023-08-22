@@ -196,7 +196,7 @@ public class ReferralCache {
 
     }
 
-    private static class ReferralCacheNode {
+    static class ReferralCacheNode {
         static final AtomicReferenceFieldUpdater<ReferralCacheNode, ReferralCacheEntry> ENTRY_UPDATER = AtomicReferenceFieldUpdater.newUpdater(ReferralCacheNode.class, ReferralCacheEntry.class, "entry");
 
         private final String pathComponent;
@@ -249,6 +249,14 @@ public class ReferralCache {
         void clear() {
             this.childNodes.clear();
             ENTRY_UPDATER.set(this, null);
+        }
+
+        String getPathComponent() {
+            return pathComponent;
+        }
+
+        Map<String, ReferralCacheNode> getChildNodes() {
+            return childNodes;
         }
     }
 }
