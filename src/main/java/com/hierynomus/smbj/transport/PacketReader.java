@@ -36,11 +36,11 @@ public abstract class PacketReader<D extends PacketData<?>> implements Runnable 
     private Thread thread;
 
     public PacketReader(String host, InputStream in, PacketReceiver<D> handler) {
-    	if (in instanceof BufferedInputStream) {
-    		this.in = in;
-    	} else {
-    		this.in = new BufferedInputStream(in);
-    	}
+        if (in instanceof BufferedInputStream) {
+            this.in = in;
+        } else {
+            this.in = new BufferedInputStream(in);
+        }
         this.handler = handler;
         this.thread = new Thread(this, "Packet Reader for " + host);
         this.thread.setDaemon(true);
