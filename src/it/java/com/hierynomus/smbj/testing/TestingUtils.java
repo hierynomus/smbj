@@ -15,17 +15,74 @@
  */
 package com.hierynomus.smbj.testing;
 
-import com.hierynomus.smbj.SMBClient;
+import java.util.Random;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.params.provider.Arguments;
+
+import com.hierynomus.msfscc.fileinformation.FileStandardInformation;
+import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.security.bc.BCSecurityProvider;
 import com.hierynomus.smbj.SmbConfig;
-import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.share.File;
 
 public class TestingUtils {
-    public static void withConnectedClient(SmbConfig config, ConsumerWithError<Connection> f) throws Exception {
-        try (SMBClient client = new SMBClient(config)) {
-            try (Connection connection = client.connect("127.0.0.1")) {
-                f.accept(connection);
-            }
-        }
+    public static final Random RANDOM = new Random();
+
+    public static final AuthenticationContext DEFAULT_AUTHENTICATION_CONTEXT = new AuthenticationContext("smbj",
+            "smbj".toCharArray(), null);
+
+    public static SmbConfig config(SMB2Dialect dialect, boolean encrypt, boolean signing) {
+        return SmbConfig.builder().withDialects(dialect).withEncryptData(encrypt).withSigningRequired(signing)
+                .withMultiProtocolNegotiate(true).withDfsEnabled(true).withSecurityProvider(new BCSecurityProvider())
+                .build();
+    }
+
+    public static Stream<SmbConfig> allValidDialectCombinations() {
+        return Stream.of(
+                config(SMB2Dialect.SMB_2_1, false, false),
+                config(SMB2Dialect.SMB_2_1, false, true),
+                config(SMB2Dialect.SMB_3_0, false, false),
+                config(SMB2Dialect.SMB_3_0, false, true),
+                config(SMB2Dialect.SMB_3_0, true, false),
+                config(SMB2Dialect.SMB_3_0, true, true),
+                config(SMB2Dialect.SMB_3_0_2, false, false),
+                config(SMB2Dialect.SMB_3_0_2, false, true),
+                config(SMB2Dialect.SMB_3_0_2, true, false),
+                config(SMB2Dialect.SMB_3_0_2, true, true),
+                config(SMB2Dialect.SMB_3_1_1, false, false),
+                config(SMB2Dialect.SMB_3_1_1, false, true),
+                config(SMB2Dialect.SMB_3_1_1, true, false),
+                config(SMB2Dialect.SMB_3_1_1, true, true));
+    }
+
+    public static Stream<Arguments> validConfigs() {
+        return allValidDialectCombinations().map(c -> {
+            return Arguments.of(c);
+        });
+    }
+
+    public static Stream<Arguments> defaultTestingConfig() {
+        return Stream.of(Arguments.of(config(SMB2Dialect.SMB_3_1_1, true, true)));
+    }
+    public static Stream<Arguments> dfsConfig() {
+        return Stream.of(Arguments.of(config(SMB2Dialect.SMB_2_1, false, true)));
+    }
+
+    public static Stream<Arguments> loggedIn() {
+        return allValidDialectCombinations().map(c -> {
+            return Arguments.of(c, DEFAULT_AUTHENTICATION_CONTEXT);
+        });
+    }
+
+
+    public static String randomFileName() {
+        return "test-" + RANDOM.nextInt(1000000) + ".txt";
+    }
+
+    public static long endOfFile(File f) {
+        return f.getFileInformation(FileStandardInformation.class).getEndOfFile();
     }
 
     public interface ConsumerWithError<T> {
