@@ -43,7 +43,7 @@ public class ConnectionTest {
 
     private static SmbConfig config(PacketProcessor processor) {
         return SmbConfig.builder()
-                .withTransportLayerFactory(new StubTransportLayerFactory(new DefaultPacketProcessor().wrap(processor)))
+                .withTransportLayerFactory(new StubTransportLayerFactory<>(new DefaultPacketProcessor().wrap(processor)))
                 .withAuthenticators(new StubAuthenticator.Factory()).build();
     }
 

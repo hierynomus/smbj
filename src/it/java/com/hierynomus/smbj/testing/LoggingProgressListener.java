@@ -13,15 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj
+package com.hierynomus.smbj.testing;
 
-import org.slf4j.LoggerFactory
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-class LoggingProgressListener implements ProgressListener {
-  def logger = LoggerFactory.getLogger(LoggingProgressListener)
+import com.hierynomus.smbj.ProgressListener;
 
-  @Override
-  void onProgressChanged(long numBytes, long totalBytes) {
-    logger.info("R/W {} bytes, total = {} bytes", numBytes, totalBytes)
-  }
+public class LoggingProgressListener implements ProgressListener {
+    private static final Logger logger = LoggerFactory.getLogger(LoggingProgressListener.class);
+
+    @Override
+    public void onProgressChanged(long numBytes, long totalBytes) {
+        logger.info("R/W {} bytes, total = {} bytes", numBytes, totalBytes);
+    }
+
 }
