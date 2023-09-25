@@ -18,6 +18,7 @@ package com.hierynomus.smbj.connection;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static com.hierynomus.smbj.testing.Utils.*;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -33,19 +34,9 @@ import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
-import com.hierynomus.smbj.testing.PacketProcessor;
-import com.hierynomus.smbj.testing.StubAuthenticator;
-import com.hierynomus.smbj.testing.StubTransportLayerFactory;
-import com.hierynomus.smbj.testing.PacketProcessor.DefaultPacketProcessor;
 import com.hierynomus.smbj.testing.PacketProcessor.NoOpPacketProcessor;;
 
 public class ConnectionTest {
-
-    private static SmbConfig config(PacketProcessor processor) {
-        return SmbConfig.builder()
-                .withTransportLayerFactory(new StubTransportLayerFactory<>(new DefaultPacketProcessor().wrap(processor)))
-                .withAuthenticators(new StubAuthenticator.Factory()).build();
-    }
 
     @Test
     public void shouldUnregisterServerWhenConnectionClosed() throws Exception {

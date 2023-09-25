@@ -158,6 +158,12 @@ The implementation is based on the following specifications:
 
 == Changelog
 
+=== 0.13.0 <-- UPCOMING
+* Use FILE_OPEN_IF if no SMB2CreateDisposition provided (Fixes https://github.com/hierynomus/smbj/issues/786[#786])
+* Integration tests rewritten to JUnit Jupiter and TestContainers
+* Use BufferedInputStream to read Socket (Merged https://github.com/hierynomus/smbj/issues/795[#795])
+* Clear serverList when last connection closed (Merged https://github.com/hierynomus/smbj/issues/719[#719])
+
 === 0.12.2 (2023-08-07)
 * Added missing applicationKey getter to SessionContext (Merged https://github.com/hierynomus/smbj/pulls/776[#776])
 * Fix error with anonymous authentication (Fixes https://github.com/hierynomus/smbj/issues/779[#779])
