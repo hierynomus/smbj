@@ -90,4 +90,12 @@ public class SMB2CreateResponse extends SMB2Packet {
     public SMB2FileId getFileId() {
         return fileId;
     }
+
+    public void setFileAttributes(Set<FileAttributes> fileAttributes) {
+        this.fileAttributes = fileAttributes;
+    }
+
+    public void setFileId(SMB2FileId fileId) {
+        this.fileId = fileId;
+    }
 }

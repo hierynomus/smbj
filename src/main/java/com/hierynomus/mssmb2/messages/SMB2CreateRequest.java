@@ -53,7 +53,7 @@ public class SMB2CreateRequest extends SMB2Packet {
         this.accessMask = accessMask;
         this.fileAttributes = ensureNotNull(fileAttributes, FileAttributes.class);
         this.shareAccess = ensureNotNull(shareAccess, SMB2ShareAccess.class);
-        this.createDisposition = ensureNotNull(createDisposition, SMB2CreateDisposition.FILE_SUPERSEDE);
+        this.createDisposition = ensureNotNull(createDisposition, SMB2CreateDisposition.FILE_OPEN_IF);
         this.createOptions = ensureNotNull(createOptions, SMB2CreateOptions.class);
         this.path = path;
     }
@@ -62,7 +62,7 @@ public class SMB2CreateRequest extends SMB2Packet {
     protected void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putByte((byte) 0); // SecurityFlags (1 byte) - Reserved
-        buffer.putByte((byte) 0);  // RequestedOpLockLevel (1 byte) - None
+        buffer.putByte((byte) 0); // RequestedOpLockLevel (1 byte) - None
         buffer.putUInt32(impersonationLevel.getValue()); // ImpersonationLevel (4 bytes) - Identification
         buffer.putReserved(8); // SmbCreateFlags (8 bytes)
         buffer.putReserved(8); // Reserved (8 bytes)
@@ -94,5 +94,9 @@ public class SMB2CreateRequest extends SMB2Packet {
         buffer.putUInt32(0); // CreateContextsLength (4 bytes)
 
         buffer.putRawBytes(nameBytes);
+    }
+
+    public SMB2CreateDisposition getCreateDisposition() {
+        return createDisposition;
     }
 }
