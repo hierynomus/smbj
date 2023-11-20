@@ -163,7 +163,7 @@ public class SMBSessionBuilder {
 
             SessionContext context = session.getSessionContext();
             processAuthenticationToken(ctx, response.getSecurityBuffer());
-            if (!ctx.authContext.isAnonymous() && !ctx.authContext.isGuest()) {
+            if (ctx.sessionKey != null) {
                 context.setSessionKey(new SecretKeySpec(ctx.sessionKey, HMAC_SHA256_ALGORITHM));
             }
             if (dialect == SMB2Dialect.SMB_3_1_1) {
