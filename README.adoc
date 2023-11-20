@@ -1,7 +1,7 @@
 = smbj - SMB2/SMB3 client library for Java
 Jeroen van Erp
 :smbj_groupid: com.hierynomus
-:smbj_version: 0.12.0
+:smbj_version: 0.13.0
 :source-highlighter: pygments
 
 To get started, have a look at one of the examples. Hopefully you will find the API pleasant to work with :)
@@ -158,7 +158,7 @@ The implementation is based on the following specifications:
 
 == Changelog
 
-=== 0.13.0 <-- UPCOMING
+=== 0.13.0 (2023-11-20)
 * Use FILE_OPEN_IF if no SMB2CreateDisposition provided (Fixes https://github.com/hierynomus/smbj/issues/786[#786])
 * Integration tests rewritten to JUnit Jupiter and TestContainers
 * Use BufferedInputStream to read Socket (Merged https://github.com/hierynomus/smbj/issues/795[#795])
