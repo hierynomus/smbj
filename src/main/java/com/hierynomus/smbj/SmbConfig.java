@@ -102,7 +102,7 @@ public final class SmbConfig {
                 .withClientGuid(UUID.randomUUID())
                 .withSecurityProvider(getDefaultSecurityProvider())
                 .withSocketFactory(new ProxySocketFactory())
-                .withSigningRequired(false)
+                .withSigningRequired(true)
                 .withDfsEnabled(false)
                 .withMultiProtocolNegotiate(false)
                 .withBufferSize(DEFAULT_BUFFER_SIZE)
@@ -113,7 +113,7 @@ public final class SmbConfig {
                 .withAuthenticators(getDefaultAuthenticators())
                 .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
                 .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig())
-                .withEncryptData(false);
+                .withEncryptData(true);
 
         return b;
     }
