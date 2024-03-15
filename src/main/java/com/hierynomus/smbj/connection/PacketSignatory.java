@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2PacketData;
 import com.hierynomus.mssmb2.SMB2PacketHeader;
+import com.hierynomus.mssmb2.messages.SMB2WriteRequest;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.security.Mac;
 import com.hierynomus.security.SecurityException;
@@ -41,21 +42,27 @@ public class PacketSignatory {
     private static final Logger logger = LoggerFactory.getLogger(PacketSignatory.class);
 
     private SecurityProvider securityProvider;
+    private final boolean signDataPackets;
 
-    PacketSignatory(SecurityProvider securityProvider) {
+    PacketSignatory(SecurityProvider securityProvider, final boolean signDataPackets) {
         this.securityProvider = securityProvider;
+        this.signDataPackets = signDataPackets;
     }
 
     void init() {
     }
 
     public SMB2Packet sign(SMB2Packet packet, SecretKey secretKey) {
-        if (secretKey != null) {
+        if ( secretKey!=null ) 
+        {
+        	if ( packet instanceof SMB2WriteRequest && this.signDataPackets==false )
+			{
+				return packet;
+			}
             return new SignedPacketWrapper(packet, secretKey);
-        } else {
-            logger.debug("Not wrapping {} as signed, as no key is set.", packet.getHeader().getMessage());
-            return packet;
-        }
+        } 
+        logger.debug("Not wrapping {} as signed, as no key is set.", packet.getHeader().getMessage());
+        return packet;
     }
 
     // TODO make session a packet handler which wraps the incoming packets

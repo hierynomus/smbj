@@ -32,7 +32,7 @@ public class PacketSignatoryTest {
                 (byte) 0x45, (byte) 0xce, (byte) 0x9e,
                 (byte) 0xf8, (byte) 0x69, (byte) 0xdf, (byte) 0xd3, (byte) 0xe2, (byte) 0xa8 },
             SMBSessionBuilder.HMAC_SHA256_ALGORITHM);
-    private PacketSignatory signatory = new PacketSignatory(new BCSecurityProvider());
+    private PacketSignatory signatory = new PacketSignatory(new BCSecurityProvider(), true);
 
     @Test
     public void shouldVerifySignatureOfNonSuccessPacket() throws Exception {

@@ -110,7 +110,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     private void init() {
         bus.subscribe(this);
         this.sequenceWindow = new SequenceWindow();
-        this.signatory = new PacketSignatory(config.getSecurityProvider());
+        this.signatory = new PacketSignatory(config.getSecurityProvider(), config.isSigningRequired());
         this.encryptor = new PacketEncryptor(config.getSecurityProvider());
 
         this.packetHandlerChain = new SMB3DecryptingPacketHandler(sessionTable, encryptor).setNext(
