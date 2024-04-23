@@ -15,10 +15,14 @@
  */
 package com.hierynomus.smbj.testcontainers;
 
-import java.nio.file.Paths;
-import java.util.concurrent.Future;
-import java.util.function.Consumer;
-
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.SmbConfig;
+import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.testing.TestingUtils.ConsumerWithError;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -26,17 +30,14 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.images.builder.dockerfile.DockerfileBuilder;
 import org.testcontainers.utility.DockerLoggerFactory;
 
-import com.hierynomus.smbj.SMBClient;
-import com.hierynomus.smbj.SmbConfig;
-import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.testing.TestingUtils.ConsumerWithError;
-
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
+import java.nio.file.Paths;
+import java.util.concurrent.Future;
+import java.util.function.Consumer;
 
 public class SambaContainer extends GenericContainer<SambaContainer> {
+
+    public static final SambaContainer INSTANCE = new SambaContainer.Builder().build();
+
     /**
      * A workaround for strange logger names of testcontainers. They contain no
      * dots, but contain slashes,

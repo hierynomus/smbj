@@ -15,17 +15,6 @@
  */
 package com.hierynomus.smbj;
 
-import static com.hierynomus.smbj.testing.TestingUtils.DEFAULT_AUTHENTICATION_CONTEXT;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.EnumSet;
-import java.util.List;
-
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
@@ -34,11 +23,21 @@ import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.testcontainers.SambaContainer;
 import com.hierynomus.smbj.testing.TestingUtils.ConsumerWithError;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.util.EnumSet;
+import java.util.List;
+
+import static com.hierynomus.smbj.testing.TestingUtils.DEFAULT_AUTHENTICATION_CONTEXT;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Testcontainers
 public class DfsIntegrationTest {
     @Container
-    private static final SambaContainer samba = new SambaContainer.Builder().build();
+    private static final SambaContainer samba = SambaContainer.INSTANCE;
 
     @ParameterizedTest(name = "should connect to DFS share")
     @MethodSource("com.hierynomus.smbj.testing.TestingUtils#dfsConfig")

@@ -15,10 +15,28 @@
  */
 package com.hierynomus.smbj;
 
-import static com.hierynomus.smbj.testing.TestingUtils.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import com.hierynomus.msdtyp.AccessMask;
+import com.hierynomus.mserref.NtStatus;
+import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
+import com.hierynomus.msfscc.fileinformation.FileIdFullDirectoryInformation;
+import com.hierynomus.msfscc.fileinformation.FileInternalInformation;
+import com.hierynomus.mssmb2.SMB2CreateDisposition;
+import com.hierynomus.mssmb2.SMB2ShareAccess;
+import com.hierynomus.mssmb2.SMBApiException;
+import com.hierynomus.smbj.io.ArrayByteChunkProvider;
+import com.hierynomus.smbj.io.InputStreamByteChunkProvider;
+import com.hierynomus.smbj.share.DiskEntry;
+import com.hierynomus.smbj.share.DiskShare;
+import com.hierynomus.smbj.share.File;
+import com.hierynomus.smbj.testcontainers.SambaContainer;
+import com.hierynomus.smbj.testing.LoggingProgressListener;
+import com.hierynomus.smbj.testing.TestingUtils;
+import org.apache.commons.io.IOUtils;
+import org.assertj.core.api.InstanceOfAssertFactories;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileWriter;
@@ -33,37 +51,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import org.apache.commons.io.IOUtils;
-import org.assertj.core.api.InstanceOfAssertFactories;
-import org.assertj.core.api.InstanceOfAssertFactory;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-
-import com.hierynomus.msdtyp.AccessMask;
-import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
-import com.hierynomus.msfscc.fileinformation.FileIdFullDirectoryInformation;
-import com.hierynomus.msfscc.fileinformation.FileInternalInformation;
-import com.hierynomus.msfscc.fileinformation.FileStandardInformation;
-import com.hierynomus.mssmb2.SMB2CreateDisposition;
-import com.hierynomus.mssmb2.SMB2ShareAccess;
-import com.hierynomus.mssmb2.SMBApiException;
-import com.hierynomus.smbj.io.ArrayByteChunkProvider;
-import com.hierynomus.smbj.io.InputStreamByteChunkProvider;
-import com.hierynomus.smbj.share.DiskEntry;
-import com.hierynomus.smbj.share.DiskShare;
-import com.hierynomus.smbj.share.File;
-import com.hierynomus.smbj.testcontainers.SambaContainer;
-import com.hierynomus.smbj.testing.LoggingProgressListener;
-import com.hierynomus.smbj.testing.TestingUtils;
+import static com.hierynomus.smbj.testing.TestingUtils.DEFAULT_AUTHENTICATION_CONTEXT;
+import static com.hierynomus.smbj.testing.TestingUtils.endOfFile;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Testcontainers
 public class SMB2FileIntegrationTest {
 
     @Container
-    private static final SambaContainer samba = new SambaContainer.Builder().build();
+    private static final SambaContainer samba = SambaContainer.INSTANCE;
 
     @ParameterizedTest(name = "should open file")
     @MethodSource("com.hierynomus.smbj.testing.TestingUtils#defaultTestingConfig")
