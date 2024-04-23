@@ -142,4 +142,16 @@ class SmbPathTest {
         assertEquals("b\\c.dat", SmbPath.of(fs, null, "a", "b", "c.dat").subpath(1, 3).toString());
         assertEquals("c.dat", SmbPath.of(fs, null, "a", "b", "c.dat").subpath(2, 3).toString());
     }
+    
+    @Test
+    void resolvesPath() {
+        assertEquals("\\c\\file.txt", fsRoot.resolve(SmbPath.of(fs, fsRoot, "c", "file.txt")).toString());
+        assertEquals("\\c\\file.txt", fsRoot.resolve(SmbPath.of(fs, null, "c", "file.txt")).toString());
+
+        assertEquals("\\c\\file.txt", SmbPath.of(fs, fsRoot, "a", "b").resolve(SmbPath.of(fs, fsRoot, "c", "file.txt")).toString());
+        assertEquals("\\a\\b\\c\\file.txt", SmbPath.of(fs, fsRoot, "a", "b").resolve(SmbPath.of(fs, null, "c", "file.txt")).toString());
+
+        assertEquals("\\c\\file.txt", SmbPath.of(fs, null, "a", "b").resolve(SmbPath.of(fs, fsRoot, "c", "file.txt")).toString());
+        assertEquals("a\\b\\c\\file.txt", SmbPath.of(fs, null, "a", "b").resolve(SmbPath.of(fs, null, "c", "file.txt")).toString());
+    }
 }

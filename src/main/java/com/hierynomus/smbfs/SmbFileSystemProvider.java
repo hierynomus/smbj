@@ -15,6 +15,12 @@
  */
 package com.hierynomus.smbfs;
 
+import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.session.Session;
+
+import java.io.IOException;
 import java.net.URI;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.AccessMode;
@@ -34,13 +40,27 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import static com.hierynomus.smbfs.SmbPath.requireSmbPath;
 import static com.hierynomus.smbfs.ToBeImplementedException.toBeImplemented;
 
 public class SmbFileSystemProvider extends FileSystemProvider {
 
     private static final String SCHEME = "smb";
 
+    private final Factory factory;
+
     private final Map<String, SmbFileSystem> fileSystems = new HashMap<>();
+
+    /**
+     * Constructor used by Service locator SPI.
+     */
+    public SmbFileSystemProvider() {
+        this(new FactoryImpl());
+    }
+
+    SmbFileSystemProvider(Factory factory) {
+        this.factory = factory;
+    }
 
     @Override
     public String getScheme() {
@@ -48,17 +68,29 @@ public class SmbFileSystemProvider extends FileSystemProvider {
     }
 
     @Override
-    public SmbFileSystem newFileSystem(URI uri, Map<String, ?> env) {
+    public SmbFileSystem newFileSystem(URI uri, Map<String, ?> env) throws IOException {
         String key = getKey(uri);
 
         synchronized (fileSystems) {
             if (fileSystems.containsKey(key))
                 throw new FileSystemAlreadyExistsException(key);
 
-            SmbFileSystem fileSystem = new SmbFileSystem(this);
+            AuthenticationContext context = createAuthenticationContext(uri);
+
+            int port = uri.getPort();
+            if (port < 0)
+                port = SMBClient.DEFAULT_PORT;
+
+            SmbFileSystem fileSystem = factory.create(this, extractHost(uri), port, context, extractShareName(uri));
             fileSystems.put(key, fileSystem);
             return fileSystem;
         }
+    }
+
+    private AuthenticationContext createAuthenticationContext(URI uri) {
+        String user = extractUser(uri);
+        String password = extractPassword(uri);
+        return new AuthenticationContext(user, password.toCharArray(), null);
     }
 
     @Override
@@ -91,6 +123,19 @@ public class SmbFileSystemProvider extends FileSystemProvider {
             return userInfo.substring(0, p);
 
         return userInfo;
+    }
+
+    private String extractPassword(URI uri) {
+        String userInfo = uri.getUserInfo();
+        if (userInfo == null || userInfo.isEmpty()) {
+            throw new InvalidShareException(uri.toString());
+        }
+
+        int p = userInfo.indexOf(':');
+        if (p >= 0)
+            return userInfo.substring(p + 1);
+
+        return null;
     }
 
     private String extractHost(URI uri) {
@@ -137,8 +182,11 @@ public class SmbFileSystemProvider extends FileSystemProvider {
     }
 
     @Override
-    public DirectoryStream<Path> newDirectoryStream(Path dir, DirectoryStream.Filter<? super Path> filter) {
-        throw toBeImplemented();
+    public DirectoryStream<Path> newDirectoryStream(Path dir, DirectoryStream.Filter<? super Path> filter)
+        throws IOException {
+
+        return requireSmbPath(dir).getFileSystem()
+            .newDirectoryStream(dir, filter);
     }
 
     @Override
@@ -199,5 +247,30 @@ public class SmbFileSystemProvider extends FileSystemProvider {
     @Override
     public void setAttribute(Path path, String attribute, Object value, LinkOption... options) {
         throw toBeImplemented();
+    }
+
+    interface Factory {
+        SmbFileSystem create(SmbFileSystemProvider provider, String host, int port, AuthenticationContext context,
+                             String shareName) throws IOException;
+    }
+
+    private static class FactoryImpl implements Factory {
+
+        private final SMBClient smbClient;
+
+        FactoryImpl() {
+            this.smbClient = new SMBClient();
+        }
+
+
+        @Override
+        public SmbFileSystem create(SmbFileSystemProvider provider, String host, int port,
+                                    AuthenticationContext context, String shareName) throws IOException {
+
+            Connection connection = smbClient.connect(host, port);
+            Session session = connection.authenticate(context);
+
+            return new SmbFileSystem(provider, connection, session, shareName);
+        }
     }
 }

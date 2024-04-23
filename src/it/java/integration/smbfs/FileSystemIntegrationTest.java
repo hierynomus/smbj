@@ -19,6 +19,7 @@ import com.hierynomus.smbfs.SmbFileSystem;
 import com.hierynomus.smbj.testcontainers.SambaContainer;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.nio.file.FileSystem;
 
@@ -27,6 +28,7 @@ import static java.util.Collections.emptyMap;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+@Testcontainers
 class FileSystemIntegrationTest {
 
     @Container

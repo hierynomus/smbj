@@ -21,15 +21,21 @@ import com.hierynomus.smbj.testcontainers.SambaContainer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.StreamSupport.stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@Testcontainers
 class DirectoryListingIntegrationTest {
 
     @Container
@@ -43,14 +49,37 @@ class DirectoryListingIntegrationTest {
     }
 
     @Test
-    void returnsRootDirectories() {
+    void returnsRootDirectories() throws Exception {
         try (SmbFileSystem fileSystem = provider.newFileSystem(samba.publicUri(), emptyMap())) {
 
             List<String> dirs = stream(fileSystem.getRootDirectories().spliterator(), false)
-                .map(Path::toString)
+                .map(Object::toString)
                 .collect(toList());
 
             assertEquals(List.of("\\"), dirs);
+        }
+    }
+
+    @Test
+    void listsDirectories() throws Exception {
+        try (SmbFileSystem fileSystem = provider.newFileSystem(samba.publicUri(), emptyMap())) {
+
+            List<String> actual = list(rootDirectory(fileSystem));
+
+            List<String> expected = List.of("\\folder", "\\test.txt");
+            assertEquals(expected, actual);
+        }
+    }
+
+    private static Path rootDirectory(SmbFileSystem fileSystem) {
+        return fileSystem.getRootDirectories().iterator().next();
+    }
+
+    private List<String> list(Path path) throws IOException {
+        try (DirectoryStream<Path> stream = provider.newDirectoryStream(path, f -> true)) {
+            return StreamSupport.stream(stream.spliterator(), false)
+                .map(Path::toString)
+                .collect(Collectors.toList());
         }
     }
 }

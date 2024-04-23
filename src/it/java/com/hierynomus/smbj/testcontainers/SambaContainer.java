@@ -134,7 +134,7 @@ public class SambaContainer extends GenericContainer<SambaContainer> {
     }
 
     public URI publicUri() {
-        return URI.create("smb://" + USER + ":" + PASSWORD + "@" + getHost() + "/public");
+        return URI.create("smb://" + USER + ":" + PASSWORD + "@" + getHost() + ":" + getFirstMappedPort() + "/public");
     }
 }
 

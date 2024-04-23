@@ -15,12 +15,16 @@
  */
 package com.hierynomus.smbfs;
 
+import com.hierynomus.smbj.SMBClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.net.URI;
 import java.nio.file.FileSystem;
@@ -28,15 +32,31 @@ import java.nio.file.FileSystemAlreadyExistsException;
 import java.nio.file.FileSystemNotFoundException;
 
 import static java.util.Collections.emptyMap;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class SmbFileSystemProviderTest {
 
     private final URI uri = URI.create("smb://user:password@server/share");
-    private final SmbFileSystemProvider provider = new SmbFileSystemProvider();
+
+    @Mock
+    private SmbFileSystemProvider.Factory factory;
+
+    @Mock
+    private SmbFileSystem fileSystem;
+
+    private SmbFileSystemProvider provider;
+
+    @BeforeEach
+    void setUp() {
+        provider = new SmbFileSystemProvider(factory);
+    }
 
     @Nested
     class WithoutFileSystem {
@@ -49,9 +69,9 @@ class SmbFileSystemProviderTest {
 
         @ParameterizedTest
         @ValueSource(strings = {
-            "smb://user:pw@/share",
-            "smb://user:pw@server/",
-            "smb://server/share",
+                "smb://user:pw@/share",
+                "smb://user:pw@server/",
+                "smb://server/share",
         })
         void throwsInvalidShareExceptionIfInvalidUri(URI uri) {
 
@@ -60,21 +80,28 @@ class SmbFileSystemProviderTest {
         }
 
         @Test
-        void createsFileSystem() {
+        void createsFileSystem() throws Exception {
+            when(factory.create(eq(provider), eq("server"), eq(SMBClient.DEFAULT_PORT), any(), eq("share")))
+                .thenReturn(fileSystem);
+
             SmbFileSystem fs = provider.newFileSystem(uri, emptyMap());
 
-            assertNotNull(fs);
+            assertSame(fileSystem, fs);
         }
     }
 
     @Nested
     class WithFileSystem {
 
-        private SmbFileSystem fileSystem;
+        @Mock
+        private SmbFileSystem fileSystem2;
 
         @BeforeEach
-        void setUp() {
-            fileSystem = provider.newFileSystem(uri, emptyMap());
+        void setUp() throws Exception {
+            when(factory.create(eq(provider), any(), anyInt(), any(), any()))
+                .thenReturn(fileSystem, fileSystem2);
+
+            provider.newFileSystem(uri, emptyMap());
         }
 
         @Test
@@ -85,15 +112,14 @@ class SmbFileSystemProviderTest {
 
         @ParameterizedTest
         @ValueSource(strings = {
-            "smb://user:password@server2/share",
-            "smb://user2:password@server/share",
-            "smb://user:password@server/share2",
+                "smb://user:password@server2/share",
+                "smb://user2:password@server/share",
+                "smb://user:password@server/share2",
         })
-        void createsUnrelatedFilesystems(URI uri) {
-
+        void createsUnrelatedFilesystems(URI uri) throws Exception {
             SmbFileSystem other = provider.newFileSystem(uri, emptyMap());
 
-            assertNotSame(fileSystem, other);
+            assertSame(fileSystem2, other);
         }
 
         @Test
@@ -112,8 +138,7 @@ class SmbFileSystemProviderTest {
         }
 
         @Test
-        void removesFileSystem() {
-
+        void removesFileSystem() throws Exception {
             provider.removeFileSystem(fileSystem);
 
             assertThrows(FileSystemNotFoundException.class, () -> provider.getFileSystem(uri));

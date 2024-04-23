@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.ProviderMismatchException;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 import static com.hierynomus.smbfs.ToBeImplementedException.toBeImplemented;
+import static java.util.Objects.requireNonNull;
 
 public class SmbPath implements Path {
 
@@ -137,13 +139,22 @@ public class SmbPath implements Path {
     }
 
     @Override
-    public SmbPath resolve(Path other) {
-        throw toBeImplemented();
+    public SmbPath resolve(Path suffix) {
+        SmbPath other = requireSmbPath(suffix);
+
+        if (other.isAbsolute())
+            return other;
+
+        List<String> elements = new ArrayList<>();
+        if (this.elements != null)
+            elements.addAll(this.elements);
+        elements.addAll(other.elements);
+        return withAbsolute(elements);
     }
 
     @Override
     public SmbPath resolve(String other) {
-        throw toBeImplemented();
+        return resolve(getFileSystem().getPath(other));
     }
 
     @Override
@@ -231,6 +242,8 @@ public class SmbPath implements Path {
     }
 
     private SmbPath withAbsolute(List<String> elements) {
+        if (this.elements == null)
+            return of(fileSystem, this, elements);
         return of(fileSystem, root, elements);
     }
 
@@ -251,5 +264,12 @@ public class SmbPath implements Path {
         elements.addAll(Arrays.asList(more));
 
         return of(fileSystem, rootPath, elements);
+    }
+
+    static SmbPath requireSmbPath(Path path) {
+        if (!(requireNonNull(path) instanceof SmbPath))
+            throw new ProviderMismatchException();
+
+        return (SmbPath) path;
     }
 }
