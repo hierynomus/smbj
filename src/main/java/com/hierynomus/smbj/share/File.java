@@ -15,15 +15,6 @@
  */
 package com.hierynomus.smbj.share;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.Future;
-
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.fileinformation.FileEndOfFileInformation;
 import com.hierynomus.msfscc.fileinformation.FileStandardInformation;
@@ -42,6 +33,15 @@ import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.io.ArrayByteChunkProvider;
 import com.hierynomus.smbj.io.ByteBufferByteChunkProvider;
 import com.hierynomus.smbj.io.ByteChunkProvider;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.Future;
 
 public class File extends DiskEntry {
 
@@ -208,7 +208,7 @@ public class File extends DiskEntry {
      * @param fileOffset The offset, in bytes, into the file from which the data should be read
      * @return the actual number of bytes that were read; or -1 if the end of the file was reached
      */
-    public long read(ByteBuffer buffer, long fileOffset) {
+    public int read(ByteBuffer buffer, long fileOffset) {
         int remaining = buffer.remaining();
 
         SMB2ReadResponse response = share.read(fileId, fileOffset, remaining);
@@ -382,6 +382,16 @@ public class File extends DiskEntry {
         }
 
         return response;
+    }
+
+    /**
+     * Returns the length of the file.
+     *
+     * @return the length of the file.
+     * @throws SMBApiException if an error occurs.
+     */
+    public long getLength() throws SMBApiException {
+        return getFileInformation(FileStandardInformation.class).getEndOfFile();
     }
 
     /***

@@ -178,7 +178,8 @@ public class SmbFileSystemProvider extends FileSystemProvider {
 
     @Override
     public SeekableByteChannel newByteChannel(Path path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) {
-        throw toBeImplemented();
+        return requireSmbPath(path).getFileSystem()
+            .newByteChannel(path, options, attrs);
     }
 
     @Override

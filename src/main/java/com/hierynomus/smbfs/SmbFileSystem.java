@@ -15,24 +15,33 @@
  */
 package com.hierynomus.smbfs;
 
+import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msfscc.fileinformation.FileAllInformation;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
+import com.hierynomus.mssmb2.SMB2CreateDisposition;
+import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
+import com.hierynomus.smbj.share.File;
 
 import java.io.IOException;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.AccessMode;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystem;
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
@@ -173,5 +182,63 @@ public class SmbFileSystem extends FileSystem {
         } catch (SMBApiException e) {
             throw new IOException(e);
         }
+    }
+
+    public SeekableByteChannel newByteChannel(Path path, Set<? extends OpenOption> options, FileAttribute<?>[] attrs) {
+
+        Set<AccessMask> accessMasks = accessMasks(options);
+        SMB2CreateDisposition disposition = createDisposition(options);
+        Set<SMB2CreateOptions> createOptions = createOptions(options);
+
+        DiskShare ds = (DiskShare) session.connectShare(share);
+        File file = ds.openFile(path.toString(), accessMasks, null, null, disposition, createOptions);
+        return new SmbFileChannel(ds, file);
+    }
+
+    private static Set<AccessMask> accessMasks(Set<? extends OpenOption> options) {
+        boolean read = options.contains(StandardOpenOption.READ);
+        boolean write = options.contains(StandardOpenOption.WRITE);
+        boolean append = write && options.contains(StandardOpenOption.APPEND);
+
+        if (options.contains(StandardOpenOption.DELETE_ON_CLOSE))
+            throw toBeImplemented();
+
+        EnumSet<AccessMask> accessMasks = EnumSet.noneOf(AccessMask.class);
+
+        if (append)
+            accessMasks.add(AccessMask.FILE_APPEND_DATA);
+        else if (write)
+            accessMasks.add(AccessMask.FILE_WRITE_DATA);
+
+        // Files doesn't seem to set READ when creating inputStreams... only WRITE
+        if (read || !write)
+            accessMasks.add(AccessMask.FILE_READ_DATA);
+
+        return accessMasks;
+    }
+
+    private static SMB2CreateDisposition createDisposition(Set<? extends OpenOption> options) {
+        if (options.contains(StandardOpenOption.CREATE_NEW))
+            return SMB2CreateDisposition.FILE_CREATE;
+
+        if (options.contains(StandardOpenOption.WRITE)) {
+            if (options.contains(StandardOpenOption.TRUNCATE_EXISTING))
+                return SMB2CreateDisposition.FILE_SUPERSEDE;
+
+            if (!options.contains(StandardOpenOption.APPEND))
+                return SMB2CreateDisposition.FILE_OVERWRITE_IF;
+        }
+
+        if (options.contains(StandardOpenOption.CREATE))
+            return SMB2CreateDisposition.FILE_OPEN_IF;
+
+        return SMB2CreateDisposition.FILE_OPEN;
+    }
+
+    private static Set<SMB2CreateOptions> createOptions(Set<? extends OpenOption> options) {
+        if (options.contains(StandardOpenOption.DSYNC) || options.contains(StandardOpenOption.SYNC))
+            return EnumSet.of(SMB2CreateOptions.FILE_WRITE_THROUGH);
+
+        return null;
     }
 }
