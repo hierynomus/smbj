@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbfs;
 
+import com.hierynomus.msfscc.fileinformation.FileAllInformation;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
@@ -27,6 +28,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.WatchService;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.util.ArrayList;
 import java.util.List;
@@ -142,6 +144,18 @@ public class SmbFileSystem extends FileSystem {
             }
 
             return new SmbDirectoryStream(list);
+        }
+    }
+
+    public <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> type) throws IOException {
+
+        if (type != BasicFileAttributes.class)
+            throw new UnsupportedOperationException(type.getName());
+
+        try (DiskShare ds = (DiskShare) session.connectShare(share)) {
+            FileAllInformation fileInformation = ds.getFileInformation(path.toString());
+
+            return type.cast(new SmbFileAttributes(fileInformation));
         }
     }
 }

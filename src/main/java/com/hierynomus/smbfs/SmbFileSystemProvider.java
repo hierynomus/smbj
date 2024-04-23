@@ -235,8 +235,11 @@ public class SmbFileSystemProvider extends FileSystemProvider {
     }
 
     @Override
-    public <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> type, LinkOption... options) {
-        throw toBeImplemented();
+    public <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> type, LinkOption... options)
+        throws IOException {
+
+        return requireSmbPath(path).getFileSystem()
+            .readAttributes(path, type);
     }
 
     @Override
