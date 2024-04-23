@@ -21,6 +21,7 @@ import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMBApiException;
+import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
@@ -41,7 +42,10 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -242,5 +246,20 @@ public class SmbFileSystem extends FileSystem {
             return EnumSet.of(SMB2CreateOptions.FILE_WRITE_THROUGH);
 
         return null;
+    }
+
+    public void copy(Path source, Path target) throws IOException {
+        Set<StandardOpenOption> readOptions = Collections.singleton(StandardOpenOption.READ);
+        Set<StandardOpenOption> writeOptions = new HashSet<>(Arrays.asList(StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW));
+
+        try (DiskShare ds = (DiskShare) session.connectShare(share);
+             File sourceFile = ds.openFile(source.toString(), accessMasks(readOptions), null, null, createDisposition(readOptions), createOptions(readOptions));
+             File destinationFile = ds.openFile(target.toString(), accessMasks(writeOptions), null, null, createDisposition(writeOptions), createOptions(writeOptions))) {
+
+            sourceFile.remoteCopyTo(destinationFile);
+
+        } catch (Buffer.BufferException e) {
+            throw new IOException(e);
+        }
     }
 }

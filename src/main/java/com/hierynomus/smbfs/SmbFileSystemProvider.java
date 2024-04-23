@@ -21,6 +21,7 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.AccessMode;
@@ -29,6 +30,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystemAlreadyExistsException;
 import java.nio.file.FileSystemNotFoundException;
+import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
@@ -201,8 +203,21 @@ public class SmbFileSystemProvider extends FileSystemProvider {
     }
 
     @Override
-    public void copy(Path source, Path target, CopyOption... options) {
-        throw toBeImplemented();
+    public void copy(Path source, Path target, CopyOption... options) throws IOException {
+        SmbPath smbSource = requireSmbPath(source);
+        SmbPath smbTarget = requireSmbPath(target);
+
+        SmbFileSystem fileSystem = smbSource.getFileSystem();
+        if (fileSystem == smbTarget.getFileSystem()) {
+            if (options.length > 0)
+                throw toBeImplemented();
+
+            fileSystem.copy(smbSource, smbTarget);
+        } else {
+            try (InputStream in = Files.newInputStream(source)) {
+                Files.copy(in, target, options);
+            }
+        }
     }
 
     @Override
