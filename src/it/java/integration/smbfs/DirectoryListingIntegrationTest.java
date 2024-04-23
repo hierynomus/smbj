@@ -16,28 +16,41 @@
 package integration.smbfs;
 
 import com.hierynomus.smbfs.SmbFileSystem;
+import com.hierynomus.smbfs.SmbFileSystemProvider;
 import com.hierynomus.smbj.testcontainers.SambaContainer;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Container;
 
-import java.nio.file.FileSystem;
+import java.nio.file.Path;
+import java.util.List;
 
-import static java.nio.file.FileSystems.newFileSystem;
 import static java.util.Collections.emptyMap;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.StreamSupport.stream;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class FileSystemIntegrationTest {
+class DirectoryListingIntegrationTest {
 
     @Container
     private static final SambaContainer samba = SambaContainer.INSTANCE;
 
-    @Test
-    void createsAndClosesFilesystem() throws Exception {
+    private SmbFileSystemProvider provider;
 
-        try (FileSystem fileSystem = newFileSystem(samba.publicUri(), emptyMap())) {
-            assertNotNull(fileSystem);
-            assertInstanceOf(SmbFileSystem.class, fileSystem);
+    @BeforeEach
+    void setUp() {
+        provider = new SmbFileSystemProvider();
+    }
+
+    @Test
+    void returnsRootDirectories() {
+        try (SmbFileSystem fileSystem = provider.newFileSystem(samba.publicUri(), emptyMap())) {
+
+            List<String> dirs = stream(fileSystem.getRootDirectories().spliterator(), false)
+                .map(Path::toString)
+                .collect(toList());
+
+            assertEquals(List.of("\\"), dirs);
         }
     }
 }

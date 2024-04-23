@@ -30,9 +30,13 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.images.builder.dockerfile.DockerfileBuilder;
 import org.testcontainers.utility.DockerLoggerFactory;
 
+import java.net.URI;
 import java.nio.file.Paths;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
+
+import static com.hierynomus.smbj.testing.TestingUtils.PASSWORD;
+import static com.hierynomus.smbj.testing.TestingUtils.USER;
 
 public class SambaContainer extends GenericContainer<SambaContainer> {
 
@@ -128,4 +132,9 @@ public class SambaContainer extends GenericContainer<SambaContainer> {
             }
         });
     }
+
+    public URI publicUri() {
+        return URI.create("smb://" + USER + ":" + PASSWORD + "@" + getHost() + "/public");
+    }
 }
+

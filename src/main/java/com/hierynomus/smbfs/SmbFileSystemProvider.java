@@ -127,7 +127,7 @@ public class SmbFileSystemProvider extends FileSystemProvider {
     }
 
     @Override
-    public Path getPath(URI uri) {
+    public SmbPath getPath(URI uri) {
         throw toBeImplemented();
     }
 

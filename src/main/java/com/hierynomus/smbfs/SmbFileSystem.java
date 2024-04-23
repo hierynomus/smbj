@@ -24,9 +24,13 @@ import java.nio.file.attribute.UserPrincipalLookupService;
 import java.util.Set;
 
 import static com.hierynomus.smbfs.ToBeImplementedException.toBeImplemented;
+import static java.util.Collections.singletonList;
 
 public class SmbFileSystem extends FileSystem {
+    private static final String SEPARATOR = "" + SmbPath.SEPARATOR;
+
     private final SmbFileSystemProvider provider;
+    private final SmbPath root = SmbPath.root(this);
 
     private volatile boolean open;
 
@@ -52,17 +56,17 @@ public class SmbFileSystem extends FileSystem {
 
     @Override
     public boolean isReadOnly() {
-        throw toBeImplemented();
+        return false;
     }
 
     @Override
     public String getSeparator() {
-        throw toBeImplemented();
+        return SEPARATOR;
     }
 
     @Override
     public Iterable<Path> getRootDirectories() {
-        throw toBeImplemented();
+        return singletonList(root);
     }
 
     @Override
@@ -76,8 +80,8 @@ public class SmbFileSystem extends FileSystem {
     }
 
     @Override
-    public Path getPath(String first, String... more) {
-        throw toBeImplemented();
+    public SmbPath getPath(String first, String... more) {
+        return SmbPath.of(this, root, first, more);
     }
 
     @Override
