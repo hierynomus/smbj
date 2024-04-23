@@ -1,6 +1,5 @@
 import com.bmuschko.gradle.docker.tasks.container.*
 import com.bmuschko.gradle.docker.tasks.image.*
-import java.text.SimpleDateFormat
 
 plugins {
   id "java"
@@ -96,7 +95,9 @@ testing {
         runtimeOnly OBJENESIS
         implementation SPOCK_CORE
         implementation COMMONS_IO
-        implementation "org.mockito:mockito-core:5.4.0"
+        implementation enforcedPlatform("org.mockito:mockito-bom:5.4.0")
+        implementation "org.mockito:mockito-core"
+        implementation "org.mockito:mockito-junit-jupiter"
         implementation "org.assertj:assertj-core:3.24.2"
         runtimeOnly LOGBACK_CLASSIC
       }

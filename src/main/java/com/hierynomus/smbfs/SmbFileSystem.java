@@ -28,6 +28,8 @@ import static com.hierynomus.smbfs.ToBeImplementedException.toBeImplemented;
 public class SmbFileSystem extends FileSystem {
     private final SmbFileSystemProvider provider;
 
+    private volatile boolean open;
+
     SmbFileSystem(SmbFileSystemProvider provider) {
         this.provider = provider;
     }
@@ -39,12 +41,13 @@ public class SmbFileSystem extends FileSystem {
 
     @Override
     public void close() {
-        throw toBeImplemented();
+        open = false;
+        provider.removeFileSystem(this);
     }
 
     @Override
     public boolean isOpen() {
-        throw toBeImplemented();
+        return open;
     }
 
     @Override

@@ -70,7 +70,7 @@ class SmbFileSystemProviderTest {
     @Nested
     class WithFileSystem {
 
-        private FileSystem fileSystem;
+        private SmbFileSystem fileSystem;
 
         @BeforeEach
         void setUp() {
@@ -109,6 +109,18 @@ class SmbFileSystemProviderTest {
             FileSystem current = provider.getFileSystem(URI.create("smb://user:XXXXX@server/share"));
 
             assertSame(fileSystem, current);
+        }
+
+        @Test
+        void removesFileSystem() {
+
+            provider.removeFileSystem(fileSystem);
+
+            assertThrows(FileSystemNotFoundException.class, () -> provider.getFileSystem(uri));
+
+            SmbFileSystem current = provider.newFileSystem(uri, emptyMap());
+
+            assertNotSame(fileSystem, current);
         }
     }
 }

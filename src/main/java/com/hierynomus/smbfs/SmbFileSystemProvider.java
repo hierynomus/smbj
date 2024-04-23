@@ -115,6 +115,17 @@ public class SmbFileSystemProvider extends FileSystemProvider {
         throw new InvalidShareException(uri.toString());
     }
 
+    void removeFileSystem(SmbFileSystem fileSystem) {
+        synchronized (fileSystems) {
+            for (Map.Entry<String, SmbFileSystem> each : fileSystems.entrySet()) {
+                if (each.getValue() == fileSystem) {
+                    fileSystems.remove(each.getKey());
+                    return;
+                }
+            }
+        }
+    }
+
     @Override
     public Path getPath(URI uri) {
         throw toBeImplemented();

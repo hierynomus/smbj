@@ -36,12 +36,12 @@ class FileSystemIntegrationTest {
     private static final SambaContainer samba = SambaContainer.INSTANCE;
 
     @Test
-    void createsFilesystem() throws Exception {
+    void createsAndClosesFilesystem() throws Exception {
 
         URI uri = URI.create("smb://" + USER + ":" + PASSWORD + "@" + samba.getHost() + "/user");
-        FileSystem fileSystem = FileSystems.newFileSystem(uri, emptyMap());
-
-        assertNotNull(fileSystem);
-        assertInstanceOf(SmbFileSystem.class, fileSystem);
+        try (FileSystem fileSystem = FileSystems.newFileSystem(uri, emptyMap())) {
+            assertNotNull(fileSystem);
+            assertInstanceOf(SmbFileSystem.class, fileSystem);
+        }
     }
 }
