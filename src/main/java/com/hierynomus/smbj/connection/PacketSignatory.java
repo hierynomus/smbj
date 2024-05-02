@@ -53,14 +53,13 @@ public class PacketSignatory {
     }
 
     public SMB2Packet sign(SMB2Packet packet, SecretKey secretKey) {
-        if ( secretKey!=null ) 
-        {
-        	if ( packet instanceof SMB2WriteRequest && this.signDataPackets==false )
-			{
-				return packet;
-			}
+        if ( secretKey!=null ) {
+            if ( packet instanceof SMB2WriteRequest && this.signDataPackets==false ) {
+                logger.debug("Not wrapping {} as signed, as signing is not required.", packet.getHeader().getMessage());
+                return packet;
+            }
             return new SignedPacketWrapper(packet, secretKey);
-        } 
+        }
         logger.debug("Not wrapping {} as signed, as no key is set.", packet.getHeader().getMessage());
         return packet;
     }
