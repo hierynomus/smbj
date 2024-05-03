@@ -28,6 +28,7 @@ import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.connection.ConnectionContext;
 import com.hierynomus.smbj.connection.PacketEncryptor;
 import com.hierynomus.smbj.connection.PacketSignatory;
 import com.hierynomus.smbj.event.SMBEventBus;
@@ -291,16 +292,32 @@ public class Session implements AutoCloseable {
      * @throws TransportException
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
-        SecretKey signingKey = getSigningKey(packet.getHeader(), true);
-        if (sessionContext.isSigningRequired() && signingKey == null) {
-            throw new TransportException("Message signing is required, but no signing key is negotiated");
-        }
 
         if (shouldEncryptData()) {
             return connection.send(encryptor.encrypt(packet, sessionContext.getEncryptionKey()));
         }
 
-        return connection.send(signatory.sign(packet, signingKey));
+        ConnectionContext connectionContext = connection.getConnectionContext();
+        /*
+         * Ref: https://learn.microsoft.com/en-us/windows-server/storage/file-server/smb-signing-overview
+         * In summary SMB is signed when:
+         *    Both the SMB client and server have RequireSecuritySignature set to 1.
+         *    The SMB client has RequireSecuritySignature set to 1 and the server has RequireSecuritySignature set to 0.
+         *    The SMB server has RequireSecuritySignature set to 1 and the client has RequireSecuritySignature set to 0.
+         * Signing isn't used when:
+         *    The SMB client and server have RequireSecuritySignature set to 0.
+         */
+        if (connectionContext.isServerRequiresSigning() || sessionContext.isSigningRequired()) {
+            SecretKey signingKey = getSigningKey(packet.getHeader(), true);
+            if (signingKey == null) {
+                throw new TransportException("Message signing is required, but no signing key is negotiated");
+            }
+
+            return connection.send(signatory.sign(packet, signingKey));
+        }
+
+
+        return connection.send(packet);
     }
 
     public <T extends SMB2Packet> T processSendResponse(SMB2CreateRequest packet) throws TransportException {
