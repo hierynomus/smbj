@@ -368,6 +368,29 @@ public class DiskShare extends Share {
         }
     }
 
+    /**
+     * Get Volume Information for the current Disk Share
+     *
+     * @return the VolumeInfo
+     */
+    public VolumeInfo getVolumeInfo() throws SMBApiException {
+        try (Directory directory = openDirectory("", of(FILE_READ_ATTRIBUTES), null, ALL, FILE_OPEN, null)) {
+            byte[] outputBuffer = queryInfo(
+                directory.getFileId(),
+                SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_FILESYSTEM,
+                null,
+                null,
+                FileSystemInformationClass.FileFsVolumeInformation
+            ).getOutputBuffer();
+
+            try {
+                return VolumeInfo.parseFileFsVolumeInformation(new Buffer.PlainBuffer(outputBuffer, Endian.LE));
+            } catch (Buffer.BufferException e) {
+                throw new SMBRuntimeException(e);
+            }
+        }
+    }
+
     private static StatusHandler ALREADY_DELETED_STATUS_HANDLER = new StatusHandler() {
         @Override
         public boolean isSuccess(long statusCode) {
