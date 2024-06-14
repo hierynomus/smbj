@@ -28,6 +28,7 @@ import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.connection.ConnectionContext;
 import com.hierynomus.smbj.connection.PacketEncryptor;
 import com.hierynomus.smbj.connection.PacketSignatory;
 import com.hierynomus.smbj.event.SMBEventBus;
@@ -291,16 +292,43 @@ public class Session implements AutoCloseable {
      * @throws TransportException
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
-        SecretKey signingKey = getSigningKey(packet.getHeader(), true);
-        if (sessionContext.isSigningRequired() && signingKey == null) {
-            throw new TransportException("Message signing is required, but no signing key is negotiated");
-        }
 
         if (shouldEncryptData()) {
             return connection.send(encryptor.encrypt(packet, sessionContext.getEncryptionKey()));
         }
 
+        ConnectionContext connectionContext = connection.getConnectionContext();
+        SMB2Dialect dialect = connection.getNegotiatedProtocol().getDialect();
+        /*
+         * Ref: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/973630a8-8aa1-4398-89a8-13cf830f194d
+         * The client MUST sign the message if one of the following conditions is TRUE:
+         * If Connection.Dialect is equal to "2.0.2" or "2.1", the message being sent contains a nonzero value in the
+         * SessionId field and the session identified by the SessionId has Session.SigningRequired equal to TRUE.
+         *
+         * If Connection.Dialect belongs to 3.x dialect family, the message being sent contains a nonzero value in the
+         * SessionId field and one of the following conditions is TRUE:
+         *  - The session identified by SessionId has Session.EncryptData equal to FALSE.
+         *  -  The tree connection identified by the TreeId field has TreeConnect.EncryptData equal to FALSE.
+         * If Session.SigningRequired is FALSE, the client MAY<102> sign the request.
+         */
+        if (isSmb2(dialect) && (!connectionContext.isServerRequiresSigning() && !sessionContext.isSigningRequired())) {
+            // send unsigned packets for smb2 only
+            return connection.send(packet);
+        }
+
+        SecretKey signingKey = getSigningKey(packet.getHeader(), true);
+        if (signingKey == null) {
+            throw new TransportException("Message signing is required, but no signing key is negotiated");
+        }
+
         return connection.send(signatory.sign(packet, signingKey));
+    }
+
+    private boolean isSmb2(SMB2Dialect dialect) {
+        if (dialect == SMB2Dialect.SMB_2_0_2 || dialect == SMB2Dialect.SMB_2_1 || dialect == SMB2Dialect.SMB_2XX)
+            return true;
+
+        return false;
     }
 
     public <T extends SMB2Packet> T processSendResponse(SMB2CreateRequest packet) throws TransportException {
