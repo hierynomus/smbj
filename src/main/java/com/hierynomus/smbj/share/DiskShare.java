@@ -34,10 +34,13 @@ import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.paths.PathResolveException;
 import com.hierynomus.smbj.paths.PathResolver;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.utils.SmbFileAttributeUtils;
 
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.hierynomus.msdtyp.AccessMask.*;
 import static com.hierynomus.mserref.NtStatus.*;
@@ -51,6 +54,8 @@ import static com.hierynomus.mssmb2.SMB2ShareAccess.*;
 import static com.hierynomus.mssmb2.messages.SMB2QueryInfoRequest.SMB2QueryInfoType.SMB2_0_INFO_SECURITY;
 import static java.util.EnumSet.noneOf;
 import static java.util.EnumSet.of;
+
+import java.util.ArrayList;
 
 public class DiskShare extends Share {
     private final PathResolver resolver;
@@ -239,7 +244,52 @@ public class DiskShare extends Share {
     public List<FileIdBothDirectoryInformation> list(String path, String searchPattern) throws SMBApiException {
         return list(path, FileIdBothDirectoryInformation.class, searchPattern, null);
     }
+    
+    public List<FileIdBothDirectoryInformation> listAllFiles(String path) throws SMBApiException {
+       return listAllFiles(path, null);
+   }
 
+    public List<FileIdBothDirectoryInformation> listAllFiles(String path, String searchPattern) throws SMBApiException {
+    	 List<FileIdBothDirectoryInformation> filesInformation=new ArrayList<FileIdBothDirectoryInformation>();
+        return listAllFiles(path, FileIdBothDirectoryInformation.class, searchPattern, filesInformation);
+    }
+
+    public <I extends FileDirectoryQueryableInformation> List<FileIdBothDirectoryInformation> listAllFiles(String path, Class<FileIdBothDirectoryInformation> informationClass, String searchPattern, List<FileIdBothDirectoryInformation> filesInformation) {
+        EnumSet<AccessMask> accessMask=of(FILE_LIST_DIRECTORY, FILE_READ_ATTRIBUTES, FILE_READ_EA);
+    	Directory directory = openDirectory(path, accessMask, null, ALL, FILE_OPEN, null);
+		try {
+			Iterator<FileIdBothDirectoryInformation> directoryIterator = directory.iterator(informationClass, searchPattern);
+			while (directoryIterator.hasNext()) {
+				FileIdBothDirectoryInformation directoryInformation = directoryIterator.next();
+				if (".".equalsIgnoreCase(directoryInformation.getFileName())
+						|| "..".equalsIgnoreCase(directoryInformation.getFileName())) {
+					continue;
+				}
+				if (SmbFileAttributeUtils.isDirectory(directoryInformation.getFileAttributes())) {
+					listAllFiles(path + "/" + directoryInformation.getFileName(), informationClass, searchPattern,
+							filesInformation);
+				} else {
+					filesInformation.addAll(directory.list(informationClass, searchPattern).stream()
+							// Exclude Linux . and .. directories
+							.filter(entry -> !entry.getFileName().equals("."))
+							.filter(entry -> !entry.getFileName().equals(".."))
+							.filter(entry -> !SmbFileAttributeUtils.isDirectory(entry.getFileAttributes()))
+							.map(info -> mapFullFilePath(path, info))
+							.collect(Collectors.toList()));
+				}
+			}
+		} finally {
+            if (directory != null) {
+            	directory.closeSilently();
+            }
+        }
+        return filesInformation;
+    }
+
+	public FileIdBothDirectoryInformation mapFullFilePath(String path, FileIdBothDirectoryInformation info) {
+		info.setFullPath(path + "/" + info.getFileName());
+		return info;
+	}
     /**
      * Equivalent to calling {@link #list(String, Class, String, EnumSet<AccessMask>) list(path, informationClass, null, null)}.
      *
