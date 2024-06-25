@@ -17,12 +17,13 @@ package com.hierynomus.smbj
 
 import com.hierynomus.smbj.testing.PacketProcessor.DefaultPacketProcessor
 import com.hierynomus.smbj.testing.StubTransportLayerFactory
+import com.hierynomus.smbj.testing.StubHostResolver
 import spock.lang.Specification
 
 class SMBClientSpec extends Specification {
 
   def processor = new DefaultPacketProcessor()
-  def config = SmbConfig.builder().withTransportLayerFactory(new StubTransportLayerFactory(processor)).build()
+  def config = SmbConfig.builder().withTransportLayerFactory(new StubTransportLayerFactory(processor)).withHostResolver(StubHostResolver.INSTANCE).build()
 
   def "should return same connection for same host/port combo"() {
     given:
