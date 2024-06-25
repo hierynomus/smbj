@@ -20,6 +20,7 @@ import static java.lang.String.format;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.UUID;
 import java.util.concurrent.Future;
@@ -29,6 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.hierynomus.mssmb.SMB1PacketFactory;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.SMB2Cancel;
+import com.hierynomus.protocol.commons.HostResolver;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
 import com.hierynomus.protocol.commons.concurrent.Futures;
@@ -43,6 +45,7 @@ import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.common.Pooled;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.connection.packet.DeadLetterPacketHandler;
 import com.hierynomus.smbj.connection.packet.IncomingPacketHandler;
 import com.hierynomus.smbj.connection.packet.SMB1PacketHandler;
@@ -95,13 +98,14 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
 
     private SmbConfig config;
     TransportLayer<SMBPacket<?, ?>> transport;
+    private final HostResolver hostResolver;
     private final SMBEventBus bus;
     private final ReentrantLock lock = new ReentrantLock();
 
     public Connection(SmbConfig config, SMBClient client, SMBEventBus bus, ServerList serverList) {
         this.config = config;
         this.client = client;
-        this.transport = config.getTransportLayerFactory().createTransportLayer(new PacketHandlers<>(new SMBPacketSerializer(), this, converter), config);
+        this.hostResolver = config.getHostResolver();
         this.bus = bus;
         this.serverList = serverList;
         init();
@@ -127,6 +131,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         this.client = connection.client;
         this.config = connection.config;
         this.transport = connection.transport;
+        this.hostResolver = connection.hostResolver;
         this.bus = connection.bus;
         this.serverList = connection.serverList;
         init();
@@ -136,7 +141,27 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         if (isConnected()) {
             throw new IllegalStateException(format("This connection is already connected to %s", getRemoteHostname()));
         }
-        transport.connect(new InetSocketAddress(hostname, port));
+        try {
+            InetAddress[] address = hostResolver.resolveHost(hostname);
+            for (InetAddress inetAddress : address) {
+                try {
+                    transport.connect(new InetSocketAddress(inetAddress, port));
+                    onConnect(hostname, port);
+                    return;
+                } catch (IOException e) {
+                    logger.debug("Failed to connect to {} on address {}", hostname, inetAddress.getHostAddress(), e);
+                }
+            }
+            transport.connect(new InetSocketAddress(hostname, port));
+        } catch (IOException e) {
+            throw new IOException("Failed to resolve hostname " + hostname, e);
+        }
+
+        logger.error("Failed to connect to {}", hostname);
+        throw new SMBRuntimeException("Failed to connect to " + hostname);
+    }
+
+    private void onConnect(String hostname, int port) throws IOException {
         this.connectionContext = new ConnectionContext(config.getClientGuid(), hostname, port, config);
         new SMBProtocolNegotiator(this, config, connectionContext).negotiateDialect();
         this.signatory.init();

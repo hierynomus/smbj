@@ -39,6 +39,7 @@ import com.hierynomus.smbj.testing.PacketProcessor.NoOpPacketProcessor
 import com.hierynomus.smbj.testing.PacketProcessor.DefaultPacketProcessor
 import com.hierynomus.smbj.testing.StubAuthenticator
 import com.hierynomus.smbj.testing.StubTransportLayerFactory
+import com.hierynomus.smbj.testing.StubHostResolver
 import net.engio.mbassy.listener.Handler
 import spock.lang.Specification
 
@@ -51,6 +52,7 @@ class ConnectionSpec extends Specification {
   private SmbConfig smbConfig(packetProcessor) {
     SmbConfig.builder()
       .withTransportLayerFactory(new StubTransportLayerFactory(new DefaultPacketProcessor().wrap(packetProcessor)))
+      .withHostResolver(new StubHostResolver())
       .withAuthenticators(new StubAuthenticator.Factory())
       .build()
   }

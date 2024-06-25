@@ -37,6 +37,7 @@ import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2GlobalCapability;
 import com.hierynomus.ntlm.NtlmConfig;
 import com.hierynomus.protocol.commons.Factory;
+import com.hierynomus.protocol.commons.HostResolver;
 import com.hierynomus.protocol.commons.socket.ProxySocketFactory;
 import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.security.bc.BCSecurityProvider;
@@ -74,6 +75,7 @@ public final class SmbConfig {
     private Set<SMB2Dialect> dialects;
     private List<Factory.Named<Authenticator>> authenticators;
     private SocketFactory socketFactory;
+    private HostResolver hostResolver;
     private Random random;
     private UUID clientGuid;
     private boolean signingRequired;
@@ -102,6 +104,7 @@ public final class SmbConfig {
                 .withClientGuid(UUID.randomUUID())
                 .withSecurityProvider(getDefaultSecurityProvider())
                 .withSocketFactory(new ProxySocketFactory())
+                .withHostResolver(HostResolver.DEFAULT)
                 .withSigningRequired(false)
                 .withDfsEnabled(false)
                 .withMultiProtocolNegotiate(false)
@@ -153,6 +156,7 @@ public final class SmbConfig {
         dialects.addAll(other.dialects);
         authenticators.addAll(other.authenticators);
         socketFactory = other.socketFactory;
+        hostResolver = other.hostResolver;
         random = other.random;
         clientGuid = other.clientGuid;
         signingRequired = other.signingRequired;
@@ -244,6 +248,10 @@ public final class SmbConfig {
         return socketFactory;
     }
 
+    public HostResolver getHostResolver() {
+        return hostResolver;
+    }
+
     public GSSContextConfig getClientGSSContextConfig() {
         return clientGSSContextConfig;
     }
@@ -314,6 +322,14 @@ public final class SmbConfig {
                 throw new IllegalArgumentException("Socket factory may not be null");
             }
             config.socketFactory = socketFactory;
+            return this;
+        }
+
+        public Builder withHostResolver(HostResolver hostResolver) {
+            if (hostResolver == null) {
+                throw new IllegalArgumentException("Host resolver may not be null");
+            }
+            config.hostResolver = hostResolver;
             return this;
         }
 

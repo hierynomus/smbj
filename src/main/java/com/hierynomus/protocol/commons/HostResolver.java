@@ -13,17 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hierynomus.smbj.testing;
+package com.hierynomus.protocol.commons;
 
-import com.hierynomus.smbj.SmbConfig;
-import com.hierynomus.smbj.testing.PacketProcessor.DefaultPacketProcessor;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
-public class Utils {
-    public static SmbConfig config(PacketProcessor processor) {
-        return SmbConfig.builder()
-                .withTransportLayerFactory(
-                        new StubTransportLayerFactory<>(new DefaultPacketProcessor().wrap(processor)))
-                .withHostResolver(StubHostResolver.INSTANCE)
-                .withAuthenticators(new StubAuthenticator.Factory()).build();
+public interface HostResolver {
+    public static final HostResolver DEFAULT = new DefaultHostResolver();
+
+    InetAddress[] resolveHost(String host) throws UnknownHostException;
+
+    public static class DefaultHostResolver implements HostResolver {
+        @Override
+        public InetAddress[] resolveHost(String host) throws UnknownHostException {
+            return InetAddress.getAllByName(host);
+        }
     }
 }
+

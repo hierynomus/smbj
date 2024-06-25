@@ -15,15 +15,16 @@
  */
 package com.hierynomus.smbj.testing;
 
-import com.hierynomus.smbj.SmbConfig;
-import com.hierynomus.smbj.testing.PacketProcessor.DefaultPacketProcessor;
+import java.net.InetAddress;
 
-public class Utils {
-    public static SmbConfig config(PacketProcessor processor) {
-        return SmbConfig.builder()
-                .withTransportLayerFactory(
-                        new StubTransportLayerFactory<>(new DefaultPacketProcessor().wrap(processor)))
-                .withHostResolver(StubHostResolver.INSTANCE)
-                .withAuthenticators(new StubAuthenticator.Factory()).build();
+import com.hierynomus.protocol.commons.HostResolver;
+
+public class StubHostResolver implements HostResolver {
+    public static final StubHostResolver INSTANCE = new StubHostResolver();
+
+    public InetAddress[] resolveHost(String host) {
+        return new InetAddress[]{
+            InetAddress.getLoopbackAddress()
+        };
     }
 }
