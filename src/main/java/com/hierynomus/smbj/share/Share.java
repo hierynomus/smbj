@@ -176,7 +176,7 @@ public class Share implements AutoCloseable {
         return send(closeReq);
     }
 
-    SMB2QueryInfoResponse queryInfo(SMB2FileId fileId, SMB2QueryInfoRequest.SMB2QueryInfoType infoType,
+    public SMB2QueryInfoResponse queryInfo(SMB2FileId fileId, SMB2QueryInfoRequest.SMB2QueryInfoType infoType,
             Set<SecurityInformation> securityInfo, FileInformationClass fileInformationClass,
             FileSystemInformationClass fileSystemInformationClass) {
         SMB2QueryInfoRequest qreq = new SMB2QueryInfoRequest(dialect, sessionId, treeId, fileId, infoType,
