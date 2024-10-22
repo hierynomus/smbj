@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -43,7 +44,10 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class SmbFileSystemProviderTest {
 
-    private final URI uri = URI.create("smb://user:password@server/share");
+    public static final String SHARE_NAME = "share";
+    private static final String BASE_URI = "smb://user:password@server/" + SHARE_NAME;
+
+    private final URI uri = URI.create(BASE_URI);
 
     @Mock
     private SmbFileSystemProvider.Factory factory;
@@ -69,9 +73,9 @@ class SmbFileSystemProviderTest {
 
         @ParameterizedTest
         @ValueSource(strings = {
-                "smb://user:pw@/share",
+            "smb://user:pw@/" + SHARE_NAME,
                 "smb://user:pw@server/",
-                "smb://server/share",
+            "smb://server/" + SHARE_NAME,
         })
         void throwsInvalidShareExceptionIfInvalidUri(URI uri) {
 
@@ -81,12 +85,18 @@ class SmbFileSystemProviderTest {
 
         @Test
         void createsFileSystem() throws Exception {
-            when(factory.create(eq(provider), eq("server"), eq(SMBClient.DEFAULT_PORT), any(), eq("share")))
+            when(factory.create(eq(provider), eq("server"), eq(SMBClient.DEFAULT_PORT), any(), eq(SHARE_NAME)))
                 .thenReturn(fileSystem);
 
             SmbFileSystem fs = provider.newFileSystem(uri, emptyMap());
 
             assertSame(fileSystem, fs);
+        }
+
+        @Test
+        void throwExceptionWhenGettingPathFromUri() {
+
+            assertThrows(FileSystemNotFoundException.class, () -> provider.getPath(uri));
         }
     }
 
@@ -112,9 +122,9 @@ class SmbFileSystemProviderTest {
 
         @ParameterizedTest
         @ValueSource(strings = {
-                "smb://user:password@server2/share",
-                "smb://user2:password@server/share",
-                "smb://user:password@server/share2",
+            "smb://user:password@server2/" + SHARE_NAME,
+            "smb://user2:password@server/" + SHARE_NAME,
+            "smb://user:password@server/" + SHARE_NAME + "2",
         })
         void createsUnrelatedFilesystems(URI uri) throws Exception {
             SmbFileSystem other = provider.newFileSystem(uri, emptyMap());
@@ -132,7 +142,7 @@ class SmbFileSystemProviderTest {
 
         @Test
         void returnsSameFileSystemIfFileSystemAlreadyCreatedExceptWithDifferentPassword() {
-            FileSystem current = provider.getFileSystem(URI.create("smb://user:XXXXX@server/share"));
+            FileSystem current = provider.getFileSystem(URI.create("smb://user:XXXXX@server/" + SHARE_NAME));
 
             assertSame(fileSystem, current);
         }
@@ -146,6 +156,48 @@ class SmbFileSystemProviderTest {
             SmbFileSystem current = provider.newFileSystem(uri, emptyMap());
 
             assertNotSame(fileSystem, current);
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "/a.txt",
+            "/asd/a.txt",
+        })
+        void getsPathFromUri(String path) {
+            if (path == null)
+                path = "";
+
+            SmbPath result = SmbPath.of(fileSystem, null, "ads");
+
+            when(fileSystem.share())
+                    .thenReturn(SHARE_NAME);
+            when(fileSystem.getPath(path))
+                    .thenReturn(result);
+
+            SmbPath actual = provider.getPath(URI.create(BASE_URI + path));
+
+            assertSame(result, actual);
+        }
+
+        @ParameterizedTest
+        @EmptySource
+        @ValueSource(strings = {
+            "/",
+        })
+        void getsRootPathFromUri(String path) {
+            if (path == null)
+                path = "";
+
+            SmbPath result = SmbPath.of(fileSystem, null, "ads");
+
+            when(fileSystem.share())
+                    .thenReturn(SHARE_NAME);
+            when(fileSystem.root())
+                    .thenReturn(result);
+
+            SmbPath actual = provider.getPath(URI.create(BASE_URI + path));
+
+            assertSame(result, actual);
         }
     }
 }

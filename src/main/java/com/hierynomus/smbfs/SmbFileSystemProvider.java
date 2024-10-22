@@ -175,7 +175,14 @@ public class SmbFileSystemProvider extends FileSystemProvider {
 
     @Override
     public SmbPath getPath(URI uri) {
-        throw toBeImplemented();
+        String path = uri.getPath();
+        SmbFileSystem fileSystem = getFileSystem(uri);
+
+        String sharePath = path.substring(fileSystem.share().length() + 1);
+        if (sharePath.isEmpty() || sharePath.equals("/"))
+            return fileSystem.root();
+
+        return fileSystem.getPath(sharePath);
     }
 
     @Override

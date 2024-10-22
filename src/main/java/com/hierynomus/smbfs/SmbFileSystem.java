@@ -77,6 +77,14 @@ public class SmbFileSystem extends FileSystem {
         return provider;
     }
 
+    public String share() {
+        return share;
+    }
+
+    public SmbPath root() {
+        return root;
+    }
+
     @Override
     @SuppressWarnings("unused")
     public void close() throws IOException {
