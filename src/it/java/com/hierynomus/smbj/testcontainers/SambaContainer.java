@@ -150,7 +150,11 @@ public class SambaContainer extends GenericContainer<SambaContainer> {
 
     public void mkdirInContainer(String path) throws IOException, InterruptedException {
         ensureOk(execInContainer("mkdir", path));
-        ensureOk(execInContainer("chmod", "777", path));
+        chmodFileInContainer(path, "777");
+    }
+
+    public void chmodFileInContainer(String path, String permissions) throws IOException, InterruptedException {
+        ensureOk(execInContainer("chmod", permissions, path));
     }
 
     public boolean fileExistsInContainer(String path) throws IOException, InterruptedException {

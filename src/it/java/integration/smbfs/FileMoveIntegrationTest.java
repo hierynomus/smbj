@@ -21,6 +21,7 @@ import com.hierynomus.smbfs.SmbFileSystemProvider;
 import com.hierynomus.smbfs.SmbPath;
 import com.hierynomus.smbj.testcontainers.SambaContainer;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.testcontainers.images.builder.Transferable;
@@ -30,6 +31,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import static integration.smbfs.RandomData.randomString;
 import static java.util.Collections.emptyMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Testcontainers
@@ -91,5 +93,24 @@ public class FileMoveIntegrationTest {
             SmbPath target = fileSystem.getPath(targetFile);
             assertThrows(SMBApiException.class, () -> fileSystem.provider().move(source, target));
         }
+    }
+
+    @Test
+    void movesFilesOnDifferentShares() throws Exception {
+
+        String data = randomString(23);
+        Transferable transferable = Transferable.of(data);
+        samba.copyFileToContainer(transferable, "/opt/samba/share/source.txt");
+
+        try (SmbFileSystem fileSystem = provider.newFileSystem(samba.publicUri(), emptyMap());
+             SmbFileSystem targetFileSystem = provider.newFileSystem(samba.userUri(), emptyMap())) {
+
+            SmbPath source = fileSystem.getPath("source.txt");
+            SmbPath target = targetFileSystem.getPath("target.txt");
+            fileSystem.provider().move(source, target);
+        }
+
+        assertEquals(data, samba.readFileFromContainer("/opt/samba/user/target.txt"));
+        assertFalse(samba.fileExistsInContainer("/opt/samba/share/source.txt"));
     }
 }

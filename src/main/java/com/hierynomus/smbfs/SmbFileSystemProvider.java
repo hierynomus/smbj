@@ -243,7 +243,10 @@ public class SmbFileSystemProvider extends FileSystemProvider {
 
             fileSystem.move(smbSource, smbTarget);
         } else {
-            throw toBeImplemented();
+            try (InputStream in = Files.newInputStream(source)) {
+                Files.copy(in, target, options);
+            }
+            fileSystem.delete(smbSource);
         }
     }
 
