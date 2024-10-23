@@ -270,4 +270,14 @@ public class SmbFileSystem extends FileSystem {
             throw new IOException(e);
         }
     }
+
+    public void move(SmbPath source, SmbPath target) throws IOException {
+        Set<AccessMask> accessMasks = EnumSet.of(AccessMask.FILE_WRITE_ATTRIBUTES);
+
+        try (DiskShare ds = (DiskShare) session.connectShare(share);
+             File sourceFile = ds.openFile(source.toString(), accessMasks, null, null, null, null)) {
+
+            sourceFile.rename(target.toString());
+        }
+    }
 }

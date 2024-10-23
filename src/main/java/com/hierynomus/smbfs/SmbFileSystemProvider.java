@@ -228,8 +228,19 @@ public class SmbFileSystemProvider extends FileSystemProvider {
     }
 
     @Override
-    public void move(Path source, Path target, CopyOption... options) {
-        throw toBeImplemented();
+    public void move(Path source, Path target, CopyOption... options) throws IOException {
+        SmbPath smbSource = requireSmbPath(source);
+        SmbPath smbTarget = requireSmbPath(target);
+
+        SmbFileSystem fileSystem = smbSource.getFileSystem();
+        if (fileSystem == smbTarget.getFileSystem()) {
+            if (options.length > 0)
+                throw toBeImplemented();
+
+            fileSystem.move(smbSource, smbTarget);
+        } else {
+            throw toBeImplemented();
+        }
     }
 
     @Override

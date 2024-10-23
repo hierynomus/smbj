@@ -31,6 +31,7 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.images.builder.dockerfile.DockerfileBuilder;
 import org.testcontainers.utility.DockerLoggerFactory;
 
+import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.concurrent.Future;
@@ -145,6 +146,17 @@ public class SambaContainer extends GenericContainer<SambaContainer> {
 
     public String readFileFromContainer(String file) {
         return copyFileFromContainer(file, input -> IOUtils.toString(input, defaultCharset()));
+    }
+
+    public void mkdirInContainer(String path) throws IOException, InterruptedException {
+        ensureOk(execInContainer("mkdir", path));
+        ensureOk(execInContainer("chmod", "777", path));
+    }
+
+    private void ensureOk(ExecResult result) {
+        if (result.getExitCode() != 0) {
+            throw new ExecutionFailedException(result.getExitCode());
+        }
     }
 }
 
