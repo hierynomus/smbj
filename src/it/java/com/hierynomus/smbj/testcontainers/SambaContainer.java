@@ -153,6 +153,11 @@ public class SambaContainer extends GenericContainer<SambaContainer> {
         ensureOk(execInContainer("chmod", "777", path));
     }
 
+    public boolean fileExistsInContainer(String path) throws IOException, InterruptedException {
+        ExecResult execResult = execInContainer("test", "-f", path);
+        return execResult.getExitCode() == 0;
+    }
+
     private void ensureOk(ExecResult result) {
         if (result.getExitCode() != 0) {
             throw new ExecutionFailedException(result.getExitCode());

@@ -280,4 +280,14 @@ public class SmbFileSystem extends FileSystem {
             sourceFile.rename(target.toString());
         }
     }
+
+    public void delete(SmbPath path) throws IOException {
+        Set<AccessMask> accessMasks = EnumSet.of(AccessMask.DELETE);
+
+        try (DiskShare ds = (DiskShare) session.connectShare(share);
+             File sourceFile = ds.openFile(path.toString(), accessMasks, null, null, null, null)) {
+
+            sourceFile.deleteOnClose();
+        }
+    }
 }

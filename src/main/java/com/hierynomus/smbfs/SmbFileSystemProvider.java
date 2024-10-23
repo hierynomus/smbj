@@ -205,8 +205,12 @@ public class SmbFileSystemProvider extends FileSystemProvider {
     }
 
     @Override
-    public void delete(Path path) {
-        throw toBeImplemented();
+    public void delete(Path path) throws IOException {
+        SmbPath smbPath = requireSmbPath(path);
+
+        SmbFileSystem fileSystem = smbPath.getFileSystem();
+
+        fileSystem.delete(smbPath);
     }
 
     @Override
