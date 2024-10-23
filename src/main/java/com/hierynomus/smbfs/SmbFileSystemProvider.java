@@ -200,8 +200,14 @@ public class SmbFileSystemProvider extends FileSystemProvider {
     }
 
     @Override
-    public void createDirectory(Path dir, FileAttribute<?>... attrs) {
-        throw toBeImplemented();
+    public void createDirectory(Path dir, FileAttribute<?>... attrs) throws IOException {
+        SmbPath smbDir = requireSmbPath(dir);
+
+        if (attrs.length > 0)
+            throw toBeImplemented();
+
+        SmbFileSystem fileSystem = smbDir.getFileSystem();
+        fileSystem.createDirectory(dir, attrs);
     }
 
     @Override

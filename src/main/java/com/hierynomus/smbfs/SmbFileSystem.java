@@ -24,6 +24,7 @@ import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
 
@@ -49,6 +50,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static com.hierynomus.msdtyp.AccessMask.FILE_ADD_SUBDIRECTORY;
+import static com.hierynomus.msdtyp.AccessMask.FILE_LIST_DIRECTORY;
+import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_CREATE;
 import static com.hierynomus.smbfs.ToBeImplementedException.toBeImplemented;
 import static java.util.Collections.singletonList;
 
@@ -167,6 +171,17 @@ public class SmbFileSystem extends FileSystem {
             }
 
             return new SmbDirectoryStream(list);
+        }
+    }
+
+    void createDirectory(Path dir, FileAttribute<?>[] attrs) throws IOException {
+
+        EnumSet<AccessMask> accessMasks = EnumSet.of(FILE_LIST_DIRECTORY, FILE_ADD_SUBDIRECTORY);
+
+        try (DiskShare ds = (DiskShare) session.connectShare(share);
+             Directory dirDir = ds.openDirectory(dir.toString(), accessMasks, null, null, FILE_CREATE, null)) {
+
+            // do-nothing - dir will get created with the open call above
         }
     }
 

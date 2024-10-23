@@ -162,6 +162,11 @@ public class SambaContainer extends GenericContainer<SambaContainer> {
         return execResult.getExitCode() == 0;
     }
 
+    public boolean dirExistsInContainer(String path) throws IOException, InterruptedException {
+        ExecResult execResult = execInContainer("test", "-d", path);
+        return execResult.getExitCode() == 0;
+    }
+
     private void ensureOk(ExecResult result) {
         if (result.getExitCode() != 0) {
             throw new ExecutionFailedException(result.getExitCode());
