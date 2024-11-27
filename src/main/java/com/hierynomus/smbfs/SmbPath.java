@@ -213,8 +213,8 @@ public class SmbPath implements Path {
 
     @Override
     public Iterator<Path> iterator() {
-        return IntStream.range(0, elements.size() -1)
-            .mapToObj(i -> (Path)getName(i))
+        return IntStream.range(0, elements.size() - 1)
+            .mapToObj(i -> (Path) getName(i))
             .iterator();
     }
 
@@ -251,7 +251,7 @@ public class SmbPath implements Path {
         return new SmbPath(smbFileSystem, null, null);
     }
 
-    static SmbPath of(SmbFileSystem fileSystem, SmbPath rootPath, List<String> elements) {
+    private static SmbPath of(SmbFileSystem fileSystem, SmbPath rootPath, List<String> elements) {
         if (elements.isEmpty())
             throw new IllegalArgumentException();
 
@@ -259,11 +259,22 @@ public class SmbPath implements Path {
     }
 
     static SmbPath of(SmbFileSystem fileSystem, SmbPath rootPath, String first, String... more) {
-        List<String> elements = new ArrayList<>();
-        elements.add(first);
-        elements.addAll(Arrays.asList(more));
+        List<String> elements = new ArrayList<>(normalise(first));
+        for (String each : more)
+            elements.addAll(normalise(each));
+
+        for (String each : elements) {
+            if (each.isEmpty())
+                throw new IllegalArgumentException();
+        }
 
         return of(fileSystem, rootPath, elements);
+    }
+
+    private static List<String> normalise(String raw) {
+        String replaced = requireNonNull(raw).replace('/', SEPARATOR);
+
+        return Arrays.asList(replaced.split("" + SEPARATOR + SEPARATOR));
     }
 
     static SmbPath requireSmbPath(Path path) {

@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,6 +53,22 @@ class SmbPathTest {
         assertEquals("file.txt", SmbPath.of(fs, null, "file.txt").toString());
         assertEquals("dir", SmbPath.of(fs, null, "dir").toString());
         assertEquals("dir\\dir2", SmbPath.of(fs, null, "dir", "dir2").toString());
+    }
+
+    @Test
+    void normalisesAndSplitsPathComponents() {
+
+        assertEquals("\\dir\\dir2", SmbPath.of(fs, fsRoot, "dir\\dir2").toString());
+        assertEquals("\\dir\\dir2\\a\\b\\c", SmbPath.of(fs, fsRoot, "dir\\dir2", "a", "b\\c").toString());
+        assertEquals("\\dir\\dir2\\a\\b\\c", SmbPath.of(fs, fsRoot, "dir/dir2", "a", "b/c").toString());
+        assertEquals("\\dir\\dir2\\a\\b\\c", SmbPath.of(fs, fsRoot, "dir/dir2", "a", "b\\c").toString());
+        assertEquals("\\dir\\dir2\\a\\b\\c", SmbPath.of(fs, fsRoot, "dir/dir2\\a/b\\c").toString());
+    }
+
+    @Test
+    void throwsExceptionOn() {
+
+        assertThrows(IllegalArgumentException.class, () -> SmbPath.of(fs, fsRoot, "dir\\\\d"));
     }
 
     @Test
@@ -142,7 +159,7 @@ class SmbPathTest {
         assertEquals("b\\c.dat", SmbPath.of(fs, null, "a", "b", "c.dat").subpath(1, 3).toString());
         assertEquals("c.dat", SmbPath.of(fs, null, "a", "b", "c.dat").subpath(2, 3).toString());
     }
-    
+
     @Test
     void resolvesPath() {
         assertEquals("\\c\\file.txt", fsRoot.resolve(SmbPath.of(fs, fsRoot, "c", "file.txt")).toString());
