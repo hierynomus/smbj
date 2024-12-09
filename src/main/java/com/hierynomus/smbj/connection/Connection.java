@@ -86,7 +86,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     private final SMBClient client;
     final ServerList serverList;
 
-    private PacketSignatory signatory;
+    private Signatory signatory;
     private PacketEncryptor encryptor;
 
     public SMBClient getClient() {
@@ -110,7 +110,12 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     private void init() {
         bus.subscribe(this);
         this.sequenceWindow = new SequenceWindow();
-        this.signatory = new PacketSignatory(config.getSecurityProvider());
+        if (config.isSigningEnabled()) {
+            this.signatory = new PacketSignatory(config.getSecurityProvider());
+        } else {
+            logger.warn("Signing is disabled for this connection.");
+            this.signatory = new NoSignatory();
+        }
         this.encryptor = new PacketEncryptor(config.getSecurityProvider());
 
         this.packetHandlerChain = new SMB3DecryptingPacketHandler(sessionTable, encryptor).setNext(
@@ -139,7 +144,6 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         transport.connect(new InetSocketAddress(hostname, port));
         this.connectionContext = new ConnectionContext(config.getClientGuid(), hostname, port, config);
         new SMBProtocolNegotiator(this, config, connectionContext).negotiateDialect();
-        this.signatory.init();
         this.encryptor.init(connectionContext);
 
         this.pathResolver = new SymlinkPathResolver(PathResolver.LOCAL);

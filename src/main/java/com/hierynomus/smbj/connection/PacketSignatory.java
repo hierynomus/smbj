@@ -37,7 +37,7 @@ import com.hierynomus.security.SecurityException;
 import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smb.SMBBuffer;
 
-public class PacketSignatory {
+public class PacketSignatory implements Signatory {
     private static final Logger logger = LoggerFactory.getLogger(PacketSignatory.class);
 
     private SecurityProvider securityProvider;
@@ -46,9 +46,7 @@ public class PacketSignatory {
         this.securityProvider = securityProvider;
     }
 
-    void init() {
-    }
-
+    @Override
     public SMB2Packet sign(SMB2Packet packet, SecretKey secretKey) {
         if (secretKey != null) {
             return new SignedPacketWrapper(packet, secretKey);
@@ -59,6 +57,7 @@ public class PacketSignatory {
     }
 
     // TODO make session a packet handler which wraps the incoming packets
+    @Override
     public boolean verify(SMB2PacketData packet, SecretKey secretKey) {
         try {
             SMBBuffer buffer = packet.getDataBuffer();

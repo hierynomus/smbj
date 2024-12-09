@@ -30,6 +30,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
+import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.Share;
 import com.hierynomus.smbj.testcontainers.SambaContainer;
@@ -84,6 +85,17 @@ public class IntegrationTest {
         samba.withAuthenticatedClient(c, DEFAULT_AUTHENTICATION_CONTEXT, session -> {
             try (DiskShare share = (DiskShare) session.connectShare("user")) {
                 List<FileIdBothDirectoryInformation> items = share.list(null);
+                assertThat(items).hasSize(2).map(FileIdBothDirectoryInformation::getFileName).contains(".", "..");
+            }
+        });
+    }
+
+    @Test
+    public void shouldConnectAndListContentsOfShareWithDisabledSigning() throws Exception {
+        SmbConfig c = SmbConfig.builder().withDialects(SMB2Dialect.SMB_2_0_2).withMultiProtocolNegotiate(true).withSigningEnabled(false).withEncryptData(false).build();
+        samba.withAuthenticatedClient(c, DEFAULT_AUTHENTICATION_CONTEXT, session -> {
+            try (DiskShare share = (DiskShare) session.connectShare("user")) {
+                List<FileIdBothDirectoryInformation> items = share.list("");
                 assertThat(items).hasSize(2).map(FileIdBothDirectoryInformation::getFileName).contains(".", "..");
             }
         });

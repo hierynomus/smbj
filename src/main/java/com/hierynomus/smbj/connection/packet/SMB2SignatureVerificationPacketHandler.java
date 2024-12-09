@@ -18,8 +18,8 @@ package com.hierynomus.smbj.connection.packet;
 import com.hierynomus.mssmb2.DeadLetterPacketData;
 import com.hierynomus.mssmb2.SMB2PacketData;
 import com.hierynomus.protocol.transport.TransportException;
-import com.hierynomus.smbj.connection.PacketSignatory;
 import com.hierynomus.smbj.connection.SessionTable;
+import com.hierynomus.smbj.connection.Signatory;
 import com.hierynomus.smbj.session.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,9 +67,9 @@ import static com.hierynomus.mssmb2.SMB2MessageFlag.SMB2_FLAGS_SIGNED;
 public class SMB2SignatureVerificationPacketHandler extends SMB2PacketHandler {
     private static final Logger logger = LoggerFactory.getLogger(SMB2SignatureVerificationPacketHandler.class);
     private SessionTable sessionTable;
-    private PacketSignatory signatory;
+    private Signatory signatory;
 
-    public SMB2SignatureVerificationPacketHandler(SessionTable sessionTable, PacketSignatory signatory) {
+    public SMB2SignatureVerificationPacketHandler(SessionTable sessionTable, Signatory signatory) {
         this.sessionTable = sessionTable;
         this.signatory = signatory;
     }

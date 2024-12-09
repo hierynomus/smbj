@@ -66,6 +66,7 @@ public class TestingUtils {
     public static Stream<Arguments> defaultTestingConfig() {
         return Stream.of(Arguments.of(config(SMB2Dialect.SMB_3_1_1, true, true)));
     }
+
     public static Stream<Arguments> dfsConfig() {
         return Stream.of(Arguments.of(config(SMB2Dialect.SMB_2_1, false, true)));
     }
