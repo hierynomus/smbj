@@ -158,6 +158,13 @@ The implementation is based on the following specifications:
 
 == Changelog
 
+=== 0.14.0 (2024-12-??)
+* Add configuration option to disable signing (Fixes https://github.com/hierynomus/smbj/issues/817[#817])
+* Upgrade dependencies
+* Make share.queryInfo public to allow for exensibility (Fixes https://github.com/hierynomus/smbj/issues/836[#836])
+* Add support for querying volume information (Fixes https://github.com/hierynomus/smbj/issues/837[#837])
+* Set sessionKey whenever we have it from authentication, prevents NPE when server incorrectly does not recognise guest or anon credentials (Fixes https://github.com/hierynomus/smbj/issues/792[#792])
+
 === 0.13.0 (2023-11-20)
 * Use FILE_OPEN_IF if no SMB2CreateDisposition provided (Fixes https://github.com/hierynomus/smbj/issues/786[#786])
 * Integration tests rewritten to JUnit Jupiter and TestContainers
