@@ -21,6 +21,7 @@ import static com.hierynomus.mssmb2.SMB2Dialect.SMB_3_0;
 import static com.hierynomus.mssmb2.SMB2Dialect.SMB_3_0_2;
 import static com.hierynomus.mssmb2.SMB2Dialect.SMB_3_1_1;
 
+import java.lang.reflect.InvocationTargetException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -77,6 +78,7 @@ public final class SmbConfig {
     private Random random;
     private UUID clientGuid;
     private boolean signingRequired;
+    private boolean signingEnabled;
     private boolean dfsEnabled;
     private boolean useMultiProtocolNegotiate;
     private SecurityProvider securityProvider;
@@ -103,6 +105,7 @@ public final class SmbConfig {
                 .withSecurityProvider(getDefaultSecurityProvider())
                 .withSocketFactory(new ProxySocketFactory())
                 .withSigningRequired(false)
+                .withSigningEnabled(true)
                 .withDfsEnabled(false)
                 .withMultiProtocolNegotiate(false)
                 .withBufferSize(DEFAULT_BUFFER_SIZE)
@@ -131,9 +134,9 @@ public final class SmbConfig {
 
         if (!ANDROID) {
             try {
-                Object spnegoFactory = Class.forName("com.hierynomus.smbj.auth.SpnegoAuthenticator$Factory").newInstance();
+                Object spnegoFactory = Class.forName("com.hierynomus.smbj.auth.SpnegoAuthenticator$Factory").getDeclaredConstructor().newInstance();
                 authenticators.add((Factory.Named<Authenticator>)spnegoFactory);
-            } catch (InstantiationException | IllegalAccessException | ClassNotFoundException | ClassCastException e) {
+            } catch (InstantiationException | IllegalAccessException | ClassNotFoundException | ClassCastException | NoSuchMethodException | InvocationTargetException e) {
                 throw new SMBRuntimeException(e);
             }
         }
@@ -156,6 +159,7 @@ public final class SmbConfig {
         random = other.random;
         clientGuid = other.clientGuid;
         signingRequired = other.signingRequired;
+        signingEnabled = other.signingEnabled;
         dfsEnabled = other.dfsEnabled;
         securityProvider = other.securityProvider;
         readBufferSize = other.readBufferSize;
@@ -200,6 +204,16 @@ public final class SmbConfig {
         return signingRequired;
     }
 
+    /**
+     * Whether the client should sign messages to the server.  When message signing is enabled the client will sign messages to the server.
+     */
+    public boolean isSigningEnabled() {
+        return signingEnabled;
+    }
+
+    /**
+     * Whether the client should use the DFS protocol.
+     */
     public boolean isDfsEnabled() {
         return dfsEnabled;
     }
@@ -369,6 +383,11 @@ public final class SmbConfig {
             return this;
         }
 
+        public Builder withSigningEnabled(boolean signingEnabled) {
+            config.signingEnabled = signingEnabled;
+            return this;
+        }
+
         public Builder withReadBufferSize(int readBufferSize) {
             if (readBufferSize <= 0) {
                 throw new IllegalArgumentException("Read buffer size must be greater than zero");
@@ -451,6 +470,14 @@ public final class SmbConfig {
         public SmbConfig build() {
             if (config.dialects.isEmpty()) {
                 throw new IllegalStateException("At least one SMB dialect should be specified");
+            }
+
+            if (config.signingRequired && !config.signingEnabled) {
+                throw new IllegalStateException("If signing is required, it should also be enabled");
+            }
+
+            if (!config.signingEnabled && SMB2Dialect.supportsSmb3x(config.dialects)) {
+                throw new IllegalStateException("Signing cannot be disabled when using SMB3.x dialects");
             }
 
             if (config.encryptData && !SMB2Dialect.supportsSmb3x(config.dialects)) {

@@ -29,7 +29,7 @@ import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.connection.PacketEncryptor;
-import com.hierynomus.smbj.connection.PacketSignatory;
+import com.hierynomus.smbj.connection.Signatory;
 import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.event.SessionLoggedOff;
 import com.hierynomus.smbj.event.TreeDisconnected;
@@ -61,7 +61,7 @@ public class Session implements AutoCloseable {
     private final SmbConfig config;
     private SMBEventBus bus;
     private final PathResolver pathResolver;
-    private PacketSignatory signatory;
+    private Signatory signatory;
     private PacketEncryptor encryptor;
     private TreeConnectTable treeConnectTable = new TreeConnectTable();
     private Map<String, Session> nestedSessionsByHost = new HashMap<>();
@@ -69,7 +69,7 @@ public class Session implements AutoCloseable {
     private AuthenticationContext userCredentials;
     private SessionContext sessionContext;
 
-    public Session(Connection connection, SmbConfig config, AuthenticationContext userCredentials, SMBEventBus bus, PathResolver pathResolver, PacketSignatory signatory, PacketEncryptor encryptor) {
+    public Session(Connection connection, SmbConfig config, AuthenticationContext userCredentials, SMBEventBus bus, PathResolver pathResolver, Signatory signatory, PacketEncryptor encryptor) {
         this.connection = connection;
         this.config = config;
         this.userCredentials = userCredentials;
