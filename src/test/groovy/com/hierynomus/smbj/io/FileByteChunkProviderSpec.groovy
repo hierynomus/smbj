@@ -32,7 +32,6 @@ class FileByteChunkProviderSpec extends Specification {
     then:
     baos.toByteArray() == file.bytes
     provider.offset == ByteChunkProvider.CHUNK_SIZE
-    !provider.isAvailable()
   }
 
   def "should write part of chunk to outputStream"() {

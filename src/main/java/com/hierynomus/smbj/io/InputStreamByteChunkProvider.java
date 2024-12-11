@@ -19,22 +19,18 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import com.hierynomus.smbj.common.SMBRuntimeException;
-
 public class InputStreamByteChunkProvider extends CachingByteChunkProvider {
-
-    private BufferedInputStream is;
     private boolean close;
+    private BufferedInputStreamReader bufferedInputStreamReader;
 
     public InputStreamByteChunkProvider(InputStream is) {
         super();
-        if (is instanceof BufferedInputStream)
-            this.is = (BufferedInputStream) is;
-        else {
-            this.is = new BufferedInputStream(is);
+        if (is instanceof BufferedInputStream) {
+            bufferedInputStreamReader = new BufferedInputStreamReader((BufferedInputStream) is);
+        } else {
+            bufferedInputStreamReader = new BufferedInputStreamReader(new BufferedInputStream(is));
             this.close = true; // We control the is, so we close it
         }
-
     }
 
     @Override
@@ -43,28 +39,24 @@ public class InputStreamByteChunkProvider extends CachingByteChunkProvider {
         if (toRead == 0) {
             return -1;
         }
-
-        return is.read(chunk, 0, toRead);
+        return bufferedInputStreamReader.read(chunk, 0, toRead);
     }
 
     @Override
     public boolean isAvailable() {
-        try {
-            return super.isAvailable() || (is != null && is.available() > 0);
-        } catch (IOException e) {
-            throw new SMBRuntimeException(e);
-        }
+        return super.isAvailable() || (bufferedInputStreamReader != null && bufferedInputStreamReader.isAvailable());
     }
 
     @Override
     public void close() throws IOException {
         super.close();
 
-        if (is != null && close) {
+        if (bufferedInputStreamReader != null && close) {
             try {
-                is.close();
-            } finally {
-                is = null;
+                bufferedInputStreamReader.close();
+            }
+            finally {
+                bufferedInputStreamReader = null;
             }
         }
     }
