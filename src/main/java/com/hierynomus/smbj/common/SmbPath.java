@@ -37,7 +37,7 @@ public class SmbPath {
         this.path = rewritePath(path);
     }
 
-    private static String rewritePath(String path) {
+    public static String rewritePath(String path) {
         if (Strings.isNotBlank(path)) {
             String replaced = path.replace('/', '\\');
             if (replaced.charAt(0) == '\\') {

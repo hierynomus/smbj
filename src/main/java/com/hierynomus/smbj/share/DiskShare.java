@@ -35,6 +35,7 @@ import com.hierynomus.smbj.paths.PathResolveException;
 import com.hierynomus.smbj.paths.PathResolver;
 import com.hierynomus.smbj.session.Session;
 
+import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -45,6 +46,7 @@ import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_DIRECTORY;
 import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_NORMAL;
 import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_CREATE;
 import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_OPEN;
+import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_OPEN_IF;
 import static com.hierynomus.mssmb2.SMB2CreateOptions.FILE_DIRECTORY_FILE;
 import static com.hierynomus.mssmb2.SMB2CreateOptions.FILE_NON_DIRECTORY_FILE;
 import static com.hierynomus.mssmb2.SMB2ShareAccess.*;
@@ -268,15 +270,41 @@ public class DiskShare extends Share {
     }
 
     /**
-     * Create a directory in the given path.
+     * Creates a directory in the given path, failing if it already exists.
      */
     public void mkdir(String path) throws SMBApiException {
+        mkdir0(path, FILE_CREATE);
+    }
+
+    /**
+     * Creates a directory by creating all nonexistent parent directories first.
+     * If the directory already exists, then this is a no-op.
+     */
+    public void mkdirs(String path) throws SMBApiException {
+        String[] split = SmbPath.rewritePath(path).split("\\\\");
+        if (split.length == 0) {
+            return;
+        }
+        String parent = split[0];
+        mkdirQuietly(parent);
+        for (int i = 1; i < split.length; i++) {
+            String current = parent + "\\" + split[i];
+            mkdirQuietly(current);
+            parent = current;
+        }
+    }
+
+    private void mkdirQuietly(String path) {
+        mkdir0(path, FILE_OPEN_IF);
+    }
+
+    private void mkdir0(String path, SMB2CreateDisposition createDisposition) {
         Directory fileHandle = openDirectory(
             path,
             of(FILE_LIST_DIRECTORY, FILE_ADD_SUBDIRECTORY),
             of(FILE_ATTRIBUTE_DIRECTORY),
             ALL,
-            FILE_CREATE,
+            createDisposition,
             of(FILE_DIRECTORY_FILE));
         fileHandle.close();
     }
