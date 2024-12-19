@@ -15,8 +15,8 @@
  */
 package com.hierynomus.smbfs;
 
-import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
@@ -26,14 +26,14 @@ class SmbFileChannel implements SeekableByteChannel {
 
     private final ReentrantLock lock = new ReentrantLock();
 
-    private final DiskShare share;
+    private final ShareSource.Holder holder;
     private final File file;
 
     private long position;
     private volatile boolean closed;
 
-    SmbFileChannel(DiskShare share, File file, long position) {
-        this.share = share;
+    SmbFileChannel(ShareSource.Holder holder, File file, long position) {
+        this.holder = holder;
         this.file = file;
         this.position = position;
     }
@@ -109,7 +109,7 @@ class SmbFileChannel implements SeekableByteChannel {
         if (closed)
             return;
 
-        try (DiskShare s = share;
+        try (ShareSource.Holder h = holder;
              File f = file) {
             // close the share and file
             closed = true;

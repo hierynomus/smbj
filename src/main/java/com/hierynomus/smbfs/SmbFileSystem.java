@@ -150,7 +150,8 @@ public class SmbFileSystem extends FileSystem {
     DirectoryStream<Path> newDirectoryStream(Path path, DirectoryStream.Filter<? super Path> filter)
         throws IOException {
 
-        try (DiskShare ds = shares.open(share)) {
+        try (ShareSource.Holder hol = shares.open(share);
+             DiskShare ds = hol.share()) {
             List<Path> list = new ArrayList<>();
 
             for (FileIdBothDirectoryInformation each : ds.list(path.toString())) {
@@ -174,7 +175,8 @@ public class SmbFileSystem extends FileSystem {
 
         EnumSet<AccessMask> accessMasks = EnumSet.of(FILE_LIST_DIRECTORY, FILE_ADD_SUBDIRECTORY);
 
-        try (DiskShare ds = shares.open(share);
+        try (ShareSource.Holder hol = shares.open(share);
+             DiskShare ds = hol.share();
              Directory dirDir = ds.openDirectory(dir.toString(), accessMasks, null, null, FILE_CREATE, null)) {
 
             // do-nothing - dir will get created with the open call above
@@ -187,7 +189,8 @@ public class SmbFileSystem extends FileSystem {
             throw new UnsupportedOperationException(type.getName());
 
         try {
-            try (DiskShare ds = shares.open(share)) {
+            try (ShareSource.Holder hol = shares.open(share);
+                 DiskShare ds = hol.share()) {
                 FileAllInformation fileInformation = ds.getFileInformation(path.toString());
 
                 return type.cast(new SmbFileAttributes(fileInformation));
@@ -199,7 +202,8 @@ public class SmbFileSystem extends FileSystem {
 
     void checkAccess(Path path, AccessMode... modes) throws IOException {
         try {
-            try (DiskShare ds = shares.open(share)) {
+            try (ShareSource.Holder hol = shares.open(share);
+                 DiskShare ds = hol.share()) {
                 ds.getFileInformation(path.toString());
             }
         } catch (SMBApiException e) {
@@ -213,13 +217,14 @@ public class SmbFileSystem extends FileSystem {
         SMB2CreateDisposition disposition = createDisposition(options);
         Set<SMB2CreateOptions> createOptions = createOptions(options);
 
-        DiskShare ds = shares.open(share);
-        File file = ds.openFile(path.toString(), accessMasks, null, null, disposition, createOptions);
+        ShareSource.Holder hol = shares.open(share);
+        File file = hol.share()
+            .openFile(path.toString(), accessMasks, null, null, disposition, createOptions);
         long position = 0;
         if (options.contains(StandardOpenOption.APPEND))
             position = file.getLength();
 
-        return new SmbFileChannel(ds, file, position);
+        return new SmbFileChannel(hol, file, position);
     }
 
     private static Set<AccessMask> accessMasks(Set<? extends OpenOption> options) {
@@ -271,7 +276,8 @@ public class SmbFileSystem extends FileSystem {
         Set<StandardOpenOption> readOptions = Collections.singleton(StandardOpenOption.READ);
         Set<StandardOpenOption> writeOptions = new HashSet<>(Arrays.asList(StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW));
 
-        try (DiskShare ds = shares.open(share);
+        try (ShareSource.Holder hol = shares.open(share);
+             DiskShare ds = hol.share();
              File sourceFile = ds.openFile(source.toString(), accessMasks(readOptions), null, null, createDisposition(readOptions), createOptions(readOptions));
              File destinationFile = ds.openFile(target.toString(), accessMasks(writeOptions), null, null, createDisposition(writeOptions), createOptions(writeOptions))) {
 
@@ -285,7 +291,8 @@ public class SmbFileSystem extends FileSystem {
     public void move(SmbPath source, SmbPath target) throws IOException {
         Set<AccessMask> accessMasks = EnumSet.of(AccessMask.FILE_WRITE_ATTRIBUTES);
 
-        try (DiskShare ds = shares.open(share);
+        try (ShareSource.Holder hol = shares.open(share);
+             DiskShare ds = hol.share();
              File sourceFile = ds.openFile(source.toString(), accessMasks, null, null, null, null)) {
 
             sourceFile.rename(target.toString());
@@ -295,7 +302,8 @@ public class SmbFileSystem extends FileSystem {
     public void delete(SmbPath path) throws IOException {
         Set<AccessMask> accessMasks = EnumSet.of(AccessMask.DELETE);
 
-        try (DiskShare ds = shares.open(share);
+        try (ShareSource.Holder hol = shares.open(share);
+             DiskShare ds = hol.share();
              File sourceFile = ds.openFile(path.toString(), accessMasks, null, null, null, null)) {
 
             sourceFile.deleteOnClose();

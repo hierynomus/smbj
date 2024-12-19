@@ -32,11 +32,11 @@ class ShareSourceImpl implements ShareSource {
     }
 
     @Override
-    public DiskShare open(String name) {
+    public Holder open(String name) {
         if (closed)
             throw new IllegalStateException("Already closed");
 
-        return (DiskShare) session.connectShare(name);
+        return new HolderImpl((DiskShare) session.connectShare(name));
     }
 
     @Override
@@ -45,6 +45,25 @@ class ShareSourceImpl implements ShareSource {
              Session s = session) {
 
             closed = true;
+        }
+    }
+
+    private static class HolderImpl implements Holder {
+
+        private final DiskShare share;
+
+        private HolderImpl(DiskShare share) {
+            this.share = share;
+        }
+
+        @Override
+        public DiskShare share() {
+            return share;
+        }
+
+        @Override
+        public void close() throws IOException {
+            share.close();
         }
     }
 }

@@ -21,5 +21,10 @@ import java.io.Closeable;
 
 interface ShareSource extends Closeable {
 
-    DiskShare open(String name);
+    Holder open(String name);
+
+    interface Holder extends Closeable {
+
+        DiskShare share();
+    }
 }
