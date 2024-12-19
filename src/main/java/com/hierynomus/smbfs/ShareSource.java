@@ -18,10 +18,11 @@ package com.hierynomus.smbfs;
 import com.hierynomus.smbj.share.DiskShare;
 
 import java.io.Closeable;
+import java.io.IOException;
 
 interface ShareSource extends Closeable {
 
-    Holder open(String name);
+    Holder open(String name) throws IOException;
 
     interface Holder extends Closeable {
 

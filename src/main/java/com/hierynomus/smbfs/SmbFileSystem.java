@@ -211,7 +211,8 @@ public class SmbFileSystem extends FileSystem {
         }
     }
 
-    public SeekableByteChannel newByteChannel(Path path, Set<? extends OpenOption> options, FileAttribute<?>[] attrs) {
+    public SeekableByteChannel newByteChannel(Path path, Set<? extends OpenOption> options, FileAttribute<?>[] attrs)
+        throws IOException {
 
         Set<AccessMask> accessMasks = accessMasks(options);
         SMB2CreateDisposition disposition = createDisposition(options);

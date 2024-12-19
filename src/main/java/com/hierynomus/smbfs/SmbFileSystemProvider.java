@@ -17,8 +17,6 @@ package com.hierynomus.smbfs;
 
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.session.Session;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -186,7 +184,9 @@ public class SmbFileSystemProvider extends FileSystemProvider {
     }
 
     @Override
-    public SeekableByteChannel newByteChannel(Path path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) {
+    public SeekableByteChannel newByteChannel(Path path, Set<? extends OpenOption> options, FileAttribute<?>... attrs)
+        throws IOException {
+
         return requireSmbPath(path).getFileSystem()
             .newByteChannel(path, options, attrs);
     }
@@ -302,7 +302,7 @@ public class SmbFileSystemProvider extends FileSystemProvider {
 
     interface Factory {
         SmbFileSystem create(SmbFileSystemProvider provider, String host, int port, AuthenticationContext context,
-                             String shareName) throws IOException;
+                             String shareName);
     }
 
     private static class FactoryImpl implements Factory {
@@ -316,12 +316,9 @@ public class SmbFileSystemProvider extends FileSystemProvider {
 
         @Override
         public SmbFileSystem create(SmbFileSystemProvider provider, String host, int port,
-                                    AuthenticationContext context, String shareName) throws IOException {
+                                    AuthenticationContext context, String shareName) {
 
-            Connection connection = smbClient.connect(host, port);
-            Session session = connection.authenticate(context);
-
-            ShareSourceImpl shares = new ShareSourceImpl(session);
+            ShareSourceImpl shares = new ShareSourceImpl(smbClient, host, port, context);
 
             return new SmbFileSystem(provider, shares, shareName);
         }

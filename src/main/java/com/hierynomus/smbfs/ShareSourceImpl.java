@@ -15,6 +15,8 @@
  */
 package com.hierynomus.smbfs;
 
+import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
@@ -23,29 +25,34 @@ import java.io.IOException;
 
 class ShareSourceImpl implements ShareSource {
 
-    private final Session session;
+    private final SMBClient client;
+    private final String host;
+    private final int port;
+    private final AuthenticationContext context;
 
     private volatile boolean closed = false;
 
-    ShareSourceImpl(Session session) {
-        this.session = session;
+    ShareSourceImpl(SMBClient client, String host, int port, AuthenticationContext context) {
+        this.client = client;
+        this.host = host;
+        this.port = port;
+        this.context = context;
     }
 
     @Override
-    public Holder open(String name) {
+    public Holder open(String name) throws IOException {
         if (closed)
             throw new IllegalStateException("Already closed");
+
+        Connection connection = client.connect(host, port);
+        Session session = connection.authenticate(context);
 
         return new HolderImpl((DiskShare) session.connectShare(name));
     }
 
     @Override
     public void close() throws IOException {
-        try (Connection c = session.getConnection();
-             Session s = session) {
-
-            closed = true;
-        }
+        closed = true;
     }
 
     private static class HolderImpl implements Holder {
@@ -63,7 +70,11 @@ class ShareSourceImpl implements ShareSource {
 
         @Override
         public void close() throws IOException {
-            share.close();
+            try (Connection c = share.getTreeConnect().getSession().getConnection();
+                Session s = share.getTreeConnect().getSession()) {
+
+                share.close();
+            }
         }
     }
 }
