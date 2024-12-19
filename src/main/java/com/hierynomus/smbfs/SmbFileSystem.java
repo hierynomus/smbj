@@ -22,12 +22,11 @@ import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.AccessMode;
@@ -61,16 +60,16 @@ public class SmbFileSystem extends FileSystem {
 
     private final SmbFileSystemProvider provider;
 
-    private final Session session;
+    private final ShareSource shares;
     private final String share;
 
     private final SmbPath root = SmbPath.root(this);
 
     private volatile boolean open;
 
-    SmbFileSystem(SmbFileSystemProvider provider, Session session, String share) {
+    SmbFileSystem(SmbFileSystemProvider provider, ShareSource shares, String share) {
         this.provider = provider;
-        this.session = session;
+        this.shares = shares;
         this.share = share;
     }
 
@@ -91,8 +90,7 @@ public class SmbFileSystem extends FileSystem {
     @SuppressWarnings("unused")
     public void close() throws IOException {
         // this will close the session, then connection - handling any suppressed exceptions, etc.
-        try (Connection c = session.getConnection();
-             Session s = session) {
+        try (Closeable c = shares) {
 
             open = false;
             provider.removeFileSystem(this);
@@ -152,7 +150,7 @@ public class SmbFileSystem extends FileSystem {
     DirectoryStream<Path> newDirectoryStream(Path path, DirectoryStream.Filter<? super Path> filter)
         throws IOException {
 
-        try (DiskShare ds = (DiskShare) session.connectShare(share)) {
+        try (DiskShare ds = shares.open(share)) {
             List<Path> list = new ArrayList<>();
 
             for (FileIdBothDirectoryInformation each : ds.list(path.toString())) {
@@ -176,7 +174,7 @@ public class SmbFileSystem extends FileSystem {
 
         EnumSet<AccessMask> accessMasks = EnumSet.of(FILE_LIST_DIRECTORY, FILE_ADD_SUBDIRECTORY);
 
-        try (DiskShare ds = (DiskShare) session.connectShare(share);
+        try (DiskShare ds = shares.open(share);
              Directory dirDir = ds.openDirectory(dir.toString(), accessMasks, null, null, FILE_CREATE, null)) {
 
             // do-nothing - dir will get created with the open call above
@@ -189,7 +187,7 @@ public class SmbFileSystem extends FileSystem {
             throw new UnsupportedOperationException(type.getName());
 
         try {
-            try (DiskShare ds = (DiskShare) session.connectShare(share)) {
+            try (DiskShare ds = shares.open(share)) {
                 FileAllInformation fileInformation = ds.getFileInformation(path.toString());
 
                 return type.cast(new SmbFileAttributes(fileInformation));
@@ -201,7 +199,7 @@ public class SmbFileSystem extends FileSystem {
 
     void checkAccess(Path path, AccessMode... modes) throws IOException {
         try {
-            try (DiskShare ds = (DiskShare) session.connectShare(share)) {
+            try (DiskShare ds = shares.open(share)) {
                 ds.getFileInformation(path.toString());
             }
         } catch (SMBApiException e) {
@@ -215,7 +213,7 @@ public class SmbFileSystem extends FileSystem {
         SMB2CreateDisposition disposition = createDisposition(options);
         Set<SMB2CreateOptions> createOptions = createOptions(options);
 
-        DiskShare ds = (DiskShare) session.connectShare(share);
+        DiskShare ds = shares.open(share);
         File file = ds.openFile(path.toString(), accessMasks, null, null, disposition, createOptions);
         long position = 0;
         if (options.contains(StandardOpenOption.APPEND))
@@ -273,7 +271,7 @@ public class SmbFileSystem extends FileSystem {
         Set<StandardOpenOption> readOptions = Collections.singleton(StandardOpenOption.READ);
         Set<StandardOpenOption> writeOptions = new HashSet<>(Arrays.asList(StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW));
 
-        try (DiskShare ds = (DiskShare) session.connectShare(share);
+        try (DiskShare ds = shares.open(share);
              File sourceFile = ds.openFile(source.toString(), accessMasks(readOptions), null, null, createDisposition(readOptions), createOptions(readOptions));
              File destinationFile = ds.openFile(target.toString(), accessMasks(writeOptions), null, null, createDisposition(writeOptions), createOptions(writeOptions))) {
 
@@ -287,7 +285,7 @@ public class SmbFileSystem extends FileSystem {
     public void move(SmbPath source, SmbPath target) throws IOException {
         Set<AccessMask> accessMasks = EnumSet.of(AccessMask.FILE_WRITE_ATTRIBUTES);
 
-        try (DiskShare ds = (DiskShare) session.connectShare(share);
+        try (DiskShare ds = shares.open(share);
              File sourceFile = ds.openFile(source.toString(), accessMasks, null, null, null, null)) {
 
             sourceFile.rename(target.toString());
@@ -297,7 +295,7 @@ public class SmbFileSystem extends FileSystem {
     public void delete(SmbPath path) throws IOException {
         Set<AccessMask> accessMasks = EnumSet.of(AccessMask.DELETE);
 
-        try (DiskShare ds = (DiskShare) session.connectShare(share);
+        try (DiskShare ds = shares.open(share);
              File sourceFile = ds.openFile(path.toString(), accessMasks, null, null, null, null)) {
 
             sourceFile.deleteOnClose();

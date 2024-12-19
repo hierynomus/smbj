@@ -15,6 +15,8 @@
  */
 package com.hierynomus.smbfs;
 
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.session.Session;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,35 +24,35 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class SmbFileSystemTest {
+class ShareSourceImplTest {
 
     @Mock
-    private SmbFileSystemProvider provider;
+    private Connection connection;
 
     @Mock
-    private ShareSource shares;
+    private Session session;
 
-    private SmbFileSystem fileSystem;
+    private ShareSourceImpl shares;
 
     @BeforeEach
     void setUp() {
-        fileSystem = new SmbFileSystem(provider, shares, "theShare");
+        shares = new ShareSourceImpl(session);
     }
 
     @Test
     void closesAndRemovesFromProvider() throws Exception {
+        when(session.getConnection())
+            .thenReturn(connection);
 
-        fileSystem.close();
+        shares.close();
 
-        assertFalse(fileSystem.isOpen());
-
-        InOrder o = inOrder(provider, shares);
-        o.verify(provider).removeFileSystem(fileSystem);
-        o.verify(shares).close();
+        InOrder o = inOrder(connection, session);
+        o.verify(session).close();
+        o.verify(connection).close();
         o.verifyNoMoreInteractions();
     }
 }
