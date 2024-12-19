@@ -321,7 +321,7 @@ public class SmbFileSystemProvider extends FileSystemProvider {
             Connection connection = smbClient.connect(host, port);
             Session session = connection.authenticate(context);
 
-            return new SmbFileSystem(provider, connection, session, shareName);
+            return new SmbFileSystem(provider, session, shareName);
         }
     }
 }

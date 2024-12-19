@@ -61,7 +61,6 @@ public class SmbFileSystem extends FileSystem {
 
     private final SmbFileSystemProvider provider;
 
-    private final Connection connection;
     private final Session session;
     private final String share;
 
@@ -69,9 +68,8 @@ public class SmbFileSystem extends FileSystem {
 
     private volatile boolean open;
 
-    SmbFileSystem(SmbFileSystemProvider provider, Connection connection, Session session, String share) {
+    SmbFileSystem(SmbFileSystemProvider provider, Session session, String share) {
         this.provider = provider;
-        this.connection = connection;
         this.session = session;
         this.share = share;
     }
@@ -93,7 +91,7 @@ public class SmbFileSystem extends FileSystem {
     @SuppressWarnings("unused")
     public void close() throws IOException {
         // this will close the session, then connection - handling any suppressed exceptions, etc.
-        try (Connection c = connection;
+        try (Connection c = session.getConnection();
              Session s = session) {
 
             open = false;

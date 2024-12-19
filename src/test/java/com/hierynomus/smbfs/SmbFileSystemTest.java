@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SmbFileSystemTest {
@@ -43,11 +44,14 @@ class SmbFileSystemTest {
 
     @BeforeEach
     void setUp() {
-        fileSystem = new SmbFileSystem(provider, connection, session, "theShare");
+        fileSystem = new SmbFileSystem(provider, session, "theShare");
     }
 
     @Test
     void closesAndRemovesFromProvider() throws Exception {
+        when(session.getConnection())
+            .thenReturn(connection);
+
         fileSystem.close();
 
         assertFalse(fileSystem.isOpen());
