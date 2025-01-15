@@ -19,15 +19,15 @@ import com.google.common.testing.EqualsTester;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
@@ -83,19 +83,25 @@ class SmbPathTest {
         assertThrows(IllegalArgumentException.class, () -> SmbPath.of(fs, fsRoot, "dir\\\\d"));
     }
 
-    @Test
-    void returnsFileSystem() {
-        assertSame(fs, fsRoot.getFileSystem());
-        assertSame(fs, toPath("/file.txt").getFileSystem());
+    @ParameterizedTest
+    @CsvSource({
+        "/",
+        "/file.txt",
+    })
+    void returnsFileSystem(String path) {
+
+        assertSame(fs, toPath(path).getFileSystem());
     }
 
-    @Test
-    void pathIsAbsolute() {
+    @ParameterizedTest
+    @CsvSource({
+        "/,false",
+        "/file.txt,true",
+        "file.txt,false",
+    })
+    void pathIsAbsolute(String path, boolean absolute) {
 
-        assertFalse(fsRoot.isAbsolute());
-
-        assertTrue(toPath("/file.txt").isAbsolute());
-        assertFalse(toPath("file.txt").isAbsolute());
+        assertEquals(absolute, toPath(path).isAbsolute());
     }
 
     @Test
@@ -107,85 +113,100 @@ class SmbPathTest {
         assertNull(toPath("file.txt").getRoot());
     }
 
-    @Test
-    void returnsFileName() {
+    @ParameterizedTest
+    @CsvSource({
+        "/,",
+        "/file.txt,file.txt",
+        "/a/b/c.dat,c.dat",
+        "file.txt,file.txt",
+        "a/b/c.dat,c.dat",
+    })
+    void returnsFileName(String path, String fileName) {
 
-        assertNull(fsRoot.getFileName());
-
-        assertEquals("file.txt", toPath("/file.txt").getFileName().toString());
-        assertEquals("c.dat", toPath("/a/b/c.dat").getFileName().toString());
-
-        assertEquals("file.txt", toPath("file.txt").getFileName().toString());
-        assertEquals("c.dat", toPath("a/b/c.dat").getFileName().toString());
+        assertEquals(toPath(fileName), toPath(path).getFileName());
     }
 
-    @Test
-    void returnsParent() {
-        assertNull(fsRoot.getParent());
+    @ParameterizedTest
+    @CsvSource({
+        "/,",
+        "/file.txt,/",
+        "/a/b/c.dat,/a/b",
+        "file.txt,",
+        "a/b/c.dat,a/b",
+    })
+    void returnsParent(String path, String parent) {
 
-        assertEquals("\\", toPath("/file.txt").getParent().toString());
-        assertEquals("\\a\\b", toPath("/a/b/c.dat").getParent().toString());
-
-        assertNull(toPath("file.txt").getParent());
-        assertEquals("a\\b", toPath("a/b/c.dat").getParent().toString());
+        assertEquals(toPath(parent), toPath(path).getParent());
     }
 
-    @Test
-    void returnsNameCount() {
-        assertEquals(0, fsRoot.getNameCount());
+    @ParameterizedTest
+    @CsvSource({
+        "/,0",
+        "/file.txt,1",
+        "/a/b/c.dat,3",
+        "file.txt,1",
+        "a/b/c.dat,3",
+    })
+    void returnsNameCount(String path, int nameCount) {
 
-        assertEquals(1, toPath("/file.txt").getNameCount());
-        assertEquals(3, toPath("/a/b/c.dat").getNameCount());
-        assertEquals(1, toPath("file.txt").getNameCount());
-        assertEquals(3, toPath("a/b/c.dat").getNameCount());
+        assertEquals(nameCount, toPath(path).getNameCount());
     }
 
-    @Test
-    void returnsName() {
-        assertEquals("file.txt", toPath("/file.txt").getName(0).toString());
-        assertEquals("a", toPath("/a/b/c.dat").getName(0).toString());
-        assertEquals("b", toPath("/a/b/c.dat").getName(1).toString());
-        assertEquals("c.dat", toPath("/a/b/c.dat").getName(2).toString());
+    @ParameterizedTest
+    @CsvSource({
+        "/file.txt,0,file.txt",
+        "/a/b/c.dat,0,a",
+        "/a/b/c.dat,1,b",
+        "/a/b/c.dat,2,c.dat",
+        "file.txt,0,file.txt",
+        "a/b/c.dat,0,a",
+        "a/b/c.dat,1,b",
+        "a/b/c.dat,2,c.dat",
+    })
+    void returnsName(String path, int nameIndex, String name) {
 
-        assertEquals("file.txt", toPath("file.txt").getName(0).toString());
-        assertEquals("a", toPath("a/b/c.dat").getName(0).toString());
-        assertEquals("b", toPath("a/b/c.dat").getName(1).toString());
-        assertEquals("c.dat", toPath("a/b/c.dat").getName(2).toString());
+        assertEquals(toPath(name), toPath(path).getName(nameIndex));
     }
 
-    @Test
-    void returnsSubpath() {
-        assertEquals("file.txt", toPath("/file.txt").subpath(0, 1).toString());
-        assertEquals("a", toPath("/a/b/c.dat").subpath(0, 1).toString());
-        assertEquals("a\\b", toPath("/a/b/c.dat").subpath(0, 2).toString());
-        assertEquals("a\\b\\c.dat", toPath("/a/b/c.dat").subpath(0, 3).toString());
-        assertEquals("b", toPath("/a/b/c.dat").subpath(1, 2).toString());
-        assertEquals("b\\c.dat", toPath("/a/b/c.dat").subpath(1, 3).toString());
-        assertEquals("c.dat", toPath("/a/b/c.dat").subpath(2, 3).toString());
+    @ParameterizedTest
+    @CsvSource({
+        "/file.txt,0,1,file.txt",
+        "/a/b/c.dat,0,1,a",
+        "/a/b/c.dat,0,2,a/b",
+        "/a/b/c.dat,0,3,a/b/c.dat",
+        "/a/b/c.dat,1,2,b",
+        "/a/b/c.dat,1,3,b/c.dat",
+        "/a/b/c.dat,2,3,c.dat",
+        "file.txt,0,1,file.txt",
+        "a/b/c.dat,0,1,a",
+        "a/b/c.dat,0,2,a/b",
+        "a/b/c.dat,0,3,a/b/c.dat",
+        "a/b/c.dat,1,2,b",
+        "a/b/c.dat,1,3,b/c.dat",
+        "a/b/c.dat,2,3,c.dat",
+    })
+    void returnsSubpath(String path, int startIndex, int endIndex, String subpath) {
 
-        assertEquals("file.txt", toPath("file.txt").getName(0).toString());
-        assertEquals("a", toPath("a/b/c.dat").subpath(0, 1).toString());
-        assertEquals("a\\b", toPath("a/b/c.dat").subpath(0, 2).toString());
-        assertEquals("a\\b\\c.dat", toPath("a/b/c.dat").subpath(0, 3).toString());
-        assertEquals("b", toPath("a/b/c.dat").subpath(1, 2).toString());
-        assertEquals("b\\c.dat", toPath("a/b/c.dat").subpath(1, 3).toString());
-        assertEquals("c.dat", toPath("a/b/c.dat").subpath(2, 3).toString());
+        assertEquals(toPath(subpath), toPath(path).subpath(startIndex, endIndex));
     }
 
-    @Test
-    void resolvesPath() {
-        assertEquals("\\c\\file.txt", fsRoot.resolve(toPath("/c/file.txt")).toString());
-        assertEquals("\\c\\file.txt", fsRoot.resolve(toPath("c/file.txt")).toString());
+    @ParameterizedTest
+    @CsvSource({
+        "/,/c/file.txt,/c/file.txt",
+        "/,c/file.txt,/c/file.txt",
+        "/a/b,/c/file.txt,/c/file.txt",
+        "/a/b,c/file.txt,/a/b/c/file.txt",
+        "a/b,/c/file.txt,/c/file.txt",
+        "a/b,c/file.txt,a/b/c/file.txt",
+    })
+    void resolvesPath(String basePath, String newPath, String resolvedPath) {
 
-        assertEquals("\\c\\file.txt", toPath("/a/b").resolve(toPath("/c/file.txt")).toString());
-        assertEquals("\\a\\b\\c\\file.txt", toPath("/a/b").resolve(toPath("c/file.txt")).toString());
-
-        assertEquals("\\c\\file.txt", toPath("a/b").resolve(toPath("/c/file.txt")).toString());
-        assertEquals("a\\b\\c\\file.txt", toPath("a/b").resolve(toPath("c/file.txt")).toString());
+        assertEquals(toPath(resolvedPath), toPath(basePath).resolve(toPath(newPath)));
     }
 
     @Test
     void factoryMethod() {
+        assertNull(toPath(null));
         assertEquals(SmbPath.of(fs, fsRoot, "file.txt"), toPath("/file.txt"));
         assertEquals(SmbPath.of(fs, fsRoot, "file.txt", "a"), toPath("/file.txt/a"));
         assertEquals(SmbPath.of(fs, null, "file.txt"), toPath("file.txt"));
@@ -193,6 +214,9 @@ class SmbPathTest {
     }
 
     private SmbPath toPath(String path) {
+        if (path == null)
+            return null;
+
         if (path.equals("/"))
             return fsRoot;
 
