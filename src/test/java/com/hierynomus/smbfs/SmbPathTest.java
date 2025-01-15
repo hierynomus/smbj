@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbfs;
 
+import com.google.common.testing.EqualsTester;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 class SmbPathTest {
@@ -39,6 +41,16 @@ class SmbPathTest {
     @BeforeEach
     void setUp() {
         fsRoot = SmbPath.root(fs);
+    }
+
+    @Test
+    void equality() {
+        new EqualsTester()
+            .addEqualityGroup(SmbPath.of(fs, fsRoot, "file.txt"), SmbPath.of(fs, fsRoot, "file.txt"))
+            .addEqualityGroup(SmbPath.of(fs, fsRoot, "file2.txt"), SmbPath.of(fs, fsRoot, "file2.txt"))
+            .addEqualityGroup(SmbPath.of(mock(SmbFileSystem.class), fsRoot, "file.txt"))
+            .addEqualityGroup(SmbPath.of(fs, null, "file.txt"))
+            .testEquals();
     }
 
     @Test

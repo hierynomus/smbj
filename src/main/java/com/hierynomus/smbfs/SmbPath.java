@@ -28,12 +28,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.IntStream;
 
 import static com.hierynomus.smbfs.ToBeImplementedException.toBeImplemented;
 import static java.util.Objects.requireNonNull;
 
-public class SmbPath implements Path {
+public final class SmbPath implements Path {
 
     public static final char SEPARATOR = '\\';
 
@@ -216,6 +217,25 @@ public class SmbPath implements Path {
         return IntStream.range(0, elements.size() - 1)
             .mapToObj(i -> (Path) getName(i))
             .iterator();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this)
+            return true;
+
+        if (!(o instanceof SmbPath))
+            return false;
+
+        SmbPath other = (SmbPath) o;
+        return Objects.equals(fileSystem, other.fileSystem) &&
+            Objects.equals(root, other.root) &&
+            Objects.equals(elements, other.elements);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(fileSystem, root, elements);
     }
 
     @Override

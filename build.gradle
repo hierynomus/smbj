@@ -49,6 +49,7 @@ dependencies {
   implementation BCPROV_JDK15ON
   implementation MBASSADOR
   implementation ASN_ONE
+  testImplementation GUAVA_TESTLIB
 }
 
 license {
