@@ -58,13 +58,13 @@ class SmbPathTest {
 
         assertEquals("\\", fsRoot.toString());
 
-        assertEquals("\\file.txt", SmbPath.of(fs, fsRoot, "file.txt").toString());
-        assertEquals("\\dir", SmbPath.of(fs, fsRoot, "dir").toString());
-        assertEquals("\\dir\\dir2", SmbPath.of(fs, fsRoot, "dir", "dir2").toString());
+        assertEquals("\\file.txt", toPath("/file.txt").toString());
+        assertEquals("\\dir", toPath("/dir").toString());
+        assertEquals("\\dir\\dir2", toPath("/dir/dir2").toString());
 
-        assertEquals("file.txt", SmbPath.of(fs, null, "file.txt").toString());
-        assertEquals("dir", SmbPath.of(fs, null, "dir").toString());
-        assertEquals("dir\\dir2", SmbPath.of(fs, null, "dir", "dir2").toString());
+        assertEquals("file.txt", toPath("file.txt").toString());
+        assertEquals("dir", toPath("dir").toString());
+        assertEquals("dir\\dir2", toPath("dir/dir2").toString());
     }
 
     @Test
@@ -86,7 +86,7 @@ class SmbPathTest {
     @Test
     void returnsFileSystem() {
         assertSame(fs, fsRoot.getFileSystem());
-        assertSame(fs, SmbPath.of(fs, fsRoot, "file.txt").getFileSystem());
+        assertSame(fs, toPath("/file.txt").getFileSystem());
     }
 
     @Test
@@ -94,17 +94,17 @@ class SmbPathTest {
 
         assertFalse(fsRoot.isAbsolute());
 
-        assertTrue(SmbPath.of(fs, fsRoot, "file.txt").isAbsolute());
-        assertFalse(SmbPath.of(fs, null, "file.txt").isAbsolute());
+        assertTrue(toPath("/file.txt").isAbsolute());
+        assertFalse(toPath("file.txt").isAbsolute());
     }
 
     @Test
     void returnsRoot() {
         assertNull(fsRoot.getRoot());
 
-        assertSame(fsRoot, SmbPath.of(fs, fsRoot, "file.txt").getRoot());
+        assertSame(fsRoot, toPath("/file.txt").getRoot());
 
-        assertNull(SmbPath.of(fs, null, "file.txt").getRoot());
+        assertNull(toPath("file.txt").getRoot());
     }
 
     @Test
@@ -112,75 +112,93 @@ class SmbPathTest {
 
         assertNull(fsRoot.getFileName());
 
-        assertEquals("file.txt", SmbPath.of(fs, fsRoot, "file.txt").getFileName().toString());
-        assertEquals("c.dat", SmbPath.of(fs, fsRoot, "a", "b", "c.dat").getFileName().toString());
+        assertEquals("file.txt", toPath("/file.txt").getFileName().toString());
+        assertEquals("c.dat", toPath("/a/b/c.dat").getFileName().toString());
 
-        assertEquals("file.txt", SmbPath.of(fs, null, "file.txt").getFileName().toString());
-        assertEquals("c.dat", SmbPath.of(fs, null, "a", "b", "c.dat").getFileName().toString());
+        assertEquals("file.txt", toPath("file.txt").getFileName().toString());
+        assertEquals("c.dat", toPath("a/b/c.dat").getFileName().toString());
     }
 
     @Test
     void returnsParent() {
         assertNull(fsRoot.getParent());
 
-        assertEquals("\\", SmbPath.of(fs, fsRoot, "file.txt").getParent().toString());
-        assertEquals("\\a\\b", SmbPath.of(fs, fsRoot, "a", "b", "c.dat").getParent().toString());
+        assertEquals("\\", toPath("/file.txt").getParent().toString());
+        assertEquals("\\a\\b", toPath("/a/b/c.dat").getParent().toString());
 
-        assertNull(SmbPath.of(fs, null, "file.txt").getParent());
-        assertEquals("a\\b", SmbPath.of(fs, null, "a", "b", "c.dat").getParent().toString());
+        assertNull(toPath("file.txt").getParent());
+        assertEquals("a\\b", toPath("a/b/c.dat").getParent().toString());
     }
 
     @Test
     void returnsNameCount() {
         assertEquals(0, fsRoot.getNameCount());
 
-        assertEquals(1, SmbPath.of(fs, fsRoot, "file.txt").getNameCount());
-        assertEquals(3, SmbPath.of(fs, fsRoot, "a", "b", "c.dat").getNameCount());
-        assertEquals(1, SmbPath.of(fs, null, "file.txt").getNameCount());
-        assertEquals(3, SmbPath.of(fs, null, "a", "b", "c.dat").getNameCount());
+        assertEquals(1, toPath("/file.txt").getNameCount());
+        assertEquals(3, toPath("/a/b/c.dat").getNameCount());
+        assertEquals(1, toPath("file.txt").getNameCount());
+        assertEquals(3, toPath("a/b/c.dat").getNameCount());
     }
 
     @Test
     void returnsName() {
-        assertEquals("file.txt", SmbPath.of(fs, fsRoot, "file.txt").getName(0).toString());
-        assertEquals("a", SmbPath.of(fs, fsRoot, "a", "b", "c.dat").getName(0).toString());
-        assertEquals("b", SmbPath.of(fs, fsRoot, "a", "b", "c.dat").getName(1).toString());
-        assertEquals("c.dat", SmbPath.of(fs, fsRoot, "a", "b", "c.dat").getName(2).toString());
+        assertEquals("file.txt", toPath("/file.txt").getName(0).toString());
+        assertEquals("a", toPath("/a/b/c.dat").getName(0).toString());
+        assertEquals("b", toPath("/a/b/c.dat").getName(1).toString());
+        assertEquals("c.dat", toPath("/a/b/c.dat").getName(2).toString());
 
-        assertEquals("file.txt", SmbPath.of(fs, null, "file.txt").getName(0).toString());
-        assertEquals("a", SmbPath.of(fs, null, "a", "b", "c.dat").getName(0).toString());
-        assertEquals("b", SmbPath.of(fs, null, "a", "b", "c.dat").getName(1).toString());
-        assertEquals("c.dat", SmbPath.of(fs, null, "a", "b", "c.dat").getName(2).toString());
+        assertEquals("file.txt", toPath("file.txt").getName(0).toString());
+        assertEquals("a", toPath("a/b/c.dat").getName(0).toString());
+        assertEquals("b", toPath("a/b/c.dat").getName(1).toString());
+        assertEquals("c.dat", toPath("a/b/c.dat").getName(2).toString());
     }
 
     @Test
     void returnsSubpath() {
-        assertEquals("file.txt", SmbPath.of(fs, fsRoot, "file.txt").subpath(0, 1).toString());
-        assertEquals("a", SmbPath.of(fs, fsRoot, "a", "b", "c.dat").subpath(0, 1).toString());
-        assertEquals("a\\b", SmbPath.of(fs, fsRoot, "a", "b", "c.dat").subpath(0, 2).toString());
-        assertEquals("a\\b\\c.dat", SmbPath.of(fs, fsRoot, "a", "b", "c.dat").subpath(0, 3).toString());
-        assertEquals("b", SmbPath.of(fs, fsRoot, "a", "b", "c.dat").subpath(1, 2).toString());
-        assertEquals("b\\c.dat", SmbPath.of(fs, fsRoot, "a", "b", "c.dat").subpath(1, 3).toString());
-        assertEquals("c.dat", SmbPath.of(fs, fsRoot, "a", "b", "c.dat").subpath(2, 3).toString());
+        assertEquals("file.txt", toPath("/file.txt").subpath(0, 1).toString());
+        assertEquals("a", toPath("/a/b/c.dat").subpath(0, 1).toString());
+        assertEquals("a\\b", toPath("/a/b/c.dat").subpath(0, 2).toString());
+        assertEquals("a\\b\\c.dat", toPath("/a/b/c.dat").subpath(0, 3).toString());
+        assertEquals("b", toPath("/a/b/c.dat").subpath(1, 2).toString());
+        assertEquals("b\\c.dat", toPath("/a/b/c.dat").subpath(1, 3).toString());
+        assertEquals("c.dat", toPath("/a/b/c.dat").subpath(2, 3).toString());
 
-        assertEquals("file.txt", SmbPath.of(fs, null, "file.txt").getName(0).toString());
-        assertEquals("a", SmbPath.of(fs, null, "a", "b", "c.dat").subpath(0, 1).toString());
-        assertEquals("a\\b", SmbPath.of(fs, null, "a", "b", "c.dat").subpath(0, 2).toString());
-        assertEquals("a\\b\\c.dat", SmbPath.of(fs, null, "a", "b", "c.dat").subpath(0, 3).toString());
-        assertEquals("b", SmbPath.of(fs, null, "a", "b", "c.dat").subpath(1, 2).toString());
-        assertEquals("b\\c.dat", SmbPath.of(fs, null, "a", "b", "c.dat").subpath(1, 3).toString());
-        assertEquals("c.dat", SmbPath.of(fs, null, "a", "b", "c.dat").subpath(2, 3).toString());
+        assertEquals("file.txt", toPath("file.txt").getName(0).toString());
+        assertEquals("a", toPath("a/b/c.dat").subpath(0, 1).toString());
+        assertEquals("a\\b", toPath("a/b/c.dat").subpath(0, 2).toString());
+        assertEquals("a\\b\\c.dat", toPath("a/b/c.dat").subpath(0, 3).toString());
+        assertEquals("b", toPath("a/b/c.dat").subpath(1, 2).toString());
+        assertEquals("b\\c.dat", toPath("a/b/c.dat").subpath(1, 3).toString());
+        assertEquals("c.dat", toPath("a/b/c.dat").subpath(2, 3).toString());
     }
 
     @Test
     void resolvesPath() {
-        assertEquals("\\c\\file.txt", fsRoot.resolve(SmbPath.of(fs, fsRoot, "c", "file.txt")).toString());
-        assertEquals("\\c\\file.txt", fsRoot.resolve(SmbPath.of(fs, null, "c", "file.txt")).toString());
+        assertEquals("\\c\\file.txt", fsRoot.resolve(toPath("/c/file.txt")).toString());
+        assertEquals("\\c\\file.txt", fsRoot.resolve(toPath("c/file.txt")).toString());
 
-        assertEquals("\\c\\file.txt", SmbPath.of(fs, fsRoot, "a", "b").resolve(SmbPath.of(fs, fsRoot, "c", "file.txt")).toString());
-        assertEquals("\\a\\b\\c\\file.txt", SmbPath.of(fs, fsRoot, "a", "b").resolve(SmbPath.of(fs, null, "c", "file.txt")).toString());
+        assertEquals("\\c\\file.txt", toPath("/a/b").resolve(toPath("/c/file.txt")).toString());
+        assertEquals("\\a\\b\\c\\file.txt", toPath("/a/b").resolve(toPath("c/file.txt")).toString());
 
-        assertEquals("\\c\\file.txt", SmbPath.of(fs, null, "a", "b").resolve(SmbPath.of(fs, fsRoot, "c", "file.txt")).toString());
-        assertEquals("a\\b\\c\\file.txt", SmbPath.of(fs, null, "a", "b").resolve(SmbPath.of(fs, null, "c", "file.txt")).toString());
+        assertEquals("\\c\\file.txt", toPath("a/b").resolve(toPath("/c/file.txt")).toString());
+        assertEquals("a\\b\\c\\file.txt", toPath("a/b").resolve(toPath("c/file.txt")).toString());
+    }
+
+    @Test
+    void factoryMethod() {
+        assertEquals(SmbPath.of(fs, fsRoot, "file.txt"), toPath("/file.txt"));
+        assertEquals(SmbPath.of(fs, fsRoot, "file.txt", "a"), toPath("/file.txt/a"));
+        assertEquals(SmbPath.of(fs, null, "file.txt"), toPath("file.txt"));
+        assertEquals(SmbPath.of(fs, null, "file.txt", "a"), toPath("file.txt/a"));
+    }
+
+    private SmbPath toPath(String path) {
+        if (path.equals("/"))
+            return fsRoot;
+
+        if (path.startsWith("/"))
+            return SmbPath.of(fs, fsRoot, path.substring(1));
+
+        return SmbPath.of(fs, null, path);
     }
 }
