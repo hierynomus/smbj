@@ -16,14 +16,18 @@
 package com.hierynomus.smbfs;
 
 import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.auth.AuthenticationContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -31,8 +35,15 @@ import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystemAlreadyExistsException;
 import java.nio.file.FileSystemNotFoundException;
+import java.util.HashMap;
+import java.util.Map;
 
+import static com.hierynomus.smbfs.SmbFileSystemProvider.DOMAIN_PROPERTY;
+import static com.hierynomus.smbfs.SmbFileSystemProvider.PASSWORD_PROPERTY;
+import static com.hierynomus.smbfs.SmbFileSystemProvider.USERNAME_PROPERTY;
 import static java.util.Collections.emptyMap;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -55,6 +66,9 @@ class SmbFileSystemProviderTest {
     @Mock
     private SmbFileSystem fileSystem;
 
+    @Captor
+    private ArgumentCaptor<AuthenticationContext> authenticationContexts;
+
     private SmbFileSystemProvider provider;
 
     @BeforeEach
@@ -74,8 +88,7 @@ class SmbFileSystemProviderTest {
         @ParameterizedTest
         @ValueSource(strings = {
             "smb://user:pw@/" + SHARE_NAME,
-                "smb://user:pw@server/",
-            "smb://server/" + SHARE_NAME,
+            "smb://user:pw@server/",
         })
         void throwsInvalidShareExceptionIfInvalidUri(URI uri) {
 
@@ -92,6 +105,67 @@ class SmbFileSystemProviderTest {
 
             assertSame(fileSystem, fs);
         }
+
+        @ParameterizedTest
+        @CsvSource({
+            "domain;user:password,domain,user,password",
+            "domain2;user2:password2,domain2,user2,password2",
+            "user2:password2,,user2,password2",
+            "user,,user,''",
+            ":password,,'',password",
+            "domain;,domain,'',''",
+            "dom%3Fain;us%3Fer:pass%3Fword,dom?ain,us?er,pass?word",
+        })
+        void createsAuthenticationContextFromUri(String uriCredentials, String domain, String username, String password) throws Exception {
+            when(factory.create(eq(provider), eq("server"), eq(SMBClient.DEFAULT_PORT), authenticationContexts.capture(), eq(SHARE_NAME)))
+                .thenReturn(fileSystem);
+
+            URI uri = URI.create("smb://" + uriCredentials + "@server/" + SHARE_NAME);
+
+            SmbFileSystem fs = provider.newFileSystem(uri, emptyMap());
+
+            assertSame(fileSystem, fs);
+
+            assertEquals(1, authenticationContexts.getAllValues().size());
+            AuthenticationContext context = authenticationContexts.getValue();
+            assertEquals(domain, context.getDomain());
+            assertEquals(username, context.getUsername());
+            assertArrayEquals(password.toCharArray(), context.getPassword());
+        }
+
+        @ParameterizedTest
+        @CsvSource({
+            ",,,domain,username,password",
+            "domain2,user2,password2,domain2,user2,password2",
+            "domain2,,,domain2,username,password",
+            ",user2,,domain,user2,password",
+            ",,password2,domain,username,password2",
+        })
+        void createsAuthenticationContextFromUriAndEnv(String envDomain, String envUsername, String envPassword, String domain, String username, String password) throws Exception {
+            when(factory.create(eq(provider), eq("server"), eq(SMBClient.DEFAULT_PORT), authenticationContexts.capture(), eq(SHARE_NAME)))
+                .thenReturn(fileSystem);
+
+            URI uri = URI.create("smb://domain;username:password@server/" + SHARE_NAME);
+
+            Map<String, Object> env = new HashMap<>();
+            if (envDomain != null)
+                env.put(DOMAIN_PROPERTY, envDomain);
+            if (envUsername != null)
+                env.put(USERNAME_PROPERTY, envUsername);
+            if (envPassword != null)
+                env.put(PASSWORD_PROPERTY, envPassword);
+
+            SmbFileSystem fs = provider.newFileSystem(uri, env);
+
+            assertSame(fileSystem, fs);
+
+            assertEquals(1, authenticationContexts.getAllValues().size());
+            AuthenticationContext context = authenticationContexts.getValue();
+            assertEquals(domain, context.getDomain());
+            assertEquals(username, context.getUsername());
+            assertArrayEquals(password.toCharArray(), context.getPassword());
+        }
+
 
         @Test
         void throwExceptionWhenGettingPathFromUri() {
@@ -136,13 +210,6 @@ class SmbFileSystemProviderTest {
         void returnsPreviouslyCreatedFileSystem() {
 
             FileSystem current = provider.getFileSystem(uri);
-
-            assertSame(fileSystem, current);
-        }
-
-        @Test
-        void returnsSameFileSystemIfFileSystemAlreadyCreatedExceptWithDifferentPassword() {
-            FileSystem current = provider.getFileSystem(URI.create("smb://user:XXXXX@server/" + SHARE_NAME));
 
             assertSame(fileSystem, current);
         }

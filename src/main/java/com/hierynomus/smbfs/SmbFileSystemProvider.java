@@ -45,6 +45,10 @@ import static com.hierynomus.smbfs.ToBeImplementedException.toBeImplemented;
 
 public class SmbFileSystemProvider extends FileSystemProvider {
 
+    public static final String DOMAIN_PROPERTY = "smbfs.domain";
+    public static final String USERNAME_PROPERTY = "smbfs.username";
+    public static final String PASSWORD_PROPERTY = "smbfs.password";
+
     private static final String SCHEME = "smb";
 
     private final Factory factory;
@@ -75,7 +79,7 @@ public class SmbFileSystemProvider extends FileSystemProvider {
             if (fileSystems.containsKey(key))
                 throw new FileSystemAlreadyExistsException(key);
 
-            AuthenticationContext context = createAuthenticationContext(uri);
+            AuthenticationContext context = createAuthenticationContext(uri, env);
 
             int port = uri.getPort();
             if (port < 0)
@@ -87,10 +91,34 @@ public class SmbFileSystemProvider extends FileSystemProvider {
         }
     }
 
-    private AuthenticationContext createAuthenticationContext(URI uri) {
-        String user = extractUser(uri);
-        String password = extractPassword(uri);
-        return new AuthenticationContext(user, password.toCharArray(), null);
+    private AuthenticationContext createAuthenticationContext(URI uri, Map<String, ?> env) {
+        String userInfo = userInfo(uri);
+
+        AuthenticationContext uriAuth = splitUserInfo(userInfo);
+
+        String domain = extractDomain(uriAuth, env);
+        String user = extractUser(uriAuth, env);
+        char[] password = extractPassword(uriAuth, env);
+        return new AuthenticationContext(user, password, domain);
+    }
+
+    private AuthenticationContext splitUserInfo(String userInfo) {
+
+        char[] password = new char[0];
+        int colonIndex = userInfo.lastIndexOf(':');
+        if (colonIndex >= 0) {
+            password = userInfo.substring(colonIndex + 1).trim().toCharArray();
+            userInfo = userInfo.substring(0, colonIndex);
+        }
+
+        String domain = null;
+        int semiColonIndex = userInfo.lastIndexOf(';');
+        if (semiColonIndex >= 0) {
+            domain = userInfo.substring(0, semiColonIndex);
+            userInfo = userInfo.substring(semiColonIndex + 1);
+        }
+
+        return new AuthenticationContext(userInfo, password, domain);
     }
 
     @Override
@@ -105,37 +133,40 @@ public class SmbFileSystemProvider extends FileSystemProvider {
     }
 
     private String getKey(URI uri) {
-        String userInfo = extractUser(uri);
+        String userInfo = userInfo(uri);
         String host = extractHost(uri);
         String shareName = extractShareName(uri);
 
         return userInfo + "@" + host + "/" + shareName;
     }
 
-    private String extractUser(URI uri) {
+    private static String userInfo(URI uri) {
         String userInfo = uri.getUserInfo();
-        if (userInfo == null || userInfo.isEmpty()) {
-            throw new InvalidShareException(uri.toString());
-        }
-
-        int p = userInfo.indexOf(':');
-        if (p >= 0)
-            return userInfo.substring(0, p);
+        if (userInfo == null)
+            return "";
 
         return userInfo;
     }
 
-    private String extractPassword(URI uri) {
-        String userInfo = uri.getUserInfo();
-        if (userInfo == null || userInfo.isEmpty()) {
-            throw new InvalidShareException(uri.toString());
-        }
+    private String extractDomain(AuthenticationContext uriAuth, Map<String, ?> env) {
+        if (env.containsKey(DOMAIN_PROPERTY))
+            return (String)env.get(DOMAIN_PROPERTY);
 
-        int p = userInfo.indexOf(':');
-        if (p >= 0)
-            return userInfo.substring(p + 1);
+        return uriAuth.getDomain();
+    }
 
-        return null;
+    private String extractUser(AuthenticationContext uriAuth, Map<String, ?> env) {
+        if (env.containsKey(USERNAME_PROPERTY))
+            return (String)env.get(USERNAME_PROPERTY);
+
+        return uriAuth.getUsername();
+    }
+
+    private char[] extractPassword(AuthenticationContext uriAuth, Map<String, ?> env) {
+        if (env.containsKey(PASSWORD_PROPERTY))
+            return ((String)env.get(PASSWORD_PROPERTY)).toCharArray();
+
+        return uriAuth.getPassword();
     }
 
     private String extractHost(URI uri) {
