@@ -129,7 +129,33 @@ public class SmbFileSystem extends FileSystem {
 
     @Override
     public SmbPath getPath(String first, String... more) {
-        return SmbPath.of(this, null, first, more);
+
+        String fullPath = combine(first, more).replaceAll("/", "\\" + SEPARATOR);
+
+        if (fullPath.equals(SEPARATOR))
+            return root;
+
+        if (fullPath.startsWith(SEPARATOR))
+            return SmbPath.of(this, root, fullPath.substring(1));
+
+        return SmbPath.of(this, null, fullPath);
+    }
+
+    private String combine(String first, String[] more) {
+        if (more.length == 0)
+            return first;
+
+        StringBuilder sb = new StringBuilder(first);
+        for (String each : more) {
+            if (each.isEmpty())
+                continue;
+
+            if (sb.length() > 0)
+                sb.append(SmbPath.SEPARATOR);
+
+            sb.append(each);
+        }
+        return sb.toString();
     }
 
     @Override

@@ -277,7 +277,7 @@ public final class SmbPath implements Path {
         return new SmbPath(smbFileSystem, null, null);
     }
 
-    private static SmbPath of(SmbFileSystem fileSystem, SmbPath rootPath, List<String> elements) {
+    static SmbPath of(SmbFileSystem fileSystem, SmbPath rootPath, List<String> elements) {
         if (elements.isEmpty())
             throw new IllegalArgumentException();
 
