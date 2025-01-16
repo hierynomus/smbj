@@ -204,6 +204,20 @@ class SmbPathTest {
         assertEquals(toPath(resolvedPath), toPath(basePath).resolve(toPath(newPath)));
     }
 
+    @ParameterizedTest
+    @CsvSource({
+        "/,/c/file.txt,/c/file.txt",
+        "/,c/file.txt,c/file.txt",
+        "/a/b,/c/file.txt,/c/file.txt",
+        "/a/b,c/file.txt,/a/c/file.txt",
+        "a/b,/c/file.txt,/c/file.txt",
+        "a/b,c/file.txt,a/c/file.txt",
+    })
+    void resolvesSiblings(String basePath, String newPath, String resolvedPath) {
+
+        assertEquals(toPath(resolvedPath), toPath(basePath).resolveSibling(toPath(newPath)));
+    }
+
     @Test
     void factoryMethod() {
         assertNull(toPath(null));

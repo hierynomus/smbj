@@ -155,17 +155,23 @@ public final class SmbPath implements Path {
 
     @Override
     public SmbPath resolve(String other) {
+        // This can be removed when JDK 11+ as the interface provides a default implementation
         return resolve(getFileSystem().getPath(other));
     }
 
     @Override
     public SmbPath resolveSibling(Path other) {
-        throw toBeImplemented();
+        // This can be removed when JDK 11+ as the interface provides a default implementation
+        SmbPath otherSmb = requireSmbPath(requireNonNull(other));
+
+        SmbPath parent = getParent();
+        return (parent == null) ? otherSmb : parent.resolve(other);
     }
 
     @Override
     public SmbPath resolveSibling(String other) {
-        throw toBeImplemented();
+        // This can be removed when JDK 11+ as the interface provides a default implementation
+        return resolveSibling(getFileSystem().getPath(other));
     }
 
     @Override
