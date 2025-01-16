@@ -26,13 +26,14 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
 
 import static com.hierynomus.smbfs.ToBeImplementedException.toBeImplemented;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 
 public final class SmbPath implements Path {
@@ -50,11 +51,11 @@ public final class SmbPath implements Path {
     }
 
     private boolean isRoot() {
-        return elements == null;
+        return elements.isEmpty();
     }
 
     private boolean isChild() {
-        return elements != null;
+        return !elements.isEmpty();
     }
 
     @Override
@@ -158,8 +159,7 @@ public final class SmbPath implements Path {
             return other;
 
         List<String> elements = new ArrayList<>();
-        if (isChild())
-            elements.addAll(this.elements);
+        elements.addAll(this.elements);
         elements.addAll(other.elements);
 
         if (isRoot())
@@ -292,7 +292,7 @@ public final class SmbPath implements Path {
     }
 
     static SmbPath root(SmbFileSystem smbFileSystem) {
-        return new SmbPath(smbFileSystem, null, null);
+        return new SmbPath(smbFileSystem, null, emptyList());
     }
 
     static SmbPath of(SmbFileSystem fileSystem, SmbPath rootPath, List<String> elements) {
@@ -308,7 +308,7 @@ public final class SmbPath implements Path {
     }
 
     static SmbPath of(SmbFileSystem fileSystem, SmbPath rootPath, String element) {
-        return of(fileSystem, rootPath, Collections.singletonList(element));
+        return of(fileSystem, rootPath, singletonList(element));
     }
 
     static SmbPath parse(SmbFileSystem fileSystem, SmbPath rootPath, String path) {
