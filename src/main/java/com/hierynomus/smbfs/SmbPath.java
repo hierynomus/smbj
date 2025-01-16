@@ -40,7 +40,6 @@ public final class SmbPath implements Path {
     public static final char SEPARATOR = '\\';
 
     private final SmbFileSystem fileSystem;
-
     private final SmbPath root;
     private final List<String> elements;
 
@@ -50,6 +49,14 @@ public final class SmbPath implements Path {
         this.elements = elements;
     }
 
+    private boolean isRoot() {
+        return elements == null;
+    }
+
+    private boolean isChild() {
+        return elements != null;
+    }
+
     @Override
     public SmbFileSystem getFileSystem() {
         return fileSystem;
@@ -57,19 +64,22 @@ public final class SmbPath implements Path {
 
     @Override
     public boolean isAbsolute() {
-        return root != null;
+        return root != null || isRoot();
     }
 
     @Override
     public SmbPath getRoot() {
+        if (isRoot())
+            return this;
+
         return root;
     }
 
     @Override
     public SmbPath getFileName() {
-        if (elements != null) {
+        if (isChild()) {
             int size = elements.size();
-            return withRelative(elements.subList(size - 1, size));
+            return withNoRoot(elements.subList(size - 1, size));
         }
 
         return null;
@@ -77,15 +87,15 @@ public final class SmbPath implements Path {
 
     @Override
     public SmbPath getParent() {
-        if (elements != null && elements.size() > 1)
-            return withAbsolute(elements.subList(0, elements.size() - 1));
+        if (isChild() && elements.size() > 1)
+            return withSameRoot(elements.subList(0, elements.size() - 1));
 
         return root;
     }
 
     @Override
     public int getNameCount() {
-        if (elements != null)
+        if (isChild())
             return elements.size();
 
         return 0;
@@ -93,26 +103,26 @@ public final class SmbPath implements Path {
 
     @Override
     public SmbPath getName(int index) {
-        if (elements == null)
+        if (isRoot())
             throw new IllegalArgumentException();
         if (index < 0)
             throw new IllegalArgumentException();
         if (index >= elements.size())
             throw new IllegalArgumentException();
 
-        return withRelative(elements.subList(index, index + 1));
+        return withNoRoot(elements.subList(index, index + 1));
     }
 
     @Override
     public SmbPath subpath(int beginIndex, int endIndex) {
-        if (elements == null)
+        if (isRoot())
             throw new IllegalArgumentException();
         if (beginIndex < 0 || beginIndex >= elements.size())
             throw new IllegalArgumentException("beginIndex");
         if (endIndex <= beginIndex || endIndex > elements.size())
             throw new IllegalArgumentException("endIndex");
 
-        return withRelative(elements.subList(beginIndex, endIndex));
+        return withNoRoot(elements.subList(beginIndex, endIndex));
     }
 
     @Override
@@ -148,10 +158,14 @@ public final class SmbPath implements Path {
             return other;
 
         List<String> elements = new ArrayList<>();
-        if (this.elements != null)
+        if (isChild())
             elements.addAll(this.elements);
         elements.addAll(other.elements);
-        return withAbsolute(elements);
+
+        if (isRoot())
+            return withThisRoot(elements);
+
+        return withSameRoot(elements);
     }
 
     @Override
@@ -187,7 +201,7 @@ public final class SmbPath implements Path {
 
     @Override
     public SmbPath toAbsolutePath() {
-        if (root != null)
+        if (isAbsolute())
             return this;
 
         throw new IllegalStateException("No default dir");
@@ -256,7 +270,8 @@ public final class SmbPath implements Path {
             b.append(SEPARATOR);
 
         for (int i = 0; i < elements.size(); i++) {
-            if (i > 0) b.append(SEPARATOR);
+            if (i > 0)
+                b.append(SEPARATOR);
 
             b.append(elements.get(i));
         }
@@ -264,13 +279,15 @@ public final class SmbPath implements Path {
         return b.toString();
     }
 
-    private SmbPath withRelative(List<String> elements) {
+    private SmbPath withNoRoot(List<String> elements) {
         return of(fileSystem, null, elements);
     }
 
-    private SmbPath withAbsolute(List<String> elements) {
-        if (this.elements == null)
-            return of(fileSystem, this, elements);
+    private SmbPath withThisRoot(List<String> elements) {
+        return of(fileSystem, this, elements);
+    }
+
+    private SmbPath withSameRoot(List<String> elements) {
         return of(fileSystem, root, elements);
     }
 

@@ -95,7 +95,7 @@ class SmbPathTest {
 
     @ParameterizedTest
     @CsvSource({
-        "/,false",
+        "/,true",
         "/file.txt,true",
         "file.txt,false",
     })
@@ -106,7 +106,7 @@ class SmbPathTest {
 
     @Test
     void returnsRoot() {
-        assertNull(fsRoot.getRoot());
+        assertSame(fsRoot, fsRoot.getRoot());
 
         assertSame(fsRoot, toPath("/file.txt").getRoot());
 
