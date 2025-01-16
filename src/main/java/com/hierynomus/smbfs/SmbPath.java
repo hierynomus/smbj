@@ -26,6 +26,7 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -281,26 +282,22 @@ public final class SmbPath implements Path {
         if (elements.isEmpty())
             throw new IllegalArgumentException();
 
-        return new SmbPath(fileSystem, rootPath, elements);
-    }
-
-    static SmbPath of(SmbFileSystem fileSystem, SmbPath rootPath, String first, String... more) {
-        List<String> elements = new ArrayList<>(normalise(first));
-        for (String each : more)
-            elements.addAll(normalise(each));
-
         for (String each : elements) {
             if (each.isEmpty())
                 throw new IllegalArgumentException();
         }
 
-        return of(fileSystem, rootPath, elements);
+        return new SmbPath(fileSystem, rootPath, elements);
     }
 
-    private static List<String> normalise(String raw) {
-        String replaced = requireNonNull(raw).replace('/', SEPARATOR);
+    static SmbPath of(SmbFileSystem fileSystem, SmbPath rootPath, String element) {
+        return of(fileSystem, rootPath, Collections.singletonList(element));
+    }
 
-        return Arrays.asList(replaced.split("" + SEPARATOR + SEPARATOR));
+    static SmbPath parse(SmbFileSystem fileSystem, SmbPath rootPath, String path) {
+        List<String> elements = new ArrayList<>(Arrays.asList(path.split("" + SEPARATOR + SEPARATOR)));
+
+        return of(fileSystem, rootPath, elements);
     }
 
     static SmbPath requireSmbPath(Path path) {

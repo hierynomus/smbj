@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -63,19 +65,22 @@ class SmbPathTest {
     }
 
     @Test
-    void normalisesAndSplitsPathComponents() {
+    void parses() {
 
         assertEquals("\\dir\\dir2", SmbPath.of(fs, fsRoot, "dir\\dir2").toString());
-        assertEquals("\\dir\\dir2\\a\\b\\c", SmbPath.of(fs, fsRoot, "dir\\dir2", "a", "b\\c").toString());
-        assertEquals("\\dir\\dir2\\a\\b\\c", SmbPath.of(fs, fsRoot, "dir/dir2", "a", "b/c").toString());
-        assertEquals("\\dir\\dir2\\a\\b\\c", SmbPath.of(fs, fsRoot, "dir/dir2", "a", "b\\c").toString());
-        assertEquals("\\dir\\dir2\\a\\b\\c", SmbPath.of(fs, fsRoot, "dir/dir2\\a/b\\c").toString());
+        assertEquals("\\dir\\dir2\\a\\b\\c", SmbPath.of(fs, fsRoot, "dir\\dir2\\a\\b\\c").toString());
     }
 
     @Test
     void throwsExceptionOn() {
 
-        assertThrows(IllegalArgumentException.class, () -> SmbPath.of(fs, fsRoot, "dir\\\\d"));
+        assertThrows(IllegalArgumentException.class, () -> SmbPath.of(fs, fsRoot, List.of("asd", "", "dsfdsf")));
+    }
+
+    @Test
+    void throwsExceptionOnNoElements() {
+
+        assertThrows(IllegalArgumentException.class, () -> SmbPath.of(fs, fsRoot, List.of()));
     }
 
     @ParameterizedTest

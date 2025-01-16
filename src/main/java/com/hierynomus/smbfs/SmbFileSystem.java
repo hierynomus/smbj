@@ -136,9 +136,9 @@ public class SmbFileSystem extends FileSystem {
             return root;
 
         if (fullPath.startsWith(SEPARATOR))
-            return SmbPath.of(this, root, fullPath.substring(1));
+            return SmbPath.parse(this, root, fullPath.substring(1));
 
-        return SmbPath.of(this, null, fullPath);
+        return SmbPath.parse(this, null, fullPath);
     }
 
     private String combine(String first, String[] more) {
