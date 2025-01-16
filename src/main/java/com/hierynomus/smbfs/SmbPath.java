@@ -128,10 +128,11 @@ public final class SmbPath implements Path {
 
     @Override
     public boolean startsWith(Path path) {
-        SmbPath smbPath = requireSmbPath(path);
 
-        if (fileSystem != smbPath.fileSystem)
+        if (differentFileSystem(path))
             return false;
+
+        SmbPath smbPath = requireSmbPath(path);
 
         if (getRoot() != smbPath.getRoot())
             return false;
@@ -149,17 +150,49 @@ public final class SmbPath implements Path {
 
     @Override
     public boolean startsWith(String other) {
+        // This can be removed when JDK 11+ as the interface provides a default implementation
         return startsWith(getFileSystem().getPath(other));
     }
 
     @Override
     public boolean endsWith(Path path) {
-        throw toBeImplemented();
+
+        if (differentFileSystem(path))
+            return false;
+
+        SmbPath smbPath = requireSmbPath(path);
+
+        int elementCount = elements.size();
+        int endsElementCount = smbPath.elements.size();
+
+        if (endsElementCount > elementCount)
+            return false;
+
+        for (int i = 1; i <= endsElementCount; i++) {
+            String thisElement = elements.get(elementCount - i);
+            String endElement = smbPath.elements.get(endsElementCount - i);
+            if (!thisElement.equals(endElement))
+                return false;
+        }
+
+        if (endsElementCount == elementCount) {
+            SmbPath endRoot = smbPath.getRoot();
+
+            if (endRoot != null)
+                return endRoot == getRoot();
+        }
+
+        return true;
+    }
+
+    private boolean differentFileSystem(Path smbPath) {
+        return fileSystem != smbPath.getFileSystem();
     }
 
     @Override
     public boolean endsWith(String other) {
-        throw toBeImplemented();
+        // This can be removed when JDK 11+ as the interface provides a default implementation
+        return endsWith(getFileSystem().getPath(other));
     }
 
     @Override

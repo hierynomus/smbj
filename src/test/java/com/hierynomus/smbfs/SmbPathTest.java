@@ -222,6 +222,33 @@ class SmbPathTest {
 
     @ParameterizedTest
     @CsvSource({
+        "/,/,true",
+        "/,a,false",
+        "/,a/b.yxy,false",
+        "/file.txt,file.txt,true",
+        "/file.txt,/file.txt,true",
+        "/file.txt,/file.txt/a,false",
+        "/file.txt,a,false",
+        "/a/b/c.dat,c.dat,true",
+        "/a/b/c.dat,b/c.dat,true",
+        "/a/b/c.dat,a/b/c.dat,true",
+        "/a/b/c.dat,/a/b/c.dat,true",
+        "/a/b/c.dat,a/b,false",
+        "file.txt,file.txt,true",
+        "file.txt,file.txt/a,false",
+        "file.txt,/file.txt,false",
+        "a/b/c.dat,c.dat,true",
+        "a/b/c.dat,b/c.dat,true",
+        "a/b/c.dat,a/b/c.dat,true",
+        "a/b/c.dat,/a/b/c.dat,false",
+    })
+    void checkEndsWith(String path, String endsWith, boolean expected) {
+
+        assertEquals(expected, toPath(path).endsWith(endsWith));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
         "/,/c/file.txt,/c/file.txt",
         "/,c/file.txt,/c/file.txt",
         "/a/b,/c/file.txt,/c/file.txt",
