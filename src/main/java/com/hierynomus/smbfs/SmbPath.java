@@ -128,12 +128,28 @@ public final class SmbPath implements Path {
 
     @Override
     public boolean startsWith(Path path) {
-        throw toBeImplemented();
+        SmbPath smbPath = requireSmbPath(path);
+
+        if (fileSystem != smbPath.fileSystem)
+            return false;
+
+        if (getRoot() != smbPath.getRoot())
+            return false;
+
+        if (smbPath.elements.size() > elements.size())
+            return false;
+
+        for (int i = 0; i < smbPath.elements.size(); i++) {
+            if (!elements.get(i).equals(smbPath.elements.get(i)))
+                return false;
+        }
+
+        return true;
     }
 
     @Override
     public boolean startsWith(String other) {
-        throw toBeImplemented();
+        return startsWith(getFileSystem().getPath(other));
     }
 
     @Override

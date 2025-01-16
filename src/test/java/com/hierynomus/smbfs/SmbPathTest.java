@@ -192,6 +192,36 @@ class SmbPathTest {
 
     @ParameterizedTest
     @CsvSource({
+        "/,/,true",
+        "/,/a,false",
+        "/,/a/b.yxy,false",
+        "/,a/b.yxy,false",
+        "/file.txt,/,true",
+        "/file.txt,/file.txt,true",
+        "/file.txt,/file.txt/a,false",
+        "/file.txt,file.txt,false",
+        "/a/b/c.dat,/a,true",
+        "/a/b/c.dat,/a/b,true",
+        "/a/b/c.dat,/a/b/c.dat,true",
+        "/a/b/c.dat,a/b,false",
+        "/a/b/c.dat,a/b/c.dat,false",
+        "file.txt,file.txt,true",
+        "file.txt,file.txt/a,false",
+        "file.txt,/,false",
+        "file.txt,/a,false",
+        "a/b/c.dat,a,true",
+        "a/b/c.dat,a/b,true",
+        "a/b/c.dat,/a/b/c.dat,false",
+        "a/b/c.dat,/a/b,false",
+        "a/b/c.dat,/a/b/c.dat,false",
+    })
+    void checkStartsWith(String path, String startsWith, boolean expected) {
+
+        assertEquals(expected, toPath(path).startsWith(startsWith));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
         "/,/c/file.txt,/c/file.txt",
         "/,c/file.txt,/c/file.txt",
         "/a/b,/c/file.txt,/c/file.txt",
