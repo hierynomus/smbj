@@ -18,11 +18,8 @@ package com.hierynomus.smbfs;
 import com.google.common.testing.EqualsTester;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -30,17 +27,15 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
-@ExtendWith(MockitoExtension.class)
 class SmbPathTest {
 
-    @Mock
-    private SmbFileSystem fs;
+    private final SmbFileSystem fs = new SmbFileSystem(null, null, null);
 
     private SmbPath fsRoot;
 
     @BeforeEach
     void setUp() {
-        fsRoot = SmbPath.root(fs);
+        fsRoot = fs.root();
     }
 
     @Test
@@ -218,25 +213,10 @@ class SmbPathTest {
         assertEquals(toPath(resolvedPath), toPath(basePath).resolveSibling(toPath(newPath)));
     }
 
-    @Test
-    void factoryMethod() {
-        assertNull(toPath(null));
-        assertEquals(SmbPath.of(fs, fsRoot, "file.txt"), toPath("/file.txt"));
-        assertEquals(SmbPath.of(fs, fsRoot, "file.txt", "a"), toPath("/file.txt/a"));
-        assertEquals(SmbPath.of(fs, null, "file.txt"), toPath("file.txt"));
-        assertEquals(SmbPath.of(fs, null, "file.txt", "a"), toPath("file.txt/a"));
-    }
-
     private SmbPath toPath(String path) {
         if (path == null)
             return null;
 
-        if (path.equals("/"))
-            return fsRoot;
-
-        if (path.startsWith("/"))
-            return SmbPath.of(fs, fsRoot, path.substring(1));
-
-        return SmbPath.of(fs, null, path);
+        return fs.getPath(path);
     }
 }
