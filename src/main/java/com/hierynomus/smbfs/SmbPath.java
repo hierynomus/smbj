@@ -32,7 +32,7 @@ import java.util.Objects;
 import java.util.stream.IntStream;
 
 import static com.hierynomus.smbfs.ToBeImplementedException.toBeImplemented;
-import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyIterator;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 
@@ -41,7 +41,11 @@ public final class SmbPath implements Path {
     public static final char SEPARATOR = '\\';
 
     private final SmbFileSystem fileSystem;
+
+    // A root path, indicates whether this is a relative or absolute path.
     private final SmbPath root;
+
+    // the path segments - if this is null, then it is a root path.
     private final List<String> elements;
 
     private SmbPath(SmbFileSystem fileSystem, SmbPath root, List<String> elements) {
@@ -51,11 +55,11 @@ public final class SmbPath implements Path {
     }
 
     private boolean isRoot() {
-        return elements.isEmpty();
+        return elements == null;
     }
 
     private boolean isChild() {
-        return !elements.isEmpty();
+        return elements != null;
     }
 
     @Override
@@ -78,18 +82,18 @@ public final class SmbPath implements Path {
 
     @Override
     public SmbPath getFileName() {
-        if (isChild()) {
-            int size = elements.size();
-            return withNoRoot(elements.subList(size - 1, size));
-        }
+        int count = getNameCount();
+        if (count > 0)
+            return withNoRoot(elements.subList(count - 1, count));
 
         return null;
     }
 
     @Override
     public SmbPath getParent() {
-        if (isChild() && elements.size() > 1)
-            return withSameRoot(elements.subList(0, elements.size() - 1));
+        int count = getNameCount();
+        if (count > 1)
+            return withSameRoot(elements.subList(0, count - 1));
 
         return root;
     }
@@ -137,10 +141,11 @@ public final class SmbPath implements Path {
         if (getRoot() != smbPath.getRoot())
             return false;
 
-        if (smbPath.elements.size() > elements.size())
+        int otherCount = smbPath.getNameCount();
+        if (otherCount > getNameCount())
             return false;
 
-        for (int i = 0; i < smbPath.elements.size(); i++) {
+        for (int i = 0; i < otherCount; i++) {
             if (!elements.get(i).equals(smbPath.elements.get(i)))
                 return false;
         }
@@ -162,8 +167,8 @@ public final class SmbPath implements Path {
 
         SmbPath smbPath = requireSmbPath(path);
 
-        int elementCount = elements.size();
-        int endsElementCount = smbPath.elements.size();
+        int elementCount = getNameCount();
+        int endsElementCount = smbPath.getNameCount();
 
         if (endsElementCount > elementCount)
             return false;
@@ -208,7 +213,8 @@ public final class SmbPath implements Path {
             return other;
 
         List<String> elements = new ArrayList<>();
-        elements.addAll(this.elements);
+        if (this.elements != null)
+            elements.addAll(this.elements);
         elements.addAll(other.elements);
 
         if (isRoot())
@@ -284,7 +290,11 @@ public final class SmbPath implements Path {
 
     @Override
     public Iterator<Path> iterator() {
-        return IntStream.range(0, elements.size() - 1)
+        int count = getNameCount();
+        if (count == 0)
+            return emptyIterator();
+
+        return IntStream.range(0, count - 1)
             .mapToObj(i -> (Path) getName(i))
             .iterator();
     }
@@ -341,7 +351,7 @@ public final class SmbPath implements Path {
     }
 
     static SmbPath root(SmbFileSystem smbFileSystem) {
-        return new SmbPath(smbFileSystem, null, emptyList());
+        return new SmbPath(smbFileSystem, null, null);
     }
 
     static SmbPath of(SmbFileSystem fileSystem, SmbPath rootPath, List<String> elements) {
