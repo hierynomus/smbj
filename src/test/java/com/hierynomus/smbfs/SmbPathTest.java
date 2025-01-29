@@ -77,12 +77,6 @@ class SmbPathTest {
         assertThrows(IllegalArgumentException.class, () -> SmbPath.of(fs, fsRoot, List.of("asd", "", "dsfdsf")));
     }
 
-    @Test
-    void throwsExceptionOnNoElements() {
-
-        assertThrows(IllegalArgumentException.class, () -> SmbPath.of(fs, fsRoot, List.of()));
-    }
-
     @ParameterizedTest
     @CsvSource({
         "/",
@@ -273,6 +267,36 @@ class SmbPathTest {
     void resolvesSiblings(String basePath, String newPath, String resolvedPath) {
 
         assertEquals(toPath(resolvedPath), toPath(basePath).resolveSibling(toPath(newPath)));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "/,/c/file.txt,c/file.txt",
+        "/a,/c/file.txt,../c/file.txt",
+        "/a/b,/c/file.txt,../../c/file.txt",
+        "/a/b/d,/a/b/c/file.txt,../c/file.txt",
+        "a/b,a/c/file.txt,../c/file.txt",
+        "a/b/f,a/c/file.txt,../../c/file.txt",
+        "a/b/d,a/b/c/file.txt,../c/file.txt",
+        "a/b/d,a/b/c/file.txt,../c/file.txt",
+        "a,c/file.txt,../c/file.txt",
+        "/a/b,/,../..",
+        "a,a,''",
+    })
+    void relativizes(String basePath, String childPath, String relativePath) {
+
+        assertEquals(toPath(relativePath), toPath(basePath).relativize(toPath(childPath)));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "/,c/file.txt",
+        "/,a",
+        "a/fl,/asd",
+    })
+    void throwsExceptionIfCannotRelativize(String basePath, String childPath) {
+
+        assertThrows(IllegalArgumentException.class, () -> toPath(basePath).relativize(toPath(childPath)));
     }
 
     private SmbPath toPath(String path) {

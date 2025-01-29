@@ -53,6 +53,7 @@ import static com.hierynomus.msdtyp.AccessMask.FILE_ADD_SUBDIRECTORY;
 import static com.hierynomus.msdtyp.AccessMask.FILE_LIST_DIRECTORY;
 import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_CREATE;
 import static com.hierynomus.smbfs.ToBeImplementedException.toBeImplemented;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
 public class SmbFileSystem extends FileSystem {
@@ -134,6 +135,9 @@ public class SmbFileSystem extends FileSystem {
 
         if (fullPath.equals(SEPARATOR))
             return root;
+
+        if (fullPath.isEmpty())
+            return SmbPath.of(this, null, emptyList());
 
         if (fullPath.startsWith(SEPARATOR))
             return SmbPath.parse(this, root, fullPath.substring(1));

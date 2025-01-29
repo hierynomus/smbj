@@ -145,12 +145,10 @@ public final class SmbPath implements Path {
         if (otherCount > getNameCount())
             return false;
 
-        for (int i = 0; i < otherCount; i++) {
-            if (!elements.get(i).equals(smbPath.elements.get(i)))
-                return false;
-        }
+        if (numberOfMatchingElements(smbPath) == otherCount)
+            return true;
 
-        return true;
+        return false;
     }
 
     @Override
@@ -246,7 +244,34 @@ public final class SmbPath implements Path {
 
     @Override
     public SmbPath relativize(Path other) {
-        throw toBeImplemented();
+        SmbPath childPath = requireSmbPath(other);
+
+        int count = numberOfMatchingElements(childPath);
+        if (count < 0)
+            throw new IllegalArgumentException();
+
+        List<String> elements = new ArrayList<>();
+        for (int i = getNameCount(); i > count; i--)
+            elements.add("..");
+
+        for (int i = count; i < childPath.getNameCount(); i++)
+            elements.add(childPath.elements.get(i));
+
+        return withNoRoot(elements);
+
+    }
+
+    private int numberOfMatchingElements(SmbPath other) {
+        if (getRoot() != other.getRoot())
+            return -1;
+
+        int count = Math.min(getNameCount(), other.getNameCount());
+
+        for (int i = 0; i < count; i++) {
+            if (!elements.get(i).equals(other.elements.get(i)))
+                return i;
+        }
+        return count;
     }
 
     @Override
@@ -355,9 +380,6 @@ public final class SmbPath implements Path {
     }
 
     static SmbPath of(SmbFileSystem fileSystem, SmbPath rootPath, List<String> elements) {
-        if (elements.isEmpty())
-            throw new IllegalArgumentException();
-
         for (String each : elements) {
             if (each.isEmpty())
                 throw new IllegalArgumentException();
