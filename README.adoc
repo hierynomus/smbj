@@ -86,6 +86,45 @@ C - Adjusting Timeout and Socket Timeout
 
 ```
 
+=== Using the java.nio.file.FileSystem implementation
+
+Smbj registers a new FileSystem provider with the smb:// URLs for accessing SMB shares.
+
+NB. This is not 100% implemented as-yet, although it works for basic usage. See below for unimplemented features.
+
+A - Writing a file with a temporary filename, before moving to the final location
+
+```java
+
+    // Create the filesystem
+    Map<String, Object> env = new HashMap<>();
+    // optional, leave blank for anonymous access to the share
+    env.put(SmbFileSystemProvider.DOMAIN_PROPERTY, "domain");
+    env.put(SmbFileSystemProvider.USERNAME_PROPERTY, "userName");
+    env.put(SmbFileSystemProvider.PASSWORD_PROPERTY, "password".toCharArray());
+    FileSystems.newFileSystem(URI.create("smb://<hostname>/<sharename>"), env);
+
+    ...
+
+    // Write a file with a temporary name to ensure nobody reads while writing
+    Path path = Paths.get(URI.Create("smb://<hostname>/<sharename>/aFolder/file.txt"));
+    Path workingPath = path.resolveSibling(path.getFileName().toString() + ".working");
+
+    Files.createDirectories(workingPath.getParent());
+    try (Writer w = Files.newBufferedWriter(workingPath)) {
+        w.write("Hello World");
+    }
+    Files.move(workingPath, path);
+```
+
+==== Unimplemented features
+
+* SMBException -> IOException translation
+* WatchService
+* file attributes
+* FileStores
+* UserPrincipalLookupService
+
 == Frequently Asked Questions
 
 === When I run my code I get an `SMBApiException` with the message `STATUS_... (0x...)`. What am I doing wrong?
