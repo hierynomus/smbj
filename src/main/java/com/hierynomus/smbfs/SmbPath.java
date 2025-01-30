@@ -319,7 +319,7 @@ public final class SmbPath implements Path {
         if (count == 0)
             return emptyIterator();
 
-        return IntStream.range(0, count - 1)
+        return IntStream.range(0, count)
             .mapToObj(i -> (Path) getName(i))
             .iterator();
     }

@@ -33,6 +33,7 @@ import java.nio.file.AccessMode;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystem;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
@@ -51,6 +52,8 @@ import java.util.Set;
 
 import static com.hierynomus.msdtyp.AccessMask.FILE_ADD_SUBDIRECTORY;
 import static com.hierynomus.msdtyp.AccessMask.FILE_LIST_DIRECTORY;
+import static com.hierynomus.mserref.NtStatus.STATUS_OBJECT_NAME_NOT_FOUND;
+import static com.hierynomus.mserref.NtStatus.STATUS_OBJECT_PATH_NOT_FOUND;
 import static com.hierynomus.mssmb2.SMB2CreateDisposition.FILE_CREATE;
 import static com.hierynomus.smbfs.ToBeImplementedException.toBeImplemented;
 import static java.util.Collections.emptyList;
@@ -210,6 +213,8 @@ public class SmbFileSystem extends FileSystem {
              Directory dirDir = ds.openDirectory(dir.toString(), accessMasks, null, null, FILE_CREATE, null)) {
 
             // do-nothing - dir will get created with the open call above
+        } catch (SMBApiException e) {
+            throw new IOException(e);
         }
     }
 
@@ -231,12 +236,18 @@ public class SmbFileSystem extends FileSystem {
     }
 
     void checkAccess(Path path, AccessMode... modes) throws IOException {
+        if (modes.length > 0)
+            throw toBeImplemented();
+
         try {
             try (ShareSource.Holder hol = shares.open(share);
                  DiskShare ds = hol.share()) {
                 ds.getFileInformation(path.toString());
             }
         } catch (SMBApiException e) {
+            if (e.getStatus() == STATUS_OBJECT_PATH_NOT_FOUND || e.getStatus() == STATUS_OBJECT_NAME_NOT_FOUND)
+                throw new NoSuchFileException(path.toString());
+
             throw new IOException(e);
         }
     }

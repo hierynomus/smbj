@@ -137,11 +137,11 @@ public class SambaContainer extends GenericContainer<SambaContainer> {
     }
 
     public URI publicUri() {
-        return URI.create("smb://" + USER + ":" + PASSWORD + "@" + getHost() + ":" + getFirstMappedPort() + "/public");
+        return URI.create("smb://" + USER + ":" + PASSWORD + "@" + getHost() + ":" + getFirstMappedPort() + "/public/");
     }
 
     public URI userUri() {
-        return URI.create("smb://" + USER + ":" + PASSWORD + "@" + getHost() + ":" + getFirstMappedPort() + "/user");
+        return URI.create("smb://" + USER + ":" + PASSWORD + "@" + getHost() + ":" + getFirstMappedPort() + "/user/");
     }
 
     public String readFileFromContainer(String file) {
