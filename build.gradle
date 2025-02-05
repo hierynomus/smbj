@@ -1,5 +1,4 @@
-import com.bmuschko.gradle.docker.tasks.container.*
-import com.bmuschko.gradle.docker.tasks.image.*
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
 
 plugins {
   id "java"
@@ -13,6 +12,7 @@ plugins {
   // id 'ru.vyarus.java-lib' version '2.1.0'
   id 'ru.vyarus.github-info' version '1.5.0'
   id "io.github.gradle-nexus.publish-plugin" version "1.3.0"
+  id 'com.bmuschko.docker-remote-api' version '9.4.0'
 }
 
 group = "com.hierynomus"
@@ -84,6 +84,11 @@ if (JavaVersion.current().isJava8Compatible()) {
   }
 }
 
+def buildImageTask = tasks.register('buildSambaImage', DockerBuildImage) {
+  inputDir = file('src/it/docker-image')
+  images.add('smbj/samba:latest')
+}
+
 testing {
   suites {
     configureEach {
@@ -149,6 +154,7 @@ testing {
       targets {
         all {
           testTask.configure {
+            dependsOn(buildImageTask)
             shouldRunAfter(test)
           }
         }
