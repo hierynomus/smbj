@@ -46,7 +46,7 @@ public class BufferedInputStreamReaderTest {
         BufferedInputStreamReader bufferedInputStreamReader = new BufferedInputStreamReader(
             new BufferedInputStream(
                 new InputStream() {
-                    private final ByteArrayInputStream inputStream = new ByteArrayInputStream(new byte[] {1, 2, 3});
+                    private final ByteArrayInputStream inputStream = new ByteArrayInputStream(new byte[] {1, 2, 3, 4, 5, 6});
 
                     @Override
                     public int read() {
@@ -64,6 +64,12 @@ public class BufferedInputStreamReaderTest {
 
         byte[] outputArray = new byte[3];
         assertThat(bufferedInputStreamReader.read(outputArray, 0, 3)).isEqualTo(3);
+        assertThat(outputArray).containsExactly(1, 2, 3);
+
+        assertThat(bufferedInputStreamReader.isAvailable()).isTrue();
+
+        assertThat(bufferedInputStreamReader.read(outputArray, 0, 3)).isEqualTo(3);
+        assertThat(outputArray).containsExactly(4, 5, 6);
 
         assertThat(bufferedInputStreamReader.isAvailable()).isFalse();
     }

@@ -17,26 +17,28 @@ package com.hierynomus.smbj.io;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.hierynomus.smbj.common.SMBRuntimeException;
 
 public class BufferedInputStreamReader {
     private static final int EOF = -1;
 
-    private final AtomicInteger cachedByte = new AtomicInteger(EOF);
-
     private final BufferedInputStream inputStream;
+    private volatile int cachedByte = EOF;
 
     public BufferedInputStreamReader(BufferedInputStream inputStream) {
         this.inputStream = inputStream;
     }
 
     public int read(byte[] byteArray, int offset, int length) throws IOException {
-        if (cachedByte.get() != EOF) {
-            byteArray[offset] = (byte) cachedByte.getAndSet(EOF);
+        if (cachedByte > EOF) {
+            byteArray[offset] = (byte) cachedByte;
+            cachedByte = EOF;
+            if (length == 1) {
+                return 1;
+            }
             int readResult = inputStream.read(byteArray, offset + 1, length - 1);
-            return readResult == EOF ? 1 : (readResult + 1);
+            return readResult > EOF ? (readResult + 1) : 1;
         } else {
             return inputStream.read(byteArray, offset, length);
         }
@@ -44,12 +46,12 @@ public class BufferedInputStreamReader {
 
     public boolean isAvailable() {
         try {
-            if (inputStream.available() > 0 || cachedByte.get() != EOF) {
+            if (cachedByte > EOF || inputStream.available() > 0) {
                 return true;
             }
             int readByte = inputStream.read();
-            cachedByte.set(readByte);
-            return readByte != EOF;
+            cachedByte = readByte;
+            return readByte > EOF;
         }
         catch (IOException e) {
             throw new SMBRuntimeException(e);
