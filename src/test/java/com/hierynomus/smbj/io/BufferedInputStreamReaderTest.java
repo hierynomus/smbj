@@ -20,11 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 import org.junit.jupiter.api.Test;
 
 public class BufferedInputStreamReaderTest {
-    private static final int EOF = -1;
 
     @Test
     void shouldReturnIsAvailableFalseWhenUnderlyingInputStreamSignalsEOF() throws IOException {
@@ -38,10 +38,33 @@ public class BufferedInputStreamReaderTest {
         byte[] outputArray = new byte[3];
         assertThat(bufferedInputStreamReader.read(outputArray, 0, 3)).isEqualTo(3);
 
-        // Still some bytes might be read
+        assertThat(bufferedInputStreamReader.isAvailable()).isFalse();
+    }
+
+    @Test
+    void shouldNotRelyOnEstimateAvailableBytes() throws IOException {
+        BufferedInputStreamReader bufferedInputStreamReader = new BufferedInputStreamReader(
+            new BufferedInputStream(
+                new InputStream() {
+                    private final ByteArrayInputStream inputStream = new ByteArrayInputStream(new byte[] {1, 2, 3});
+
+                    @Override
+                    public int read() {
+                        return inputStream.read();
+                    }
+
+                    @Override
+                    public int available() {
+                        return 0;
+                    }
+                }
+            ));
+
         assertThat(bufferedInputStreamReader.isAvailable()).isTrue();
 
-        assertThat(bufferedInputStreamReader.read(new byte[100], 0, 100)).isEqualTo(EOF);
+        byte[] outputArray = new byte[3];
+        assertThat(bufferedInputStreamReader.read(outputArray, 0, 3)).isEqualTo(3);
+
         assertThat(bufferedInputStreamReader.isAvailable()).isFalse();
     }
 

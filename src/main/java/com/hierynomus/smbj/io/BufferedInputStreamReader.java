@@ -17,12 +17,14 @@ package com.hierynomus.smbj.io;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import com.hierynomus.smbj.common.SMBRuntimeException;
 
 public class BufferedInputStreamReader {
     private static final int EOF = -1;
 
-    private final AtomicBoolean isEnd = new AtomicBoolean(false);
+    private final AtomicInteger cachedByte = new AtomicInteger(EOF);
 
     private final BufferedInputStream inputStream;
 
@@ -31,15 +33,27 @@ public class BufferedInputStreamReader {
     }
 
     public int read(byte[] byteArray, int offset, int length) throws IOException {
-        int readResult = inputStream.read(byteArray, offset, length);
-        if (readResult == EOF) {
-            isEnd.set(true);
+        if (cachedByte.get() != EOF) {
+            byteArray[offset] = (byte) cachedByte.getAndSet(EOF);
+            int readResult = inputStream.read(byteArray, offset + 1, length - 1);
+            return readResult == EOF ? 1 : (readResult + 1);
+        } else {
+            return inputStream.read(byteArray, offset, length);
         }
-        return readResult;
     }
 
     public boolean isAvailable() {
-        return !isEnd.get();
+        try {
+            if (inputStream.available() > 0 || cachedByte.get() != EOF) {
+                return true;
+            }
+            int readByte = inputStream.read();
+            cachedByte.set(readByte);
+            return readByte != EOF;
+        }
+        catch (IOException e) {
+            throw new SMBRuntimeException(e);
+        }
     }
 
     public void close() throws IOException {
