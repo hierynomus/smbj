@@ -107,7 +107,7 @@ A - Writing a file with a temporary filename, before moving to the final locatio
     ...
 
     // Write a file with a temporary name to ensure nobody reads while writing
-    Path path = Paths.get(URI.Create("smb://<hostname>/<sharename>/aFolder/file.txt"));
+    Path path = Paths.get(URI.create("smb://<hostname>/<sharename>/aFolder/file.txt"));
     Path workingPath = path.resolveSibling(path.getFileName().toString() + ".working");
 
     Files.createDirectories(workingPath.getParent());

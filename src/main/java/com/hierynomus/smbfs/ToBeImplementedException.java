@@ -15,7 +15,7 @@
  */
 package com.hierynomus.smbfs;
 
-public class ToBeImplementedException extends RuntimeException {
+public class ToBeImplementedException extends UnsupportedOperationException {
 
     private ToBeImplementedException() {
     }
