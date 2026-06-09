@@ -140,7 +140,10 @@ public class SmbFileSystemProvider extends FileSystemProvider {
         String host = extractHost(uri);
         String shareName = extractShareName(uri);
 
-        return userInfo + "@" + host + "/" + shareName;
+        int colonIndex = userInfo.lastIndexOf(':');
+        String identity = colonIndex >= 0 ? userInfo.substring(0, colonIndex) : userInfo;
+
+        return identity + "@" + host + "/" + shareName;
     }
 
     private static String userInfo(URI uri) {

@@ -215,6 +215,13 @@ class SmbFileSystemProviderTest {
             assertThrows(FileSystemAlreadyExistsException.class, () -> provider.newFileSystem(uri, emptyMap()));
         }
 
+        @Test
+        void passwordDoesNotAffectKey() {
+            URI differentPassword = URI.create("smb://user:other@server/" + SHARE_NAME);
+
+            assertThrows(FileSystemAlreadyExistsException.class, () -> provider.newFileSystem(differentPassword, emptyMap()));
+        }
+
         @ParameterizedTest
         @ValueSource(strings = {
             "smb://user:password@server2/" + SHARE_NAME,
