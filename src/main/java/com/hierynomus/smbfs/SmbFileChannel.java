@@ -20,6 +20,7 @@ import com.hierynomus.smbj.share.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
 class SmbFileChannel implements SeekableByteChannel {
@@ -30,7 +31,7 @@ class SmbFileChannel implements SeekableByteChannel {
     private final File file;
 
     private long position;
-    private volatile boolean closed;
+    private final AtomicBoolean closed = new AtomicBoolean();
 
     SmbFileChannel(ShareSource.Holder holder, File file, long position) {
         this.holder = holder;
@@ -103,19 +104,18 @@ class SmbFileChannel implements SeekableByteChannel {
 
     @Override
     public boolean isOpen() {
-        return !closed;
+        return !closed.get();
     }
 
     @Override
     public void close() throws IOException {
-        if (closed) {
+        if (!closed.compareAndSet(false, true)) {
             return;
         }
 
         try (ShareSource.Holder h = holder;
              File f = file) {
             // close the share and file
-            closed = true;
         }
     }
 }
