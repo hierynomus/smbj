@@ -284,8 +284,8 @@ public class SmbFileSystem extends FileSystem {
 
     private static Set<AccessMask> accessMasks(Set<? extends OpenOption> options) {
         boolean read = options.contains(StandardOpenOption.READ);
-        boolean write = options.contains(StandardOpenOption.WRITE);
-        boolean append = write && options.contains(StandardOpenOption.APPEND);
+        boolean append = options.contains(StandardOpenOption.APPEND);
+        boolean write = !append && options.contains(StandardOpenOption.WRITE);
 
         if (options.contains(StandardOpenOption.DELETE_ON_CLOSE)) {
             throw toBeImplemented();
@@ -300,7 +300,7 @@ public class SmbFileSystem extends FileSystem {
         }
 
         // Files doesn't seem to set READ when creating inputStreams... only WRITE
-        if (read || !write) {
+        if (read || (!write && !append)) {
             accessMasks.add(AccessMask.FILE_READ_DATA);
         }
 

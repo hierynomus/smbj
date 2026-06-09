@@ -15,25 +15,36 @@
  */
 package com.hierynomus.smbfs;
 
+import com.hierynomus.msdtyp.AccessMask;
+import com.hierynomus.smbj.share.DiskShare;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.FileAttribute;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SmbFileSystemTest {
@@ -116,5 +127,63 @@ class SmbFileSystemTest {
 
     private static String[] rest(String... elements) {
         return elements;
+    }
+
+    @Nested
+    class AccessMaskTests {
+
+        @Mock
+        private ShareSource.Holder holder;
+
+        @Mock
+        private DiskShare diskShare;
+
+        @Mock
+        private com.hierynomus.smbj.share.File smbFile;
+
+        @Captor
+        private ArgumentCaptor<Set<AccessMask>> accessMaskCaptor;
+
+        @BeforeEach
+        void setUp() throws Exception {
+            when(shares.open("theShare")).thenReturn(holder);
+            when(holder.share()).thenReturn(diskShare);
+            when(diskShare.openFile(any(), accessMaskCaptor.capture(), any(), any(), any(), any()))
+                .thenReturn(smbFile);
+        }
+
+        @Test
+        void appendOnlyProducesFileAppendData() throws Exception {
+            when(smbFile.getLength()).thenReturn(0L);
+            fileSystem.newByteChannel(fileSystem.getPath("test.txt"),
+                EnumSet.of(StandardOpenOption.APPEND, StandardOpenOption.CREATE), new FileAttribute[0]);
+
+            Set<AccessMask> masks = accessMaskCaptor.getValue();
+            assertTrue(masks.contains(AccessMask.FILE_APPEND_DATA));
+            assertFalse(masks.contains(AccessMask.FILE_WRITE_DATA));
+            assertFalse(masks.contains(AccessMask.FILE_READ_DATA));
+        }
+
+        @Test
+        void writeOnlyProducesFileWriteData() throws Exception {
+            fileSystem.newByteChannel(fileSystem.getPath("test.txt"),
+                EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE), new FileAttribute[0]);
+
+            Set<AccessMask> masks = accessMaskCaptor.getValue();
+            assertTrue(masks.contains(AccessMask.FILE_WRITE_DATA));
+            assertFalse(masks.contains(AccessMask.FILE_APPEND_DATA));
+            assertFalse(masks.contains(AccessMask.FILE_READ_DATA));
+        }
+
+        @Test
+        void readOnlyProducesFileReadData() throws Exception {
+            fileSystem.newByteChannel(fileSystem.getPath("test.txt"),
+                EnumSet.of(StandardOpenOption.READ), new FileAttribute[0]);
+
+            Set<AccessMask> masks = accessMaskCaptor.getValue();
+            assertTrue(masks.contains(AccessMask.FILE_READ_DATA));
+            assertFalse(masks.contains(AccessMask.FILE_WRITE_DATA));
+            assertFalse(masks.contains(AccessMask.FILE_APPEND_DATA));
+        }
     }
 }
