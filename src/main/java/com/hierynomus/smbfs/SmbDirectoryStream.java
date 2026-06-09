@@ -25,6 +25,7 @@ class SmbDirectoryStream implements DirectoryStream<Path> {
     private final List<Path> list;
 
     private boolean closed;
+    private boolean iteratorTaken;
 
     SmbDirectoryStream(List<Path> list) {
         this.list = list;
@@ -35,6 +36,10 @@ class SmbDirectoryStream implements DirectoryStream<Path> {
         if (closed) {
             throw new IllegalStateException("closed");
         }
+        if (iteratorTaken) {
+            throw new IllegalStateException("iterator already taken");
+        }
+        iteratorTaken = true;
 
         return list.iterator();
     }
