@@ -41,8 +41,9 @@ class ShareSourceImpl implements ShareSource {
 
     @Override
     public Holder open(String name) throws IOException {
-        if (closed)
+        if (closed) {
             throw new IllegalStateException("Already closed");
+        }
 
         Connection connection = client.connect(host, port);
         Session session = connection.authenticate(context);

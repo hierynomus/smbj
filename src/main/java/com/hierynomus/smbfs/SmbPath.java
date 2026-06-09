@@ -74,8 +74,9 @@ public final class SmbPath implements Path {
 
     @Override
     public SmbPath getRoot() {
-        if (isRoot())
+        if (isRoot()) {
             return this;
+        }
 
         return root;
     }
@@ -83,8 +84,9 @@ public final class SmbPath implements Path {
     @Override
     public SmbPath getFileName() {
         int count = getNameCount();
-        if (count > 0)
+        if (count > 0) {
             return withNoRoot(elements.subList(count - 1, count));
+        }
 
         return null;
     }
@@ -92,40 +94,48 @@ public final class SmbPath implements Path {
     @Override
     public SmbPath getParent() {
         int count = getNameCount();
-        if (count > 1)
+        if (count > 1) {
             return withSameRoot(elements.subList(0, count - 1));
+        }
 
         return root;
     }
 
     @Override
     public int getNameCount() {
-        if (isChild())
+        if (isChild()) {
             return elements.size();
+        }
 
         return 0;
     }
 
     @Override
     public SmbPath getName(int index) {
-        if (isRoot())
+        if (isRoot()) {
             throw new IllegalArgumentException();
-        if (index < 0)
+        }
+        if (index < 0) {
             throw new IllegalArgumentException();
-        if (index >= elements.size())
+        }
+        if (index >= elements.size()) {
             throw new IllegalArgumentException();
+        }
 
         return withNoRoot(elements.subList(index, index + 1));
     }
 
     @Override
     public SmbPath subpath(int beginIndex, int endIndex) {
-        if (isRoot())
+        if (isRoot()) {
             throw new IllegalArgumentException();
-        if (beginIndex < 0 || beginIndex >= elements.size())
+        }
+        if (beginIndex < 0 || beginIndex >= elements.size()) {
             throw new IllegalArgumentException("beginIndex");
-        if (endIndex <= beginIndex || endIndex > elements.size())
+        }
+        if (endIndex <= beginIndex || endIndex > elements.size()) {
             throw new IllegalArgumentException("endIndex");
+        }
 
         return withNoRoot(elements.subList(beginIndex, endIndex));
     }
@@ -133,20 +143,24 @@ public final class SmbPath implements Path {
     @Override
     public boolean startsWith(Path path) {
 
-        if (differentFileSystem(path))
+        if (differentFileSystem(path)) {
             return false;
+        }
 
         SmbPath smbPath = requireSmbPath(path);
 
-        if (getRoot() != smbPath.getRoot())
+        if (getRoot() != smbPath.getRoot()) {
             return false;
+        }
 
         int otherCount = smbPath.getNameCount();
-        if (otherCount > getNameCount())
+        if (otherCount > getNameCount()) {
             return false;
+        }
 
-        if (numberOfMatchingElements(smbPath) == otherCount)
+        if (numberOfMatchingElements(smbPath) == otherCount) {
             return true;
+        }
 
         return false;
     }
@@ -160,29 +174,33 @@ public final class SmbPath implements Path {
     @Override
     public boolean endsWith(Path path) {
 
-        if (differentFileSystem(path))
+        if (differentFileSystem(path)) {
             return false;
+        }
 
         SmbPath smbPath = requireSmbPath(path);
 
         int elementCount = getNameCount();
         int endsElementCount = smbPath.getNameCount();
 
-        if (endsElementCount > elementCount)
+        if (endsElementCount > elementCount) {
             return false;
+        }
 
         for (int i = 1; i <= endsElementCount; i++) {
             String thisElement = elements.get(elementCount - i);
             String endElement = smbPath.elements.get(endsElementCount - i);
-            if (!thisElement.equals(endElement))
+            if (!thisElement.equals(endElement)) {
                 return false;
+            }
         }
 
         if (endsElementCount == elementCount) {
             SmbPath endRoot = smbPath.getRoot();
 
-            if (endRoot != null)
+            if (endRoot != null) {
                 return endRoot == getRoot();
+            }
         }
 
         return true;
@@ -207,16 +225,19 @@ public final class SmbPath implements Path {
     public SmbPath resolve(Path suffix) {
         SmbPath other = requireSmbPath(suffix);
 
-        if (other.isAbsolute())
+        if (other.isAbsolute()) {
             return other;
+        }
 
         List<String> elements = new ArrayList<>();
-        if (this.elements != null)
+        if (this.elements != null) {
             elements.addAll(this.elements);
+        }
         elements.addAll(other.elements);
 
-        if (isRoot())
+        if (isRoot()) {
             return withThisRoot(elements);
+        }
 
         return withSameRoot(elements);
     }
@@ -247,29 +268,33 @@ public final class SmbPath implements Path {
         SmbPath childPath = requireSmbPath(other);
 
         int count = numberOfMatchingElements(childPath);
-        if (count < 0)
+        if (count < 0) {
             throw new IllegalArgumentException();
+        }
 
         List<String> elements = new ArrayList<>();
-        for (int i = getNameCount(); i > count; i--)
+        for (int i = getNameCount(); i > count; i--) {
             elements.add("..");
+        }
 
-        for (int i = count; i < childPath.getNameCount(); i++)
+        for (int i = count; i < childPath.getNameCount(); i++) {
             elements.add(childPath.elements.get(i));
+        }
 
         return withNoRoot(elements);
-
     }
 
     private int numberOfMatchingElements(SmbPath other) {
-        if (getRoot() != other.getRoot())
+        if (getRoot() != other.getRoot()) {
             return -1;
+        }
 
         int count = Math.min(getNameCount(), other.getNameCount());
 
         for (int i = 0; i < count; i++) {
-            if (!elements.get(i).equals(other.elements.get(i)))
+            if (!elements.get(i).equals(other.elements.get(i))) {
                 return i;
+            }
         }
         return count;
     }
@@ -281,8 +306,9 @@ public final class SmbPath implements Path {
 
     @Override
     public SmbPath toAbsolutePath() {
-        if (isAbsolute())
+        if (isAbsolute()) {
             return this;
+        }
 
         throw new IllegalStateException("No default dir");
     }
@@ -316,8 +342,9 @@ public final class SmbPath implements Path {
     @Override
     public Iterator<Path> iterator() {
         int count = getNameCount();
-        if (count == 0)
+        if (count == 0) {
             return emptyIterator();
+        }
 
         return IntStream.range(0, count)
             .mapToObj(i -> (Path) getName(i))
@@ -326,11 +353,13 @@ public final class SmbPath implements Path {
 
     @Override
     public boolean equals(Object o) {
-        if (o == this)
+        if (o == this) {
             return true;
+        }
 
-        if (!(o instanceof SmbPath))
+        if (!(o instanceof SmbPath)) {
             return false;
+        }
 
         SmbPath other = (SmbPath) o;
         return Objects.equals(fileSystem, other.fileSystem) &&
@@ -345,17 +374,20 @@ public final class SmbPath implements Path {
 
     @Override
     public String toString() {
-        if (elements == null)
+        if (elements == null) {
             return "" + SEPARATOR;
+        }
 
         StringBuilder b = new StringBuilder();
 
-        if (isAbsolute())
+        if (isAbsolute()) {
             b.append(SEPARATOR);
+        }
 
         for (int i = 0; i < elements.size(); i++) {
-            if (i > 0)
+            if (i > 0) {
                 b.append(SEPARATOR);
+            }
 
             b.append(elements.get(i));
         }
@@ -381,8 +413,9 @@ public final class SmbPath implements Path {
 
     static SmbPath of(SmbFileSystem fileSystem, SmbPath rootPath, List<String> elements) {
         for (String each : elements) {
-            if (each.isEmpty())
+            if (each.isEmpty()) {
                 throw new IllegalArgumentException();
+            }
         }
 
         return new SmbPath(fileSystem, rootPath, elements);
@@ -399,8 +432,9 @@ public final class SmbPath implements Path {
     }
 
     static SmbPath requireSmbPath(Path path) {
-        if (!(requireNonNull(path) instanceof SmbPath))
+        if (!(requireNonNull(path) instanceof SmbPath)) {
             throw new ProviderMismatchException();
+        }
 
         return (SmbPath) path;
     }

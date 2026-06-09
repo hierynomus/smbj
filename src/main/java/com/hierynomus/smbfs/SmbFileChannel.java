@@ -44,8 +44,9 @@ class SmbFileChannel implements SeekableByteChannel {
         try {
             int read = file.read(dst, position);
 
-            if (read >= 0)
+            if (read >= 0) {
                 position += read;
+            }
 
             return read;
         } finally {
@@ -58,8 +59,9 @@ class SmbFileChannel implements SeekableByteChannel {
         lock.lock();
         try {
             int written = file.write(src, position);
-            if (written >= 0)
+            if (written >= 0) {
                 position += written;
+            }
 
             return written;
         } finally {
@@ -106,8 +108,9 @@ class SmbFileChannel implements SeekableByteChannel {
 
     @Override
     public void close() throws IOException {
-        if (closed)
+        if (closed) {
             return;
+        }
 
         try (ShareSource.Holder h = holder;
              File f = file) {

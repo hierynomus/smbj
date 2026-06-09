@@ -76,14 +76,16 @@ public class SmbFileSystemProvider extends FileSystemProvider {
         String key = getKey(uri);
 
         synchronized (fileSystems) {
-            if (fileSystems.containsKey(key))
+            if (fileSystems.containsKey(key)) {
                 throw new FileSystemAlreadyExistsException(key);
+            }
 
             AuthenticationContext context = createAuthenticationContext(uri, env);
 
             int port = uri.getPort();
-            if (port < 0)
+            if (port < 0) {
                 port = SMBClient.DEFAULT_PORT;
+            }
 
             SmbFileSystem fileSystem = factory.create(this, extractHost(uri), port, context, extractShareName(uri));
             fileSystems.put(key, fileSystem);
@@ -125,8 +127,9 @@ public class SmbFileSystemProvider extends FileSystemProvider {
     public SmbFileSystem getFileSystem(URI uri) {
         String key = getKey(uri);
         synchronized (fileSystems) {
-            if (!fileSystems.containsKey(key))
+            if (!fileSystems.containsKey(key)) {
                 throw new FileSystemNotFoundException(uri.toString());
+            }
 
             return fileSystems.get(key);
         }
@@ -142,22 +145,25 @@ public class SmbFileSystemProvider extends FileSystemProvider {
 
     private static String userInfo(URI uri) {
         String userInfo = uri.getUserInfo();
-        if (userInfo == null)
+        if (userInfo == null) {
             return "";
+        }
 
         return userInfo;
     }
 
     private String extractDomain(AuthenticationContext uriAuth, Map<String, ?> env) {
-        if (env.containsKey(DOMAIN_PROPERTY))
+        if (env.containsKey(DOMAIN_PROPERTY)) {
             return (String)env.get(DOMAIN_PROPERTY);
+        }
 
         return uriAuth.getDomain();
     }
 
     private String extractUser(AuthenticationContext uriAuth, Map<String, ?> env) {
-        if (env.containsKey(USERNAME_PROPERTY))
+        if (env.containsKey(USERNAME_PROPERTY)) {
             return (String)env.get(USERNAME_PROPERTY);
+        }
 
         return uriAuth.getUsername();
     }
@@ -166,7 +172,7 @@ public class SmbFileSystemProvider extends FileSystemProvider {
         if (env.containsKey(PASSWORD_PROPERTY))
             return ((String)env.get(PASSWORD_PROPERTY)).toCharArray();
 
-        return uriAuth.getPassword();
+            return uriAuth.getPassword();
     }
 
     private String extractHost(URI uri) {
@@ -184,8 +190,9 @@ public class SmbFileSystemProvider extends FileSystemProvider {
         if (share != null && !share.isEmpty()) {
             String[] bits = share.split("/");
 
-            if (bits.length > 1)
+            if (bits.length > 1) {
                 return bits[1];
+            }
         }
 
         throw new InvalidShareException(uri.toString());
@@ -208,8 +215,9 @@ public class SmbFileSystemProvider extends FileSystemProvider {
         SmbFileSystem fileSystem = getFileSystem(uri);
 
         String sharePath = path.substring(fileSystem.share().length() + 1);
-        if (sharePath.isEmpty() || sharePath.equals("/"))
+        if (sharePath.isEmpty() || sharePath.equals("/")) {
             return fileSystem.root();
+        }
 
         return fileSystem.getPath(sharePath);
     }
@@ -234,8 +242,9 @@ public class SmbFileSystemProvider extends FileSystemProvider {
     public void createDirectory(Path dir, FileAttribute<?>... attrs) throws IOException {
         SmbPath smbDir = requireSmbPath(dir);
 
-        if (attrs.length > 0)
+        if (attrs.length > 0) {
             throw toBeImplemented();
+        }
 
         SmbFileSystem fileSystem = smbDir.getFileSystem();
         fileSystem.createDirectory(dir, attrs);
@@ -257,8 +266,9 @@ public class SmbFileSystemProvider extends FileSystemProvider {
 
         SmbFileSystem fileSystem = smbSource.getFileSystem();
         if (fileSystem == smbTarget.getFileSystem()) {
-            if (options.length > 0)
+            if (options.length > 0) {
                 throw toBeImplemented();
+            }
 
             fileSystem.copy(smbSource, smbTarget);
         } else {
@@ -275,8 +285,9 @@ public class SmbFileSystemProvider extends FileSystemProvider {
 
         SmbFileSystem fileSystem = smbSource.getFileSystem();
         if (fileSystem == smbTarget.getFileSystem()) {
-            if (options.length > 0)
+            if (options.length > 0) {
                 throw toBeImplemented();
+            }
 
             fileSystem.move(smbSource, smbTarget);
         } else {

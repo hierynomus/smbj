@@ -32,8 +32,9 @@ class SmbDirectoryStream implements DirectoryStream<Path> {
 
     @Override
     public Iterator<Path> iterator() {
-        if (closed)
+        if (closed) {
             throw new IllegalStateException("closed");
+        }
 
         return list.iterator();
     }

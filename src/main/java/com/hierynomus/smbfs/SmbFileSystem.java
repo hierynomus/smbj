@@ -137,29 +137,35 @@ public class SmbFileSystem extends FileSystem {
 
         String fullPath = combine(first, more).replaceAll("/", "\\" + SEPARATOR);
 
-        if (fullPath.equals(SEPARATOR))
+        if (fullPath.equals(SEPARATOR)) {
             return root;
+        }
 
-        if (fullPath.isEmpty())
+        if (fullPath.isEmpty()) {
             return SmbPath.of(this, null, emptyList());
+        }
 
-        if (fullPath.startsWith(SEPARATOR))
+        if (fullPath.startsWith(SEPARATOR)) {
             return SmbPath.parse(this, root, fullPath.substring(1));
+        }
 
         return SmbPath.parse(this, null, fullPath);
     }
 
     private String combine(String first, String[] more) {
-        if (more.length == 0)
+        if (more.length == 0) {
             return first;
+        }
 
         StringBuilder sb = new StringBuilder(first);
         for (String each : more) {
-            if (each.isEmpty())
+            if (each.isEmpty()) {
                 continue;
+            }
 
-            if (sb.length() > 0)
+            if (sb.length() > 0) {
                 sb.append(SmbPath.SEPARATOR);
+            }
 
             sb.append(each);
         }
@@ -190,13 +196,15 @@ public class SmbFileSystem extends FileSystem {
 
             for (FileIdBothDirectoryInformation each : ds.list(path.toString())) {
                 String name = each.getFileName();
-                if (name.equals(".") || name.equals(".."))
+                if (name.equals(".") || name.equals("..")) {
                     continue;
+                }
 
                 Path eachPath = path.resolve(name);
 
-                if (!filter.accept(eachPath))
+                if (!filter.accept(eachPath)) {
                     continue;
+                }
 
                 list.add(eachPath);
             }
@@ -221,8 +229,9 @@ public class SmbFileSystem extends FileSystem {
 
     <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> type) throws IOException {
 
-        if (type != BasicFileAttributes.class)
+        if (type != BasicFileAttributes.class) {
             throw new UnsupportedOperationException(type.getName());
+        }
 
         try {
             try (ShareSource.Holder hol = shares.open(share);
@@ -237,8 +246,9 @@ public class SmbFileSystem extends FileSystem {
     }
 
     void checkAccess(Path path, AccessMode... modes) throws IOException {
-        if (modes.length > 0)
+        if (modes.length > 0) {
             throw toBeImplemented();
+        }
 
         try {
             try (ShareSource.Holder hol = shares.open(share);
@@ -246,8 +256,9 @@ public class SmbFileSystem extends FileSystem {
                 ds.getFileInformation(path.toString());
             }
         } catch (SMBApiException e) {
-            if (e.getStatus() == STATUS_OBJECT_PATH_NOT_FOUND || e.getStatus() == STATUS_OBJECT_NAME_NOT_FOUND)
+            if (e.getStatus() == STATUS_OBJECT_PATH_NOT_FOUND || e.getStatus() == STATUS_OBJECT_NAME_NOT_FOUND) {
                 throw new NoSuchFileException(path.toString());
+            }
 
             throw new IOException(e);
         }
@@ -264,8 +275,9 @@ public class SmbFileSystem extends FileSystem {
         File file = hol.share()
             .openFile(path.toString(), accessMasks, null, null, disposition, createOptions);
         long position = 0;
-        if (options.contains(StandardOpenOption.APPEND))
+        if (options.contains(StandardOpenOption.APPEND)) {
             position = file.getLength();
+        }
 
         return new SmbFileChannel(hol, file, position);
     }
@@ -275,26 +287,30 @@ public class SmbFileSystem extends FileSystem {
         boolean write = options.contains(StandardOpenOption.WRITE);
         boolean append = write && options.contains(StandardOpenOption.APPEND);
 
-        if (options.contains(StandardOpenOption.DELETE_ON_CLOSE))
+        if (options.contains(StandardOpenOption.DELETE_ON_CLOSE)) {
             throw toBeImplemented();
+        }
 
         EnumSet<AccessMask> accessMasks = EnumSet.noneOf(AccessMask.class);
 
-        if (append)
+        if (append) {
             accessMasks.add(AccessMask.FILE_APPEND_DATA);
-        else if (write)
+        } else if (write) {
             accessMasks.add(AccessMask.FILE_WRITE_DATA);
+        }
 
         // Files doesn't seem to set READ when creating inputStreams... only WRITE
-        if (read || !write)
+        if (read || !write) {
             accessMasks.add(AccessMask.FILE_READ_DATA);
+        }
 
         return accessMasks;
     }
 
     private static SMB2CreateDisposition createDisposition(Set<? extends OpenOption> options) {
-        if (options.contains(StandardOpenOption.CREATE_NEW))
+        if (options.contains(StandardOpenOption.CREATE_NEW)) {
             return SMB2CreateDisposition.FILE_CREATE;
+        }
 
         if (options.contains(StandardOpenOption.WRITE) &&
             options.contains(StandardOpenOption.TRUNCATE_EXISTING)) {
@@ -302,15 +318,17 @@ public class SmbFileSystem extends FileSystem {
             return SMB2CreateDisposition.FILE_OVERWRITE_IF;
         }
 
-        if (options.contains(StandardOpenOption.CREATE))
+        if (options.contains(StandardOpenOption.CREATE)) {
             return SMB2CreateDisposition.FILE_OPEN_IF;
+        }
 
         return SMB2CreateDisposition.FILE_OPEN;
     }
 
     private static Set<SMB2CreateOptions> createOptions(Set<? extends OpenOption> options) {
-        if (options.contains(StandardOpenOption.DSYNC) || options.contains(StandardOpenOption.SYNC))
+        if (options.contains(StandardOpenOption.DSYNC) || options.contains(StandardOpenOption.SYNC)) {
             return EnumSet.of(SMB2CreateOptions.FILE_WRITE_THROUGH);
+        }
 
         return null;
     }
