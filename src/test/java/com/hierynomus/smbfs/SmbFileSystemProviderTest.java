@@ -168,6 +168,27 @@ class SmbFileSystemProviderTest {
 
 
         @Test
+        void acceptsCharArrayPassword() throws Exception {
+            when(factory.create(eq(provider), eq("server"), eq(SMBClient.DEFAULT_PORT), authenticationContexts.capture(), eq(SHARE_NAME)))
+                .thenReturn(fileSystem);
+
+            Map<String, Object> env = new HashMap<>();
+            env.put(PASSWORD_PROPERTY, "secret".toCharArray());
+
+            provider.newFileSystem(uri, env);
+
+            assertArrayEquals("secret".toCharArray(), authenticationContexts.getValue().getPassword());
+        }
+
+        @Test
+        void throwsForInvalidPasswordType() {
+            Map<String, Object> env = new HashMap<>();
+            env.put(PASSWORD_PROPERTY, 42);
+
+            assertThrows(IllegalArgumentException.class, () -> provider.newFileSystem(uri, env));
+        }
+
+        @Test
         void throwExceptionWhenGettingPathFromUri() {
 
             assertThrows(FileSystemNotFoundException.class, () -> provider.getPath(uri));

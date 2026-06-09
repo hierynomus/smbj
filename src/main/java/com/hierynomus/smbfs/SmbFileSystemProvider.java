@@ -169,10 +169,19 @@ public class SmbFileSystemProvider extends FileSystemProvider {
     }
 
     private char[] extractPassword(AuthenticationContext uriAuth, Map<String, ?> env) {
-        if (env.containsKey(PASSWORD_PROPERTY))
-            return ((String)env.get(PASSWORD_PROPERTY)).toCharArray();
-
+        if (!env.containsKey(PASSWORD_PROPERTY)) {
             return uriAuth.getPassword();
+        }
+
+        Object value = env.get(PASSWORD_PROPERTY);
+        if (value instanceof char[]) {
+            return (char[]) value;
+        } else if (value instanceof String) {
+            return ((String) value).toCharArray();
+        } else {
+            throw new IllegalArgumentException(
+                PASSWORD_PROPERTY + " must be a String or char[]");
+        }
     }
 
     private String extractHost(URI uri) {
