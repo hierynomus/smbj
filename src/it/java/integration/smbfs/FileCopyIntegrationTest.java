@@ -19,6 +19,7 @@ import com.hierynomus.smbfs.SmbFileSystem;
 import com.hierynomus.smbfs.SmbFileSystemProvider;
 import com.hierynomus.smbfs.SmbPath;
 import com.hierynomus.smbj.testcontainers.SambaContainer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.images.builder.Transferable;
@@ -40,6 +41,13 @@ public class FileCopyIntegrationTest {
     @BeforeEach
     void setUp() {
         provider = new SmbFileSystemProvider();
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        samba.deleteFromContainer("/opt/samba/user/source.txt");
+        samba.deleteFromContainer("/opt/samba/user/target.txt");
+        samba.deleteFromContainer("/opt/samba/share/source.txt");
     }
 
     @Test

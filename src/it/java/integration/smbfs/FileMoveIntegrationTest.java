@@ -20,6 +20,7 @@ import com.hierynomus.smbfs.SmbFileSystem;
 import com.hierynomus.smbfs.SmbFileSystemProvider;
 import com.hierynomus.smbfs.SmbPath;
 import com.hierynomus.smbj.testcontainers.SambaContainer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -48,6 +49,14 @@ public class FileMoveIntegrationTest {
         samba.mkdirInContainer("/opt/samba/user/b");
 
         provider = new SmbFileSystemProvider();
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        samba.deleteFromContainer("/opt/samba/user/a");
+        samba.deleteFromContainer("/opt/samba/user/b");
+        samba.deleteFromContainer("/opt/samba/user/source.txt");
+        samba.deleteFromContainer("/opt/samba/user/target.txt");
     }
 
     @ParameterizedTest
