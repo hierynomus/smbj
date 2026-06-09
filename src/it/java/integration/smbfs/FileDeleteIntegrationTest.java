@@ -19,6 +19,7 @@ import com.hierynomus.smbfs.SmbFileSystem;
 import com.hierynomus.smbfs.SmbFileSystemProvider;
 import com.hierynomus.smbfs.SmbPath;
 import com.hierynomus.smbj.testcontainers.SambaContainer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -34,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 public class FileDeleteIntegrationTest {
 
     @Container
-    private final SambaContainer samba = SambaContainer.INSTANCE;
+    private static final SambaContainer samba = SambaContainer.INSTANCE;
 
     private SmbFileSystemProvider provider;
 
@@ -43,6 +44,11 @@ public class FileDeleteIntegrationTest {
         samba.mkdirInContainer("/opt/samba/user/a");
 
         provider = new SmbFileSystemProvider();
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        samba.deleteFromContainer("/opt/samba/user/a");
     }
 
     @ParameterizedTest

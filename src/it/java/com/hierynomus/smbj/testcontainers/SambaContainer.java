@@ -153,6 +153,10 @@ public class SambaContainer extends GenericContainer<SambaContainer> {
         chmodFileInContainer(path, "777");
     }
 
+    public void deleteFromContainer(String path) throws IOException, InterruptedException {
+        ensureOk(execInContainer("rm", "-rf", path));
+    }
+
     public void chmodFileInContainer(String path, String permissions) throws IOException, InterruptedException {
         ensureOk(execInContainer("chmod", permissions, path));
     }

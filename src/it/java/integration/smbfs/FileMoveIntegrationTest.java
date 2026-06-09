@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class FileMoveIntegrationTest {
 
     @Container
-    private final SambaContainer samba = SambaContainer.INSTANCE;
+    private static final SambaContainer samba = SambaContainer.INSTANCE;
 
     private SmbFileSystemProvider provider;
 

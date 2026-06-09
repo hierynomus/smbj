@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class JavaNioIntegrationTest {
 
     @Container
-    private final SambaContainer samba = SambaContainer.INSTANCE;
+    private static final SambaContainer samba = SambaContainer.INSTANCE;
     private FileSystem fileSystem;
 
     @BeforeEach

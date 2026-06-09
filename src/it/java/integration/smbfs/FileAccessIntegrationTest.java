@@ -50,9 +50,6 @@ class FileAccessIntegrationTest {
         return Stream.of(
             arguments("folder"),
             arguments("folder/do_not_remove"),
-            arguments("test.txt"),
-            arguments("folder"),
-            arguments("folder/do_not_remove"),
             arguments("test.txt")
         );
     }
@@ -72,8 +69,6 @@ class FileAccessIntegrationTest {
     static Stream<Arguments> filesThatDontExist() {
         return Stream.of(
             arguments("missing"),
-            arguments("missing"),
-            arguments("folder/missing"),
             arguments("folder/missing")
         );
     }
