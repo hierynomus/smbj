@@ -15,23 +15,6 @@
  */
 package com.hierynomus.smbj;
 
-import static com.hierynomus.mssmb2.SMB2CompletionFilter.FILE_NOTIFY_CHANGE_FILE_NAME;
-import static com.hierynomus.mssmb2.SMB2CompletionFilter.FILE_NOTIFY_CHANGE_LAST_WRITE;
-import static com.hierynomus.mssmb2.SMB2CompletionFilter.FILE_NOTIFY_CHANGE_SIZE;
-import static com.hierynomus.smbj.testing.TestingUtils.DEFAULT_AUTHENTICATION_CONTEXT;
-import static org.assertj.core.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-
-import java.nio.charset.StandardCharsets;
-import java.util.EnumSet;
-import java.util.concurrent.Future;
-
-import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.FileNotifyAction;
@@ -46,11 +29,28 @@ import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
 import com.hierynomus.smbj.testcontainers.SambaContainer;
+import org.assertj.core.api.InstanceOfAssertFactories;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.nio.charset.StandardCharsets;
+import java.util.EnumSet;
+import java.util.concurrent.Future;
+
+import static com.hierynomus.mssmb2.SMB2CompletionFilter.FILE_NOTIFY_CHANGE_FILE_NAME;
+import static com.hierynomus.mssmb2.SMB2CompletionFilter.FILE_NOTIFY_CHANGE_LAST_WRITE;
+import static com.hierynomus.mssmb2.SMB2CompletionFilter.FILE_NOTIFY_CHANGE_SIZE;
+import static com.hierynomus.smbj.testing.TestingUtils.DEFAULT_AUTHENTICATION_CONTEXT;
+import static org.assertj.core.api.Assertions.as;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 @Testcontainers
 public class ChangeNotifyIntegrationTest {
     @Container
-    private static final SambaContainer samba = new SambaContainer.Builder().build();
+    private static final SambaContainer samba = SambaContainer.INSTANCE;
 
     @ParameterizedTest(name = "should watch changes")
     @MethodSource("com.hierynomus.smbj.testing.TestingUtils#defaultTestingConfig")

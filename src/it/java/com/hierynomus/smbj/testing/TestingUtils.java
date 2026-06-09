@@ -15,23 +15,25 @@
  */
 package com.hierynomus.smbj.testing;
 
-import java.util.Random;
-import java.util.stream.Stream;
-
-import org.junit.jupiter.params.provider.Arguments;
-
 import com.hierynomus.msfscc.fileinformation.FileStandardInformation;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.security.bc.BCSecurityProvider;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.share.File;
+import org.junit.jupiter.params.provider.Arguments;
+
+import java.util.Random;
+import java.util.stream.Stream;
 
 public class TestingUtils {
     public static final Random RANDOM = new Random();
 
-    public static final AuthenticationContext DEFAULT_AUTHENTICATION_CONTEXT = new AuthenticationContext("smbj",
-            "smbj".toCharArray(), null);
+    public static final String USER = "smbj";
+    public static final String PASSWORD = "smbj";
+
+    public static final AuthenticationContext DEFAULT_AUTHENTICATION_CONTEXT = new AuthenticationContext(USER,
+            PASSWORD.toCharArray(), null);
 
     public static SmbConfig config(SMB2Dialect dialect, boolean encrypt, boolean signing) {
         return SmbConfig.builder().withDialects(dialect).withEncryptData(encrypt).withSigningRequired(signing)

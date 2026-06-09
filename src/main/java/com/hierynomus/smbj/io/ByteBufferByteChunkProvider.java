@@ -19,7 +19,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class ByteBufferByteChunkProvider extends CachingByteChunkProvider {
-    private ByteBuffer buffer;
+    private final ByteBuffer buffer;
 
     public ByteBufferByteChunkProvider(ByteBuffer buffer) {
         super();

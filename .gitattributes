@@ -5,3 +5,6 @@
 *.sh      text eol=lf
 *.java    text
 *.scala   text
+
+# Keep these src files in binary as used for testing
+src/it/docker-image/public/**/* binary

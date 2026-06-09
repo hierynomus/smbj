@@ -15,15 +15,6 @@
  */
 package com.hierynomus.smbj;
 
-import java.nio.charset.StandardCharsets;
-import java.util.EnumSet;
-import java.util.List;
-
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
@@ -34,8 +25,16 @@ import com.hierynomus.smbj.share.DiskEntry;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
 import com.hierynomus.smbj.testcontainers.SambaContainer;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
-import static com.hierynomus.smbj.testing.TestingUtils.*;
+import java.nio.charset.StandardCharsets;
+import java.util.EnumSet;
+import java.util.List;
+
+import static com.hierynomus.smbj.testing.TestingUtils.DEFAULT_AUTHENTICATION_CONTEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
@@ -43,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 public class SMB2DirectoryIntegrationTest {
 
     @Container
-    private static final SambaContainer samba = new SambaContainer.Builder().build();
+    private static final SambaContainer samba = SambaContainer.INSTANCE;
 
     @ParameterizedTest(name = "should open directory")
     @MethodSource("com.hierynomus.smbj.testing.TestingUtils#defaultTestingConfig")

@@ -25,12 +25,15 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS
+import static org.junit.jupiter.api.Assertions.fail
+
 class StubSmbServer {
   private static final def logger = LoggerFactory.getLogger(StubSmbServer.class)
   private int port = 0
   private ServerSocket socket
 
-  private List<Response> stubbedResponses = new ArrayList<>()
+  private Deque<Response> stubbedResponses = new ArrayDeque<>()
   private Thread thread
   private AtomicBoolean stop = new AtomicBoolean(false)
   private AtomicReference<RuntimeException> serverException = new AtomicReference<>()
@@ -73,24 +76,31 @@ class StubSmbServer {
         // Read the SMB packet
         IOUtils.read(inputStream, new byte[packetLength])
         logger.debug("Read packet")
-        if (stubbedResponses.size() > 0) {
-          Response response = stubbedResponses.remove(0)
-          response.write(outputStream)
-          outputStream.flush()
-        } else {
-          throw new NoSuchElementException("The response list is empty!")
+        if (!stubbedResponses.peekLast()) {
+          fail("The response list is empty!")
         }
+
+        Response response = stubbedResponses.removeFirst()
+        response.write(outputStream)
+        outputStream.flush()
       }
 
     } catch (IOException | Buffer.BufferException e) {
       serverException.set(new RuntimeException(e))
       throw serverException.get()
+    } catch (InterruptedException e) {
+      // no-op - quit loop
     } finally {
       accept.close()
     }
   }
 
-  private static int readTcpHeader(InputStream inputStream) throws IOException, Buffer.BufferException {
+  private static int readTcpHeader(InputStream inputStream) throws IOException, Buffer.BufferException, InterruptedException {
+
+    while (inputStream.available() == 0) {
+      MILLISECONDS.sleep(5)
+    }
+
     byte[] b = new byte[4]
     int read = IOUtils.read(inputStream, b)
     if (read < b.length) {

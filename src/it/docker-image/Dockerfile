@@ -11,7 +11,7 @@ COPY entrypoint.sh /entrypoint.sh
 ADD public /opt/samba/share
 
 RUN mkdir -p /opt/samba/readonly /opt/samba/user /opt/samba/dfs && \
-    chmod 777 /opt/samba/readonly /opt/samba/user /opt/samba/dfs && \
+    chmod 777 /opt/samba/readonly /opt/samba/user /opt/samba/dfs /opt/samba/share && \
     adduser -s /bin/false "$SMB_USER" -D $SMB_PASSWORD && \
     (echo "$SMB_PASSWORD"; echo "$SMB_PASSWORD" ) | pdbedit -a -u "$SMB_USER" && \
     chmod ugo+x /entrypoint.sh

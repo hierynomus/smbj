@@ -15,13 +15,6 @@
  */
 package com.hierynomus.smbj;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.security.bc.BCSecurityProvider;
 import com.hierynomus.smbj.auth.AuthenticationContext;
@@ -30,18 +23,27 @@ import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.Share;
 import com.hierynomus.smbj.testcontainers.SambaContainer;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.stream.Stream;
 
-import static com.hierynomus.smbj.testing.TestingUtils.*;
+import static com.hierynomus.smbj.testing.TestingUtils.config;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @Testcontainers
 public class AnonymousIntegrationTest {
 
     @Container
-    private static final SambaContainer samba = new SambaContainer.Builder().build();
+    private static final SambaContainer samba = SambaContainer.INSTANCE;
 
     static Stream<Arguments> connectWith() {
         return Stream.of(
