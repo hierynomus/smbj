@@ -54,6 +54,7 @@ class ShareSourceImpl implements ShareSource {
     @Override
     public void close() throws IOException {
         closed = true;
+        client.close();
     }
 
     private static class HolderImpl implements Holder {

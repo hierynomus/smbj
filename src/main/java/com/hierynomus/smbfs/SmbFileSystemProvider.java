@@ -358,18 +358,11 @@ public class SmbFileSystemProvider extends FileSystemProvider {
 
     private static class FactoryImpl implements Factory {
 
-        private final SMBClient smbClient;
-
-        FactoryImpl() {
-            this.smbClient = new SMBClient();
-        }
-
-
         @Override
         public SmbFileSystem create(SmbFileSystemProvider provider, String host, int port,
                                     AuthenticationContext context, String shareName) {
 
-            ShareSourceImpl shares = new ShareSourceImpl(smbClient, host, port, context);
+            ShareSourceImpl shares = new ShareSourceImpl(new SMBClient(), host, port, context);
 
             return new SmbFileSystem(provider, shares, shareName);
         }
