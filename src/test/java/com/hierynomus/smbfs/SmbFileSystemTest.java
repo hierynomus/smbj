@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.inOrder;
 
@@ -51,8 +52,14 @@ class SmbFileSystemTest {
     }
 
     @Test
+    void isOpenByDefault() {
+        assertTrue(fileSystem.isOpen());
+    }
+
+    @Test
     void closesAndRemovesFromProvider() throws Exception {
 
+        assertTrue(fileSystem.isOpen());
         fileSystem.close();
 
         assertFalse(fileSystem.isOpen());

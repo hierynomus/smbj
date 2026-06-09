@@ -75,6 +75,7 @@ public class SmbFileSystem extends FileSystem {
         this.provider = provider;
         this.shares = shares;
         this.share = share;
+        this.open = true;
     }
 
     @Override
