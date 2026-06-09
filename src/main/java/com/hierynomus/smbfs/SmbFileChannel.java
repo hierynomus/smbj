@@ -43,13 +43,13 @@ class SmbFileChannel implements SeekableByteChannel {
     public int read(ByteBuffer dst) throws IOException {
         lock.lock();
         try {
-            int read = file.read(dst, position);
+            long read = file.read(dst, position);
 
             if (read >= 0) {
                 position += read;
             }
 
-            return read;
+            return (int) read;
         } finally {
             lock.unlock();
         }
@@ -59,12 +59,12 @@ class SmbFileChannel implements SeekableByteChannel {
     public int write(ByteBuffer src) throws IOException {
         lock.lock();
         try {
-            int written = file.write(src, position);
+            long written = file.write(src, position);
             if (written >= 0) {
                 position += written;
             }
 
-            return written;
+            return (int) written;
         } finally {
             lock.unlock();
         }

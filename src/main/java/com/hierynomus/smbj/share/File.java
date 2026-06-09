@@ -195,10 +195,9 @@ public class File extends DiskEntry {
      * @param fileOffset The offset, in bytes, into the file to which the data should be written
      * @return the actual number of bytes that was written to the file
      */
-    public int write(ByteBuffer buffer, long fileOffset) {
+    public long write(ByteBuffer buffer, long fileOffset) {
         ByteChunkProvider provider = new ByteBufferByteChunkProvider(buffer, fileOffset);
-        // size of a ByteBuffer is represented by an int, so this cannot be higher than that
-        return (int)write(provider);
+        return write(provider);
     }
 
 
@@ -209,7 +208,7 @@ public class File extends DiskEntry {
      * @param fileOffset The offset, in bytes, into the file from which the data should be read
      * @return the actual number of bytes that were read; or -1 if the end of the file was reached
      */
-    public int read(ByteBuffer buffer, long fileOffset) {
+    public long read(ByteBuffer buffer, long fileOffset) {
         int remaining = buffer.remaining();
 
         SMB2ReadResponse response = share.read(fileId, fileOffset, remaining);
