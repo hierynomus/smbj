@@ -16,6 +16,7 @@
 package com.hierynomus.smbfs;
 
 import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 
 import java.io.IOException;
@@ -157,7 +158,7 @@ public class SmbFileSystemProvider extends FileSystemProvider {
 
     private String extractDomain(AuthenticationContext uriAuth, Map<String, ?> env) {
         if (env.containsKey(DOMAIN_PROPERTY)) {
-            return (String)env.get(DOMAIN_PROPERTY);
+            return (String) env.get(DOMAIN_PROPERTY);
         }
 
         return uriAuth.getDomain();
@@ -165,7 +166,7 @@ public class SmbFileSystemProvider extends FileSystemProvider {
 
     private String extractUser(AuthenticationContext uriAuth, Map<String, ?> env) {
         if (env.containsKey(USERNAME_PROPERTY)) {
-            return (String)env.get(USERNAME_PROPERTY);
+            return (String) env.get(USERNAME_PROPERTY);
         }
 
         return uriAuth.getUsername();
@@ -365,7 +366,11 @@ public class SmbFileSystemProvider extends FileSystemProvider {
         public SmbFileSystem create(SmbFileSystemProvider provider, String host, int port,
                                     AuthenticationContext context, String shareName) {
 
-            ShareSourceImpl shares = new ShareSourceImpl(new SMBClient(), host, port, context);
+            SmbConfig config = SmbConfig.builder()
+                .withDfsEnabled(true)
+                .build();
+
+            ShareSourceImpl shares = new ShareSourceImpl(new SMBClient(config), host, port, context);
 
             return new SmbFileSystem(provider, shares, shareName);
         }

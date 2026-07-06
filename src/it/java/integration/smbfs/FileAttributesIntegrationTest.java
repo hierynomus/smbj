@@ -15,41 +15,41 @@
  */
 package integration.smbfs;
 
-import com.hierynomus.smbfs.SmbFileSystem;
-import com.hierynomus.smbfs.SmbFileSystemProvider;
 import com.hierynomus.smbfs.SmbPath;
 import com.hierynomus.smbj.testcontainers.SambaContainer;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.nio.file.attribute.BasicFileAttributes;
 
-import static java.util.Collections.emptyMap;
+import static integration.smbfs.TestShares.withFileSystemProvider;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@ParameterizedClass
+@MethodSource("integration.smbfs.TestShares#allPublicShares")
 @Testcontainers
 class FileAttributesIntegrationTest {
 
     @Container
     private static final SambaContainer samba = SambaContainer.INSTANCE;
 
-    private SmbFileSystemProvider provider;
+    private final String share;
 
-    @BeforeEach
-    void setUp() {
-        provider = new SmbFileSystemProvider();
+    FileAttributesIntegrationTest(String share) {
+        this.share = share;
     }
 
     @Test
     void readsFileAttributes() throws Exception {
-        try (SmbFileSystem fileSystem = provider.newFileSystem(samba.publicUri(), emptyMap())) {
+        withFileSystemProvider(samba, share, (provider, base) -> {
 
-            SmbPath path = fileSystem.getPath("test.txt");
+            SmbPath path = base.resolve("test.txt");
             BasicFileAttributes attrs = provider.readAttributes(path, BasicFileAttributes.class);
 
             assertTrue(attrs.isRegularFile());
@@ -57,14 +57,14 @@ class FileAttributesIntegrationTest {
             assertFalse(attrs.isSymbolicLink());
             assertEquals(10, attrs.size());
             assertNull(attrs.fileKey());
-        }
+        });
     }
 
     @Test
     void readsDirectoryAttributes() throws Exception {
-        try (SmbFileSystem fileSystem = provider.newFileSystem(samba.publicUri(), emptyMap())) {
 
-            SmbPath path = fileSystem.getPath("folder");
+        withFileSystemProvider(samba, share, (provider, base) -> {
+            SmbPath path = base.resolve("folder");
             BasicFileAttributes attrs = provider.readAttributes(path, BasicFileAttributes.class);
 
             assertFalse(attrs.isRegularFile());
@@ -72,6 +72,6 @@ class FileAttributesIntegrationTest {
             assertFalse(attrs.isSymbolicLink());
             assertEquals(0, attrs.size());
             assertNull(attrs.fileKey());
-        }
+        });
     }
 }

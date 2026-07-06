@@ -20,6 +20,7 @@ import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.testing.TestingUtils;
 import com.hierynomus.smbj.testing.TestingUtils.ConsumerWithError;
 import org.apache.commons.io.IOUtils;
 import org.testcontainers.containers.GenericContainer;
@@ -28,8 +29,6 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import java.io.IOException;
 import java.net.URI;
 
-import static com.hierynomus.smbj.testing.TestingUtils.PASSWORD;
-import static com.hierynomus.smbj.testing.TestingUtils.USER;
 import static java.nio.charset.Charset.defaultCharset;
 
 public class SambaContainer extends GenericContainer<SambaContainer> {
@@ -75,11 +74,16 @@ public class SambaContainer extends GenericContainer<SambaContainer> {
     }
 
     public URI publicUri() {
-        return URI.create("smb://" + USER + ":" + PASSWORD + "@" + getHost() + ":" + getFirstMappedPort() + "/public/");
+        return shareUri("public");
     }
 
     public URI userUri() {
-        return URI.create("smb://" + USER + ":" + PASSWORD + "@" + getHost() + ":" + getFirstMappedPort() + "/user/");
+        return shareUri("user");
+    }
+
+    public URI shareUri(String share) {
+        return URI.create("smb://" + TestingUtils.USER + ":" + TestingUtils.PASSWORD + "@" + getHost() + ":" + getFirstMappedPort() + "/")
+            .resolve(share + "/");
     }
 
     public String readFileFromContainer(String file) {
