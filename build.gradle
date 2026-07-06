@@ -101,6 +101,7 @@ testing {
         runtimeOnly OBJENESIS
         implementation SPOCK_CORE
         implementation COMMONS_IO
+        implementation platform('org.junit:junit-bom:5.14.4')
         implementation enforcedPlatform("org.mockito:mockito-bom:5.4.0")
         implementation "org.mockito:mockito-core"
         implementation "org.mockito:mockito-junit-jupiter"
@@ -132,6 +133,7 @@ testing {
       dependencies {
         implementation project()
         implementation "ch.qos.logback:logback-classic:1.3.8"
+        implementation platform('org.junit:junit-bom:5.14.4')
         implementation platform('org.testcontainers:testcontainers-bom:2.0.5')
         implementation 'org.testcontainers:testcontainers'
         implementation 'org.testcontainers:testcontainers-junit-jupiter'
