@@ -50,6 +50,7 @@ import com.hierynomus.smbj.connection.packet.SMB2AsyncResponsePacketHandler;
 import com.hierynomus.smbj.connection.packet.SMB2CompoundedPacketHandler;
 import com.hierynomus.smbj.connection.packet.SMB2CreditGrantingPacketHandler;
 import com.hierynomus.smbj.connection.packet.SMB2IsOutstandingPacketHandler;
+import com.hierynomus.smbj.connection.packet.SMB2LeaseBreakPacketHandler;
 import com.hierynomus.smbj.connection.packet.SMB2ProcessResponsePacketHandler;
 import com.hierynomus.smbj.connection.packet.SMB2SignatureVerificationPacketHandler;
 import com.hierynomus.smbj.connection.packet.SMB3DecryptingPacketHandler;
@@ -76,6 +77,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     private IncomingPacketHandler packetHandlerChain;
 
     private ConnectionContext connectionContext;
+    private final LeaseManager leaseManager = new LeaseManager();
     private SessionTable sessionTable = new SessionTable();
     private SessionTable preauthSessionTable = new SessionTable();
     OutstandingRequests outstandingRequests = new OutstandingRequests();
@@ -121,11 +123,12 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         this.packetHandlerChain = new SMB3DecryptingPacketHandler(sessionTable, encryptor).setNext(
             new SMB2CompoundedPacketHandler().setNext(
                 new SMB2IsOutstandingPacketHandler(outstandingRequests).setNext(
+                    new SMB2LeaseBreakPacketHandler(leaseManager).setNext(
                     new SMB2SignatureVerificationPacketHandler(sessionTable, signatory).setNext(
                         new SMB2CreditGrantingPacketHandler(sequenceWindow).setNext(
                             new SMB2AsyncResponsePacketHandler(outstandingRequests).setNext(
                                 new SMB2ProcessResponsePacketHandler(messageConverter, outstandingRequests).setNext(
-                                    new SMB1PacketHandler().setNext(new DeadLetterPacketHandler()))))))));
+                                    new SMB1PacketHandler().setNext(new DeadLetterPacketHandler())))))))));
     }
 
     public Connection(Connection connection) {
@@ -313,6 +316,10 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
 
     public ConnectionContext getConnectionContext() {
         return connectionContext;
+    }
+
+    public LeaseManager getLeaseManager() {
+        return leaseManager;
     }
 
     @Handler

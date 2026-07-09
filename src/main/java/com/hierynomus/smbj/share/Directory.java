@@ -34,8 +34,20 @@ import java.util.*;
 import java.util.concurrent.Future;
 
 public class Directory extends DiskEntry implements Iterable<FileIdBothDirectoryInformation> {
+    private final com.hierynomus.smbj.connection.LeaseEntry leaseEntry; // nullable
+
     Directory(SMB2FileId fileId, DiskShare diskShare, SmbPath fileName) {
+        this(fileId, diskShare, fileName, null);
+    }
+
+    Directory(SMB2FileId fileId, DiskShare diskShare, SmbPath fileName, com.hierynomus.smbj.connection.LeaseEntry leaseEntry) {
         super(fileId, diskShare, fileName);
+        this.leaseEntry = leaseEntry;
+    }
+
+    /** The directory lease granted on this open, or {@code null} if none. */
+    public com.hierynomus.smbj.connection.LeaseEntry getLeaseEntry() {
+        return leaseEntry;
     }
 
     /**

@@ -25,6 +25,12 @@ import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.SMB2CreateResponse;
 import com.hierynomus.mssmb2.messages.SMB2QueryInfoRequest;
 import com.hierynomus.mssmb2.messages.SMB2SetInfoRequest;
+import com.hierynomus.mssmb2.messages.create.SMB2CreateContext;
+import com.hierynomus.mssmb2.messages.create.SMB2LeaseCreateContext;
+import com.hierynomus.mssmb2.messages.create.SMB2LeaseResponseContext;
+import com.hierynomus.smbj.connection.ConnectionContext;
+import com.hierynomus.smbj.connection.LeaseEntry;
+import com.hierynomus.smbj.connection.LeaseManager;
 import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
@@ -62,8 +68,13 @@ public class DiskShare extends Share {
 
     public DiskEntry open(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         SmbPath pathAndFile = new SmbPath(smbPath, path);
-        SMB2CreateResponseContext response = resolveAndCreateFile(pathAndFile, null, accessMask, attributes, shareAccesses, createDisposition, createOptions);
+        SMB2CreateResponseContext response = resolveAndCreateFile(pathAndFile, null, accessMask, attributes, shareAccesses, createDisposition, createOptions,
+            SMB2OplockLevel.SMB2_OPLOCK_LEVEL_NONE, java.util.Collections.<SMB2CreateContext>emptyList());
         return getDiskEntry(response);
+    }
+
+    ConnectionContext getConnectionContext() {
+        return session.getConnection().getConnectionContext();
     }
 
     @Override
@@ -71,15 +82,15 @@ public class DiskShare extends Share {
         return resolver.statusHandler();
     }
 
-    private SMB2CreateResponseContext createFileAndResolve(final SmbPath path, final SMB2ImpersonationLevel impersonationLevel, final Set<AccessMask> accessMask, final Set<FileAttributes> fileAttributes, final Set<SMB2ShareAccess> shareAccess, final SMB2CreateDisposition createDisposition, final Set<SMB2CreateOptions> createOptions) {
-        final SMB2CreateResponse resp = super.createFile(path, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
+    private SMB2CreateResponseContext createFileAndResolve(final SmbPath path, final SMB2ImpersonationLevel impersonationLevel, final Set<AccessMask> accessMask, final Set<FileAttributes> fileAttributes, final Set<SMB2ShareAccess> shareAccess, final SMB2CreateDisposition createDisposition, final Set<SMB2CreateOptions> createOptions, final SMB2OplockLevel oplockLevel, final List<SMB2CreateContext> createContexts) {
+        final SMB2CreateResponse resp = super.createFile(path, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions, oplockLevel, createContexts);
         try {
             SMB2CreateResponseContext target = resolver.resolve(session, resp, path, new PathResolver.ResolveAction<SMB2CreateResponseContext>() {
                 @Override
                 public SMB2CreateResponseContext apply(SmbPath target) {
                     DiskShare resolveShare = rerouteIfNeeded(path, target);
                     if (!path.equals(target)) {
-                        return resolveShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions);
+                        return resolveShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions, oplockLevel, createContexts);
                     } else {
                         return null;
                     }
@@ -100,14 +111,15 @@ public class DiskShare extends Share {
     private SMB2CreateResponseContext resolveAndCreateFile(final SmbPath path,
                                                            final SMB2ImpersonationLevel impersonationLevel, final Set<AccessMask> accessMask,
                                                            final Set<FileAttributes> fileAttributes, final Set<SMB2ShareAccess> shareAccess,
-                                                           final SMB2CreateDisposition createDisposition, final Set<SMB2CreateOptions> createOptions) {
+                                                           final SMB2CreateDisposition createDisposition, final Set<SMB2CreateOptions> createOptions,
+                                                           final SMB2OplockLevel oplockLevel, final List<SMB2CreateContext> createContexts) {
         try {
             SMB2CreateResponseContext target = resolver.resolve(session, path, new PathResolver.ResolveAction<SMB2CreateResponseContext>() {
                 @Override
                 public SMB2CreateResponseContext apply(SmbPath target) {
                     DiskShare resolvedShare = rerouteIfNeeded(path, target);
                     return resolvedShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes,
-                        shareAccess, createDisposition, createOptions);
+                        shareAccess, createDisposition, createOptions, oplockLevel, createContexts);
                 }
             });
 
@@ -149,6 +161,10 @@ public class DiskShare extends Share {
         EnumSet<FileAttributes> actualAttributes = attributes != null ? EnumSet.copyOf(attributes) : EnumSet.noneOf(FileAttributes.class);
         actualAttributes.add(FILE_ATTRIBUTE_DIRECTORY);
 
+        if (getConnectionContext().supportsDirectoryLeasing()) {
+            return openDirectoryWithLease(path, accessMask, actualAttributes, shareAccesses, createDisposition, actualCreateOptions);
+        }
+
         return (Directory) open(
             path,
             accessMask,
@@ -157,6 +173,82 @@ public class DiskShare extends Share {
             createDisposition,
             actualCreateOptions
         );
+    }
+
+    /**
+     * Open a directory requesting an SMB3 directory lease (V2 RqLs, RH). The {@link LeaseEntry}
+     * is registered in the connection's {@link LeaseManager} <b>before</b> the CREATE is sent
+     * (an async break can race the grant response), then folded with the granted state.
+     */
+    private Directory openDirectoryWithLease(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes,
+                                             Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition,
+                                             Set<SMB2CreateOptions> createOptions) {
+        LeaseManager lm = session.getConnection().getLeaseManager();
+        SmbPath full = new SmbPath(smbPath, path);
+        String rel = full.getPath() == null ? "" : full.getPath();
+
+        LeaseKey leaseKey = lm.leaseKeyForPath(rel);
+        SmbPath parent = full.getParent();
+        LeaseKey parentKey = parent != null ? lm.leaseKeyForExistingPath(parent.getPath() == null ? "" : parent.getPath()) : null;
+
+        long requestedState = SMB2LeaseState.readHandle();
+        SMB2CreateContext leaseCtx = SMB2LeaseCreateContext.v2(leaseKey, requestedState, parentKey).toCreateContext();
+
+        // Reuse a live per-path lease entry so the app's open/close of its own handles never
+        // orphans the cache's dedicated handle (kept on the entry). Each CREATE still returns a
+        // fresh handle to the caller; the lease is shared by lease key.
+        LeaseEntry existing = lm.getByPath(rel);
+        boolean reuse = existing != null && !existing.isBroken();
+        LeaseEntry entry = reuse ? existing : new LeaseEntry(leaseKey, parentKey, requestedState, rel);
+        if (!reuse) {
+            lm.register(entry); // *** register BEFORE send ***
+        }
+
+        SMB2CreateResponseContext rc;
+        try {
+            rc = resolveAndCreateFile(full, null, accessMask, attributes, shareAccesses, createDisposition, createOptions,
+                SMB2OplockLevel.SMB2_OPLOCK_LEVEL_LEASE, java.util.Collections.singletonList(leaseCtx));
+        } catch (RuntimeException e) {
+            if (!reuse) {
+                lm.unregister(leaseKey);
+            }
+            throw e;
+        }
+
+        SMB2CreateResponse resp = rc.resp;
+        SMB2LeaseResponseContext lease = null;
+        try {
+            lease = resp.getLeaseResponseContext();
+        } catch (Buffer.BufferException be) {
+            throw new SMBRuntimeException("Failed to parse lease response context", be);
+        }
+        if (resp.getOplockLevel() == SMB2OplockLevel.SMB2_OPLOCK_LEVEL_LEASE && lease != null) {
+            entry.setFileId(resp.getFileId());
+            entry.setGrantedState(lease.getLeaseState());
+            entry.setEpoch(lease.getEpoch());
+            entry.setGranted(true);
+            // Record the owning session/tree/dialect so an inbound break can be acknowledged.
+            entry.setOwner(session, getTreeConnect().getTreeId(), getTreeConnect().getNegotiatedProtocol().getDialect());
+        } else {
+            if (!reuse) {
+                lm.unregister(leaseKey); // server granted no lease
+            }
+            entry = null;
+        }
+        return new Directory(resp.getFileId(), rc.share, rc.target, entry);
+    }
+
+    /** Open (or, when reused, re-open) a dedicated leased directory handle for the cache to enumerate
+     *  through. The handle is stored on the lease entry and kept open — never returned to callers. */
+    private Directory openLeasedCacheHandle(String path, Set<AccessMask> accessMask) {
+        Directory d = openDirectory(path,
+            accessMask == null ? of(FILE_LIST_DIRECTORY, FILE_READ_ATTRIBUTES, FILE_READ_EA) : accessMask,
+            null, ALL, FILE_OPEN, null);
+        LeaseEntry e = d.getLeaseEntry();
+        if (e != null && e.isGranted() && SMB2LeaseState.isReadHandle(e.getGrantedState())) {
+            e.setCacheDirectory(d);
+        }
+        return d;
     }
 
     public File openFile(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
@@ -256,6 +348,64 @@ public class DiskShare extends Share {
      * @see Directory#iterator(Class, String)
      */
     public <I extends FileDirectoryQueryableInformation> List<I> list(String path, Class<I> informationClass, String searchPattern, EnumSet<AccessMask> accessMask) {
+        // Directory-lease cache fast path: when a usable RH lease is held for this directory,
+        // serve a repeat listing from memory; otherwise enumerate via the kept-open leased handle
+        // and populate. With leasing off / no lease / a real searchPattern this is the unchanged
+        // open-enumerate-close behaviour.
+        if (getConnectionContext().supportsDirectoryLeasing() && LeasedDirectoryCache.isCacheable(searchPattern)) {
+            LeaseManager lm = session.getConnection().getLeaseManager();
+            SmbPath full = new SmbPath(smbPath, path);
+            String rel = full.getPath() == null ? "" : full.getPath();
+
+            LeaseEntry entry = lm.getByPath(rel);
+            if (entry != null && entry.isGranted() && !entry.isBroken()
+                    && SMB2LeaseState.isReadHandle(entry.getGrantedState())) {
+                List<I> hit = entry.getCache().serve(rel, informationClass, searchPattern);
+                if (hit != null) {
+                    return hit; // SERVED FROM CACHE — no CREATE / QUERY_DIRECTORY / CLOSE
+                }
+                // Miss: enumerate through the dedicated cache handle (owned by us, not the app).
+                // If it was closed out from under us (e.g. server tore it down), re-open once.
+                Directory dir = entry.getCacheDirectory();
+                List<I> result;
+                if (dir != null) {
+                    try {
+                        result = dir.list(informationClass, searchPattern);
+                    } catch (SMBApiException e) {
+                        if (e.getStatusCode() != STATUS_FILE_CLOSED.getValue()) {
+                            throw e;
+                        }
+                        entry.setCacheDirectory(null);
+                        result = openLeasedCacheHandle(path, accessMask).list(informationClass, searchPattern);
+                    }
+                } else {
+                    result = openLeasedCacheHandle(path, accessMask).list(informationClass, searchPattern);
+                }
+                LeaseEntry cur = lm.getByPath(rel);
+                if (cur != null) {
+                    cur.getCache().populate(rel, informationClass, searchPattern, result);
+                }
+                return result;
+            }
+
+            // No live cached lease for this dir: open a dedicated leased handle (kept open), enumerate,
+            // and — if a usable RH lease was granted — populate so repeats hit cache.
+            Directory opened = openLeasedCacheHandle(path, accessMask);
+            LeaseEntry openedEntry = opened.getLeaseEntry();
+            if (openedEntry != null && openedEntry.isGranted() && SMB2LeaseState.isReadHandle(openedEntry.getGrantedState())) {
+                List<I> result = opened.list(informationClass, searchPattern); // handle retained for caching
+                openedEntry.getCache().populate(rel, informationClass, searchPattern, result);
+                return result;
+            }
+            try {
+                return opened.list(informationClass, searchPattern);
+            } finally {
+                if (opened != null) {
+                    opened.closeSilently();
+                }
+            }
+        }
+
         Directory d = openDirectory(path,
             accessMask == null ? of(FILE_LIST_DIRECTORY, FILE_READ_ATTRIBUTES, FILE_READ_EA) : accessMask,
             null, ALL, FILE_OPEN, null);
