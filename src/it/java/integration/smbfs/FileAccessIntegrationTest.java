@@ -15,11 +15,9 @@
  */
 package integration.smbfs;
 
-import com.hierynomus.smbfs.SmbFileSystem;
-import com.hierynomus.smbfs.SmbFileSystemProvider;
 import com.hierynomus.smbfs.SmbPath;
 import com.hierynomus.smbj.testcontainers.SambaContainer;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -29,21 +27,22 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.io.IOException;
 import java.util.stream.Stream;
 
-import static java.util.Collections.emptyMap;
+import static integration.smbfs.TestShares.withFileSystemProvider;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@ParameterizedClass
+@MethodSource("integration.smbfs.TestShares#allPublicShares")
 @Testcontainers
 class FileAccessIntegrationTest {
 
     @Container
     private static final SambaContainer samba = SambaContainer.INSTANCE;
 
-    private SmbFileSystemProvider provider;
+    private final String share;
 
-    @BeforeEach
-    void setUp() {
-        provider = new SmbFileSystemProvider();
+    FileAccessIntegrationTest(String share) {
+        this.share = share;
     }
 
     static Stream<Arguments> filesThatExist() {
@@ -58,12 +57,12 @@ class FileAccessIntegrationTest {
     @MethodSource("filesThatExist")
     void fileExists(String path) throws Exception {
 
-        try (SmbFileSystem fileSystem = provider.newFileSystem(samba.publicUri(), emptyMap())) {
+        withFileSystemProvider(samba, share, (provider, base) -> {
 
-            SmbPath path1 = fileSystem.getPath(path);
+            SmbPath path1 = base.resolve(path);
 
             provider.checkAccess(path1);
-        }
+        });
     }
 
     static Stream<Arguments> filesThatDontExist() {
@@ -77,10 +76,10 @@ class FileAccessIntegrationTest {
     @MethodSource("filesThatDontExist")
     void fileMissing(String path) throws Exception {
 
-        try (SmbFileSystem fileSystem = provider.newFileSystem(samba.publicUri(), emptyMap())) {
+        withFileSystemProvider(samba, share, (provider, base) -> {
 
-            SmbPath path1 = fileSystem.getPath(path);
+            SmbPath path1 = base.resolve(path);
             assertThrows(IOException.class, () -> provider.checkAccess(path1));
-        }
+        });
     }
 }

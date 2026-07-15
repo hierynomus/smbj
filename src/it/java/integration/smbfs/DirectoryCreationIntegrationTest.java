@@ -15,37 +15,44 @@
  */
 package integration.smbfs;
 
-import com.hierynomus.smbfs.SmbFileSystem;
-import com.hierynomus.smbfs.SmbFileSystemProvider;
 import com.hierynomus.smbfs.SmbPath;
 import com.hierynomus.smbj.testcontainers.SambaContainer;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import static java.util.Collections.emptyMap;
+import static integration.smbfs.TestShares.withFileSystemProvider;
 
+@ParameterizedClass
+@MethodSource("integration.smbfs.TestShares#allUserShares")
 @Testcontainers
 class DirectoryCreationIntegrationTest {
 
     @Container
     private static final SambaContainer samba = SambaContainer.INSTANCE;
 
-    private SmbFileSystemProvider provider;
+    private final String share;
 
-    @BeforeEach
-    void setUp() {
-        provider = new SmbFileSystemProvider();
+    DirectoryCreationIntegrationTest(String share) {
+        this.share = share;
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        samba.deleteFromContainer("/opt/samba/user/a");
     }
 
     @Test
     void createsDirectory() throws Exception {
-        try (SmbFileSystem fileSystem = provider.newFileSystem(samba.userUri(), emptyMap())) {
 
-            SmbPath path = fileSystem.getPath("a");
-            fileSystem.provider().createDirectory(path);
-        }
+        withFileSystemProvider(samba, share, (provider, base) -> {
+
+            SmbPath path = base.resolve("a");
+            provider.createDirectory(path);
+        });
 
         samba.dirExistsInContainer("/opt/samba/user/a");
     }

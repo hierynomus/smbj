@@ -22,14 +22,19 @@ import com.hierynomus.smbfs.SmbPath;
 import com.hierynomus.smbj.testcontainers.SambaContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static integration.smbfs.RandomData.randomString;
+import static integration.smbfs.TestShares.withFileSystem;
+import static integration.smbfs.TestShares.withFileSystemProvider;
 import static java.util.Collections.emptyMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -104,22 +109,37 @@ public class FileMoveIntegrationTest {
         }
     }
 
-    @Test
-    void movesFilesOnDifferentShares() throws Exception {
+    @Nested
+    @ParameterizedClass
+    @MethodSource("integration.smbfs.TestShares#allPublicToUserShares")
+    class WithDifferentShares {
 
-        String data = randomString(23);
-        Transferable transferable = Transferable.of(data);
-        samba.copyFileToContainer(transferable, "/opt/samba/share/source.txt");
+        private final String publicShare;
+        private final String userShare;
 
-        try (SmbFileSystem fileSystem = provider.newFileSystem(samba.publicUri(), emptyMap());
-             SmbFileSystem targetFileSystem = provider.newFileSystem(samba.userUri(), emptyMap())) {
-
-            SmbPath source = fileSystem.getPath("source.txt");
-            SmbPath target = targetFileSystem.getPath("target.txt");
-            fileSystem.provider().move(source, target);
+        WithDifferentShares(String publicShare, String userShare) {
+            this.publicShare = publicShare;
+            this.userShare = userShare;
         }
 
-        assertEquals(data, samba.readFileFromContainer("/opt/samba/user/target.txt"));
-        assertFalse(samba.fileExistsInContainer("/opt/samba/share/source.txt"));
+        @Test
+        void movesFilesOnDifferentShares() throws Exception {
+
+            String data = randomString(23);
+            Transferable transferable = Transferable.of(data);
+            samba.copyFileToContainer(transferable, "/opt/samba/share/source.txt");
+
+            withFileSystemProvider(samba, publicShare, (provider, publicBase) -> {
+                withFileSystem(provider, samba, userShare, (ignored, userBase) -> {
+
+                    SmbPath source = publicBase.resolve("source.txt");
+                    SmbPath target = userBase.resolve("target.txt");
+                    provider.move(source, target);
+                });
+            });
+
+            assertEquals(data, samba.readFileFromContainer("/opt/samba/user/target.txt"));
+            assertFalse(samba.fileExistsInContainer("/opt/samba/share/source.txt"));
+        }
     }
 }

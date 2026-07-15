@@ -15,39 +15,40 @@
  */
 package integration.smbfs;
 
-import com.hierynomus.smbfs.SmbFileSystem;
-import com.hierynomus.smbfs.SmbFileSystemProvider;
 import com.hierynomus.smbfs.SmbPath;
 import com.hierynomus.smbj.testcontainers.SambaContainer;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
-import static java.util.Collections.emptyMap;
+import static integration.smbfs.TestShares.withFileSystemProvider;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@ParameterizedClass
+@MethodSource("integration.smbfs.TestShares#allPublicShares")
 @Testcontainers
 class FileReadingIntegrationTest {
 
     @Container
     private static final SambaContainer samba = SambaContainer.INSTANCE;
-    private SmbFileSystemProvider provider;
 
-    @BeforeEach
-    void setUp() {
-        provider = new SmbFileSystemProvider();
+    private final String share;
+
+    FileReadingIntegrationTest(String share) {
+        this.share = share;
     }
 
     @Test
     void readsFile() throws Exception {
 
-        try (SmbFileSystem fileSystem = provider.newFileSystem(samba.publicUri(), emptyMap())) {
+        withFileSystemProvider(samba, share, (provider, base) -> {
 
-            SmbPath path = fileSystem.getPath("test.txt");
+            SmbPath path = base.resolve("test.txt");
 
             try (InputStream in = provider.newInputStream(path)) {
 
@@ -55,6 +56,6 @@ class FileReadingIntegrationTest {
 
                 assertEquals("Hi there!\n", new String(bytes, StandardCharsets.UTF_8));
             }
-        }
+        });
     }
 }
