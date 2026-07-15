@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import com.hierynomus.mssmb2.LeaseKey;
 import com.hierynomus.mssmb2.messages.SMB2LeaseBreakAcknowledgment;
 import com.hierynomus.mssmb2.messages.SMB2LeaseBreakNotification;
+import com.hierynomus.smbj.share.Directory;
 
 /**
  * Per-{@link Connection} lease table. An inbound lease break carries no session/tree id,
@@ -96,6 +97,12 @@ public class LeaseManager implements Closeable {
     @Override
     public void close() {
         breakExecutor.shutdownNow();
+        for (LeaseEntry entry : byKey.values()) {
+            Directory d = entry.getCacheDirectory();
+            if (d != null) {
+                d.closeSilently();
+            }
+        }
         byKey.clear();
         byPath.clear();
     }

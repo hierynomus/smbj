@@ -22,6 +22,7 @@ import com.hierynomus.mssmb2.messages.SMB2LeaseBreakNotification
 import com.hierynomus.protocol.commons.ByteArrayUtils
 import com.hierynomus.smb.SMBBuffer
 import com.hierynomus.smbj.common.SmbPath
+import com.hierynomus.smbj.share.Directory
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -153,5 +154,50 @@ class LeaseManagerSpec extends Specification {
         then: "the live entry is gone but the node key survives for re-open"
         lm.lookup(k) == null
         lm.leaseKeyForPath("dir") == k
+    }
+
+    def "onBreak closes and nulls the cache directory handle"() {
+        given:
+        def lm = new LeaseManager()
+        def key = lm.leaseKeyForPath("d")
+        def entry = new LeaseEntry(key, null, RH, "d")
+        def dir = Mock(Directory)
+        entry.setCacheDirectory(dir)
+        lm.register(entry)
+
+        when: "a no-ack break arrives"
+        lm.onBreak(notification(key, 1, "00000000", SMB2LeaseState.SMB2_LEASE_READ_CACHING.value))
+
+        then: "the cache directory handle is closed exactly once"
+        1 * dir.closeSilently()
+
+        and: "the reference is cleared"
+        entry.getCacheDirectory() == null
+    }
+
+    def "close closes all kept-open cache directory handles before clearing the table"() {
+        given:
+        def lm = new LeaseManager()
+        def key1 = lm.leaseKeyForPath("a")
+        def key2 = lm.leaseKeyForPath("b")
+        def entry1 = new LeaseEntry(key1, null, RH, "a")
+        def entry2 = new LeaseEntry(key2, null, RH, "b")
+        def dir1 = Mock(Directory)
+        def dir2 = Mock(Directory)
+        entry1.setCacheDirectory(dir1)
+        entry2.setCacheDirectory(dir2)
+        lm.register(entry1)
+        lm.register(entry2)
+
+        when:
+        lm.close()
+
+        then: "both cache handles are closed"
+        1 * dir1.closeSilently()
+        1 * dir2.closeSilently()
+
+        and: "the tables are emptied"
+        lm.lookup(key1) == null
+        lm.lookup(key2) == null
     }
 }
