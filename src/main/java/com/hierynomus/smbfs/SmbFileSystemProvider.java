@@ -49,6 +49,7 @@ public class SmbFileSystemProvider extends FileSystemProvider {
     public static final String DOMAIN_PROPERTY = "smbfs.domain";
     public static final String USERNAME_PROPERTY = "smbfs.username";
     public static final String PASSWORD_PROPERTY = "smbfs.password";
+    public static final String DFS_ENABLED_PROPERTY = "smbfs.dfsEnabled";
 
     private static final String SCHEME = "smb";
 
@@ -88,7 +89,8 @@ public class SmbFileSystemProvider extends FileSystemProvider {
                 port = SMBClient.DEFAULT_PORT;
             }
 
-            SmbFileSystem fileSystem = factory.create(this, extractHost(uri), port, context, extractShareName(uri));
+            boolean dfsEnabled = extractDfsEnabled(env);
+            SmbFileSystem fileSystem = factory.create(this, extractHost(uri), port, context, extractShareName(uri), dfsEnabled);
             fileSystems.put(key, fileSystem);
             return fileSystem;
         }
@@ -170,6 +172,20 @@ public class SmbFileSystemProvider extends FileSystemProvider {
         }
 
         return uriAuth.getUsername();
+    }
+
+    private boolean extractDfsEnabled(Map<String, ?> env) {
+        if (env.containsKey(DFS_ENABLED_PROPERTY)) {
+            Object value = env.get(DFS_ENABLED_PROPERTY);
+            if (value instanceof Boolean) {
+                return (Boolean) value;
+            } else if (value instanceof String) {
+                return Boolean.parseBoolean((String) value);
+            } else {
+                throw new IllegalArgumentException(DFS_ENABLED_PROPERTY + " must be a Boolean or String");
+            }
+        }
+        return false;
     }
 
     private char[] extractPassword(AuthenticationContext uriAuth, Map<String, ?> env) {
@@ -357,17 +373,17 @@ public class SmbFileSystemProvider extends FileSystemProvider {
 
     interface Factory {
         SmbFileSystem create(SmbFileSystemProvider provider, String host, int port, AuthenticationContext context,
-                             String shareName);
+                             String shareName, boolean dfsEnabled);
     }
 
     private static class FactoryImpl implements Factory {
 
         @Override
         public SmbFileSystem create(SmbFileSystemProvider provider, String host, int port,
-                                    AuthenticationContext context, String shareName) {
+                                    AuthenticationContext context, String shareName, boolean dfsEnabled) {
 
             SmbConfig config = SmbConfig.builder()
-                .withDfsEnabled(true)
+                .withDfsEnabled(dfsEnabled)
                 .build();
 
             ShareSourceImpl shares = new ShareSourceImpl(new SMBClient(config), host, port, context);

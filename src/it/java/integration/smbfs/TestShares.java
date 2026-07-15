@@ -27,6 +27,7 @@ import java.nio.file.FileSystemAlreadyExistsException;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static com.hierynomus.smbfs.SmbFileSystemProvider.DFS_ENABLED_PROPERTY;
 import static java.util.Collections.emptyMap;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -70,7 +71,10 @@ class TestShares {
                                BiConsumerWithError<SmbFileSystemProvider, SmbPath> with)
         throws Exception {
         URI uri = samba.shareUri(share);
-        try (SmbFileSystem ignored = getOrNewFileSystem(provider, uri, emptyMap())) {
+        Map<String, Object> env = share.startsWith("dfs/")
+            ? Map.of(DFS_ENABLED_PROPERTY, true)
+            : emptyMap();
+        try (SmbFileSystem ignored = getOrNewFileSystem(provider, uri, env)) {
             with.with(provider, provider.getPath(uri));
         }
     }
