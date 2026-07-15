@@ -19,8 +19,6 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import com.hierynomus.smbj.common.SMBRuntimeException;
-
 public class InputStreamByteChunkProvider extends CachingByteChunkProvider {
 
     private BufferedInputStream is;
@@ -43,17 +41,19 @@ public class InputStreamByteChunkProvider extends CachingByteChunkProvider {
         if (toRead == 0) {
             return -1;
         }
-
         return is.read(chunk, 0, toRead);
     }
 
     @Override
     public boolean isAvailable() {
-        try {
-            return super.isAvailable() || (is != null && is.available() > 0);
-        } catch (IOException e) {
-            throw new SMBRuntimeException(e);
+        if (super.isAvailable()) {
+            return true;
         }
+        if (is == null) {
+            return false;
+        }
+        prepareWrite(1);
+        return super.isAvailable();
     }
 
     @Override
