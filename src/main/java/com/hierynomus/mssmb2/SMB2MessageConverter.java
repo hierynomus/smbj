@@ -73,8 +73,9 @@ public class SMB2MessageConverter {
             case SMB2_OPLOCK_BREAK:
                 // The unsolicited break notification (all-FF MessageId) is consumed earlier by
                 // SMB2LeaseBreakPacketHandler. What reaches here via the normal response path is
-                // the 36-byte reply to our own Lease Break Acknowledgment.
-                return new SMB2LeaseBreakResponse();
+                // either a 24-byte file-oplock break response or a 36-byte lease break response;
+                // SMB2OplockBreakResponse discriminates by StructureSize.
+                return new SMB2OplockBreakResponse();
             default:
                 logger.error("Unknown SMB2 Message Command type: " + command);
                 throw new SMBRuntimeException("Unknown SMB2 Message Command type: " + command);

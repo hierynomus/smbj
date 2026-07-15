@@ -116,9 +116,11 @@ class SMB2LeaseBreakSpec extends Specification {
         def data = new com.hierynomus.mssmb2.SMB2PacketData(b.getCompactData())
 
         when:
-        def resp = new SMB2LeaseBreakResponse().parse(data)
+        def resp = new SMB2OplockBreakResponse()
+        resp.read(data)
 
         then:
+        resp.isLease()
         resp.getLeaseKey() == KEY
         resp.getLeaseState() == 0x1L
     }
