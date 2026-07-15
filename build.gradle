@@ -99,6 +99,7 @@ testing {
         // implementation GROOVY_ALL
         runtimeOnly CGLIB_NODEP
         runtimeOnly OBJENESIS
+        implementation GROOVY_CORE
         implementation SPOCK_CORE
         implementation COMMONS_IO
         implementation platform('org.junit:junit-bom:5.14.4')
