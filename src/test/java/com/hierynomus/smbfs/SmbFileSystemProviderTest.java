@@ -38,9 +38,11 @@ import java.nio.file.FileSystemNotFoundException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.hierynomus.smbfs.SmbFileSystemProvider.DFS_ENABLED_PROPERTY;
 import static com.hierynomus.smbfs.SmbFileSystemProvider.DOMAIN_PROPERTY;
 import static com.hierynomus.smbfs.SmbFileSystemProvider.PASSWORD_PROPERTY;
 import static com.hierynomus.smbfs.SmbFileSystemProvider.USERNAME_PROPERTY;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static java.util.Collections.emptyMap;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -98,12 +100,44 @@ class SmbFileSystemProviderTest {
 
         @Test
         void createsFileSystem() throws Exception {
-            when(factory.create(eq(provider), eq("server"), eq(SMBClient.DEFAULT_PORT), any(), eq(SHARE_NAME)))
+            when(factory.create(eq(provider), eq("server"), eq(SMBClient.DEFAULT_PORT), any(), eq(SHARE_NAME), eq(false)))
                 .thenReturn(fileSystem);
 
             SmbFileSystem fs = provider.newFileSystem(uri, emptyMap());
 
             assertSame(fileSystem, fs);
+        }
+
+        @Test
+        void enablesDfsWhenPropertyIsTrue() throws Exception {
+            when(factory.create(eq(provider), eq("server"), eq(SMBClient.DEFAULT_PORT), any(), eq(SHARE_NAME), eq(true)))
+                .thenReturn(fileSystem);
+
+            Map<String, Object> env = new HashMap<>();
+            env.put(DFS_ENABLED_PROPERTY, true);
+            SmbFileSystem fs = provider.newFileSystem(uri, env);
+
+            assertSame(fileSystem, fs);
+        }
+
+        @Test
+        void enablesDfsWhenPropertyIsStringTrue() throws Exception {
+            when(factory.create(eq(provider), eq("server"), eq(SMBClient.DEFAULT_PORT), any(), eq(SHARE_NAME), eq(true)))
+                .thenReturn(fileSystem);
+
+            Map<String, Object> env = new HashMap<>();
+            env.put(DFS_ENABLED_PROPERTY, "true");
+            SmbFileSystem fs = provider.newFileSystem(uri, env);
+
+            assertSame(fileSystem, fs);
+        }
+
+        @Test
+        void throwsForInvalidDfsEnabledType() {
+            Map<String, Object> env = new HashMap<>();
+            env.put(DFS_ENABLED_PROPERTY, 1);
+
+            assertThrows(IllegalArgumentException.class, () -> provider.newFileSystem(uri, env));
         }
 
         @ParameterizedTest
@@ -117,7 +151,7 @@ class SmbFileSystemProviderTest {
             "dom%3Fain;us%3Fer:pass%3Fword,dom?ain,us?er,pass?word",
         })
         void createsAuthenticationContextFromUri(String uriCredentials, String domain, String username, String password) throws Exception {
-            when(factory.create(eq(provider), eq("server"), eq(SMBClient.DEFAULT_PORT), authenticationContexts.capture(), eq(SHARE_NAME)))
+            when(factory.create(eq(provider), eq("server"), eq(SMBClient.DEFAULT_PORT), authenticationContexts.capture(), eq(SHARE_NAME), eq(false)))
                 .thenReturn(fileSystem);
 
             URI uri = URI.create("smb://" + uriCredentials + "@server/" + SHARE_NAME);
@@ -142,7 +176,7 @@ class SmbFileSystemProviderTest {
             ",,password2,domain,username,password2",
         })
         void createsAuthenticationContextFromUriAndEnv(String envDomain, String envUsername, String envPassword, String domain, String username, String password) throws Exception {
-            when(factory.create(eq(provider), eq("server"), eq(SMBClient.DEFAULT_PORT), authenticationContexts.capture(), eq(SHARE_NAME)))
+            when(factory.create(eq(provider), eq("server"), eq(SMBClient.DEFAULT_PORT), authenticationContexts.capture(), eq(SHARE_NAME), eq(false)))
                 .thenReturn(fileSystem);
 
             URI uri = URI.create("smb://domain;username:password@server/" + SHARE_NAME);
@@ -169,7 +203,7 @@ class SmbFileSystemProviderTest {
 
         @Test
         void acceptsCharArrayPassword() throws Exception {
-            when(factory.create(eq(provider), eq("server"), eq(SMBClient.DEFAULT_PORT), authenticationContexts.capture(), eq(SHARE_NAME)))
+            when(factory.create(eq(provider), eq("server"), eq(SMBClient.DEFAULT_PORT), authenticationContexts.capture(), eq(SHARE_NAME), eq(false)))
                 .thenReturn(fileSystem);
 
             Map<String, Object> env = new HashMap<>();
@@ -203,7 +237,7 @@ class SmbFileSystemProviderTest {
 
         @BeforeEach
         void setUp() throws Exception {
-            when(factory.create(eq(provider), any(), anyInt(), any(), any()))
+            when(factory.create(eq(provider), any(), anyInt(), any(), any(), anyBoolean()))
                 .thenReturn(fileSystem, fileSystem2);
 
             provider.newFileSystem(uri, emptyMap());

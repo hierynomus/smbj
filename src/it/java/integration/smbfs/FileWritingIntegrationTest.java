@@ -15,13 +15,12 @@
  */
 package integration.smbfs;
 
-import com.hierynomus.smbfs.SmbFileSystem;
-import com.hierynomus.smbfs.SmbFileSystemProvider;
 import com.hierynomus.smbfs.SmbPath;
 import com.hierynomus.smbj.testcontainers.SambaContainer;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -31,20 +30,21 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardOpenOption;
 
 import static integration.smbfs.RandomData.randomString;
-import static java.util.Collections.emptyMap;
+import static integration.smbfs.TestShares.withFileSystemProvider;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@ParameterizedClass
+@MethodSource("integration.smbfs.TestShares#allUserShares")
 @Testcontainers
-public class FileWritingIntegrationTest {
+class FileWritingIntegrationTest {
 
     @Container
     private static final SambaContainer samba = SambaContainer.INSTANCE;
 
-    private SmbFileSystemProvider provider;
+    private final String share;
 
-    @BeforeEach
-    void setUp() {
-        provider = new SmbFileSystemProvider();
+    FileWritingIntegrationTest(String share) {
+        this.share = share;
     }
 
     @AfterEach
@@ -58,14 +58,14 @@ public class FileWritingIntegrationTest {
 
         String data = randomString(23);
 
-        try (SmbFileSystem fileSystem = provider.newFileSystem(samba.userUri(), emptyMap())) {
+        withFileSystemProvider(samba, share, (provider, base) -> {
 
-            SmbPath path = fileSystem.getPath("written.txt");
+            SmbPath path = base.resolve("written.txt");
 
             try (OutputStream out = provider.newOutputStream(path)) {
                 out.write(data.trim().getBytes(StandardCharsets.UTF_8));
             }
-        }
+        });
 
         assertEquals(data, samba.readFileFromContainer("/opt/samba/user/written.txt"));
     }
@@ -75,14 +75,14 @@ public class FileWritingIntegrationTest {
 
         String data = randomString(23);
 
-        try (SmbFileSystem fileSystem = provider.newFileSystem(samba.userUri(), emptyMap())) {
+        withFileSystemProvider(samba, share, (provider, base) -> {
 
-            SmbPath path = fileSystem.getPath("written.txt");
+            SmbPath path = base.resolve("written.txt");
 
             try (OutputStream out = provider.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
                 out.write(data.getBytes(StandardCharsets.UTF_8));
             }
-        }
+        });
 
         assertEquals(data, samba.readFileFromContainer("/opt/samba/user/written.txt"));
     }
@@ -98,14 +98,14 @@ public class FileWritingIntegrationTest {
         //noinspection OctalInteger
         samba.copyFileToContainer(Transferable.of(initialData, 0100666), containerPath);
 
-        try (SmbFileSystem fileSystem = provider.newFileSystem(samba.userUri(), emptyMap())) {
+        withFileSystemProvider(samba, share, (provider, base) -> {
 
-            SmbPath path = fileSystem.getPath("test.txt");
+            SmbPath path = base.resolve("test.txt");
 
             try (OutputStream out = provider.newOutputStream(path, StandardOpenOption.APPEND)) {
                 out.write(additionalData.getBytes(StandardCharsets.UTF_8));
             }
-        }
+        });
 
         assertEquals(initialData + additionalData, samba.readFileFromContainer(containerPath));
     }
