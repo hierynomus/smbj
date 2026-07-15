@@ -94,6 +94,7 @@ testing {
         // implementation GROOVY_ALL
         runtimeOnly CGLIB_NODEP
         runtimeOnly OBJENESIS
+        implementation GROOVY_CORE
         implementation SPOCK_CORE
         implementation COMMONS_IO
         implementation enforcedPlatform("org.mockito:mockito-bom:5.4.0")
