@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.connection;
 
+import java.io.Closeable;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -37,7 +38,7 @@ import com.hierynomus.mssmb2.messages.SMB2LeaseBreakNotification;
  * (path)</b> and reused (Apple's per-node key); the {@code path -> key} map also lets a
  * child open thread its parent directory's own lease key.
  */
-public class LeaseManager {
+public class LeaseManager implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(LeaseManager.class);
 
     private final ConcurrentMap<LeaseKey, LeaseEntry> byKey = new ConcurrentHashMap<>();
@@ -92,8 +93,11 @@ public class LeaseManager {
         return breaksHandled.get();
     }
 
-    public void shutdown() {
+    @Override
+    public void close() {
         breakExecutor.shutdownNow();
+        byKey.clear();
+        byPath.clear();
     }
 
     /**

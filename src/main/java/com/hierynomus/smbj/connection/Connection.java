@@ -189,6 +189,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
                 }
             }
         } finally {
+            leaseManager.close();
             transport.disconnect();
             logger.info("Closed connection to {}", getRemoteHostname());
             bus.publish(new ConnectionClosed(connectionContext.getServer().getServerName(), connectionContext.getServer().getPort()));
