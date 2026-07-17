@@ -393,7 +393,14 @@ public class DiskShare extends Share {
             Directory opened = openLeasedCacheHandle(path, accessMask);
             LeaseEntry openedEntry = opened.getLeaseEntry();
             if (openedEntry != null && openedEntry.isGranted() && SMB2LeaseState.isReadHandle(openedEntry.getGrantedState())) {
-                List<I> result = opened.list(informationClass, searchPattern); // handle retained for caching
+                List<I> result;
+                try {
+                    result = opened.list(informationClass, searchPattern); // handle retained for caching
+                } catch (RuntimeException e) {
+                    openedEntry.setCacheDirectory(null);
+                    opened.closeSilently();
+                    throw e;
+                }
                 openedEntry.getCache().populate(rel, informationClass, searchPattern, result);
                 return result;
             }
