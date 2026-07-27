@@ -22,6 +22,7 @@ import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
@@ -183,8 +184,12 @@ public class SmbFileSystem extends FileSystem {
     }
 
     @Override
-    public WatchService newWatchService() {
-        throw toBeImplemented();
+    public WatchService newWatchService() throws IOException {
+        try {
+            return new SmbWatchService(shares.getShare(share), this);
+        } catch (SMBRuntimeException e) {
+            throw new IOException("Can't connect share", e);
+        }
     }
 
     DirectoryStream<Path> newDirectoryStream(Path path, DirectoryStream.Filter<? super Path> filter)
