@@ -19,18 +19,29 @@ import com.hierynomus.smbj.share.File;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SeekableByteChannel;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.util.concurrent.locks.ReentrantLock;
 
-class SmbFileChannel implements SeekableByteChannel {
+import static com.hierynomus.smbfs.ToBeImplementedException.toBeImplemented;
+
+/**
+ * A {@link FileChannel} backed by an SMB {@link File}. Extending {@code FileChannel}
+ * (rather than just implementing {@link java.nio.channels.SeekableByteChannel}) makes
+ * instances usable wherever a real {@code FileChannel} is expected, e.g. via
+ * {@code Files.newByteChannel(...) instanceof FileChannel}. The positional/scatter-gather
+ * operations that have no reasonable SMB equivalent (yet) throw {@link ToBeImplementedException}.
+ */
+class SmbFileChannel extends FileChannel {
 
     private final ReentrantLock lock = new ReentrantLock();
 
     private final File file;
 
     private long position;
-    private final AtomicBoolean closed = new AtomicBoolean();
 
     SmbFileChannel(File file, long position) {
         this.file = file;
@@ -54,6 +65,11 @@ class SmbFileChannel implements SeekableByteChannel {
     }
 
     @Override
+    public long read(ByteBuffer[] dsts, int offset, int length) throws IOException {
+        throw toBeImplemented();
+    }
+
+    @Override
     public int write(ByteBuffer src) throws IOException {
         lock.lock();
         try {
@@ -69,6 +85,11 @@ class SmbFileChannel implements SeekableByteChannel {
     }
 
     @Override
+    public long write(ByteBuffer[] srcs, int offset, int length) throws IOException {
+        throw toBeImplemented();
+    }
+
+    @Override
     public long position() throws IOException {
         lock.lock();
         try {
@@ -79,7 +100,7 @@ class SmbFileChannel implements SeekableByteChannel {
     }
 
     @Override
-    public SeekableByteChannel position(long newPosition) throws IOException {
+    public FileChannel position(long newPosition) throws IOException {
         lock.lock();
         try {
             this.position = newPosition;
@@ -95,22 +116,53 @@ class SmbFileChannel implements SeekableByteChannel {
     }
 
     @Override
-    public SeekableByteChannel truncate(long size) {
+    public FileChannel truncate(long size) {
         file.setLength(size);
         return this;
     }
 
     @Override
-    public boolean isOpen() {
-        return !closed.get();
+    public void force(boolean metaData) throws IOException {
+        // there is no local buffering to flush - every read/write goes straight to the SMB server
     }
 
     @Override
-    public void close() throws IOException {
-        if (!closed.compareAndSet(false, true)) {
-            return;
-        }
+    public long transferTo(long position, long count, WritableByteChannel target) throws IOException {
+        throw toBeImplemented();
+    }
 
+    @Override
+    public long transferFrom(ReadableByteChannel src, long position, long count) throws IOException {
+        throw toBeImplemented();
+    }
+
+    @Override
+    public int read(ByteBuffer dst, long position) throws IOException {
+        throw toBeImplemented();
+    }
+
+    @Override
+    public int write(ByteBuffer src, long position) throws IOException {
+        throw toBeImplemented();
+    }
+
+    @Override
+    public MappedByteBuffer map(MapMode mode, long position, long size) throws IOException {
+        throw toBeImplemented();
+    }
+
+    @Override
+    public FileLock lock(long position, long size, boolean shared) throws IOException {
+        throw toBeImplemented();
+    }
+
+    @Override
+    public FileLock tryLock(long position, long size, boolean shared) throws IOException {
+        throw toBeImplemented();
+    }
+
+    @Override
+    protected void implCloseChannel() throws IOException {
         // the underlying share/session is owned (and reused) by the ShareSource,
         // only the file handle belongs to this channel.
         file.close();
