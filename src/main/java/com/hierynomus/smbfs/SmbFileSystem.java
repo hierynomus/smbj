@@ -190,36 +190,33 @@ public class SmbFileSystem extends FileSystem {
     DirectoryStream<Path> newDirectoryStream(Path path, DirectoryStream.Filter<? super Path> filter)
         throws IOException {
 
-        try (ShareSource.Holder hol = shares.open(share);
-             DiskShare ds = hol.share()) {
-            List<Path> list = new ArrayList<>();
+        DiskShare ds = shares.getShare(share);
+        List<Path> list = new ArrayList<>();
 
-            for (FileIdBothDirectoryInformation each : ds.list(path.toString())) {
-                String name = each.getFileName();
-                if (name.equals(".") || name.equals("..")) {
-                    continue;
-                }
-
-                Path eachPath = path.resolve(name);
-
-                if (!filter.accept(eachPath)) {
-                    continue;
-                }
-
-                list.add(eachPath);
+        for (FileIdBothDirectoryInformation each : ds.list(path.toString())) {
+            String name = each.getFileName();
+            if (name.equals(".") || name.equals("..")) {
+                continue;
             }
 
-            return new SmbDirectoryStream(list);
+            Path eachPath = path.resolve(name);
+
+            if (!filter.accept(eachPath)) {
+                continue;
+            }
+
+            list.add(eachPath);
         }
+
+        return new SmbDirectoryStream(list);
     }
 
     void createDirectory(Path dir, FileAttribute<?>[] attrs) throws IOException {
 
         EnumSet<AccessMask> accessMasks = EnumSet.of(FILE_LIST_DIRECTORY, FILE_ADD_SUBDIRECTORY);
 
-        try (ShareSource.Holder hol = shares.open(share);
-             DiskShare ds = hol.share();
-             Directory dirDir = ds.openDirectory(dir.toString(), accessMasks, null, null, FILE_CREATE, null)) {
+        DiskShare ds = shares.getShare(share);
+        try (Directory dirDir = ds.openDirectory(dir.toString(), accessMasks, null, null, FILE_CREATE, null)) {
 
             // do-nothing - dir will get created with the open call above
         } catch (SMBApiException e) {
@@ -234,12 +231,10 @@ public class SmbFileSystem extends FileSystem {
         }
 
         try {
-            try (ShareSource.Holder hol = shares.open(share);
-                 DiskShare ds = hol.share()) {
-                FileAllInformation fileInformation = ds.getFileInformation(path.toString());
+            DiskShare ds = shares.getShare(share);
+            FileAllInformation fileInformation = ds.getFileInformation(path.toString());
 
-                return type.cast(new SmbFileAttributes(fileInformation));
-            }
+            return type.cast(new SmbFileAttributes(fileInformation));
         } catch (SMBApiException e) {
             throw new IOException(e);
         }
@@ -251,10 +246,8 @@ public class SmbFileSystem extends FileSystem {
         }
 
         try {
-            try (ShareSource.Holder hol = shares.open(share);
-                 DiskShare ds = hol.share()) {
-                ds.getFileInformation(path.toString());
-            }
+            DiskShare ds = shares.getShare(share);
+            ds.getFileInformation(path.toString());
         } catch (SMBApiException e) {
             if (e.getStatus() == STATUS_OBJECT_PATH_NOT_FOUND || e.getStatus() == STATUS_OBJECT_NAME_NOT_FOUND) {
                 throw new NoSuchFileException(path.toString());
@@ -271,15 +264,14 @@ public class SmbFileSystem extends FileSystem {
         SMB2CreateDisposition disposition = createDisposition(options);
         Set<SMB2CreateOptions> createOptions = createOptions(options);
 
-        ShareSource.Holder hol = shares.open(share);
-        File file = hol.share()
-            .openFile(path.toString(), accessMasks, null, null, disposition, createOptions);
+        DiskShare ds = shares.getShare(share);
+        File file = ds.openFile(path.toString(), accessMasks, null, null, disposition, createOptions);
         long position = 0;
         if (options.contains(StandardOpenOption.APPEND)) {
             position = file.getLength();
         }
 
-        return new SmbFileChannel(hol, file, position);
+        return new SmbFileChannel(file, position);
     }
 
     private static Set<AccessMask> accessMasks(Set<? extends OpenOption> options) {
@@ -337,9 +329,8 @@ public class SmbFileSystem extends FileSystem {
         Set<StandardOpenOption> readOptions = Collections.singleton(StandardOpenOption.READ);
         Set<StandardOpenOption> writeOptions = new HashSet<>(Arrays.asList(StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW));
 
-        try (ShareSource.Holder hol = shares.open(share);
-             DiskShare ds = hol.share();
-             File sourceFile = ds.openFile(source.toString(), accessMasks(readOptions), null, null, createDisposition(readOptions), createOptions(readOptions));
+        DiskShare ds = shares.getShare(share);
+        try (File sourceFile = ds.openFile(source.toString(), accessMasks(readOptions), null, null, createDisposition(readOptions), createOptions(readOptions));
              File destinationFile = ds.openFile(target.toString(), accessMasks(writeOptions), null, null, createDisposition(writeOptions), createOptions(writeOptions))) {
 
             sourceFile.remoteCopyTo(destinationFile);
@@ -352,9 +343,8 @@ public class SmbFileSystem extends FileSystem {
     public void move(SmbPath source, SmbPath target) throws IOException {
         Set<AccessMask> accessMasks = EnumSet.of(AccessMask.FILE_WRITE_ATTRIBUTES);
 
-        try (ShareSource.Holder hol = shares.open(share);
-             DiskShare ds = hol.share();
-             File sourceFile = ds.openFile(source.toString(), accessMasks, null, null, null, null)) {
+        DiskShare ds = shares.getShare(share);
+        try (File sourceFile = ds.openFile(source.toString(), accessMasks, null, null, null, null)) {
 
             sourceFile.rename(target.toString());
         }
@@ -363,9 +353,8 @@ public class SmbFileSystem extends FileSystem {
     public void delete(SmbPath path) throws IOException {
         Set<AccessMask> accessMasks = EnumSet.of(AccessMask.DELETE);
 
-        try (ShareSource.Holder hol = shares.open(share);
-             DiskShare ds = hol.share();
-             File sourceFile = ds.openFile(path.toString(), accessMasks, null, null, null, null)) {
+        DiskShare ds = shares.getShare(share);
+        try (File sourceFile = ds.openFile(path.toString(), accessMasks, null, null, null, null)) {
 
             sourceFile.deleteOnClose();
         }
