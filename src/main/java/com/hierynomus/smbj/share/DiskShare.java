@@ -251,6 +251,23 @@ public class DiskShare extends Share {
         return d;
     }
 
+    /** Opens a leased cache handle and enumerates it. If the list throws, the handle is cleaned up
+     *  before rethrowing, preventing a resource leak when the caller cannot reach a finally block. */
+    private <I extends FileDirectoryQueryableInformation> List<I> openLeasedCacheHandleAndList(
+            String path, Set<AccessMask> accessMask, Class<I> informationClass, String searchPattern) {
+        Directory d = openLeasedCacheHandle(path, accessMask);
+        try {
+            return d.list(informationClass, searchPattern);
+        } catch (RuntimeException e) {
+            LeaseEntry entry = d.getLeaseEntry();
+            if (entry != null) {
+                entry.setCacheDirectory(null);
+            }
+            d.closeSilently();
+            throw e;
+        }
+    }
+
     public File openFile(String path, Set<AccessMask> accessMask, Set<FileAttributes> attributes, Set<SMB2ShareAccess> shareAccesses, SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
         EnumSet<SMB2CreateOptions> actualCreateOptions = createOptions != null ? EnumSet.copyOf(createOptions) : EnumSet.noneOf(SMB2CreateOptions.class);
         actualCreateOptions.add(FILE_NON_DIRECTORY_FILE);
@@ -376,10 +393,10 @@ public class DiskShare extends Share {
                             throw e;
                         }
                         entry.setCacheDirectory(null);
-                        result = openLeasedCacheHandle(path, accessMask).list(informationClass, searchPattern);
+                        result = openLeasedCacheHandleAndList(path, accessMask, informationClass, searchPattern);
                     }
                 } else {
-                    result = openLeasedCacheHandle(path, accessMask).list(informationClass, searchPattern);
+                    result = openLeasedCacheHandleAndList(path, accessMask, informationClass, searchPattern);
                 }
                 LeaseEntry cur = lm.getByPath(rel);
                 if (cur != null) {

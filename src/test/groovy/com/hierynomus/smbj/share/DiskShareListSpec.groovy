@@ -27,6 +27,7 @@ import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.Connection
+import com.hierynomus.smbj.connection.LeaseEntry
 import com.hierynomus.smbj.testing.PacketProcessor
 import com.hierynomus.smbj.testing.PacketProcessor.DefaultPacketProcessor
 import com.hierynomus.smbj.testing.StubAuthenticator
@@ -90,6 +91,66 @@ class DiskShareListSpec extends Specification {
 
         and: "the kept-open leased handle was closed (our fix: catch block calls closeSilently)"
         closedFileIds.size() > 0
+    }
+
+    def "list with existing RH lease but null cacheDirectory closes the re-opened handle on failure"() {
+        given: "a server that grants an RH lease on CREATE but fails QUERY_DIRECTORY"
+        def closedFileIds = [] as List<SMB2FileId>
+
+        def processor = new DefaultPacketProcessor().wrap({ SMB2Packet req ->
+            req = req.getPacket()
+            if (req instanceof SMB2NegotiateRequest) {
+                return buildNegotiateResponse()
+            }
+            if (req instanceof SMB2CreateRequest) {
+                return buildLeasedCreateResponse()
+            }
+            if (req instanceof SMB2QueryDirectoryRequest) {
+                def resp = new SMB2QueryDirectoryResponse()
+                resp.header.statusCode = NtStatus.STATUS_ACCESS_DENIED.value
+                return resp
+            }
+            if (req instanceof SMB2Close) {
+                closedFileIds << req.getFileId()
+                def resp = new SMB2Close()
+                resp.header.statusCode = NtStatus.STATUS_SUCCESS.value
+                return resp
+            }
+            null
+        })
+
+        def config = SmbConfig.builder()
+            .withDirectoryLeasingEnabled(true)
+            .withDfsEnabled(false)
+            .withTransportLayerFactory(new StubTransportLayerFactory(processor))
+            .withAuthenticators(new StubAuthenticator.Factory())
+            .build()
+
+        def client = new SMBClient(config)
+        connection = client.connect("127.0.0.1")
+        def session = connection.authenticate(new AuthenticationContext("user", "pass".toCharArray(), "domain"))
+        def share = session.connectShare("share") as DiskShare
+
+        // Pre-seed the LeaseManager with a valid RH entry for "testdir" but no cacheDirectory.
+        // This forces list() into the existing-lease path → dir==null → openLeasedCacheHandleAndList.
+        def lm = connection.getLeaseManager()
+        def key = lm.leaseKeyForPath("testdir")
+        def seededEntry = new LeaseEntry(key, null, SMB2LeaseState.readHandle(), "testdir")
+        seededEntry.setGranted(true)
+        seededEntry.setGrantedState(SMB2LeaseState.readHandle())
+        lm.register(seededEntry)
+
+        when:
+        share.list("testdir")
+
+        then: "the exception propagates"
+        thrown(SMBApiException)
+
+        and: "the re-opened handle was closed (openLeasedCacheHandleAndList cleanup)"
+        closedFileIds.size() > 0
+
+        cleanup:
+        connection.close()
     }
 
     // ---- helpers ----
