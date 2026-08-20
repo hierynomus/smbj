@@ -151,8 +151,17 @@ public class Share implements AutoCloseable {
     SMB2CreateResponse createFile(SmbPath path, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask,
             Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess,
             SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions) {
+        return createFile(path, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition,
+                createOptions, SMB2OplockLevel.SMB2_OPLOCK_LEVEL_NONE,
+                java.util.Collections.<com.hierynomus.mssmb2.messages.create.SMB2CreateContext>emptyList());
+    }
+
+    SMB2CreateResponse createFile(SmbPath path, SMB2ImpersonationLevel impersonationLevel, Set<AccessMask> accessMask,
+            Set<FileAttributes> fileAttributes, Set<SMB2ShareAccess> shareAccess,
+            SMB2CreateDisposition createDisposition, Set<SMB2CreateOptions> createOptions,
+            SMB2OplockLevel oplockLevel, List<com.hierynomus.mssmb2.messages.create.SMB2CreateContext> createContexts) {
         SMB2CreateRequest cr = new SMB2CreateRequest(dialect, sessionId, treeId, impersonationLevel, accessMask,
-                fileAttributes, shareAccess, createDisposition, createOptions, path);
+                fileAttributes, shareAccess, createDisposition, createOptions, path, oplockLevel, createContexts);
         SMB2CreateResponse resp = sendReceive(cr, "Create", path, getCreateStatusHandler(), transactTimeout);
         return resp;
     }
