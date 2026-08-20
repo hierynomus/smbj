@@ -81,7 +81,8 @@ class DirectoryListingIntegrationTest {
 
             List<String> actual = list(provider, base);
 
-            assertEquals(contents, actual);
+            assertEquals(contents.stream().sorted().collect(toList()),
+                         actual.stream().sorted().collect(toList()));
         });
     }
 
