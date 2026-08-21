@@ -91,6 +91,7 @@ public final class SmbConfig {
     private long transactTimeout;
     private GSSContextConfig clientGSSContextConfig;
     private boolean encryptData;
+    private boolean directoryLeasingEnabled = true; // default ON so it's active for any builder()-built config
     private NtlmConfig ntlmConfig;
 
     private int soTimeout;
@@ -116,7 +117,8 @@ public final class SmbConfig {
                 .withAuthenticators(getDefaultAuthenticators())
                 .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
                 .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig())
-                .withEncryptData(false);
+                .withEncryptData(false)
+                .withDirectoryLeasingEnabled(true);
 
         return b;
     }
@@ -173,6 +175,7 @@ public final class SmbConfig {
         useMultiProtocolNegotiate = other.useMultiProtocolNegotiate;
         clientGSSContextConfig = other.clientGSSContextConfig;
         encryptData = other.encryptData;
+        directoryLeasingEnabled = other.directoryLeasingEnabled;
         ntlmConfig = other.ntlmConfig;
     }
 
@@ -266,6 +269,10 @@ public final class SmbConfig {
         return encryptData;
     }
 
+    public boolean isDirectoryLeasingEnabled() {
+        return directoryLeasingEnabled;
+    }
+
     /**
      * Get the work station name to be used in the NTLM authentication.
      *
@@ -289,6 +296,13 @@ public final class SmbConfig {
         }
         if (isEncryptData()) {
             set.add(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION);
+        }
+        if (isDirectoryLeasingEnabled()) {
+            // A server (e.g. Samba, Windows) only echoes the leasing capabilities in its
+            // NEGOTIATE response -- and only grants leases -- when the client advertises
+            // them first. Directory leasing requires file leasing to be advertised too.
+            set.add(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LEASING);
+            set.add(SMB2GlobalCapability.SMB2_GLOBAL_CAP_DIRECTORY_LEASING);
         }
         return set;
     }
@@ -491,6 +505,16 @@ public final class SmbConfig {
 
         public Builder withDfsEnabled(boolean dfsEnabled) {
             config.dfsEnabled = dfsEnabled;
+            return this;
+        }
+
+        /**
+         * Whether to advertise SMB2 file- and directory-leasing capabilities during NEGOTIATE.
+         * Must be enabled for the client to request (and the server to grant) directory leases.
+         * Defaults to {@code true}. Has no effect on non-SMB3 dialects.
+         */
+        public Builder withDirectoryLeasingEnabled(boolean directoryLeasingEnabled) {
+            config.directoryLeasingEnabled = directoryLeasingEnabled;
             return this;
         }
 
