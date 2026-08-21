@@ -133,9 +133,6 @@ class SmbFileSystemTest {
     class AccessMaskTests {
 
         @Mock
-        private ShareSource.Holder holder;
-
-        @Mock
         private DiskShare diskShare;
 
         @Mock
@@ -146,8 +143,7 @@ class SmbFileSystemTest {
 
         @BeforeEach
         void setUp() throws Exception {
-            when(shares.open("theShare")).thenReturn(holder);
-            when(holder.share()).thenReturn(diskShare);
+            when(shares.getShare("theShare")).thenReturn(diskShare);
             when(diskShare.openFile(any(), accessMaskCaptor.capture(), any(), any(), any(), any()))
                 .thenReturn(smbFile);
         }

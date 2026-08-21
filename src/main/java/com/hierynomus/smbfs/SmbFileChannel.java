@@ -27,14 +27,12 @@ class SmbFileChannel implements SeekableByteChannel {
 
     private final ReentrantLock lock = new ReentrantLock();
 
-    private final ShareSource.Holder holder;
     private final File file;
 
     private long position;
     private final AtomicBoolean closed = new AtomicBoolean();
 
-    SmbFileChannel(ShareSource.Holder holder, File file, long position) {
-        this.holder = holder;
+    SmbFileChannel(File file, long position) {
         this.file = file;
         this.position = position;
     }
@@ -113,9 +111,8 @@ class SmbFileChannel implements SeekableByteChannel {
             return;
         }
 
-        try (ShareSource.Holder h = holder;
-             File f = file) {
-            // close the share and file
-        }
+        // the underlying share/session is owned (and reused) by the ShareSource,
+        // only the file handle belongs to this channel.
+        file.close();
     }
 }

@@ -20,12 +20,12 @@ import com.hierynomus.smbj.share.DiskShare;
 import java.io.Closeable;
 import java.io.IOException;
 
+/**
+ * Provides access to a (reused) {@link DiskShare}. Unlike a plain connection-per-call
+ * approach, an implementation is expected to keep the underlying connection/session/share
+ * alive across calls to {@link #getShare(String)} and only reconnect when needed.
+ */
 interface ShareSource extends Closeable {
 
-    Holder open(String name) throws IOException;
-
-    interface Holder extends Closeable {
-
-        DiskShare share();
-    }
+    DiskShare getShare(String name) throws IOException;
 }
