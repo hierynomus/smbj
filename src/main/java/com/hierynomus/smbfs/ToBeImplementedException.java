@@ -17,6 +17,8 @@ package com.hierynomus.smbfs;
 
 public class ToBeImplementedException extends UnsupportedOperationException {
 
+    private static final long serialVersionUID = 1L;
+
     private ToBeImplementedException() {
     }
 

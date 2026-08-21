@@ -100,4 +100,8 @@ public class SMB2Close extends SMB2Packet {
     public void setFileId(SMB2FileId fileId) {
         this.fileId = fileId;
     }
+
+    public SMB2FileId getFileId() {
+        return fileId;
+    }
 }

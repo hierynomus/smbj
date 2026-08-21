@@ -18,9 +18,12 @@ package com.hierynomus.mssmb2.messages;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.mssmb2.*;
+import com.hierynomus.mssmb2.messages.create.SMB2CreateContext;
 import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smbj.common.SmbPath;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import static com.hierynomus.protocol.commons.EnumWithValue.EnumUtils.ensureNotNull;
@@ -39,6 +42,8 @@ public class SMB2CreateRequest extends SMB2Packet {
     private final SmbPath path;
     private final Set<AccessMask> accessMask;
     private final SMB2ImpersonationLevel impersonationLevel;
+    private final SMB2OplockLevel requestedOplockLevel;
+    private final List<SMB2CreateContext> createContexts;
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
     public SMB2CreateRequest(SMB2Dialect smbDialect,
@@ -48,6 +53,20 @@ public class SMB2CreateRequest extends SMB2Packet {
                              Set<FileAttributes> fileAttributes,
                              Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition,
                              Set<SMB2CreateOptions> createOptions, SmbPath path) {
+        this(smbDialect, sessionId, treeId, impersonationLevel, accessMask, fileAttributes, shareAccess,
+            createDisposition, createOptions, path, SMB2OplockLevel.SMB2_OPLOCK_LEVEL_NONE,
+            Collections.<SMB2CreateContext>emptyList());
+    }
+
+    @SuppressWarnings("PMD.ExcessiveParameterList")
+    public SMB2CreateRequest(SMB2Dialect smbDialect,
+                             long sessionId, long treeId,
+                             SMB2ImpersonationLevel impersonationLevel,
+                             Set<AccessMask> accessMask,
+                             Set<FileAttributes> fileAttributes,
+                             Set<SMB2ShareAccess> shareAccess, SMB2CreateDisposition createDisposition,
+                             Set<SMB2CreateOptions> createOptions, SmbPath path,
+                             SMB2OplockLevel requestedOplockLevel, List<SMB2CreateContext> createContexts) {
         super(57, smbDialect, SMB2MessageCommandCode.SMB2_CREATE, sessionId, treeId);
         this.impersonationLevel = ensureNotNull(impersonationLevel, SMB2ImpersonationLevel.Identification);
         this.accessMask = accessMask;
@@ -56,13 +75,15 @@ public class SMB2CreateRequest extends SMB2Packet {
         this.createDisposition = ensureNotNull(createDisposition, SMB2CreateDisposition.FILE_OPEN_IF);
         this.createOptions = ensureNotNull(createOptions, SMB2CreateOptions.class);
         this.path = path;
+        this.requestedOplockLevel = requestedOplockLevel == null ? SMB2OplockLevel.SMB2_OPLOCK_LEVEL_NONE : requestedOplockLevel;
+        this.createContexts = createContexts == null ? Collections.<SMB2CreateContext>emptyList() : createContexts;
     }
 
     @Override
     protected void writeTo(SMBBuffer buffer) {
         buffer.putUInt16(structureSize); // StructureSize (2 bytes)
         buffer.putByte((byte) 0); // SecurityFlags (1 byte) - Reserved
-        buffer.putByte((byte) 0); // RequestedOpLockLevel (1 byte) - None
+        buffer.putByte((byte) requestedOplockLevel.getValue()); // RequestedOpLockLevel (1 byte)
         buffer.putUInt32(impersonationLevel.getValue()); // ImpersonationLevel (4 bytes) - Identification
         buffer.putReserved(8); // SmbCreateFlags (8 bytes)
         buffer.putReserved(8); // Reserved (8 bytes)
@@ -71,7 +92,7 @@ public class SMB2CreateRequest extends SMB2Packet {
         buffer.putUInt32(toLong(shareAccess)); // ShareAccess (4 bytes)
         buffer.putUInt32(createDisposition.getValue()); // CreateDisposition (4 bytes)
         buffer.putUInt32(toLong(createOptions)); // CreateOptions (4 bytes)
-        int offset = SMB2PacketHeader.STRUCTURE_SIZE + structureSize - 1; // The structureSize is including the minimum of 1 byte for the fileName
+        int offset = SMB2PacketHeader.STRUCTURE_SIZE + structureSize - 1; // header-relative offset of the name
 
         byte[] nameBytes;
         String fileName = path.getPath();
@@ -89,11 +110,36 @@ public class SMB2CreateRequest extends SMB2Packet {
             buffer.putUInt16(nameBytes.length); // NameLength (4 bytes)
         }
 
-        // Create Contexts
-        buffer.putUInt32(0); // CreateContextsOffset (4 bytes)
-        buffer.putUInt32(0); // CreateContextsLength (4 bytes)
+        // Create Contexts. Offsets are computed from the (constant) header-relative name offset
+        // rather than buffer.wpos(): this buffer may be a SigningBuffer whose wpos() does not
+        // track the real write position (the existing NameOffset uses the same constant approach).
+        // Serialize the contexts into a standalone buffer so their Next-chaining/length are
+        // computed correctly, then splice the bytes in.
+        byte[] contextBytes = null;
+        int contextPad = 0;
+        int createContextsOffset = 0;
+        int createContextsLength = 0;
+        if (!createContexts.isEmpty()) {
+            SMBBuffer cb = new SMBBuffer();
+            SMB2CreateContext.writeAll(cb, createContexts);
+            contextBytes = cb.getCompactData();
+            createContextsLength = contextBytes.length;
+            int afterName = offset + nameBytes.length;       // header-relative position after the name
+            createContextsOffset = (afterName + 7) & ~7;     // 8-byte aligned
+            contextPad = createContextsOffset - afterName;
+        }
+        buffer.putUInt32(createContextsOffset); // CreateContextsOffset (4 bytes)
+        buffer.putUInt32(createContextsLength); // CreateContextsLength (4 bytes)
 
         buffer.putRawBytes(nameBytes);
+        if (contextBytes != null) {
+            buffer.putReserved(contextPad); // 8-byte align the context block after the name
+            buffer.putRawBytes(contextBytes);
+        }
+    }
+
+    public List<SMB2CreateContext> getCreateContexts() {
+        return createContexts;
     }
 
     public SMB2CreateDisposition getCreateDisposition() {
