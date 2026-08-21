@@ -66,7 +66,7 @@ jar {
 
     manifest {
        attributes 'Automatic-Module-Name': moduleName
-       attributes 'Implenentation-Title': project.name
+       attributes 'Implementation-Title': project.name
        attributes 'Implementation-Version': project.version
    }
 }
