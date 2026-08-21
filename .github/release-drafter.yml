@@ -1,4 +1,4 @@
-name-template: 'SSHJ $RESOLVED_VERSION'
+name-template: 'SMBJ $RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
 
 categories:
