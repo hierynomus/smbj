@@ -325,12 +325,16 @@ public final class SmbPath implements Path {
 
     @Override
     public WatchKey register(WatchService watcher, WatchEvent.Kind<?>... events) throws IOException {
-        throw toBeImplemented();
+        return register(watcher, events, new WatchEvent.Modifier[0]);
     }
 
     @Override
     public WatchKey register(WatchService watcher, WatchEvent.Kind<?>[] events, WatchEvent.Modifier... modifiers) {
-        throw toBeImplemented();
+        if (!(watcher instanceof SmbWatchService)) {
+            throw new ProviderMismatchException(watcher.getClass().getName());
+        }
+
+        return ((SmbWatchService) watcher).register(this);
     }
 
     @Override
