@@ -7,7 +7,7 @@ plugins {
   id "jacoco"
   id "maven-publish"
   id "signing"
-  id 'pl.allegro.tech.build.axion-release' version '1.15.3'
+  id 'pl.allegro.tech.build.axion-release' version '1.21.3'
   id "com.github.hierynomus.license" version "0.16.1"
   // id 'ru.vyarus.java-lib' version '2.1.0'
   id 'ru.vyarus.github-info' version '1.5.0'
@@ -66,7 +66,7 @@ jar {
 
     manifest {
        attributes 'Automatic-Module-Name': moduleName
-       attributes 'Implenentation-Title': project.name
+       attributes 'Implementation-Title': project.name
        attributes 'Implementation-Version': project.version
    }
 }
@@ -103,10 +103,10 @@ testing {
         implementation SPOCK_CORE
         implementation COMMONS_IO
         implementation platform('org.junit:junit-bom:5.14.4')
-        implementation enforcedPlatform("org.mockito:mockito-bom:5.4.0")
+        implementation enforcedPlatform("org.mockito:mockito-bom:5.23.0")
         implementation "org.mockito:mockito-core"
         implementation "org.mockito:mockito-junit-jupiter"
-        implementation "org.assertj:assertj-core:3.24.2"
+        implementation "org.assertj:assertj-core:3.27.7"
         runtimeOnly LOGBACK_CLASSIC
       }
 
@@ -133,12 +133,12 @@ testing {
     integrationTest(JvmTestSuite) {
       dependencies {
         implementation project()
-        implementation "ch.qos.logback:logback-classic:1.3.8"
+        implementation LOGBACK_CLASSIC
         implementation platform('org.junit:junit-bom:5.14.4')
         implementation platform('org.testcontainers:testcontainers-bom:2.0.5')
         implementation 'org.testcontainers:testcontainers'
         implementation 'org.testcontainers:testcontainers-junit-jupiter'
-        implementation 'org.apache.commons:commons-compress:1.24.0'
+        implementation 'org.apache.commons:commons-compress:1.28.0'
       }
 
       sources {
