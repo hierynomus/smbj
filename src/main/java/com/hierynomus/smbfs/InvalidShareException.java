@@ -19,7 +19,10 @@ package com.hierynomus.smbfs;
  * Thrown to indicate the share specified in the URI is invalid.
  */
 public class InvalidShareException extends RuntimeException {
-    public InvalidShareException(String message) {
+
+    private static final long serialVersionUID = 1L;
+
+    InvalidShareException(String message) {
         super(message);
     }
 }
