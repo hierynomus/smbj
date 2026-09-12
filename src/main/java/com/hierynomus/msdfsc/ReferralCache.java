@@ -209,7 +209,7 @@ public class ReferralCache {
 
         void addReferralEntry(Iterator<String> pathComponents, ReferralCacheEntry entry) {
             if (pathComponents.hasNext()) {
-                String component = pathComponents.next().toLowerCase();
+                String component = pathComponents.next().toLowerCase(Locale.ROOT);
                 ReferralCacheNode referralCacheNode = childNodes.get(component);
                 if (referralCacheNode == null) {
                     childNodes.put(component, (referralCacheNode = new ReferralCacheNode(component)));
@@ -222,7 +222,7 @@ public class ReferralCache {
 
         ReferralCacheEntry getReferralEntry(Iterator<String> pathComponents) {
             if (pathComponents.hasNext()) {
-                String component = pathComponents.next().toLowerCase();
+                String component = pathComponents.next().toLowerCase(Locale.ROOT);
                 ReferralCacheNode referralCacheNode = childNodes.get(component);
                 if (referralCacheNode != null) {
                     return referralCacheNode.getReferralEntry(pathComponents);
@@ -238,7 +238,7 @@ public class ReferralCache {
                 return;
             }
             if (pathComponents!=null && !pathComponents.isEmpty()) {
-                String component = pathComponents.get(0).toLowerCase();
+                String component = pathComponents.get(0).toLowerCase(Locale.ROOT);
                 ReferralCacheNode referralCacheNode = childNodes.get(component);
                 if (referralCacheNode != null) {
                     referralCacheNode.deleteExpiredReferralEntry(pathComponents.subList(1,pathComponents.size()));

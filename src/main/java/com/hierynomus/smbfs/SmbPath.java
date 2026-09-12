@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.nio.file.ProviderMismatchException;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
+import java.util.Locale;
 import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -339,8 +340,8 @@ public final class SmbPath implements Path {
 
     @Override
     public int compareTo(Path other) {
-        return toString().toLowerCase()
-            .compareTo(other.toString().toLowerCase());
+        return toString().toLowerCase(Locale.ROOT)
+            .compareTo(other.toString().toLowerCase(Locale.ROOT));
     }
 
     @Override

@@ -15,6 +15,7 @@
  */
 package com.hierynomus.ntlm.functions;
 
+import java.util.Locale;
 import java.util.Random;
 
 import org.bouncycastle.util.Arrays;
@@ -90,7 +91,7 @@ public class NtlmV2Functions {
     @SuppressWarnings("PMD.MethodNamingConventions")
     public byte[] NTOWFv2(String password, String username, String userDomain) {
         byte[] keyBytes = NtlmFunctions.md4(securityProvider, NtlmFunctions.unicode(password));
-        byte[] usernameBytes = NtlmFunctions.unicode(username.toUpperCase());
+        byte[] usernameBytes = NtlmFunctions.unicode(username.toUpperCase(Locale.ROOT));
         byte[] userDomainBytes = NtlmFunctions.unicode(userDomain);
         return NtlmFunctions.hmac_md5(securityProvider, keyBytes, usernameBytes, userDomainBytes);
     }
