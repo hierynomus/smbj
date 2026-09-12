@@ -125,18 +125,34 @@ class LeaseManagerSpec extends Specification {
     def "a child's parent key is the parent directory's own lease key"() {
         given:
         def lm = new LeaseManager()
-        def rootKey = lm.leaseKeyForPath("")          // root opened with a lease
-        lm.register(new LeaseEntry(rootKey, null, RH, ""))
+        def rootKey = lm.leaseKeyForPath("\\\\h\\s")          // root opened with a lease
+        lm.register(new LeaseEntry(rootKey, null, RH, "\\\\h\\s"))
 
         when:
-        def parentPath = new SmbPath("h", "s", "sub").getParent().getPath()
-        def childParent = lm.leaseKeyForExistingPath(parentPath == null ? "" : parentPath)
+        def parent = new SmbPath("h", "s", "sub").getParent()
+        def childParent = lm.leaseKeyForExistingPath(parent.toUncPath())
 
         then:
         childParent == rootKey
 
         and: "an un-leased parent yields null"
-        lm.leaseKeyForExistingPath("never-opened") == null
+        lm.leaseKeyForExistingPath("\\\\h\\s\\never-opened") == null
+    }
+
+    def "different shares on the same host have distinct lease keys and cache entries"() {
+        given:
+        def lm = new LeaseManager()
+        def moviesRoot = new SmbPath("192.168.1.3", "Movies", "").toUncPath()
+        def paylasimRoot = new SmbPath("192.168.1.3", "Paylasim", "").toUncPath()
+
+        when:
+        def keyMovies = lm.leaseKeyForPath(moviesRoot)
+        def keyPaylasim = lm.leaseKeyForPath(paylasimRoot)
+
+        then:
+        keyMovies != keyPaylasim
+        lm.leaseKeyForPath(moviesRoot) == keyMovies
+        lm.leaseKeyForPath(paylasimRoot) == keyPaylasim
     }
 
     def "node key is case-insensitive, stable, and survives unregister"() {
