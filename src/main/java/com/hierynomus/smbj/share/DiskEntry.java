@@ -130,6 +130,14 @@ public abstract class DiskEntry extends Open<DiskShare> {
     public void rename(String newName, boolean replaceIfExist, long rootDirectory) throws SMBApiException {
         FileRenameInformation renameInfo = new FileRenameInformation(replaceIfExist, rootDirectory, newName);
         this.setFileInformation(renameInfo);
+        String oldPath = name.getPath();
+        name = new SmbPath(name.getHostname(), name.getShareName(), newName);
+        share.invalidateParentDirectoryCache(oldPath);
+        share.invalidateParentDirectoryCache(name.getPath());
+        if (this instanceof Directory) {
+            share.invalidateDirectoryAndDescendants(oldPath);
+            share.invalidateDirectoryAndDescendants(name.getPath());
+        }
     }
 
     /**
@@ -229,6 +237,10 @@ public abstract class DiskEntry extends Open<DiskShare> {
 
     public void deleteOnClose() {
         share.deleteOnClose(fileId);
+        share.invalidateParentDirectoryCache(name.getPath());
+        if (this instanceof Directory) {
+            share.invalidateDirectoryAndDescendants(name.getPath());
+        }
     }
 
     @Override

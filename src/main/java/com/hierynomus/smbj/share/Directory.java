@@ -26,28 +26,94 @@ import com.hierynomus.mssmb2.SMB2CompletionFilter;
 import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2ChangeNotifyResponse;
+import com.hierynomus.mssmb2.messages.SMB2Close;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryRequest;
 import com.hierynomus.mssmb2.messages.SMB2QueryDirectoryResponse;
 import com.hierynomus.smbj.common.SmbPath;
+import com.hierynomus.smbj.connection.LeaseEntry;
 
 import java.util.*;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Directory extends DiskEntry implements Iterable<FileIdBothDirectoryInformation> {
-    private final com.hierynomus.smbj.connection.LeaseEntry leaseEntry; // nullable
+    private final LeaseEntry leaseEntry; // nullable
+    private enum CloseState { OPEN, PENDING, CLOSED }
+    private final AtomicReference<CloseState> closeState = new AtomicReference<>(CloseState.OPEN);
 
     Directory(SMB2FileId fileId, DiskShare diskShare, SmbPath fileName) {
         this(fileId, diskShare, fileName, null);
     }
 
-    Directory(SMB2FileId fileId, DiskShare diskShare, SmbPath fileName, com.hierynomus.smbj.connection.LeaseEntry leaseEntry) {
+    Directory(SMB2FileId fileId, DiskShare diskShare, SmbPath fileName, LeaseEntry leaseEntry) {
         super(fileId, diskShare, fileName);
         this.leaseEntry = leaseEntry;
     }
 
     /** The directory lease granted on this open, or {@code null} if none. */
-    public com.hierynomus.smbj.connection.LeaseEntry getLeaseEntry() {
+    public LeaseEntry getLeaseEntry() {
         return leaseEntry;
+    }
+
+    @Override
+    public void close() {
+        if (leaseEntry == null) {
+            super.close();
+            return;
+        }
+        startClose(() -> {
+            super.close();
+            confirmClosed();
+        });
+    }
+
+    @Override
+    public void closeNoWait() {
+        if (leaseEntry == null) {
+            super.closeNoWait();
+            return;
+        }
+        startClose(() -> {
+            Future<SMB2Close> response = share.closeFileIdNoWait(fileId);
+            leaseEntry.handleClosePending(() -> completeClose(response));
+        });
+    }
+
+    private void startClose(Runnable close) {
+        if (!closeState.compareAndSet(CloseState.OPEN, CloseState.PENDING)) {
+            return;
+        }
+        try {
+            close.run();
+        } catch (RuntimeException e) {
+            closeState.compareAndSet(CloseState.PENDING, CloseState.OPEN);
+            throw e;
+        }
+    }
+
+    private void completeClose(Future<SMB2Close> response) {
+        try {
+            // A local timeout would leave the request in flight. Keep observing the same
+            // response until it completes or the connection fails, preserving break routing.
+            SMB2Close close = share.receive(response, 0);
+            long status = close.getHeader().getStatusCode();
+            if (status == NtStatus.STATUS_SUCCESS.getValue() || status == NtStatus.STATUS_FILE_CLOSED.getValue()) {
+                confirmClosed();
+            } else {
+                closeState.set(CloseState.OPEN);
+                logger.warn("Asynchronous directory close returned status 0x{} for {}", Long.toHexString(status), fileId);
+            }
+        } catch (RuntimeException e) {
+            // Failure to receive a response does not confirm closure. Retain the lease
+            // reservation and allow an explicit retry (or connection teardown) to resolve it.
+            closeState.compareAndSet(CloseState.PENDING, CloseState.OPEN);
+            logger.warn("Asynchronous directory close failed for {}", name, e);
+        }
+    }
+
+    private void confirmClosed() {
+        closeState.set(CloseState.CLOSED);
+        leaseEntry.handleClosed();
     }
 
     /**

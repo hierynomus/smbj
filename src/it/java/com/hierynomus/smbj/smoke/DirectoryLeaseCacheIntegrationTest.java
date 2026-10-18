@@ -74,7 +74,7 @@ public class DirectoryLeaseCacheIntegrationTest {
                  DiskShare share = (DiskShare) session.connectShare(SHARE)) {
 
                 List<FileIdBothDirectoryInformation> first = share.list("subdir"); // miss -> lease + populate
-                LeaseEntry entry = conn.getLeaseManager().getByPath("subdir");
+                LeaseEntry entry = conn.getLeaseManager().getByPath(SHARE, "subdir");
                 assertThat(entry).as("a lease was acquired for the listed dir").isNotNull();
                 assertThat(entry.getCache().getPopulates()).isEqualTo(1L);
 
@@ -121,7 +121,7 @@ public class DirectoryLeaseCacheIntegrationTest {
                  DiskShare shareA = (DiskShare) sessA.connectShare(SHARE)) {
 
                 List<FileIdBothDirectoryInformation> before = shareA.list(""); // populate root cache
-                LeaseEntry root = connA.getLeaseManager().getByPath("");
+                LeaseEntry root = connA.getLeaseManager().getByPath(SHARE, "");
                 assertThat(root).isNotNull();
                 shareA.list(""); // prove it's serving from cache now
                 assertThat(root.getCache().getServeHits()).isGreaterThanOrEqualTo(1L);

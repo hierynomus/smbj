@@ -70,7 +70,20 @@ public class DiskShare extends Share {
         SmbPath pathAndFile = new SmbPath(smbPath, path);
         SMB2CreateResponseContext response = resolveAndCreateFile(pathAndFile, null, accessMask, attributes, shareAccesses, createDisposition, createOptions,
             SMB2OplockLevel.SMB2_OPLOCK_LEVEL_NONE, java.util.Collections.<SMB2CreateContext>emptyList());
+        invalidateParentCacheForCreate(pathAndFile, response);
         return getDiskEntry(response);
+    }
+
+    private void invalidateParentCacheForCreate(SmbPath requested, SMB2CreateResponseContext response) {
+        SMB2CreateAction action = response.resp.getCreateAction();
+        if (action == SMB2CreateAction.FILE_CREATED || action == SMB2CreateAction.FILE_SUPERSEDED
+                || action == SMB2CreateAction.FILE_OVERWRITTEN) {
+            response.share.invalidateParentDirectoryCache(response.target.getPath());
+            // Listings reached through a DFS alias can also be cached under the requested path.
+            if (response.share != this || !requested.getParent().equals(response.target.getParent())) {
+                invalidateParentDirectoryCache(requested.getPath());
+            }
+        }
     }
 
     ConnectionContext getConnectionContext() {
@@ -90,6 +103,13 @@ public class DiskShare extends Share {
                 public SMB2CreateResponseContext apply(SmbPath target) {
                     DiskShare resolveShare = rerouteIfNeeded(path, target);
                     if (!path.equals(target)) {
+                        // The lease was registered for the original connection and path.
+                        // A redirected CREATE must not grant a lease that cannot be routed or invalidated there.
+                        if (oplockLevel == SMB2OplockLevel.SMB2_OPLOCK_LEVEL_LEASE) {
+                            return resolveShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes,
+                                shareAccess, createDisposition, createOptions, SMB2OplockLevel.SMB2_OPLOCK_LEVEL_NONE,
+                                java.util.Collections.<SMB2CreateContext>emptyList());
+                        }
                         return resolveShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes, shareAccess, createDisposition, createOptions, oplockLevel, createContexts);
                     } else {
                         return null;
@@ -118,6 +138,11 @@ public class DiskShare extends Share {
                 @Override
                 public SMB2CreateResponseContext apply(SmbPath target) {
                     DiskShare resolvedShare = rerouteIfNeeded(path, target);
+                    if (!path.equals(target) && oplockLevel == SMB2OplockLevel.SMB2_OPLOCK_LEVEL_LEASE) {
+                        return resolvedShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes,
+                            shareAccess, createDisposition, createOptions, SMB2OplockLevel.SMB2_OPLOCK_LEVEL_NONE,
+                            java.util.Collections.<SMB2CreateContext>emptyList());
+                    }
                     return resolvedShare.createFileAndResolve(target, impersonationLevel, accessMask, fileAttributes,
                         shareAccess, createDisposition, createOptions, oplockLevel, createContexts);
                 }
@@ -186,85 +211,133 @@ public class DiskShare extends Share {
         LeaseManager lm = session.getConnection().getLeaseManager();
         SmbPath full = new SmbPath(smbPath, path);
         String rel = full.getPath() == null ? "" : full.getPath();
+        String shareName = smbPath.getShareName();
 
-        LeaseKey leaseKey = lm.leaseKeyForPath(rel);
-        SmbPath parent = full.getParent();
-        LeaseKey parentKey = parent != null ? lm.leaseKeyForExistingPath(parent.getPath() == null ? "" : parent.getPath()) : null;
+        LeaseKey parentKey = lm.leaseKeyForExistingPath(shareName, full.getParent().getPath());
 
         long requestedState = SMB2LeaseState.readHandle();
-        SMB2CreateContext leaseCtx = SMB2LeaseCreateContext.v2(leaseKey, requestedState, parentKey).toCreateContext();
-
         // Reuse a live per-path lease entry so the app's open/close of its own handles never
         // orphans the cache's dedicated handle (kept on the entry). Each CREATE still returns a
-        // fresh handle to the caller; the lease is shared by lease key.
-        LeaseEntry existing = lm.getByPath(rel);
-        boolean reuse = existing != null && !existing.isBroken();
-        LeaseEntry entry = reuse ? existing : new LeaseEntry(leaseKey, parentKey, requestedState, rel);
-        if (!reuse) {
-            lm.register(entry); // *** register BEFORE send ***
+        // fresh handle to the caller; acquire reserves its reference before CREATE is sent.
+        LeaseEntry entry = lm.acquire(shareName, rel, parentKey, requestedState);
+        boolean ownedBySession;
+        synchronized (entry) {
+            // Publish the owner before CREATE so an early break can be acknowledged.
+            if (entry.getSession() == null) {
+                entry.setOwner(session, getTreeConnect().getTreeId(), getTreeConnect().getNegotiatedProtocol().getDialect());
+            }
+            ownedBySession = entry.getSession() == session;
         }
+        if (!ownedBySession) {
+            lm.release(entry);
+            // Each user's access must be checked by the server using that user's own handle.
+            return (Directory) open(path, accessMask, attributes, shareAccesses, createDisposition, createOptions);
+        }
+        SMB2CreateContext leaseCtx = SMB2LeaseCreateContext.v2(entry.getLeaseKey(), requestedState, parentKey).toCreateContext();
 
-        SMB2CreateResponseContext rc;
+        SMB2CreateResponseContext rc = null;
+        boolean transferred = false;
         try {
             rc = resolveAndCreateFile(full, null, accessMask, attributes, shareAccesses, createDisposition, createOptions,
                 SMB2OplockLevel.SMB2_OPLOCK_LEVEL_LEASE, java.util.Collections.singletonList(leaseCtx));
+            SMB2CreateResponse resp = rc.resp;
+            invalidateParentCacheForCreate(full, rc);
+
+            SMB2LeaseResponseContext lease;
+            try {
+                lease = resp.getLeaseResponseContext();
+            } catch (Buffer.BufferException be) {
+                throw new SMBRuntimeException("Failed to parse lease response context", be);
+            }
+            if (resp.getOplockLevel() == SMB2OplockLevel.SMB2_OPLOCK_LEVEL_LEASE && lease != null) {
+                entry.setFileId(resp.getFileId());
+                synchronized (entry) {
+                    // An earlier break already superseded this CREATE's grant.
+                    if (!entry.isBroken()) {
+                        entry.setGrantedState(lease.getLeaseState());
+                        entry.setEpoch(lease.getEpoch());
+                    }
+                }
+                entry.setGranted(true);
+                Directory directory = new Directory(resp.getFileId(), rc.share, rc.target, entry);
+                transferred = true; // the returned handle owns the pending CREATE reference
+                return directory;
+            }
+            return new Directory(resp.getFileId(), rc.share, rc.target);
         } catch (RuntimeException e) {
-            if (!reuse) {
-                lm.unregister(leaseKey);
+            if (rc != null) {
+                new Directory(rc.resp.getFileId(), rc.share, rc.target).closeSilently();
             }
             throw e;
-        }
-
-        SMB2CreateResponse resp = rc.resp;
-        SMB2LeaseResponseContext lease = null;
-        try {
-            lease = resp.getLeaseResponseContext();
-        } catch (Buffer.BufferException be) {
-            throw new SMBRuntimeException("Failed to parse lease response context", be);
-        }
-        if (resp.getOplockLevel() == SMB2OplockLevel.SMB2_OPLOCK_LEVEL_LEASE && lease != null) {
-            entry.setFileId(resp.getFileId());
-            entry.setGrantedState(lease.getLeaseState());
-            entry.setEpoch(lease.getEpoch());
-            entry.setGranted(true);
-            // Record the owning session/tree/dialect so an inbound break can be acknowledged.
-            entry.setOwner(session, getTreeConnect().getTreeId(), getTreeConnect().getNegotiatedProtocol().getDialect());
-        } else {
-            if (!reuse) {
-                lm.unregister(leaseKey); // server granted no lease
+        } finally {
+            if (!transferred) {
+                lm.release(entry);
             }
-            entry = null;
         }
-        return new Directory(resp.getFileId(), rc.share, rc.target, entry);
     }
 
-    /** Open (or, when reused, re-open) a dedicated leased directory handle for the cache to enumerate
-     *  through. The handle is stored on the lease entry and kept open — never returned to callers. */
+    /** Open a dedicated directory handle for cache enumeration, never returned to callers. */
     private Directory openLeasedCacheHandle(String path, Set<AccessMask> accessMask) {
-        Directory d = openDirectory(path,
+        return openDirectory(path,
             accessMask == null ? of(FILE_LIST_DIRECTORY, FILE_READ_ATTRIBUTES, FILE_READ_EA) : accessMask,
             null, ALL, FILE_OPEN, null);
-        LeaseEntry e = d.getLeaseEntry();
-        if (e != null && e.isGranted() && SMB2LeaseState.isReadHandle(e.getGrantedState())) {
-            e.setCacheDirectory(d);
-        }
-        return d;
     }
 
-    /** Opens a leased cache handle and enumerates it. If the list throws, the handle is cleaned up
-     *  before rethrowing, preventing a resource leak when the caller cannot reach a finally block. */
-    private <I extends FileDirectoryQueryableInformation> List<I> openLeasedCacheHandleAndList(
-            String path, Set<AccessMask> accessMask, Class<I> informationClass, String searchPattern) {
-        Directory d = openLeasedCacheHandle(path, accessMask);
-        try {
-            return d.list(informationClass, searchPattern);
-        } catch (RuntimeException e) {
-            LeaseEntry entry = d.getLeaseEntry();
-            if (entry != null) {
-                entry.setCacheDirectory(null);
+    private boolean hasUsableDirectoryLease(LeaseEntry entry) {
+        return entry != null && entry.getSession() == session && entry.isGranted() && !entry.isBroken()
+            && SMB2LeaseState.isReadHandle(entry.getGrantedState());
+    }
+
+    /** Bind a query to its actual lease and generation. Publication and invalidation share the
+     *  entry monitor, while enumeration and handle closing perform network I/O outside it. */
+    private <I extends FileDirectoryQueryableInformation> List<I> listAndCacheDirectory(
+            Directory directory, LeaseManager lm, String shareName, String path,
+            Class<I> informationClass, String searchPattern, boolean newlyOpened) {
+        LeaseEntry entry = directory.getLeaseEntry();
+        int generation = -1;
+        boolean retained = false;
+        if (entry != null) {
+            synchronized (entry) {
+                generation = entry.getCacheGeneration();
+                if (hasUsableDirectoryLease(entry) && lm.getByPath(shareName, path) == entry) {
+                    // A reused handle may have been detached for closing after list() selected it.
+                    // Only a newly opened handle may claim an empty cache slot.
+                    if (newlyOpened && entry.getCacheDirectory() == null) {
+                        entry.setCacheDirectory(directory);
+                    }
+                    retained = entry.getCacheDirectory() == directory;
+                }
             }
-            d.closeSilently();
-            throw e;
+        }
+        boolean success = false;
+        try {
+            List<I> result;
+            // QUERY_DIRECTORY advances a cursor on the server-side handle. Keep each
+            // enumeration together so another caller cannot restart or consume its scan.
+            synchronized (directory) {
+                result = directory.list(informationClass, searchPattern);
+            }
+            if (retained) {
+                synchronized (entry) {
+                    if (entry.getCacheGeneration() == generation && hasUsableDirectoryLease(entry)
+                            && lm.getByPath(shareName, path) == entry
+                            && entry.getCacheDirectory() == directory) {
+                        entry.getCache().populate(shareName, path, informationClass, searchPattern, result);
+                    } else if (entry.getCacheDirectory() == directory) {
+                        entry.clearCacheDirectory(directory);
+                        retained = false;
+                    }
+                }
+            }
+            success = true;
+            return result;
+        } finally {
+            if (!success && entry != null) {
+                entry.clearCacheDirectory(directory);
+            }
+            if (!retained || !success) {
+                directory.closeSilently();
+            }
         }
     }
 
@@ -373,61 +446,34 @@ public class DiskShare extends Share {
             LeaseManager lm = session.getConnection().getLeaseManager();
             SmbPath full = new SmbPath(smbPath, path);
             String rel = full.getPath() == null ? "" : full.getPath();
+            String shareName = smbPath.getShareName();
 
-            LeaseEntry entry = lm.getByPath(rel);
-            if (entry != null && entry.isGranted() && !entry.isBroken()
-                    && SMB2LeaseState.isReadHandle(entry.getGrantedState())) {
-                List<I> hit = entry.getCache().serve(rel, informationClass, searchPattern);
-                if (hit != null) {
-                    return hit; // SERVED FROM CACHE — no CREATE / QUERY_DIRECTORY / CLOSE
-                }
-                // Miss: enumerate through the dedicated cache handle (owned by us, not the app).
-                // If it was closed out from under us (e.g. server tore it down), re-open once.
-                Directory dir = entry.getCacheDirectory();
-                List<I> result;
-                if (dir != null) {
-                    try {
-                        result = dir.list(informationClass, searchPattern);
-                    } catch (SMBApiException e) {
-                        if (e.getStatusCode() != STATUS_FILE_CLOSED.getValue()) {
-                            throw e;
+            LeaseEntry entry = lm.getByPath(shareName, rel);
+            Directory directory = null;
+            if (entry != null) {
+                synchronized (entry) {
+                    if (hasUsableDirectoryLease(entry) && lm.getByPath(shareName, rel) == entry) {
+                        List<I> hit = entry.getCache().serve(shareName, rel, informationClass, searchPattern);
+                        if (hit != null) {
+                            return hit; // SERVED FROM CACHE — no CREATE / QUERY_DIRECTORY / CLOSE
                         }
-                        entry.setCacheDirectory(null);
-                        result = openLeasedCacheHandleAndList(path, accessMask, informationClass, searchPattern);
+                        directory = entry.getCacheDirectory();
                     }
-                } else {
-                    result = openLeasedCacheHandleAndList(path, accessMask, informationClass, searchPattern);
                 }
-                LeaseEntry cur = lm.getByPath(rel);
-                if (cur != null) {
-                    cur.getCache().populate(rel, informationClass, searchPattern, result);
-                }
-                return result;
             }
-
-            // No live cached lease for this dir: open a dedicated leased handle (kept open), enumerate,
-            // and — if a usable RH lease was granted — populate so repeats hit cache.
-            Directory opened = openLeasedCacheHandle(path, accessMask);
-            LeaseEntry openedEntry = opened.getLeaseEntry();
-            if (openedEntry != null && openedEntry.isGranted() && SMB2LeaseState.isReadHandle(openedEntry.getGrantedState())) {
-                List<I> result;
+            // A closed cached handle is retried once; the replacement query captures its own lease
+            // and generation rather than publishing results into a later path lookup's entry.
+            if (directory != null) {
                 try {
-                    result = opened.list(informationClass, searchPattern); // handle retained for caching
-                } catch (RuntimeException e) {
-                    openedEntry.setCacheDirectory(null);
-                    opened.closeSilently();
-                    throw e;
-                }
-                openedEntry.getCache().populate(rel, informationClass, searchPattern, result);
-                return result;
-            }
-            try {
-                return opened.list(informationClass, searchPattern);
-            } finally {
-                if (opened != null) {
-                    opened.closeSilently();
+                    return listAndCacheDirectory(directory, lm, shareName, rel, informationClass, searchPattern, false);
+                } catch (SMBApiException e) {
+                    if (e.getStatusCode() != STATUS_FILE_CLOSED.getValue()) {
+                        throw e;
+                    }
                 }
             }
+            return listAndCacheDirectory(openLeasedCacheHandle(path, accessMask), lm, shareName, rel,
+                informationClass, searchPattern, true);
         }
 
         Directory d = openDirectory(path,
@@ -609,6 +655,8 @@ public class DiskShare extends Share {
             }
         } catch (SMBApiException sae) {
             if (ALREADY_DELETED_STATUS_HANDLER.isSuccess(sae.getStatusCode())) {
+                invalidateDirectoryAndDescendants(path);
+                invalidateParentDirectoryCache(path);
                 return;
             }
             throw sae;
@@ -630,9 +678,32 @@ public class DiskShare extends Share {
             e.deleteOnClose();
         } catch (SMBApiException sae) {
             if (ALREADY_DELETED_STATUS_HANDLER.isSuccess(sae.getStatusCode())) {
+                invalidateParentDirectoryCache(path);
                 return;
             }
             throw sae;
+        }
+    }
+
+    public void invalidateParentDirectoryCache(String path) {
+        if (!getConnectionContext().supportsDirectoryLeasing()) {
+            return;
+        }
+        String cleanPath = path;
+        if (cleanPath != null) {
+            cleanPath = cleanPath.replace('/', '\\');
+            while (cleanPath.endsWith("\\")) {
+                cleanPath = cleanPath.substring(0, cleanPath.length() - 1);
+            }
+        }
+        SmbPath full = new SmbPath(smbPath, cleanPath);
+        session.getConnection().getLeaseManager().invalidateDirectoryCache(smbPath.getShareName(), full.getParent().getPath());
+    }
+
+    void invalidateDirectoryAndDescendants(String path) {
+        if (getConnectionContext().supportsDirectoryLeasing()) {
+            SmbPath full = new SmbPath(smbPath, path);
+            session.getConnection().getLeaseManager().invalidateDirectoryAndDescendants(smbPath.getShareName(), full.getPath());
         }
     }
 
