@@ -85,7 +85,7 @@ public class DFSPathResolver implements PathResolver {
 
         if (smbPath.getPath() != null && responsePacket.getHeader().getStatusCode() == NtStatus.STATUS_PATH_NOT_COVERED.getValue()) {
             logger.info("DFS Share {} does not cover {}, resolve through DFS", smbPath.getShareName(), smbPath);
-            return start(session, smbPath, new ResolveAction<T>() {
+            return start(session, smbPath, true, new ResolveAction<T>() {
                 @Override
                 public T apply(SmbPath target) {
                     logger.info("DFS resolved {} -> {}", smbPath, target);
@@ -115,9 +115,14 @@ public class DFSPathResolver implements PathResolver {
     }
 
     private <T> T start(Session session, SmbPath uncPath, ResolveAction<T> action) throws PathResolveException {
+        return start(session, uncPath, false, action);
+    }
+
+    private <T> T start(Session session, SmbPath uncPath, boolean pathNotCovered, ResolveAction<T> action) throws PathResolveException {
         logger.info("Starting DFS resolution for {}", uncPath.toUncPath());
         DFSPath dfsPath = new DFSPath(uncPath.toUncPath());
         ResolveState<T> state = new ResolveState<T>(dfsPath, action);
+        state.pathNotCovered = pathNotCovered;
         return step1(session, state);
     }
 
@@ -154,6 +159,12 @@ public class DFSPathResolver implements PathResolver {
         }
         if (lookup.isLink()) {
             return step4(session, state, lookup);
+        }
+        if (state.pathNotCovered && state.path.getPathComponents().size() > 2) {
+            // STATUS_PATH_NOT_COVERED below a cached root: the path crosses a link, go to step 9 (link referral).
+            state.pathNotCovered = false;
+            state.linkReferralForUncoveredPath = true;
+            return step9(session, state, lookup);
         }
         return step3(session, state, lookup);
     }
@@ -342,6 +353,10 @@ public class DFSPathResolver implements PathResolver {
         }
 
         if (result.referralCacheEntry.isRoot()) {
+            if (state.linkReferralForUncoveredPath) {
+                // Root target refers to itself for a path it doesn't cover: fail instead of looping.
+                return step14(session, state, new ReferralResult(NtStatus.STATUS_PATH_NOT_COVERED.getValue()));
+            }
             return step3(session, state, result.referralCacheEntry);
         }
 
@@ -500,6 +515,9 @@ public class DFSPathResolver implements PathResolver {
         boolean resolvedDomainEntry = false;
         boolean isDFSPath = false;
         String hostName = null;
+        // Set when the resolution was triggered by STATUS_PATH_NOT_COVERED from a target.
+        boolean pathNotCovered = false;
+        boolean linkReferralForUncoveredPath = false;
 
         ResolveState(DFSPath path, ResolveAction<T> action) {
             this.path = path;

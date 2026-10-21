@@ -15,6 +15,8 @@
  */
 package com.hierynomus.smbj.share;
 
+import com.hierynomus.mssmb2.SMBApiException;
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.SecurityDescriptor;
 import com.hierynomus.msdtyp.SecurityInformation;
@@ -143,6 +145,11 @@ public class DiskShare extends Share {
 
     protected DiskEntry getDiskEntry(SMB2CreateResponseContext responseContext) {
         SMB2CreateResponse response = responseContext.resp;
+        // DFS resolution may end on the same path and hand back the create's error response;
+        // report its status instead of dereferencing missing file attributes (NPE).
+        if (NtStatus.isError(response.getHeader().getStatusCode())) {
+            throw new SMBApiException(response.getHeader(), "Create failed for " + responseContext.target);
+        }
         if (response.getFileAttributes().contains(FILE_ATTRIBUTE_DIRECTORY)) {
             return new Directory(response.getFileId(), responseContext.share, responseContext.target);
         } else {
