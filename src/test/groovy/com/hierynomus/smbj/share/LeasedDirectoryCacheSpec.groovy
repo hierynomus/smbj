@@ -94,4 +94,22 @@ class LeasedDirectoryCacheSpec extends Specification {
         then:
         thrown(UnsupportedOperationException)
     }
+
+    def "different shareName under same path are isolated in cache"() {
+        given:
+        def cache = new LeasedDirectoryCache()
+        def listA = [Mock(FileDirectoryQueryableInformation)]
+        def listB = [Mock(FileDirectoryQueryableInformation)]
+
+        when:
+        cache.populate("shareA", "dir", FileIdBothDirectoryInformation, null, listA)
+        cache.populate("shareB", "dir", FileIdBothDirectoryInformation, null, listB)
+
+        then:
+        cache.serve("shareA", "dir", FileIdBothDirectoryInformation, null) == listA
+        cache.serve("shareB", "dir", FileIdBothDirectoryInformation, null) == listB
+        cache.serve("shareC", "dir", FileIdBothDirectoryInformation, null) == null
+        cache.serve("dir", FileIdBothDirectoryInformation, null) == null
+        cache.size() == 2
+    }
 }

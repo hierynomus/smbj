@@ -21,6 +21,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.EnumSet;
+import java.util.Objects;
 
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msfscc.FileAttributes;
@@ -42,43 +43,44 @@ public class SmbFiles {
      * @param source    the local File
      * @param overwrite true/false to overwrite existing file
      * @return the actual number of bytes that was written to the file
-     * @throws FileNotFoundException file with the specified pathname does not exist
+     * @throws FileNotFoundException source does not exist or is not a regular file
      * @throws IOException file could not be read
+     * @throws NullPointerException source, share or destPath is null
      */
     public static long copy(File source, DiskShare share, String destPath, boolean overwrite) throws IOException {
-        long bytesWritten = 0L;
-        if (source != null && source.exists() && source.canRead() && source.isFile()) {
-            try (InputStream is = new FileInputStream(source)) {
-                bytesWritten = write(is, share, destPath, overwrite);
-            }
+        Objects.requireNonNull(source, "source");
+        if (!source.isFile()) {
+            throw new FileNotFoundException("Source is not a regular file: " + source);
         }
-        return bytesWritten;
+        try (InputStream is = new FileInputStream(source)) {
+            return write(is, share, destPath, overwrite);
+        }
     }
 
     /**
      * Writes an input stream to a destination path on the share
      *
-     * @param source    the local File
+     * @param source    the input stream
      * @param share     the share
      * @param destPath  the path to write to
      * @param overwrite true/false to overwrite existing file
      * @return the actual number of bytes that was written to the file
+     * @throws NullPointerException source, share or destPath is null
      */
     public static long write(InputStream source, DiskShare share, String destPath, boolean overwrite) {
-        long bytesWritten = 0L;
-        if (destPath != null && source != null) {
-            try (com.hierynomus.smbj.share.File file = share.openFile(
-                destPath,
-                EnumSet.of(AccessMask.GENERIC_WRITE),
-                EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
-                EnumSet.of(SMB2ShareAccess.FILE_SHARE_WRITE),
-                overwrite ? SMB2CreateDisposition.FILE_OVERWRITE_IF : SMB2CreateDisposition.FILE_CREATE,
-                EnumSet.noneOf(SMB2CreateOptions.class)
-            )) {
-                bytesWritten = file.write(new InputStreamByteChunkProvider(source));
-            }
+        Objects.requireNonNull(source, "source");
+        Objects.requireNonNull(share, "share");
+        Objects.requireNonNull(destPath, "destPath");
+        try (com.hierynomus.smbj.share.File file = share.openFile(
+            destPath,
+            EnumSet.of(AccessMask.GENERIC_WRITE),
+            EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
+            EnumSet.of(SMB2ShareAccess.FILE_SHARE_WRITE),
+            overwrite ? SMB2CreateDisposition.FILE_OVERWRITE_IF : SMB2CreateDisposition.FILE_CREATE,
+            EnumSet.noneOf(SMB2CreateOptions.class)
+        )) {
+            return file.write(new InputStreamByteChunkProvider(source));
         }
-        return bytesWritten;
     }
 
     /**

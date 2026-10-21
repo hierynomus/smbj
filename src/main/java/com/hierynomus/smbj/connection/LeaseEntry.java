@@ -17,6 +17,9 @@ package com.hierynomus.smbj.connection;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.hierynomus.mssmb2.LeaseKey;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2FileId;
@@ -31,9 +34,11 @@ import com.hierynomus.smbj.share.LeasedDirectoryCache;
  * handler) and the caller thread both touch the mutable fields, hence {@code volatile}.
  */
 public class LeaseEntry {
+    private static final Logger logger = LoggerFactory.getLogger(LeaseEntry.class);
     private final LeaseKey leaseKey;
     private final LeaseKey parentLeaseKey; // nullable
     private final long requestedState;
+    private final String shareName;
     private final String path;
 
     private volatile long grantedState;
@@ -42,23 +47,37 @@ public class LeaseEntry {
     private volatile boolean granted;
     private volatile boolean broken;
 
+    private LeaseManager leaseManager;
+    // Guarded by the registering manager's lock. Includes CREATEs in flight until their
+    // Directory takes ownership, keeping lease-break routing until the final close.
+    private int handleReferences;
+
     // For sending the lease-break acknowledgment on the owning session (signed).
     private volatile Session session;
     private volatile long treeId;
     private volatile SMB2Dialect dialect;
 
-    // Bumped on every break so a leased directory cache (spec 07) knows to re-query.
+    // Bumped on every invalidation so an in-flight query cannot refill an obsolete cache.
     private final AtomicInteger cacheGeneration = new AtomicInteger(0);
     private final LeasedDirectoryCache cache = new LeasedDirectoryCache();
     // A dedicated, kept-open directory handle owned by DiskShare.list() for cache enumeration.
     // It is NEVER handed to the application, so the app closing its own handles cannot close it.
     private volatile Directory cacheDirectory;
 
-    public LeaseEntry(LeaseKey leaseKey, LeaseKey parentLeaseKey, long requestedState, String path) {
+    public LeaseEntry(LeaseKey leaseKey, LeaseKey parentLeaseKey, long requestedState, String shareName, String path) {
         this.leaseKey = leaseKey;
         this.parentLeaseKey = parentLeaseKey;
         this.requestedState = requestedState;
+        this.shareName = LeaseManager.normalizeShare(shareName);
         this.path = path;
+    }
+
+    public LeaseEntry(LeaseKey leaseKey, LeaseKey parentLeaseKey, long requestedState, String path) {
+        this(leaseKey, parentLeaseKey, requestedState, null, path);
+    }
+
+    public String getShareName() {
+        return shareName;
     }
 
     public LeaseKey getLeaseKey() {
@@ -117,6 +136,25 @@ public class LeaseEntry {
         this.broken = broken;
     }
 
+    void retainReference(LeaseManager manager) {
+        leaseManager = manager;
+        handleReferences++;
+    }
+
+    int releaseReference() {
+        return --handleReferences;
+    }
+
+    /** Release this directory handle's reservation on the connection that registered it. */
+    public void handleClosed() {
+        leaseManager.release(this);
+    }
+
+    /** Observe an asynchronous CLOSE away from transport and lease-break threads. */
+    public void handleClosePending(Runnable completion) {
+        leaseManager.dispatchClose(completion);
+    }
+
     public Session getSession() {
         return session;
     }
@@ -131,9 +169,9 @@ public class LeaseEntry {
 
     /** Record the open's owning session/tree/dialect so a break can be acknowledged. */
     public void setOwner(Session session, long treeId, SMB2Dialect dialect) {
-        this.session = session;
         this.treeId = treeId;
         this.dialect = dialect;
+        this.session = session;
     }
 
     public int getCacheGeneration() {
@@ -148,19 +186,50 @@ public class LeaseEntry {
         return cacheDirectory;
     }
 
-    public void setCacheDirectory(Directory cacheDirectory) {
+    public synchronized void setCacheDirectory(Directory cacheDirectory) {
         this.cacheDirectory = cacheDirectory;
+    }
+
+    /** Detach only the handle that the caller used; another query may have installed a new one. */
+    public synchronized void clearCacheDirectory(Directory expectedDirectory) {
+        if (cacheDirectory == expectedDirectory) {
+            cacheDirectory = null;
+        }
     }
 
     /** Evict the cached enumeration tied to this lease and bump the generation (break/downgrade hook).
      *  Also closes and nulls the kept-open cache-enumeration handle so the server can reclaim it. */
     public int invalidateCache() {
-        cache.invalidateAll();
-        Directory old = cacheDirectory;
-        cacheDirectory = null;
-        if (old != null) {
-            old.closeSilently();
+        return invalidateCache(false);
+    }
+
+    /** Send CLOSE before acknowledging a break, without waiting for its response on the break executor. */
+    int invalidateCacheNoWait() {
+        return invalidateCache(true);
+    }
+
+    private int invalidateCache(boolean closeNoWait) {
+        Directory old;
+        int generation;
+        // Cache publication uses this same monitor for its generation check and populate.
+        synchronized (this) {
+            generation = cacheGeneration.incrementAndGet();
+            cache.invalidateAll();
+            old = cacheDirectory;
+            cacheDirectory = null;
         }
-        return cacheGeneration.incrementAndGet();
+        // CLOSE performs network I/O and must not hold up cache publication or invalidation.
+        if (old != null) {
+            if (closeNoWait) {
+                try {
+                    old.closeNoWait();
+                } catch (RuntimeException e) {
+                    logger.warn("Cached directory close failed for {}", path, e);
+                }
+            } else {
+                old.closeSilently();
+            }
+        }
+        return generation;
     }
 }

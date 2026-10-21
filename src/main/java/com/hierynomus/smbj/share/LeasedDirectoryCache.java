@@ -27,10 +27,11 @@ import com.hierynomus.msfscc.FileInformationClass;
 import com.hierynomus.msfscc.fileinformation.FileDirectoryQueryableInformation;
 import com.hierynomus.msfscc.fileinformation.FileInformation;
 import com.hierynomus.msfscc.fileinformation.FileInformationFactory;
+import com.hierynomus.smbj.connection.LeaseManager;
 
 /**
  * Per-leased-directory enumeration cache (spec 07). Stores the last full listing keyed by
- * (path, informationClass, searchPattern) and serves it on a repeat {@code list()} while a
+ * (shareName, path, informationClass, searchPattern) and serves it on a repeat {@code list()} while a
  * valid RH lease is held. Evicted synchronously when a lease break is observed (spec 06).
  *
  * <p>Correctness invariant: a cached enumeration is served only while a granted, un-broken RH
@@ -72,12 +73,17 @@ public class LeasedDirectoryCache {
     }
 
     /** @return the cached listing for the key, or {@code null} on a miss. Lock-free. */
-    @SuppressWarnings("unchecked")
     public <I extends FileDirectoryQueryableInformation> List<I> serve(String path, Class<I> informationClass, String searchPattern) {
+        return serve(null, path, informationClass, searchPattern);
+    }
+
+    /** @return the cached listing for the key, or {@code null} on a miss. Lock-free. */
+    @SuppressWarnings("unchecked")
+    public <I extends FileDirectoryQueryableInformation> List<I> serve(String shareName, String path, Class<I> informationClass, String searchPattern) {
         if (!isCacheable(searchPattern)) {
             return null;
         }
-        List<I> v = (List<I>) entries.get(new CacheKey(path, infoClassOf(informationClass), searchPattern));
+        List<I> v = (List<I>) entries.get(new CacheKey(shareName, path, infoClassOf(informationClass), searchPattern));
         if (v != null) {
             serveHits.incrementAndGet();
             TOTAL_HITS.incrementAndGet();
@@ -87,10 +93,15 @@ public class LeasedDirectoryCache {
 
     /** Store an unmodifiable snapshot. Caller MUST hold a valid RH lease. */
     public <I extends FileDirectoryQueryableInformation> void populate(String path, Class<I> informationClass, String searchPattern, List<I> listing) {
+        populate(null, path, informationClass, searchPattern, listing);
+    }
+
+    /** Store an unmodifiable snapshot. Caller MUST hold a valid RH lease. */
+    public <I extends FileDirectoryQueryableInformation> void populate(String shareName, String path, Class<I> informationClass, String searchPattern, List<I> listing) {
         if (!isCacheable(searchPattern)) {
             return;
         }
-        entries.put(new CacheKey(path, infoClassOf(informationClass), searchPattern),
+        entries.put(new CacheKey(shareName, path, infoClassOf(informationClass), searchPattern),
             Collections.unmodifiableList(new ArrayList<I>(listing)));
         populates.incrementAndGet();
         TOTAL_POPULATES.incrementAndGet();
@@ -116,12 +127,14 @@ public class LeasedDirectoryCache {
     }
 
     static final class CacheKey {
+        private final String shareName;
         private final String path;
         private final FileInformationClass informationClass;
         private final String searchPattern;
 
-        CacheKey(String path, FileInformationClass informationClass, String searchPattern) {
-            this.path = path == null ? "" : path.toLowerCase();
+        CacheKey(String shareName, String path, FileInformationClass informationClass, String searchPattern) {
+            this.shareName = LeaseManager.normalizeShare(shareName);
+            this.path = LeaseManager.normalizePath(path);
             this.informationClass = informationClass;
             this.searchPattern = searchPattern == null ? "" : searchPattern;
         }
@@ -135,12 +148,15 @@ public class LeasedDirectoryCache {
                 return false;
             }
             CacheKey k = (CacheKey) o;
-            return path.equals(k.path) && informationClass == k.informationClass && searchPattern.equals(k.searchPattern);
+            return shareName.equals(k.shareName)
+                && path.equals(k.path)
+                && informationClass == k.informationClass
+                && searchPattern.equals(k.searchPattern);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(path, informationClass, searchPattern);
+            return Objects.hash(shareName, path, informationClass, searchPattern);
         }
     }
 }
