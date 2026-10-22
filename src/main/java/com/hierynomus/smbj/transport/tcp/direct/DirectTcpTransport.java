@@ -106,18 +106,15 @@ public class DirectTcpTransport<D extends PacketData<?>, P extends Packet<?>> im
 
     @Override
     public void disconnect() throws IOException {
-        if (!isConnected()) {
-            return;
-        }
-
         lock.writeLock().lock();
         try {
-            // check again to prevent race
+            if (packetReaderThread != null) {
+                packetReaderThread.stop();
+            }
+
             if (!isConnected()) {
                 return;
             }
-
-            packetReaderThread.stop();
 
             if (socket.getInputStream() != null) {
                 socket.getInputStream().close();
