@@ -180,7 +180,7 @@ public class Session implements AutoCloseable {
         nestedSessionsRwLock.readLock().lock();
         try {
             final Session existingSession = nestedSessionsByHost.get(resolvedSharePath.getHostname());
-            if (existingSession != null) {
+            if (existingSession != null && existingSession.getConnection().isConnected()) {
                 return existingSession;
             }
         } finally {
@@ -192,6 +192,14 @@ public class Session implements AutoCloseable {
         try {
             // re-check if other thread created the missing session in the meantime
             session = nestedSessionsByHost.get(resolvedSharePath.getHostname());
+
+            if (session != null && !session.getConnection().isConnected()) {
+                // The connection of the nested session was lost, so the session is gone with it.
+                logger.info("Connection of nested session {} to host {} was lost, replacing the session", session.getSessionId(), resolvedSharePath.getHostname());
+                nestedSessionsByHost.remove(resolvedSharePath.getHostname());
+                releaseNestedConnection(session);
+                session = null;
+            }
 
             if (session == null) {
                 session = createNestedSession(resolvedSharePath);
@@ -206,6 +214,18 @@ public class Session implements AutoCloseable {
             return session;
         } finally {
             nestedSessionsRwLock.readLock().unlock();
+        }
+    }
+
+    /**
+     * Give back the lease on the connection that {@link #createNestedSession(SmbPath)} took from the {@link com.hierynomus.smbj.SMBClient}.
+     * The connection is closed when this was the last lease on it.
+     */
+    private void releaseNestedConnection(Session nestedSession) {
+        try {
+            nestedSession.getConnection().close();
+        } catch (IOException e) {
+            logger.warn("Exception while closing the connection of nested session {}", nestedSession.getSessionId(), e);
         }
     }
 
@@ -247,8 +267,11 @@ public class Session implements AutoCloseable {
                         nestedSession.logoff();
                     } catch (TransportException te) {
                         logger.error("Caught exception while logging off nested session {}", nestedSession.getSessionId());
+                    } finally {
+                        releaseNestedConnection(nestedSession);
                     }
                 }
+                nestedSessionsByHost.clear();
             } finally {
                 nestedSessionsRwLock.writeLock().unlock();
             }

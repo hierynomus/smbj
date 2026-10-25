@@ -115,7 +115,8 @@ public class AsyncPacketReader<D extends PacketData<?>> {
     }
 
     private void handleAsyncFailure(Throwable exc) {
-        if (isChannelClosedByOtherParty(exc)) {
+        boolean closedByOtherParty = isChannelClosedByOtherParty(exc);
+        if (closedByOtherParty) {
             logger.trace("Channel to {} closed by other party, closing it locally.", remoteHost);
         } else {
             String excClass = exc.getClass().getSimpleName();
@@ -123,6 +124,10 @@ public class AsyncPacketReader<D extends PacketData<?>> {
             logger.debug("Exception was: ", exc);
         }
         closeChannelQuietly();
+        if (!closedByOtherParty) {
+            // Nothing can be read from the channel anymore, so the connection is dead.
+            handler.handleError(exc);
+        }
     }
 
     private boolean isChannelClosedByOtherParty(Throwable exc) {

@@ -93,6 +93,11 @@ public class Open<S extends Share> implements Closeable {
     }
 
     public void closeSilently() {
+        if (!share.isConnected()) {
+            // The server releases the handles of a tree together with the tree, there is nothing left to close.
+            logger.debug("{} {} not closed, its share is already closed", this.getClass().getSimpleName(), name);
+            return;
+        }
         try {
             close();
         } catch (Exception e) {

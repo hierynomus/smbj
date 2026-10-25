@@ -24,6 +24,7 @@ import java.net.InetSocketAddress;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.hierynomus.mssmb.SMB1PacketFactory;
@@ -99,6 +100,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     TransportLayer<SMBPacket<?, ?>> transport;
     private final SMBEventBus bus;
     private final ReentrantLock lock = new ReentrantLock();
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     public Connection(SmbConfig config, SMBClient client, SMBEventBus bus, ServerList serverList) {
         this.config = config;
@@ -171,6 +173,11 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
      * If {@code force} is set to false, the usage counter of the connection reduces with one. If the usage count drops to zero the connection will be closed.
      * </p>
      *
+     * <p>
+     * Closing is idempotent: once the connection is closed, further calls do not touch the transport again and do not
+     * publish another {@link ConnectionClosed} event.
+     * </p>
+     *
      * @param force if set, does not nicely terminate the open sessions.
      * @throws IOException If any error occurred during close-ing.
      */
@@ -179,7 +186,10 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
             return;
         }
         try {
-            if (!force) {
+            // There is nobody to say goodbye to if the transport is already gone.
+            if (!force && transport.isConnected()) {
+                // The kept-open directory handles live on trees that the session logoff below disconnects, close them first.
+                leaseManager.close();
                 for (Session session : sessionTable.activeSessions()) {
                     try {
                         session.close();
@@ -189,10 +199,12 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
                 }
             }
         } finally {
-            leaseManager.close();
-            transport.disconnect();
-            logger.info("Closed connection to {}", getRemoteHostname());
-            bus.publish(new ConnectionClosed(connectionContext.getServer().getServerName(), connectionContext.getServer().getPort()));
+            if (closed.compareAndSet(false, true)) {
+                leaseManager.close();
+                transport.disconnect();
+                logger.info("Closed connection to {}", getRemoteHostname());
+                bus.publish(new ConnectionClosed(connectionContext.getServer().getServerName(), connectionContext.getServer().getPort()));
+            }
         }
     }
 
@@ -296,11 +308,17 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     }
 
 
+    /**
+     * Called when the transport failed, either while reading or while writing. Nothing can be received on a failed
+     * transport anymore, so the connection is dead: fail the outstanding requests and close the connection, so that
+     * {@link SMBClient} stops handing it out. This does not depend on the number of leases that are still
+     * outstanding, and it does not try to log off the sessions over the failed transport.
+     */
     @Override
     public void handleError(Throwable t) {
         outstandingRequests.handleError(t);
         try {
-            this.close();
+            this.close(true);
         } catch (Exception e) {
             String exceptionClass = e.getClass().getSimpleName();
             logger.debug("{} while closing connection on error, ignoring: {}", exceptionClass, e.getMessage());
