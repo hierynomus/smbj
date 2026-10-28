@@ -19,7 +19,8 @@ public abstract class FileDirectoryQueryableInformation implements FileInformati
     private final String fileName;
     private long nextOffset;
     private long fileIndex;
-
+    private String fullPath=null; 
+    
     FileDirectoryQueryableInformation(long nextOffset, long fileIndex, String fileName) {
         this.nextOffset = nextOffset;
         this.fileIndex = fileIndex;
@@ -36,5 +37,12 @@ public abstract class FileDirectoryQueryableInformation implements FileInformati
 
     public String getFileName() {
         return fileName;
-    }
+    } 
+    public void setFullPath(String fullPath) {
+		this.fullPath = fullPath;
+	}
+
+	public String getFullPath() {
+		return fullPath;
+	}
 }
