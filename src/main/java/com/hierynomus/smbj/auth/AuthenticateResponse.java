@@ -24,6 +24,7 @@ import com.hierynomus.spnego.SpnegoToken;
 public class AuthenticateResponse {
     private SpnegoToken negToken;
     private byte[] sessionKey;
+    private byte[] fullSessionKey;
     private WindowsVersion windowsVersion;
     private String netBiosName;
     private Set<NtlmNegotiateFlag> negotiateFlags;
@@ -57,6 +58,18 @@ public class AuthenticateResponse {
 
     public void setSessionKey(byte[] sessionKey) {
         this.sessionKey = sessionKey;
+    }
+
+    /**
+     * [MS-SMB2] 3.2.5.3.1 Session.FullSessionKey: the session key as returned by the authentication protocol,
+     * without truncating it to 16 bytes. If not set, the session key is the full session key.
+     */
+    public byte[] getFullSessionKey() {
+        return fullSessionKey != null ? fullSessionKey : sessionKey;
+    }
+
+    public void setFullSessionKey(byte[] fullSessionKey) {
+        this.fullSessionKey = fullSessionKey;
     }
 
     public String getNetBiosName() {

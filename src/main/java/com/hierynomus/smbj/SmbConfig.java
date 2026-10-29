@@ -25,6 +25,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Random;
@@ -36,6 +37,7 @@ import javax.net.SocketFactory;
 
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2GlobalCapability;
+import com.hierynomus.mssmb2.SMB3EncryptionCipher;
 import com.hierynomus.ntlm.NtlmConfig;
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.protocol.commons.socket.ProxySocketFactory;
@@ -91,6 +93,7 @@ public final class SmbConfig {
     private long transactTimeout;
     private GSSContextConfig clientGSSContextConfig;
     private boolean encryptData;
+    private List<SMB3EncryptionCipher> encryptionCiphers;
     private boolean directoryLeasingEnabled = true; // default ON so it's active for any builder()-built config
     private NtlmConfig ntlmConfig;
 
@@ -118,6 +121,8 @@ public final class SmbConfig {
                 .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
                 .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig())
                 .withEncryptData(false)
+                // Same order as Windows 11 and Windows Server 2022
+                .withEncryptionCiphers(SMB3EncryptionCipher.AES_128_GCM, SMB3EncryptionCipher.AES_128_CCM, SMB3EncryptionCipher.AES_256_GCM, SMB3EncryptionCipher.AES_256_CCM)
                 .withDirectoryLeasingEnabled(true);
 
         return b;
@@ -151,6 +156,7 @@ public final class SmbConfig {
         dialects = EnumSet.noneOf(SMB2Dialect.class);
         random = new SecureRandom();
         authenticators = new ArrayList<>();
+        encryptionCiphers = new ArrayList<>();
     }
 
     private SmbConfig(SmbConfig other) {
@@ -175,6 +181,7 @@ public final class SmbConfig {
         useMultiProtocolNegotiate = other.useMultiProtocolNegotiate;
         clientGSSContextConfig = other.clientGSSContextConfig;
         encryptData = other.encryptData;
+        encryptionCiphers.addAll(other.encryptionCiphers);
         directoryLeasingEnabled = other.directoryLeasingEnabled;
         ntlmConfig = other.ntlmConfig;
     }
@@ -267,6 +274,13 @@ public final class SmbConfig {
 
     public boolean isEncryptData() {
         return encryptData;
+    }
+
+    /**
+     * @return the ciphers offered to the server when negotiating SMB 3.1.1 encryption, in order of preference.
+     */
+    public List<SMB3EncryptionCipher> getEncryptionCiphers() {
+        return Collections.unmodifiableList(encryptionCiphers);
     }
 
     public boolean isDirectoryLeasingEnabled() {
@@ -498,6 +512,10 @@ public final class SmbConfig {
                 throw new IllegalStateException("If encryption is enabled, at least one dialect should be SMB3.x compatible");
             }
 
+            if (config.encryptionCiphers.isEmpty()) {
+                throw new IllegalStateException("At least one encryption cipher should be specified");
+            }
+
             config.ntlmConfig = ntlmConfigBuilder.build();
 
             return new SmbConfig(config);
@@ -533,6 +551,31 @@ public final class SmbConfig {
 
         public Builder withEncryptData(boolean encryptData) {
             config.encryptData = encryptData;
+            return this;
+        }
+
+        /**
+         * Set the ciphers to offer to the server when negotiating SMB 3.1.1 encryption, in order of preference.
+         * The server picks the cipher. Defaults to AES-128-GCM, AES-128-CCM, AES-256-GCM, AES-256-CCM.
+         */
+        public Builder withEncryptionCiphers(SMB3EncryptionCipher... encryptionCiphers) {
+            return withEncryptionCiphers(Arrays.asList(encryptionCiphers));
+        }
+
+        public Builder withEncryptionCiphers(Iterable<SMB3EncryptionCipher> encryptionCiphers) {
+            if (encryptionCiphers == null) {
+                throw new IllegalArgumentException("Encryption ciphers may not be null");
+            }
+
+            config.encryptionCiphers.clear();
+            for (SMB3EncryptionCipher cipher : encryptionCiphers) {
+                if (cipher == null) {
+                    throw new IllegalArgumentException("Encryption cipher may not be null");
+                }
+                if (!config.encryptionCiphers.contains(cipher)) {
+                    config.encryptionCiphers.add(cipher);
+                }
+            }
             return this;
         }
 

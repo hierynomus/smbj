@@ -123,4 +123,67 @@ class SMBSessionBuilderSpec extends Specification {
     context.getEncryptionKey() == null
     context.getDecryptionKey() == null
   }
+
+  def fullSessionKey = ByteArrayUtils.parseHex("09921d4431b171b977370bf8910900f96b1f3c0e2a5d7b98c4e1f20a3b4c5d6e")
+  def preauthIntegrityHashValue = (0..63).collect { it as byte } as byte[]
+
+  def "should generate a 256-bit encryptionKey for Smb311"() {
+    given:
+    def expectedEncryptionKey = ByteArrayUtils.parseHex("4c57194cd9ea3f97ec89270798f7be68fd1989e6d67715b31c8de8ba927dc86e")
+
+    when:
+    def generatedKey = new SMBSessionBuilder(Mock(Connection), config, null).deriveKey(
+      new SecretKeySpec(fullSessionKey, HMAC_SHA256_ALGORITHM), KDF_ENC_LABEL_SMB311, preauthIntegrityHashValue, SMB3EncryptionCipher.AES_256_GCM.algorithmName, 256)
+
+    then:
+    expectedEncryptionKey == generatedKey.getEncoded()
+  }
+
+  def "should derive 256-bit encryption keys from the full session key for Smb311 with #cipher"() {
+    given:
+    def connectionContext = Mock(ConnectionContext)
+    connectionContext.supportsEncryption() >> true
+    connectionContext.getCipherId() >> cipher
+    def connection = Mock(Connection)
+    connection.getConnectionContext() >> connectionContext
+    def response = Mock(SMB2SessionSetup)
+    response.getSessionFlags() >> Collections.emptySet()
+    def context = new SessionContext()
+    context.setSessionKey(new SecretKeySpec(sessionKey, HMAC_SHA256_ALGORITHM))
+    context.setFullSessionKey(new SecretKeySpec(fullSessionKey, HMAC_SHA256_ALGORITHM))
+    context.setPreauthIntegrityHashValue(preauthIntegrityHashValue)
+
+    when:
+    new SMBSessionBuilder(connection, config, null).deriveKeys(response, SMB2Dialect.SMB_3_1_1, context)
+
+    then:
+    ByteArrayUtils.parseHex("9d91d7065af49a801c8c8bdc045d7cc3") == context.getSigningKey().encoded
+    ByteArrayUtils.parseHex("4c57194cd9ea3f97ec89270798f7be68fd1989e6d67715b31c8de8ba927dc86e") == context.getEncryptionKey().encoded
+    ByteArrayUtils.parseHex("f7e4b63fdc87c4d98a73fee09debfee3b5d8236983b8261b4ce187b6a3659cb2") == context.getDecryptionKey().encoded
+    ByteArrayUtils.parseHex("3f84b978709267a367804e710879b727") == context.getApplicationKey().encoded
+
+    where:
+    cipher << [SMB3EncryptionCipher.AES_256_GCM, SMB3EncryptionCipher.AES_256_CCM]
+  }
+
+  def "should derive 128-bit encryption keys from the truncated session key for Smb311 with AES-128"() {
+    given:
+    def connectionContext = Mock(ConnectionContext)
+    connectionContext.supportsEncryption() >> true
+    connectionContext.getCipherId() >> SMB3EncryptionCipher.AES_128_GCM
+    def connection = Mock(Connection)
+    connection.getConnectionContext() >> connectionContext
+    def response = Mock(SMB2SessionSetup)
+    response.getSessionFlags() >> Collections.emptySet()
+    def context = new SessionContext()
+    context.setSessionKey(new SecretKeySpec(sessionKey, HMAC_SHA256_ALGORITHM))
+    context.setFullSessionKey(new SecretKeySpec(fullSessionKey, HMAC_SHA256_ALGORITHM))
+    context.setPreauthIntegrityHashValue(preauthIntegrityHashValue)
+
+    when:
+    new SMBSessionBuilder(connection, config, null).deriveKeys(response, SMB2Dialect.SMB_3_1_1, context)
+
+    then:
+    ByteArrayUtils.parseHex("687dc728d9ca10a0492d6a40376e947a") == context.getEncryptionKey().encoded
+  }
 }

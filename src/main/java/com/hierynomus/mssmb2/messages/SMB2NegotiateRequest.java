@@ -43,25 +43,33 @@ public class SMB2NegotiateRequest extends SMB2Packet {
      * @param salt
      */
     public SMB2NegotiateRequest(Set<SMB2Dialect> dialects, UUID clientGuid, boolean clientSigningRequired, Set<SMB2GlobalCapability> capabilities, byte[] salt) {
+        // [MS-SMB2].pdf <104> Section 3.2.4.2.2.2: Windows 10, Windows Server 2016, and
+        // Windows Server operating system initialize with AES-128-GCM(0x0002)
+        // followed by AES-128-CCM(0x0001).
+        this(dialects, clientGuid, clientSigningRequired, capabilities, salt, Arrays.asList(SMB3EncryptionCipher.AES_128_GCM, SMB3EncryptionCipher.AES_128_CCM));
+    }
+
+    /**
+     * Request constructor.
+     *
+     * @param encryptionCiphers the ciphers to offer in the SMB2_ENCRYPTION_CAPABILITIES negotiate context, in order of preference
+     */
+    public SMB2NegotiateRequest(Set<SMB2Dialect> dialects, UUID clientGuid, boolean clientSigningRequired, Set<SMB2GlobalCapability> capabilities, byte[] salt, List<SMB3EncryptionCipher> encryptionCiphers) {
         super(36, SMB2Dialect.UNKNOWN, SMB2MessageCommandCode.SMB2_NEGOTIATE, 0, 0);
         this.dialects = dialects;
         this.clientGuid = clientGuid;
         this.clientSigningRequired = clientSigningRequired;
         this.capabilities = capabilities;
-        this.negotiateContextList = buildNegotiateContextList(salt);
+        this.negotiateContextList = buildNegotiateContextList(salt, encryptionCiphers);
     }
 
-    private List<SMB2NegotiateContext> buildNegotiateContextList(byte[] salt) {
+    private List<SMB2NegotiateContext> buildNegotiateContextList(byte[] salt, List<SMB3EncryptionCipher> encryptionCiphers) {
         if (dialects.contains(SMB2Dialect.SMB_3_1_1)) {
             List<SMB2NegotiateContext> contexts = new ArrayList<>();
             List<SMB3HashAlgorithm> hashAlgorithmList = Arrays.asList(SMB3HashAlgorithm.SHA_512);
             contexts.add(new SMB2PreauthIntegrityCapabilities(hashAlgorithmList, salt));
             if (this.capabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION)) { // SMB2_GLOBAL_CAP_ENCRYPTION is only present if isEncryptionSupported is true
-                // [MS-SMB2].pdf <104> Section 3.2.4.2.2.2: Windows 10, Windows Server 2016, and
-                // Windows Server operating system initialize with AES-128-GCM(0x0002)
-                // followed by AES-128-CCM(0x0001).
-                List<SMB3EncryptionCipher> cipherList = Arrays.asList(SMB3EncryptionCipher.AES_128_GCM, SMB3EncryptionCipher.AES_128_CCM);
-                contexts.add(new SMB2EncryptionCapabilities(cipherList));
+                contexts.add(new SMB2EncryptionCapabilities(encryptionCiphers));
             }
             return contexts;
         }

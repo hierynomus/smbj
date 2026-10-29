@@ -30,6 +30,7 @@ public class SessionContext {
     private boolean encryptData; // SMB3.x
 
     private SecretKey sessionKey;
+    private SecretKey fullSessionKey;
 
     private SecretKey signingKey;
     // SMB 3.x
@@ -82,6 +83,17 @@ public class SessionContext {
 
     public SecretKey getSessionKey() {
         return sessionKey;
+    }
+
+    public void setFullSessionKey(SecretKeySpec fullSessionKey) {
+        this.fullSessionKey = fullSessionKey;
+    }
+
+    /**
+     * @return Session.FullSessionKey, falling back to Session.SessionKey if it was not set.
+     */
+    public SecretKey getFullSessionKey() {
+        return fullSessionKey != null ? fullSessionKey : sessionKey;
     }
 
     public SecretKey getSigningKey() {

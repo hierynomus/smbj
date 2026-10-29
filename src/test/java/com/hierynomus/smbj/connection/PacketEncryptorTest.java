@@ -22,8 +22,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
+import javax.crypto.spec.GCMParameterSpec;
+
 import com.hierynomus.mssmb2.SMB2TransformHeader;
 import com.hierynomus.mssmb2.SMB3EncryptionCipher;
+import com.hierynomus.security.AEADBlockCipher;
+import com.hierynomus.security.Cipher;
 import com.hierynomus.security.bc.BCSecurityProvider;
 
 public class PacketEncryptorTest {
@@ -64,5 +68,26 @@ public class PacketEncryptorTest {
         PacketEncryptor pe = new PacketEncryptor(new BCSecurityProvider());
         pe.setCipher(cipher);
         assertEquals(cipher.getNonceLength(), pe.getNewNonce().length);
+    }
+
+    @ParameterizedTest(name = "Cipher {0} should encrypt and decrypt with a key of its key length")
+    @EnumSource(value = SMB3EncryptionCipher.class)
+    public void shouldRoundTripWithKeyLength(SMB3EncryptionCipher cipher) throws Exception {
+        BCSecurityProvider securityProvider = new BCSecurityProvider();
+        byte[] key = new byte[cipher.getKeyLength() / 8];
+        byte[] nonce = new byte[cipher.getNonceLength()];
+        byte[] aad = new byte[] { 1, 2, 3 };
+        byte[] plainText = "SMB 3.1.1 encrypted payload".getBytes("UTF-8");
+
+        AEADBlockCipher encryptor = securityProvider.getAEADBlockCipher(cipher.getAlgorithmName());
+        encryptor.init(Cipher.CryptMode.ENCRYPT, key, new GCMParameterSpec(128, nonce));
+        encryptor.updateAAD(aad, 0, aad.length);
+        byte[] cipherTextWithMac = encryptor.doFinal(plainText, 0, plainText.length);
+        assertEquals(plainText.length + 16, cipherTextWithMac.length);
+
+        AEADBlockCipher decryptor = securityProvider.getAEADBlockCipher(cipher.getAlgorithmName());
+        decryptor.init(Cipher.CryptMode.DECRYPT, key, new GCMParameterSpec(128, nonce));
+        decryptor.updateAAD(aad, 0, aad.length);
+        assertArrayEquals(plainText, decryptor.doFinal(cipherTextWithMac, 0, cipherTextWithMac.length));
     }
 }

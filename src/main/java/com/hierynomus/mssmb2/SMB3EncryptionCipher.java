@@ -21,17 +21,21 @@ import com.hierynomus.protocol.commons.EnumWithValue;
  * [MS-SMB2].pdf 2.2.3.1.2 SMB2_ENCRYPTION_CAPABILITIES -- Cipher
  */
 public enum SMB3EncryptionCipher implements EnumWithValue<SMB3EncryptionCipher> {
-    AES_128_CCM(0x00000001L, "AES/CCM/NoPadding", 11),
-    AES_128_GCM(0x00000002L, "AES/GCM/NoPadding", 12);
+    AES_128_CCM(0x00000001L, "AES/CCM/NoPadding", 11, 128),
+    AES_128_GCM(0x00000002L, "AES/GCM/NoPadding", 12, 128),
+    AES_256_CCM(0x00000003L, "AES/CCM/NoPadding", 11, 256),
+    AES_256_GCM(0x00000004L, "AES/GCM/NoPadding", 12, 256);
 
     private long value;
     private String algorithmName;
     private int nonceLength;
+    private int keyLength;
 
-    SMB3EncryptionCipher(long value, String algorithmName, int nonceLength) {
+    SMB3EncryptionCipher(long value, String algorithmName, int nonceLength, int keyLength) {
         this.value = value;
         this.algorithmName = algorithmName;
         this.nonceLength = nonceLength;
+        this.keyLength = keyLength;
     }
 
     public long getValue() {
@@ -44,5 +48,12 @@ public enum SMB3EncryptionCipher implements EnumWithValue<SMB3EncryptionCipher> 
 
     public int getNonceLength() {
         return nonceLength;
+    }
+
+    /**
+     * @return the length of the encryption and decryption keys in bits.
+     */
+    public int getKeyLength() {
+        return keyLength;
     }
 }

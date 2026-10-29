@@ -19,6 +19,7 @@ import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.SMB3EncryptionCipher;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.protocol.commons.Factory;
@@ -166,6 +167,9 @@ public class SMBSessionBuilder {
             if (ctx.sessionKey != null) {
                 context.setSessionKey(new SecretKeySpec(ctx.sessionKey, HMAC_SHA256_ALGORITHM));
             }
+            if (ctx.fullSessionKey != null) {
+                context.setFullSessionKey(new SecretKeySpec(ctx.fullSessionKey, HMAC_SHA256_ALGORITHM));
+            }
             if (dialect == SMB2Dialect.SMB_3_1_1) {
                 updatePreauthIntegrityValue(ctx, context, ctx.request);
             }
@@ -195,6 +199,7 @@ public class SMBSessionBuilder {
         connectionContext.setNetBiosName(resp.getNetBiosName());
 
         ctx.sessionKey = resp.getSessionKey();
+        ctx.fullSessionKey = resp.getFullSessionKey();
 
         SpnegoToken token = resp.getNegToken();
         Buffer.PlainBuffer negTokenBuffer = new Buffer.PlainBuffer(Endian.LE);
@@ -293,10 +298,13 @@ public class SMBSessionBuilder {
             }
             // derive other key if encryption supported
             if (connectionContext.supportsEncryption()) {
-                String alg = connectionContext.getCipherId().getAlgorithmName();
+                SMB3EncryptionCipher cipher = connectionContext.getCipherId();
+                String alg = cipher.getAlgorithmName();
                 if (dialect == SMB2Dialect.SMB_3_1_1) {
-                    context.setEncryptionKey(deriveKey(context.getSessionKey(), KDF_ENC_LABEL_SMB311, context.getPreauthIntegrityHashValue(), alg));
-                    context.setDecryptionKey(deriveKey(context.getSessionKey(), KDF_DEC_LABEL_SMB311, context.getPreauthIntegrityHashValue(), alg));
+                    // [MS-SMB2] 3.2.5.3.1: AES-256 keys are derived from Session.FullSessionKey with L = 256
+                    SecretKey cipherKeyDerivationKey = cipher.getKeyLength() == 128 ? context.getSessionKey() : context.getFullSessionKey();
+                    context.setEncryptionKey(deriveKey(cipherKeyDerivationKey, KDF_ENC_LABEL_SMB311, context.getPreauthIntegrityHashValue(), alg, cipher.getKeyLength()));
+                    context.setDecryptionKey(deriveKey(cipherKeyDerivationKey, KDF_DEC_LABEL_SMB311, context.getPreauthIntegrityHashValue(), alg, cipher.getKeyLength()));
                     context.setApplicationKey(deriveKey(context.getSessionKey(), KDF_APP_LABEL_SMB311, context.getPreauthIntegrityHashValue(), alg));
                 } else {
                     context.setEncryptionKey(deriveKey(context.getSessionKey(), KDF_ENCDEC_LABEL, KDF_ENC_CONTEXT, alg));
@@ -308,12 +316,21 @@ public class SMBSessionBuilder {
     }
 
     private SecretKey deriveKey(SecretKey derivationKey, byte[] label, byte[] context, String algorithm) {
+        return deriveKey(derivationKey, label, context, algorithm, 128);
+    }
+
+    /**
+     * [MS-SMB2] 3.1.4.2 Generating Cryptographic Keys, using SP800-108 KDF in counter mode with HMAC-SHA256.
+     *
+     * @param keyLength the length L of the derived key in bits, either 128 or 256
+     */
+    private SecretKey deriveKey(SecretKey derivationKey, byte[] label, byte[] context, String algorithm, int keyLength) {
         ByteArrayOutputStream fixedSuffixTemp = new ByteArrayOutputStream(25);
         try {
             fixedSuffixTemp.write(label);
             fixedSuffixTemp.write(0);
             fixedSuffixTemp.write(context);
-            fixedSuffixTemp.write(new byte[]{0x0, 0x0, 0x0, (byte) 0x80}); // 128 bits (BE byte order)
+            fixedSuffixTemp.write(new byte[]{0x0, 0x0, (byte) (keyLength >> 8), (byte) keyLength}); // L in bits (BE byte order)
         } catch (IOException e) {
             logger.error("Unable to format suffix, error occur : ", e);
             return null;
@@ -322,7 +339,7 @@ public class SMBSessionBuilder {
             DerivationFunction kdf = config.getSecurityProvider().getDerivationFunction("KDF/Counter/HMACSHA256");
             byte[] fixedSuffix = fixedSuffixTemp.toByteArray();
             kdf.init(new CounterDerivationParameters(derivationKey.getEncoded(), fixedSuffix, 32));
-            byte[] derived = new byte[16]; // 16 bytes = 128 bits
+            byte[] derived = new byte[keyLength / 8];
             kdf.generateBytes(derived, 0, derived.length);
             return new SecretKeySpec(derived, algorithm);
         } catch (SecurityException se) {
@@ -338,6 +355,7 @@ public class SMBSessionBuilder {
         private Authenticator authenticator;
         private long sessionId;
         private byte[] sessionKey;
+        private byte[] fullSessionKey;
         private AuthenticationContext authContext;
         private byte[] securityContext;
         private SMB2SessionSetup request;

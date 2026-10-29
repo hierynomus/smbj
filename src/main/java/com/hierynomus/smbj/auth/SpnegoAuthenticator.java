@@ -102,6 +102,7 @@ public class SpnegoAuthenticator implements Authenticator {
                 if (key != null) {
                     // if a session key was negotiated, save it.
                     response.setSessionKey(adjustSessionKeyLength(key.getEncoded()));
+                    response.setFullSessionKey(key.getEncoded());
                 }
             }
             return response;

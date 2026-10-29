@@ -150,7 +150,12 @@ class SMBProtocolNegotiator {
         if (cipherList.size() != 1) {
             throw new IllegalStateException("The SMB2EncryptionCapabilities NegotiateContext does not contain exactly 1 cipher");
         }
-        negotiationContext.cipher = cipherList.get(0);
+        SMB3EncryptionCipher cipher = cipherList.get(0);
+        // [MS-SMB2] 3.2.5.2: a Cipher of 0 means the server has no cipher in common with the client
+        if (cipher != null && !config.getEncryptionCiphers().contains(cipher)) {
+            throw new IllegalStateException("The server selected cipher " + cipher + ", which was not offered by the client");
+        }
+        negotiationContext.cipher = cipher;
     }
 
     private void handlePreAuthNegotiateContext(SMB2PreauthIntegrityCapabilities negotiateContext) {
@@ -189,7 +194,7 @@ class SMBProtocolNegotiator {
     private SMB2NegotiateResponse smb2OnlyNegotiate() throws TransportException {
         byte[] salt = new byte[32];
         config.getRandomProvider().nextBytes(salt);
-        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionContext.getClientGuid(), config.isSigningRequired(), config.getClientCapabilities(), salt);
+        SMB2Packet negotiatePacket = new SMB2NegotiateRequest(config.getSupportedDialects(), connectionContext.getClientGuid(), config.isSigningRequired(), config.getClientCapabilities(), salt, config.getEncryptionCiphers());
         this.negotiationContext.negotiationRequest = negotiatePacket;
         return connection.sendAndReceive(negotiatePacket);
     }
