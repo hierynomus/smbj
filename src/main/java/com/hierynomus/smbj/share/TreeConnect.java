@@ -15,6 +15,8 @@
  */
 package com.hierynomus.smbj.share;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +31,7 @@ import com.hierynomus.mssmb2.messages.SMB2TreeDisconnect;
 import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.SmbConfig;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.connection.ConnectionContext;
 import com.hierynomus.smbj.connection.NegotiatedProtocol;
@@ -49,6 +52,7 @@ public class TreeConnect {
     private SmbConfig config;
     private final SMBEventBus bus;
     private final Set<AccessMask> maximalAccess;
+    private final Set<SMB2ShareFlags> shareFlags;
     private final boolean encryptData;
 
     public TreeConnect(long treeId, SmbPath smbPath, Session session, Set<SMB2ShareCapabilities> capabilities, SmbConfig config, ConnectionContext connectionContext, SMBEventBus bus, Set<AccessMask> maximalAccess, Set<SMB2ShareFlags> shareFlags) {
@@ -60,13 +64,19 @@ public class TreeConnect {
         this.config = config;
         this.bus = bus;
         this.maximalAccess = maximalAccess;
-        this.encryptData = shareFlags.contains(SMB2ShareFlags.SMB2_SHAREFLAG_ENCRYPT_DATA) && negotiatedProtocol.getDialect().isSmb3x() && connectionContext.supportsEncryption();
+        this.shareFlags = Collections.unmodifiableSet(new HashSet<>(shareFlags));
+        this.encryptData = this.shareFlags.contains(SMB2ShareFlags.SMB2_SHAREFLAG_ENCRYPT_DATA) && negotiatedProtocol.getDialect().isSmb3x() && connectionContext.supportsEncryption();
     }
 
     void close() throws TransportException {
         try {
+            try {
+                checkEncryptionAvailable();
+            } catch (SMBRuntimeException e) {
+                throw new TransportException(e.getMessage(), e);
+            }
             SMB2TreeDisconnect disconnect = new SMB2TreeDisconnect(negotiatedProtocol.getDialect(), session.getSessionId(), treeId);
-            Future<SMB2Packet> send = session.send(disconnect);
+            Future<SMB2Packet> send = isEncryptData() ? session.send(disconnect, true) : session.send(disconnect);
             SMB2Packet smb2Packet = Futures.get(send, config.getTransactTimeout(), TimeUnit.MILLISECONDS, TransportException.Wrapper);
             if (!NtStatus.isSuccess(smb2Packet.getHeader().getStatusCode())) {
                 throw new SMBApiException(smb2Packet.getHeader(), "Error closing connection to " + smbPath);
@@ -90,6 +100,34 @@ public class TreeConnect {
 
     public Set<AccessMask> getMaximalAccess() {
         return maximalAccess;
+    }
+
+    /**
+     * Returns [MS-SMB2] TreeConnect.EncryptData: true when the TREE_CONNECT response set
+     * SMB2_SHAREFLAG_ENCRYPT_DATA, the dialect is SMB 3.x and the connection supports encryption.
+     *
+     * @return whether this tree connect requires encryption on this connection
+     */
+    public boolean isEncryptData() {
+        return encryptData;
+    }
+
+    /**
+     * Returns an unmodifiable copy of the share flags returned by the server, including
+     * SMB2_SHAREFLAG_ENCRYPT_DATA even when this connection cannot encrypt.
+     *
+     * @return the share flags from the TREE_CONNECT response
+     */
+    public Set<SMB2ShareFlags> getShareFlags() {
+        return shareFlags;
+    }
+
+    void checkEncryptionAvailable() {
+        if (shareFlags.contains(SMB2ShareFlags.SMB2_SHAREFLAG_ENCRYPT_DATA)
+                && (!isEncryptData() || session.getSessionContext().getEncryptionKey() == null)) {
+            throw new SMBRuntimeException("Share " + smbPath
+                    + " requires encryption but encryption is not available on this connection");
+        }
     }
 
     public boolean isDfsShare() {
