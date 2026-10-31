@@ -46,6 +46,7 @@ import com.hierynomus.smb.SMBPacketData;
 import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.paths.PathResolver;
 import com.hierynomus.smbj.transport.TransportLayerFactory;
 import com.hierynomus.smbj.transport.tcp.direct.DirectTcpTransportFactory;
 
@@ -80,6 +81,7 @@ public final class SmbConfig {
     private boolean signingRequired;
     private boolean signingEnabled;
     private boolean dfsEnabled;
+    private PathResolver pathResolver;
     private boolean useMultiProtocolNegotiate;
     private SecurityProvider securityProvider;
     private int readBufferSize;
@@ -163,6 +165,7 @@ public final class SmbConfig {
         signingRequired = other.signingRequired;
         signingEnabled = other.signingEnabled;
         dfsEnabled = other.dfsEnabled;
+        pathResolver = other.pathResolver;
         securityProvider = other.securityProvider;
         readBufferSize = other.readBufferSize;
         readTimeout = other.readTimeout;
@@ -219,6 +222,15 @@ public final class SmbConfig {
      */
     public boolean isDfsEnabled() {
         return dfsEnabled;
+    }
+
+    /**
+     * Returns the configured base path resolver, or {@code null} for the default symlink resolver.
+     *
+     * @return the configured path resolver, or {@code null} if none was set
+     */
+    public PathResolver getPathResolver() {
+        return pathResolver;
     }
 
     public boolean isUseMultiProtocolNegotiate() {
@@ -505,6 +517,19 @@ public final class SmbConfig {
 
         public Builder withDfsEnabled(boolean dfsEnabled) {
             config.dfsEnabled = dfsEnabled;
+            return this;
+        }
+
+        /**
+         * Sets the base resolver for STATUS_STOPPED_ON_SYMLINK and DFS redirections.
+         * {@link PathResolver#LOCAL} never follows symbolic links. When DFS is enabled and
+         * supported by the server, the DFS resolver still wraps this resolver.
+         *
+         * @param pathResolver the base resolver, or {@code null} to use the default symlink resolver
+         * @return this builder
+         */
+        public Builder withPathResolver(PathResolver pathResolver) {
+            config.pathResolver = pathResolver;
             return this;
         }
 
