@@ -19,6 +19,7 @@ import com.hierynomus.asn1.types.primitive.ASN1ObjectIdentifier;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.SMB2PacketData;
 import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.mssmb2.messages.SMB2SessionSetup;
 import com.hierynomus.protocol.commons.Factory;
@@ -37,6 +38,7 @@ import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
 import com.hierynomus.smbj.auth.NtlmSealer;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.common.SMBSecurityException;
 import com.hierynomus.smbj.session.SMB2GuestSigningRequiredException;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.session.SessionContext;
@@ -57,6 +59,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
+import static com.hierynomus.mssmb2.SMB2MessageFlag.SMB2_FLAGS_SIGNED;
 import static com.hierynomus.mssmb2.messages.SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_ENABLED;
 import static com.hierynomus.mssmb2.messages.SMB2SessionSetup.SMB2SecurityMode.SMB2_NEGOTIATE_SIGNING_REQUIRED;
 import static com.hierynomus.utils.Strings.nullTerminatedBytes;
@@ -169,9 +172,9 @@ public class SMBSessionBuilder {
             if (dialect == SMB2Dialect.SMB_3_1_1) {
                 updatePreauthIntegrityValue(ctx, context, ctx.request);
             }
-            validateAndSetSigning(ctx, context);
-
             deriveKeys(response, dialect, context);
+            verifySessionSetupSignature(ctx, session, dialect);
+            validateAndSetSigning(ctx, context);
 
             context.established(response);
             return session;
@@ -209,7 +212,7 @@ public class SMBSessionBuilder {
     private BuilderContext initiateSessionSetup(BuilderContext ctx, byte[] securityContext) throws TransportException {
         SMB2SessionSetup req = new SMB2SessionSetup(
             connectionContext.getNegotiatedProtocol().getDialect(),
-            connectionContext.isServerRequiresSigning() ? EnumSet.of(SMB2_NEGOTIATE_SIGNING_REQUIRED) : EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED),
+            config.isSigningRequired() || connectionContext.isServerRequiresSigning() ? EnumSet.of(SMB2_NEGOTIATE_SIGNING_REQUIRED) : EnumSet.of(SMB2_NEGOTIATE_SIGNING_ENABLED),
             connectionContext.getClientCapabilities());
         req.setSecurityBuffer(securityContext);
         req.getHeader().setSessionId(ctx.sessionId);
@@ -239,9 +242,18 @@ public class SMBSessionBuilder {
         throw new SMBRuntimeException("Could not find a configured authenticator for mechtypes: " + mechTypes + " and authentication context: " + context);
     }
 
-    private void validateAndSetSigning(BuilderContext ctx, SessionContext context) {
+    private void validateAndSetSigning(BuilderContext ctx, SessionContext context) throws SMBSecurityException {
         boolean requireMessageSigning = config.isSigningRequired();
         boolean connectionSigningRequired = connection.getConnectionContext().isServerRequiresSigning();
+
+        if ((requireMessageSigning || connectionSigningRequired) && !ctx.authContext.isAnonymous() && !ctx.authContext.isGuest()) {
+            if (ctx.response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_GUEST)) {
+                throw new SMB2GuestSigningRequiredException();
+            }
+            if (ctx.response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_NULL)) {
+                throw new SMBSecurityException("SESSION_SETUP response cannot establish an anonymous session when signing is required");
+            }
+        }
 
         // If the global setting RequireMessageSigning is set to TRUE or
         // Connection.RequireSigning is set to TRUE then Session.SigningRequired MUST be
@@ -268,6 +280,51 @@ public class SMBSessionBuilder {
         }
     }
 
+    private void verifySessionSetupSignature(BuilderContext ctx, Session session, SMB2Dialect dialect) throws SMBSecurityException {
+        if (!config.isSigningEnabled()) {
+            return;
+        }
+        SMB2SessionSetup response = ctx.response;
+        boolean guest = response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_GUEST);
+        boolean anonymous = response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_NULL);
+        boolean signatureRequired = !ctx.authContext.isAnonymous() && !ctx.authContext.isGuest()
+            && (config.isSigningRequired() || connectionContext.isServerRequiresSigning()
+                || (dialect == SMB2Dialect.SMB_3_1_1 && !guest && !anonymous));
+        if (!response.getHeader().isFlagSet(SMB2_FLAGS_SIGNED)) {
+            if (signatureRequired) {
+                if (guest) {
+                    throw new SMB2GuestSigningRequiredException();
+                }
+                if (anonymous) {
+                    throw new SMBSecurityException("Server answered with an anonymous (null) session that cannot be verified while signing is required");
+                }
+                throw new SMBSecurityException("SESSION_SETUP response signature verification failed: response is not signed");
+            }
+            return;
+        }
+
+        SecretKey signingKey = session.getSigningKey(response.getHeader(), false);
+        if (signingKey == null && dialect.isSmb3x() && session.getSessionContext().getSessionKey() != null) {
+            // Unverified guest/null flags must not prevent verification with the authentication key.
+            signingKey = deriveSigningKey(dialect, session.getSessionContext());
+        }
+        if (signingKey == null) {
+            if (signatureRequired) {
+                throw new SMBSecurityException("SESSION_SETUP response signature verification failed: no signing key");
+            }
+            return;
+        }
+
+        try {
+            SMB2PacketData packetData = new SMB2PacketData(Packets.getPacketBytes(response));
+            if (!new PacketSignatory(config.getSecurityProvider()).verify(packetData, signingKey)) {
+                throw new SMBSecurityException("SESSION_SETUP response signature verification failed");
+            }
+        } catch (Buffer.BufferException e) {
+            throw new SMBSecurityException("SESSION_SETUP response signature verification failed", e);
+        }
+    }
+
     private void updatePreauthIntegrityValue(BuilderContext ctx, SessionContext sessionContext, SMB2Packet packet) {
         if (ctx.digest == null) {
             String algorithmName = connection.getConnectionContext().getPreauthIntegrityHashId().getAlgorithmName();
@@ -282,15 +339,11 @@ public class SMBSessionBuilder {
     }
 
     private void deriveKeys(SMB2SessionSetup response, SMB2Dialect dialect, SessionContext context) {
-        if (dialect.isSmb3x() &&
+        if (dialect.isSmb3x() && context.getSessionKey() != null &&
             !response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_NULL) &&
             !response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_GUEST)) {
             // derive signingKey
-            if (dialect == SMB2Dialect.SMB_3_1_1) {
-                context.setSigningKey(deriveKey(context.getSessionKey(), KDF_SIGN_LABEL_SMB311, context.getPreauthIntegrityHashValue(), AES_128_CMAC_ALGORITHM));
-            } else {
-                context.setSigningKey(deriveKey(context.getSessionKey(), KDF_SIGN_LABEL, KDF_SIGN_CONTEXT, AES_128_CMAC_ALGORITHM));
-            }
+            context.setSigningKey(deriveSigningKey(dialect, context));
             // derive other key if encryption supported
             if (connectionContext.supportsEncryption()) {
                 String alg = connectionContext.getCipherId().getAlgorithmName();
@@ -305,6 +358,13 @@ public class SMBSessionBuilder {
                 }
             }
         }
+    }
+
+    private SecretKey deriveSigningKey(SMB2Dialect dialect, SessionContext context) {
+        if (dialect == SMB2Dialect.SMB_3_1_1) {
+            return deriveKey(context.getSessionKey(), KDF_SIGN_LABEL_SMB311, context.getPreauthIntegrityHashValue(), AES_128_CMAC_ALGORITHM);
+        }
+        return deriveKey(context.getSessionKey(), KDF_SIGN_LABEL, KDF_SIGN_CONTEXT, AES_128_CMAC_ALGORITHM);
     }
 
     private SecretKey deriveKey(SecretKey derivationKey, byte[] label, byte[] context, String algorithm) {

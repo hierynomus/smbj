@@ -51,12 +51,11 @@ public abstract class PacketReader<D extends PacketData<?>> implements Runnable 
         while (!Thread.currentThread().isInterrupted() && !stopped.get()) {
             try {
                 readPacket();
-            } catch (TransportException e) {
-                if (stopped.get()) {
-                    break;
+            } catch (Throwable e) {
+                if (stopped.compareAndSet(false, true)) {
+                    logger.info("PacketReader error, got exception.", e);
+                    handler.handleError(e);
                 }
-                logger.info("PacketReader error, got exception.", e);
-                handler.handleError(e);
                 return;
             }
         }

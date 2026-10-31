@@ -16,12 +16,16 @@
 package com.hierynomus.smbj.connection;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static com.hierynomus.smbj.testing.Utils.*;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
 
@@ -34,9 +38,58 @@ import com.hierynomus.mssmb2.messages.SMB2NegotiateRequest;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
+import com.hierynomus.smbj.event.ConnectionClosed;
+import com.hierynomus.smbj.event.SMBEvent;
+import com.hierynomus.smbj.event.SMBEventBus;
 import com.hierynomus.smbj.testing.PacketProcessor.NoOpPacketProcessor;;
 
 public class ConnectionTest {
+
+    @Test
+    public void shouldRetainReconnectedConnectionWhenOldCloseEventArrives() throws Exception {
+        AtomicReference<ConnectionClosed> delayed = new AtomicReference<>();
+        SMBEventBus bus = new SMBEventBus() {
+            @Override
+            public void publish(SMBEvent event) {
+                if (event instanceof ConnectionClosed && delayed.compareAndSet(null, (ConnectionClosed) event)) {
+                    return;
+                }
+                super.publish(event);
+            }
+        };
+        String hostname = "127.0.0.1";
+        try (SMBClient client = new SMBClient(config(new NoOpPacketProcessor()), bus)) {
+            Connection first = client.connect(hostname);
+            first.close(true);
+            assertNotNull(delayed.get());
+            assertSame(first, delayed.get().getConnection());
+
+            Connection second = client.connect(hostname);
+            assertNotSame(first, second);
+            bus.publish(delayed.get());
+
+            assertSame(second.getConnectionContext().getServer(), client.getServerList().lookup(hostname));
+            assertSame(second, client.connect(hostname));
+            client.close();
+            assertFalse(second.isConnected());
+            assertNull(client.getServerList().lookup(hostname));
+        }
+    }
+
+    @Test
+    public void shouldUnregisterConnectionForLegacyCloseEvent() throws Exception {
+        SMBEventBus bus = new SMBEventBus();
+        String hostname = "127.0.0.1";
+        try (SMBClient client = new SMBClient(config(new NoOpPacketProcessor()), bus);
+             Connection first = client.connect(hostname)) {
+            ConnectionClosed event = new ConnectionClosed(hostname, SMBClient.DEFAULT_PORT);
+            assertNull(event.getConnection());
+            bus.publish(event);
+
+            assertNull(client.getServerList().lookup(hostname));
+            assertNotSame(first, client.connect(hostname));
+        }
+    }
 
     @Test
     public void shouldUnregisterServerWhenConnectionClosed() throws Exception {

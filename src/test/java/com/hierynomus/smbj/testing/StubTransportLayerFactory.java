@@ -22,6 +22,7 @@ import com.hierynomus.mssmb2.SMB2MessageConverter;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2PacketData;
 import com.hierynomus.mssmb2.SMB2PacketHeader;
+import com.hierynomus.mssmb2.SMB3EncryptedPacketData;
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.PacketData;
 import com.hierynomus.protocol.commons.buffer.Buffer.BufferException;
@@ -29,9 +30,11 @@ import com.hierynomus.protocol.transport.PacketHandlers;
 import com.hierynomus.protocol.transport.PacketReceiver;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.protocol.transport.TransportLayer;
+import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smb.SMBPacket;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.connection.PacketEncryptor;
 import com.hierynomus.smbj.transport.TransportLayerFactory;
 
 public class StubTransportLayerFactory<D extends PacketData<?>, P extends Packet<?>>
@@ -73,8 +76,20 @@ public class StubTransportLayerFactory<D extends PacketData<?>, P extends Packet
             if (response != null) {
                 response.getHeader().setMessageId(request.getHeader().getMessageId());
                 response.getHeader().setCreditResponse(request.getHeader().getCreditRequest());
+                if (response.getHeader().getMessage() == null) {
+                    response.getHeader().setMessageType(request.getHeader().getMessage());
+                }
+                if (response.getHeader().getSessionId() == 0 && request.getHeader().getSessionId() != 0) {
+                    response.getHeader().setSessionId(request.getHeader().getSessionId());
+                }
                 try {
-                    receiver.handle((D) new StubPacketData(response));
+                    if (response instanceof PacketEncryptor.EncryptedPacketWrapper) {
+                        SMBBuffer buffer = new SMBBuffer();
+                        response.write(buffer);
+                        receiver.handle((D) new SMB3EncryptedPacketData(buffer.getCompactData()));
+                    } else {
+                        receiver.handle((D) new StubPacketData(response));
+                    }
                 } catch (BufferException e) {
                     throw new TransportException(e);
                 }
