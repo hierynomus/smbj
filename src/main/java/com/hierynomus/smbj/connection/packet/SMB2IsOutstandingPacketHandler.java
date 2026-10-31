@@ -22,6 +22,7 @@ import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smb.SMBBuffer;
+import com.hierynomus.smbj.common.SMBSecurityException;
 import com.hierynomus.smbj.connection.OutstandingRequests;
 import com.hierynomus.smbj.connection.Request;
 import org.slf4j.Logger;
@@ -76,10 +77,10 @@ public class SMB2IsOutstandingPacketHandler extends SMB2PacketHandler {
         }
         if (request.isEncrypted() && !packetData.isIntermediateAsyncResponse()) {
             if (!packetData.isDecrypted()) {
-                throw new TransportException("Unencrypted final response to encrypted request " + messageId);
+                throw new SMBSecurityException("Unencrypted final response to encrypted request " + messageId);
             }
             if (packetData.getHeader().getSessionId() != request.getSessionId()) {
-                throw new TransportException("Session ID of encrypted final response differs from request " + messageId);
+                throw new SMBSecurityException("Session ID of encrypted final response differs from request " + messageId);
             }
         }
         if (packetData.getHeader().getMessage() != request.getCommand()) {

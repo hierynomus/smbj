@@ -23,10 +23,13 @@ import com.hierynomus.mssmb2.SMB2FileId;
 import com.hierynomus.mssmb2.SMB2GlobalCapability;
 import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2PacketData;
+import com.hierynomus.mssmb2.SMB2ShareCapabilities;
+import com.hierynomus.mssmb2.SMB2ShareFlags;
 import com.hierynomus.mssmb2.SMB3EncryptedPacketData;
 import com.hierynomus.mssmb2.messages.SMB2ChangeNotifyRequest;
 import com.hierynomus.mssmb2.messages.SMB2NegotiateResponse;
 import com.hierynomus.mssmb2.messages.SMB2TreeDisconnect;
+import com.hierynomus.protocol.commons.concurrent.Futures;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.protocol.transport.TransportLayer;
 import com.hierynomus.security.bc.BCSecurityProvider;
@@ -34,8 +37,14 @@ import com.hierynomus.smb.SMBBuffer;
 import com.hierynomus.smb.SMBPacket;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
+import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.common.SMBSecurityException;
+import com.hierynomus.smbj.common.SmbPath;
 import com.hierynomus.smbj.event.SMBEventBus;
+import com.hierynomus.smbj.paths.PathResolver;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.share.DiskShare;
+import com.hierynomus.smbj.share.TreeConnect;
 import com.hierynomus.smbj.testing.PacketProcessor.DefaultPacketProcessor;
 import com.hierynomus.smbj.testing.Utils;
 import org.junit.jupiter.api.Test;
@@ -51,6 +60,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.Future;
@@ -210,7 +220,7 @@ public class EncryptedResponseValidationTest {
                 assertTrue(test.signatory.verify(new SMB2PacketData(data), SIGNING_KEY));
             }
 
-            TransportException violation = assertThrows(TransportException.class,
+            SMBSecurityException violation = assertThrows(SMBSecurityException.class,
                 () -> test.connection.handle(new SMB2PacketData(data)));
 
             assertTrue(violation.getMessage().contains("Unencrypted final response"));
@@ -232,7 +242,7 @@ public class EncryptedResponseValidationTest {
             replies[foreignMember].getHeader().setSessionId(SESSION_ID + 1);
             byte[] data = frame(replies);
 
-            TransportException violation = assertThrows(TransportException.class,
+            SMBSecurityException violation = assertThrows(SMBSecurityException.class,
                 () -> test.connection.handle(test.encryptedFrame(data, SESSION_ID)));
 
             assertTrue(violation.getMessage().contains("transform session ID"));
@@ -252,7 +262,7 @@ public class EncryptedResponseValidationTest {
             SMB2Packet response = reply(packet, NtStatus.STATUS_SUCCESS, EMPTY_NOTIFY);
             response.getHeader().setSessionId(other.getSessionId());
 
-            TransportException violation = assertThrows(TransportException.class,
+            SMBSecurityException violation = assertThrows(SMBSecurityException.class,
                 () -> test.connection.handle(test.encryptedFrame(serialize(response), other.getSessionId(), ENCRYPTION_KEY)));
 
             assertTrue(violation.getMessage().contains("differs from request"));
@@ -284,7 +294,7 @@ public class EncryptedResponseValidationTest {
             assertTrue(test.request(packet).isEncrypted());
             byte[] data = test.plainBytes(reply(packet, NtStatus.STATUS_SUCCESS, EMPTY_NOTIFY), true);
 
-            TransportException violation = assertThrows(TransportException.class,
+            SMBSecurityException violation = assertThrows(SMBSecurityException.class,
                 () -> test.connection.handle(new SMB2PacketData(data)));
 
             test.assertAborted(violation, future);
@@ -307,6 +317,24 @@ public class EncryptedResponseValidationTest {
             test.connection.handle(test.encryptedFrame(serialize(reply(packet, NtStatus.STATUS_SUCCESS, EMPTY_NOTIFY)), SESSION_ID));
 
             assertEquals(NtStatus.STATUS_SUCCESS.getValue(), future.get(1, TimeUnit.SECONDS).getHeader().getStatusCode());
+        }
+    }
+
+    @Test
+    public void shouldFindSecurityFailureThroughShareCall() throws Exception {
+        try (TestConnection test = new TestConnection(true)) {
+            SmbPath path = new SmbPath("127.0.0.1", "share");
+            TreeConnect tree = new TreeConnect(1, path, test.session,
+                EnumSet.noneOf(SMB2ShareCapabilities.class), test.config, test.connection.getConnectionContext(),
+                new SMBEventBus(), Collections.emptySet(), EnumSet.noneOf(SMB2ShareFlags.class));
+            DiskShare share = new DiskShare(path, tree, PathResolver.LOCAL);
+            test.transport.answerPlain = true;
+
+            SMBRuntimeException failure = assertThrows(SMBRuntimeException.class, () -> share.fileExists("file"));
+
+            assertNotNull(test.transport.violation);
+            assertSame(test.transport.violation, SMBSecurityException.find(failure));
+            assertFalse(test.connection.isConnected());
         }
     }
 
@@ -376,6 +404,7 @@ public class EncryptedResponseValidationTest {
 
     private static class TestConnection implements Closeable {
         private final SMBClient client;
+        private final SmbConfig config;
         private final Connection connection;
         private final Session session;
         private final PacketSignatory signatory = new PacketSignatory(new BCSecurityProvider());
@@ -386,7 +415,7 @@ public class EncryptedResponseValidationTest {
         TestConnection(boolean encrypted) throws Exception {
             this.encrypted = encrypted;
             DefaultPacketProcessor processor = new DefaultPacketProcessor();
-            SmbConfig config = Utils.configBuilder(request -> {
+            config = Utils.configBuilder(request -> {
                 if (request.getHeader().getMessage() == SMB2_NEGOTIATE) {
                     SMB2NegotiateResponse response = (SMB2NegotiateResponse) processor.process(request);
                     response.setDialect(SMB2Dialect.SMB_3_0);
@@ -454,6 +483,9 @@ public class EncryptedResponseValidationTest {
             assertEquals(1, transport.disconnects);
             for (Future<?> future : futures) {
                 assertSame(violation, AbortTestConnection.transportFailure(future));
+                TransportException wrapped = assertThrows(TransportException.class,
+                    () -> Futures.get(future, 1, TimeUnit.SECONDS, TransportException.Wrapper));
+                assertSame(SMBSecurityException.find(violation), SMBSecurityException.find(wrapped));
             }
             assertThrows(TransportException.class, () -> session.send(notifyRequest()));
         }
@@ -468,12 +500,24 @@ public class EncryptedResponseValidationTest {
             private final List<SMB2Packet> sent = new ArrayList<>();
             private int disconnects;
             private boolean answerLogoff;
+            private boolean answerPlain;
+            private SMBSecurityException violation;
 
             @Override
             public void write(SMBPacket<?, ?> packet) throws TransportException {
                 SMB2Packet request = (SMB2Packet) packet;
                 sent.add(request);
                 packet.write(new SMBBuffer());
+                if (answerPlain) {
+                    try {
+                        receivePlain(reply(request, NtStatus.STATUS_ACCESS_DENIED, EMPTY_ERROR));
+                    } catch (SMBSecurityException e) {
+                        // The receiver aborts the outstanding future as it would on the reader thread.
+                        violation = e;
+                    } catch (Exception e) {
+                        throw new TransportException(e);
+                    }
+                }
                 if (answerLogoff && request.getHeader().getMessage() == SMB2_LOGOFF) {
                     assertSame(session, connection.getSessionTable().find(SESSION_ID));
                     assertEquals(encrypted, request(request).isEncrypted());

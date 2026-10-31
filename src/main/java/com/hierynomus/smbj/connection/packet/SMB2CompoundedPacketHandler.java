@@ -21,6 +21,7 @@ import com.hierynomus.mssmb2.DeadLetterPacketData;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smb.SMBPacketData;
+import com.hierynomus.smbj.common.SMBSecurityException;
 import com.hierynomus.smbj.connection.OutstandingRequests;
 import com.hierynomus.smbj.connection.SessionTable;
 import com.hierynomus.smbj.connection.Signatory;
@@ -111,7 +112,7 @@ public class SMB2CompoundedPacketHandler extends SMB2PacketHandler {
                         discard(packetData);
                         return;
                     }
-                    throw new TransportException("Session ID of decrypted compound member differs from transform session ID: " + response);
+                    throw new SMBSecurityException("Session ID of decrypted compound member differs from transform session ID: " + response);
                 }
                 if (!outstandingHandler.isValid(response) || !signatureHandler.isValid(response)) {
                     discard(packetData);

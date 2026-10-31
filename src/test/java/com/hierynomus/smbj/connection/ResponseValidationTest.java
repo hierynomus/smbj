@@ -24,9 +24,9 @@ import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2PacketData;
 import com.hierynomus.mssmb2.SMB2PacketHeader;
 import com.hierynomus.mssmb2.messages.SMB2Echo;
-import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
+import com.hierynomus.smbj.common.SMBSecurityException;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.testing.PacketProcessor.NoOpPacketProcessor;
 import com.hierynomus.smbj.testing.Utils;
@@ -488,7 +488,7 @@ public class ResponseValidationTest {
         SMB2Packet foreign = response(2, SMB2_ECHO, SESSION_ID + 1, false,
             NtStatus.STATUS_SUCCESS, new byte[] {4, 0, 0, 0});
 
-        TransportException violation = assertThrows(TransportException.class,
+        SMBSecurityException violation = assertThrows(SMBSecurityException.class,
             () -> connection.handle(new SMB2DecryptedPacketData(frame(response(1), foreign))));
 
         assertFalse(connection.isConnected());

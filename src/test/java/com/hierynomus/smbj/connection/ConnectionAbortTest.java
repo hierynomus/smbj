@@ -24,6 +24,7 @@ import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.protocol.transport.TransportLayer;
 import com.hierynomus.smb.SMBPacket;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.common.SMBSecurityException;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.tcp.direct.DirectTcpTransport;
 import org.junit.jupiter.api.Test;
@@ -209,8 +210,8 @@ public class ConnectionAbortTest {
 
             long start = System.nanoTime();
             test.socket.close();
-            transportFailure(response);
-            sender.get(1, TimeUnit.SECONDS);
+            assertNull(SMBSecurityException.find(transportFailure(response)));
+            assertNull(SMBSecurityException.find(sender.get(1, TimeUnit.SECONDS)));
             test.reader.join(1000);
             assertFalse(test.reader.isAlive());
             assertPrompt(start);

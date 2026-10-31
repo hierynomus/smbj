@@ -38,6 +38,7 @@ import com.hierynomus.smbj.auth.Authenticator;
 import com.hierynomus.smbj.auth.NtlmAuthenticator;
 import com.hierynomus.smbj.auth.NtlmSealer;
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.common.SMBSecurityException;
 import com.hierynomus.smbj.session.SMB2GuestSigningRequiredException;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.session.SessionContext;
@@ -241,7 +242,7 @@ public class SMBSessionBuilder {
         throw new SMBRuntimeException("Could not find a configured authenticator for mechtypes: " + mechTypes + " and authentication context: " + context);
     }
 
-    private void validateAndSetSigning(BuilderContext ctx, SessionContext context) {
+    private void validateAndSetSigning(BuilderContext ctx, SessionContext context) throws SMBSecurityException {
         boolean requireMessageSigning = config.isSigningRequired();
         boolean connectionSigningRequired = connection.getConnectionContext().isServerRequiresSigning();
 
@@ -250,7 +251,7 @@ public class SMBSessionBuilder {
                 throw new SMB2GuestSigningRequiredException();
             }
             if (ctx.response.getSessionFlags().contains(SMB2SessionSetup.SMB2SessionFlags.SMB2_SESSION_FLAG_IS_NULL)) {
-                throw new SMBRuntimeException("SESSION_SETUP response cannot establish an anonymous session when signing is required");
+                throw new SMBSecurityException("SESSION_SETUP response cannot establish an anonymous session when signing is required");
             }
         }
 
@@ -279,7 +280,7 @@ public class SMBSessionBuilder {
         }
     }
 
-    private void verifySessionSetupSignature(BuilderContext ctx, Session session, SMB2Dialect dialect) {
+    private void verifySessionSetupSignature(BuilderContext ctx, Session session, SMB2Dialect dialect) throws SMBSecurityException {
         if (!config.isSigningEnabled()) {
             return;
         }
@@ -295,9 +296,9 @@ public class SMBSessionBuilder {
                     throw new SMB2GuestSigningRequiredException();
                 }
                 if (anonymous) {
-                    throw new SMBRuntimeException("Server answered with an anonymous (null) session that cannot be verified while signing is required");
+                    throw new SMBSecurityException("Server answered with an anonymous (null) session that cannot be verified while signing is required");
                 }
-                throw new SMBRuntimeException("SESSION_SETUP response signature verification failed: response is not signed");
+                throw new SMBSecurityException("SESSION_SETUP response signature verification failed: response is not signed");
             }
             return;
         }
@@ -309,7 +310,7 @@ public class SMBSessionBuilder {
         }
         if (signingKey == null) {
             if (signatureRequired) {
-                throw new SMBRuntimeException("SESSION_SETUP response signature verification failed: no signing key");
+                throw new SMBSecurityException("SESSION_SETUP response signature verification failed: no signing key");
             }
             return;
         }
@@ -317,10 +318,10 @@ public class SMBSessionBuilder {
         try {
             SMB2PacketData packetData = new SMB2PacketData(Packets.getPacketBytes(response));
             if (!new PacketSignatory(config.getSecurityProvider()).verify(packetData, signingKey)) {
-                throw new SMBRuntimeException("SESSION_SETUP response signature verification failed");
+                throw new SMBSecurityException("SESSION_SETUP response signature verification failed");
             }
         } catch (Buffer.BufferException e) {
-            throw new SMBRuntimeException("SESSION_SETUP response signature verification failed", e);
+            throw new SMBSecurityException("SESSION_SETUP response signature verification failed", e);
         }
     }
 

@@ -32,6 +32,7 @@ import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.auth.AuthenticateResponse
 import com.hierynomus.smbj.common.SMBRuntimeException
+import com.hierynomus.smbj.common.SMBSecurityException
 import com.hierynomus.smbj.event.SMBEventBus
 import com.hierynomus.smbj.server.Server
 import com.hierynomus.smbj.session.SMB2GuestSigningRequiredException
@@ -247,7 +248,7 @@ class SMBSessionBuilderSpec extends Specification {
         then:
         def failure = thrown(SMBRuntimeException)
         failure.class == (flag == 1 ? SMB2GuestSigningRequiredException : SMBRuntimeException)
-        flag == 1 || assertSecurityFailure(failure)
+        flag == 1 ? SMBSecurityException.find(failure) == null : assertSecurityFailure(failure)
         assertRejectedSession(fixture)
 
         cleanup:
@@ -270,8 +271,8 @@ class SMBSessionBuilderSpec extends Specification {
         then:
         def failure = thrown(SMBRuntimeException)
         failure.class == (flag == 1 ? SMB2GuestSigningRequiredException : SMBRuntimeException)
-        flag == 1 || assertSecurityFailure(failure)
-        flag != 2 || failure.message =="Server answered with an anonymous (null) session that cannot be verified while signing is required"
+        flag == 1 ? SMBSecurityException.find(failure) == null : assertSecurityFailure(failure)
+        flag != 2 || SMBSecurityException.find(failure).message == "Server answered with an anonymous (null) session that cannot be verified while signing is required"
         assertRejectedSession(fixture)
 
         cleanup:
@@ -348,7 +349,7 @@ class SMBSessionBuilderSpec extends Specification {
         then:
         def failure = thrown(SMBRuntimeException)
         assertSecurityFailure(failure)
-        failure.message == "SESSION_SETUP response signature verification failed: no signing key"
+        SMBSecurityException.find(failure).message == "SESSION_SETUP response signature verification failed: no signing key"
         assertRejectedSession(fixture)
 
         cleanup:
@@ -526,7 +527,8 @@ class SMBSessionBuilderSpec extends Specification {
     }
 
     private static boolean assertSecurityFailure(SMBRuntimeException failure) {
-        assert failure.class == SMBRuntimeException
+        assert failure.cause instanceof SMBSecurityException
+        assert SMBSecurityException.find(failure).is(failure.cause)
         return true
     }
 
