@@ -303,6 +303,28 @@ public class Session implements AutoCloseable {
         return connection.send(signatory.sign(packet, signingKey));
     }
 
+    /**
+     * Sends a packet, optionally requiring encryption with this session's encryption key.
+     *
+     * @param packet SMBPacket to send
+     * @param encrypt true to require encryption, false to use the session's normal send behaviour
+     * @return a Future to be used to retrieve the response packet
+     * @throws TransportException if encryption is required but no encryption key is available,
+     *                           or a transport level error occurs
+     */
+    public <T extends SMB2Packet> Future<T> send(SMB2Packet packet, boolean encrypt) throws TransportException {
+        if (!encrypt) {
+            return send(packet);
+        }
+
+        SecretKey encryptionKey = sessionContext.getEncryptionKey();
+        if (encryptionKey == null) {
+            throw new TransportException("Message encryption is required, but no encryption key is negotiated");
+        }
+
+        return connection.send(encryptor.encrypt(packet, encryptionKey));
+    }
+
     public <T extends SMB2Packet> T processSendResponse(SMB2CreateRequest packet) throws TransportException {
         Future<T> responseFuture = send(packet);
         return Futures.get(responseFuture, SMBRuntimeException.Wrapper);
