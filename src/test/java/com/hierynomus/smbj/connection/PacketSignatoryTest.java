@@ -16,13 +16,20 @@
 package com.hierynomus.smbj.connection;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static com.hierynomus.smbj.connection.ResponseTestPackets.*;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import com.hierynomus.mssmb2.SMB2PacketData;
+import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.SMB2PacketHeader;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.security.bc.BCSecurityProvider;
 
@@ -56,6 +63,50 @@ public class PacketSignatoryTest {
             "fe534d4240000100030100c0050001000900000000000000ba9e62000000000000000000010000009103001c041400001FEDE330C927BC01F83C3C0E07DCB0BA09000000000000000000000000000000"));
 
         assertTrue(signatory.verify(packet, signingKey));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {2, 3})
+    public void shouldVerifyEveryPaddedCompoundMember(int count) throws Exception {
+        byte[] data = compound(count);
+        verifyMembers(data, count, -1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {2, 3})
+    public void shouldRejectChangesToEachCompoundMembersBodySignatureAndPadding(int count) throws Exception {
+        byte[] data = compound(count);
+        for (int member = 0; member < count; member++) {
+            for (int offset : new int[] {SMB2PacketHeader.STRUCTURE_SIZE,
+                SMB2PacketHeader.SIGNATURE_OFFSET, MEMBER_SIZE - 1}) {
+                byte[] changed = data.clone();
+                changed[member * MEMBER_SIZE + offset] ^= 1;
+                verifyMembers(changed, count, member);
+            }
+        }
+    }
+
+    private byte[] compound(int count) throws Exception {
+        SMB2Packet[] members = new SMB2Packet[count];
+        for (int i = 0; i < count; i++) {
+            members[i] = response(i);
+        }
+        return frame(members);
+    }
+
+    private void verifyMembers(byte[] data, int count, int invalidMember) throws Exception {
+        SMB2PacketData member = new SMB2PacketData(data);
+        for (int i = 0; i < count; i++) {
+            assertEquals(i * MEMBER_SIZE, member.getHeader().getHeaderStartPosition());
+            assertEquals((i + 1) * MEMBER_SIZE, member.getHeader().getMessageEndPosition());
+            if (i == invalidMember) {
+                assertFalse(signatory.verify(member, KEY), "member " + i);
+            } else {
+                assertTrue(signatory.verify(member, KEY), "member " + i);
+            }
+            member.getDataBuffer().rpos(member.getHeader().getMessageEndPosition());
+            member = member.next();
+        }
     }
 
 }

@@ -21,6 +21,7 @@ import static com.hierynomus.mssmb2.SMB2PacketHeader.SIGNATURE_OFFSET;
 import static com.hierynomus.mssmb2.SMB2PacketHeader.SIGNATURE_SIZE;
 import static com.hierynomus.mssmb2.SMB2PacketHeader.STRUCTURE_SIZE;
 
+import java.security.MessageDigest;
 import java.util.Arrays;
 
 import javax.crypto.SecretKey;
@@ -62,18 +63,18 @@ public class PacketSignatory implements Signatory {
         try {
             SMBBuffer buffer = packet.getDataBuffer();
             Mac mac = getMac(secretKey, securityProvider);
-            mac.update(buffer.array(), packet.getHeader().getHeaderStartPosition(), SIGNATURE_OFFSET);
+            int headerStart = packet.getHeader().getHeaderStartPosition();
+            int bodyStart = headerStart + STRUCTURE_SIZE;
+            mac.update(buffer.array(), headerStart, SIGNATURE_OFFSET);
             mac.update(EMPTY_SIGNATURE);
-            mac.update(buffer.array(), STRUCTURE_SIZE, packet.getHeader().getMessageEndPosition() - STRUCTURE_SIZE);
+            mac.update(buffer.array(), bodyStart, packet.getHeader().getMessageEndPosition() - bodyStart);
             byte[] signature = mac.doFinal();
             byte[] receivedSignature = packet.getHeader().getSignature();
-            for (int i = 0; i < SIGNATURE_SIZE; i++) {
-                if (signature[i] != receivedSignature[i]) {
-                    logger.error("Signatures for packet {} do not match (received: {}, calculated: {})", packet,
-                            Arrays.toString(receivedSignature), Arrays.toString(signature));
-                    logger.error("Packet {} has header: {}", packet, packet.getHeader());
-                    return false;
-                }
+            if (!MessageDigest.isEqual(Arrays.copyOf(signature, SIGNATURE_SIZE), receivedSignature)) {
+                logger.error("Signatures for packet {} do not match (received: {}, calculated: {})", packet,
+                        Arrays.toString(receivedSignature), Arrays.toString(signature));
+                logger.error("Packet {} has header: {}", packet, packet.getHeader());
+                return false;
             }
 
             return true;

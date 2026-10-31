@@ -39,7 +39,7 @@ public class PromiseBackedFuture<V> extends AFuture<V> {
 
     @Override
     public boolean isDone() {
-        return promise.isDelivered();
+        return promise.isFulfilled();
     }
 
     @Override
