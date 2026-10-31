@@ -108,10 +108,15 @@ public class LeaseManager implements Closeable {
     }
 
     /**
-     * Entry point from the receive-thread break handler: dispatch the resolve/invalidate/ack
-     * work OFF the read thread.
+     * Entry point from the receive-thread break handler: ignore unknown lease keys, otherwise
+     * dispatch the resolve/invalidate/ack work OFF the read thread.
      */
     public void dispatchBreak(final SMB2LeaseBreakNotification notification) {
+        if (!byKey.containsKey(notification.getLeaseKey())) {
+            logger.debug("Lease break for unknown key {}, ignoring", notification.getLeaseKey());
+            return;
+        }
+
         breakExecutor.execute(new Runnable() {
             @Override
             public void run() {
