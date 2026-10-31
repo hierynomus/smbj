@@ -152,7 +152,7 @@ public class SMB3DecryptingPacketHandler extends AbstractIncomingPacketHandler {
                 next.handle(new DeadLetterPacketData(nextPacket.getHeader()));
             } else {
                 next.handle(nextPacket);
-                // TODO handle compounded session id validation...
+                // Remaining members are validated together by SMB2CompoundedPacketHandler.
             }
         } catch (Buffer.BufferException e) {
             throw new SMBRuntimeException("Could not load SMB2 Packet", e);

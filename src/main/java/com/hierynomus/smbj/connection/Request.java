@@ -16,6 +16,8 @@
 package com.hierynomus.smbj.connection;
 
 import com.hierynomus.mssmb2.SMB2Packet;
+import com.hierynomus.mssmb2.SMB2PacketHeader;
+import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.protocol.commons.concurrent.AFuture;
 import com.hierynomus.protocol.commons.concurrent.CancellableFuture;
 import com.hierynomus.protocol.commons.concurrent.Promise;
@@ -31,19 +33,60 @@ public class Request {
     private SMBPacket<?, ?> packet;
     private final long messageId;
     private final UUID cancelId;
+    private final SMB2MessageCommandCode command;
+    private final long sessionId;
+    private final boolean signingRequired;
     private final Date timestamp;
     private long asyncId;
 
     public Request(SMBPacket<?, ?> packet, long messageId, UUID cancelId) {
+        this(packet, messageId, cancelId, false);
+    }
+
+    Request(SMBPacket<?, ?> packet, long messageId, UUID cancelId, boolean signingRequired) {
         this.packet = packet;
+        this.signingRequired = signingRequired;
         this.messageId = messageId;
         this.cancelId = cancelId;
+        if (packet.getHeader() instanceof SMB2PacketHeader) {
+            SMB2PacketHeader header = (SMB2PacketHeader) packet.getHeader();
+            this.command = header.getMessage();
+            this.sessionId = header.getSessionId();
+        } else {
+            // An SMB1 multi-protocol negotiate request receives an SMB2 NEGOTIATE response.
+            this.command = SMB2MessageCommandCode.SMB2_NEGOTIATE;
+            this.sessionId = 0;
+        }
         timestamp = new Date();
         this.promise = new Promise<>(String.valueOf(messageId), SMBRuntimeException.Wrapper);
     }
 
     public long getAsyncId() {
         return asyncId;
+    }
+
+    /**
+     * Returns the command captured when this request was registered for sending.
+     * @return the request command
+     */
+    public SMB2MessageCommandCode getCommand() {
+        return command;
+    }
+
+    /**
+     * Returns the session ID captured when this request was registered for sending.
+     * @return the request session ID
+     */
+    public long getSessionId() {
+        return sessionId;
+    }
+
+    /**
+     * Returns whether the request's session required signing when it was registered for sending.
+     * @return true if the session required signing
+     */
+    public boolean isSigningRequired() {
+        return signingRequired;
     }
 
     public void setAsyncId(long asyncId) {
