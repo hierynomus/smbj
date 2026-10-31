@@ -22,14 +22,23 @@ import com.hierynomus.mssmb2.messages.SMB2LeaseBreakNotification
 import com.hierynomus.protocol.commons.ByteArrayUtils
 import com.hierynomus.smb.SMBBuffer
 import com.hierynomus.smbj.common.SmbPath
+import com.hierynomus.smbj.connection.packet.IncomingPacketHandler
+import com.hierynomus.smbj.connection.packet.SMB2LeaseBreakPacketHandler
 import com.hierynomus.smbj.share.Directory
 import spock.lang.Specification
 import spock.lang.Unroll
+import spock.util.concurrent.PollingConditions
+
+import java.util.concurrent.atomic.AtomicReference
 
 class LeaseManagerSpec extends Specification {
     static final long RH = SMB2LeaseState.readHandle()
 
     static SMB2LeaseBreakNotification notification(LeaseKey key, int epoch, String flagsHex, long newState) {
+        return new SMB2LeaseBreakNotification().parse(notificationPacket(key, epoch, flagsHex, newState))
+    }
+
+    static SMB2PacketData notificationPacket(LeaseKey key, int epoch, String flagsHex, long newState) {
         def b = new SMBBuffer()
         b.putRawBytes(ByteArrayUtils.parseHex("fe534d42"))
         b.putUInt16(64); b.putUInt16(0); b.putUInt32(0)
@@ -43,7 +52,7 @@ class LeaseManagerSpec extends Specification {
         b.putRawBytes(key.getBytes())
         b.putUInt32(RH); b.putUInt32(newState)
         b.putRawBytes(ByteArrayUtils.parseHex("000000000000000000000000"))
-        return new SMB2LeaseBreakNotification().parse(new SMB2PacketData(b.getCompactData()))
+        return new SMB2PacketData(b.getCompactData())
     }
 
     @Unroll
@@ -107,6 +116,67 @@ class LeaseManagerSpec extends Specification {
         then:
         noExceptionThrown()
         lm.getBreaksHandled() == 0
+    }
+
+    @Unroll
+    def "unknown lease break is consumed without starting a worker"() {
+        given:
+        def lm = new LeaseManager()
+        if (otherLeaseHeld) {
+            lm.register(new LeaseEntry(lm.leaseKeyForPath("other"), null, RH, "other"))
+        }
+        def handler = new SMB2LeaseBreakPacketHandler(lm)
+        def next = Mock(IncomingPacketHandler)
+        handler.setNext(next)
+        def packet = notificationPacket(LeaseKey.random(), 1, "01000000", 0x1L)
+        def existingWorkers = Thread.getAllStackTraces().keySet().findAll { it.name == "smbj-lease-break" }.toSet()
+
+        when:
+        handler.handle(packet)
+
+        then:
+        noExceptionThrown()
+        0 * next.handle(_)
+        lm.getBreaksHandled() == 0
+        !Thread.getAllStackTraces().keySet().any { it.name == "smbj-lease-break" && !existingWorkers.contains(it) }
+
+        cleanup:
+        lm.close()
+
+        where:
+        otherLeaseHeld << [false, true]
+    }
+
+    def "dispatchBreak handles a registered lease on the worker thread"() {
+        given:
+        def lm = new LeaseManager()
+        def key = lm.leaseKeyForPath("d")
+        def entry = new LeaseEntry(key, null, RH, "d")
+        def worker = new AtomicReference<Thread>()
+        def dir = Stub(Directory) {
+            closeSilently() >> { worker.set(Thread.currentThread()) }
+        }
+        entry.setCacheDirectory(dir)
+        lm.register(entry)
+        def caller = Thread.currentThread()
+
+        when:
+        lm.dispatchBreak(notification(key, 1, "00000000", 0x1L))
+
+        then:
+        new PollingConditions(timeout: 1).eventually {
+            assert lm.getBreaksHandled() == 1
+        }
+        entry.getGrantedState() == 0x1L
+        entry.getEpoch() == 1
+        entry.isBroken()
+        entry.getCacheGeneration() == 1
+        entry.getCacheDirectory() == null
+        worker.get() != caller
+        worker.get().name == "smbj-lease-break"
+
+        cleanup:
+        lm.close()
     }
 
     def "register makes an entry resolvable by key immediately (register-before-send)"() {
