@@ -107,9 +107,11 @@ public class SMB2CompoundedPacketHandler extends SMB2PacketHandler {
             Set<Long> completedRequests = new HashSet<>();
             for (SMB2PacketData response : members) {
                 if (packetData.isDecrypted() && response.getHeader().getSessionId() != packetData.getHeader().getSessionId()) {
-                    logger.warn("Mismatched session ID in decrypted response frame {}", packetData);
-                    discard(packetData);
-                    return;
+                    if (response.isOplockBreakNotification()) {
+                        discard(packetData);
+                        return;
+                    }
+                    throw new TransportException("Session ID of decrypted compound member differs from transform session ID: " + response);
                 }
                 if (!outstandingHandler.isValid(response) || !signatureHandler.isValid(response)) {
                     discard(packetData);

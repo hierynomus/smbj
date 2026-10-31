@@ -123,7 +123,8 @@ public class ConnectionAbortTest {
             Future<SMB2Packet> response = test.connection.send(first);
             SMB2Echo second = echo();
             Future<SMB2Packet> asyncResponse = test.connection.send(second);
-            SMB2Echo pending = echo();
+            SMB2Packet pending = ResponseTestPackets.response(second.getHeader().getMessageId(),
+                second.getHeader().getMessage(), 0, false, NtStatus.STATUS_PENDING, new byte[] {9, 0, 0, 0, 0, 0, 0, 0});
             pending.getHeader().setMessageId(second.getHeader().getMessageId());
             pending.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND);
             pending.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_SERVER_TO_REDIR);

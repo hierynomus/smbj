@@ -24,6 +24,7 @@ import com.hierynomus.mssmb2.SMB2Packet;
 import com.hierynomus.mssmb2.SMB2PacketData;
 import com.hierynomus.mssmb2.SMB2PacketHeader;
 import com.hierynomus.mssmb2.messages.SMB2Echo;
+import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.session.Session;
@@ -184,13 +185,16 @@ public class ResponseValidationTest {
         assertTrue(connection.isConnected());
     }
 
-    @Test
-    public void shouldAcceptUnsignedPendingBeforeSignedFinal() throws Exception {
+    @ParameterizedTest
+    @ValueSource(ints = {8, 9, 10, 11, 12, 13, 14, 15, 16})
+    public void shouldAcceptUnsignedPendingBeforeSignedFinal(int bodyLength) throws Exception {
         Request outstanding = request(1);
-        SMB2Packet pending = response(1, SMB2_ECHO, SESSION_ID, false, NtStatus.STATUS_PENDING, new byte[9]);
+        byte[] body = new byte[bodyLength];
+        body[0] = 9;
+        SMB2Packet pending = response(1, SMB2_ECHO, SESSION_ID, false, NtStatus.STATUS_PENDING, body);
         pending.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND);
         pending.getHeader().setAsyncId(1234);
-        receive(frame(pending));
+        receive(Arrays.copyOf(frame(pending), SMB2PacketHeader.STRUCTURE_SIZE + bodyLength));
         assertFalse(outstanding.getPromise().future().isDone());
         assertEquals(1234, outstanding.getAsyncId());
 
@@ -205,7 +209,7 @@ public class ResponseValidationTest {
     @Test
     public void shouldAcceptPendingAndFinalInOneCompound() throws Exception {
         Request outstanding = request(1);
-        SMB2Packet pending = response(1, SMB2_ECHO, SESSION_ID, false, NtStatus.STATUS_PENDING, new byte[9]);
+        SMB2Packet pending = response(1, SMB2_ECHO, SESSION_ID, false, NtStatus.STATUS_PENDING, new byte[] {9, 0, 0, 0, 0, 0, 0, 0});
         pending.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND);
         pending.getHeader().setAsyncId(1234);
 
@@ -215,10 +219,102 @@ public class ResponseValidationTest {
         assertEquals(1234, outstanding.getAsyncId());
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {0, 42})
+    public void shouldAcceptPaddedInterimBeforeAnotherRequestsSignedFinal(int errorData) throws Exception {
+        Request first = request(1);
+        Request second = request(2);
+        int credits = connection.sequenceWindow.available();
+        SMB2Packet pending = response(1, SMB2_ECHO, SESSION_ID, false, NtStatus.STATUS_PENDING,
+            new byte[] {9, 0, 0, 0, 0, 0, 0, 0, (byte) errorData});
+        pending.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND);
+        pending.getHeader().setAsyncId(1234);
+
+        receive(frame(pending, response(2)));
+
+        assertFalse(first.getPromise().future().isDone());
+        assertSame(first, connection.outstandingRequests.getRequestByMessageId(1L));
+        assertEquals(1234, first.getAsyncId());
+        assertResponse(second, 2);
+        assertEquals(credits + 6, connection.sequenceWindow.available());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {8, 9, 10, 11, 12, 13, 14, 15})
+    public void shouldAcceptCompoundWithNonzeroInterimPadding(int paddingByte) throws Exception {
+        Request first = request(1);
+        Request second = request(2);
+        int credits = connection.sequenceWindow.available();
+        byte[] body = new byte[16];
+        body[0] = 9;
+        body[paddingByte] = 1;
+        SMB2Packet pending = response(1, SMB2_ECHO, SESSION_ID, false, NtStatus.STATUS_PENDING, body);
+        pending.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND);
+        pending.getHeader().setAsyncId(1234);
+
+        receive(frame(pending, response(2)));
+
+        assertFalse(first.getPromise().future().isDone());
+        assertSame(first, connection.outstandingRequests.getRequestByMessageId(1L));
+        assertEquals(1234, first.getAsyncId());
+        assertResponse(second, 2);
+        assertEquals(credits + 6, connection.sequenceWindow.available());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void shouldAcceptPaddedInterimAtEndOfFrame(boolean compounded) throws Exception {
+        Request first = request(1);
+        Request second = request(2);
+        int credits = connection.sequenceWindow.available();
+        SMB2Packet pending = response(1, SMB2_ECHO, SESSION_ID, false, NtStatus.STATUS_PENDING,
+            new byte[] {9, 0, 0, 0, 0, 0, 0, 0, 42});
+        pending.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND);
+        pending.getHeader().setAsyncId(1234);
+
+        receive(compounded ? frame(response(2), pending) : frame(pending));
+
+        assertFalse(first.getPromise().future().isDone());
+        assertSame(first, connection.outstandingRequests.getRequestByMessageId(1L));
+        assertEquals(1234, first.getAsyncId());
+        if (compounded) {
+            assertResponse(second, 2);
+        } else {
+            assertFalse(second.getPromise().future().isDone());
+        }
+        assertEquals(credits + (compounded ? 6 : 3), connection.sequenceWindow.available());
+
+        receive(frame(response(1)));
+        assertResponse(first, 1);
+    }
+
+    @Test
+    public void shouldAcceptPaddedInterimInMiddleOfFrame() throws Exception {
+        Request first = request(1);
+        Request second = request(2);
+        Request third = request(3);
+        int credits = connection.sequenceWindow.available();
+        byte[] body = new byte[16];
+        Arrays.fill(body, 8, body.length, (byte) 0x55);
+        body[0] = 9;
+        SMB2Packet pending = response(2, SMB2_ECHO, SESSION_ID, false, NtStatus.STATUS_PENDING, body);
+        pending.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND);
+        pending.getHeader().setAsyncId(1234);
+
+        receive(frame(response(1), pending, response(3)));
+
+        assertResponse(first, 1);
+        assertFalse(second.getPromise().future().isDone());
+        assertSame(second, connection.outstandingRequests.getRequestByMessageId(2L));
+        assertEquals(1234, second.getAsyncId());
+        assertResponse(third, 3);
+        assertEquals(credits + 9, connection.sequenceWindow.available());
+    }
+
     @Test
     public void shouldDiscardUncorrelatedPendingResponse() throws Exception {
         Request outstanding = request(1);
-        SMB2Packet pending = response(1, SMB2_ECHO, 0, false, NtStatus.STATUS_PENDING, new byte[9]);
+        SMB2Packet pending = response(1, SMB2_ECHO, 0, false, NtStatus.STATUS_PENDING, new byte[] {9, 0, 0, 0, 0, 0, 0, 0});
         pending.getHeader().setFlag(SMB2MessageFlag.SMB2_FLAGS_ASYNC_COMMAND);
         pending.getHeader().setAsyncId(1234);
         int credits = connection.sequenceWindow.available();
@@ -385,16 +481,20 @@ public class ResponseValidationTest {
     }
 
     @Test
-    public void shouldDiscardWholeDecryptedCompoundWithForeignSession() throws Exception {
+    public void shouldAbortWholeDecryptedCompoundWithForeignSession() throws Exception {
         Request first = request(1);
         Request second = request(2, SMB2_ECHO, SESSION_ID + 1);
         int credits = connection.sequenceWindow.available();
         SMB2Packet foreign = response(2, SMB2_ECHO, SESSION_ID + 1, false,
             NtStatus.STATUS_SUCCESS, new byte[] {4, 0, 0, 0});
 
-        connection.handle(new SMB2DecryptedPacketData(frame(response(1), foreign)));
+        TransportException violation = assertThrows(TransportException.class,
+            () -> connection.handle(new SMB2DecryptedPacketData(frame(response(1), foreign))));
 
-        assertDiscarded(credits, first, second);
+        assertFalse(connection.isConnected());
+        assertEquals(credits, connection.sequenceWindow.available());
+        assertSame(violation, AbortTestConnection.transportFailure(first.getPromise().future()));
+        assertSame(violation, AbortTestConnection.transportFailure(second.getPromise().future()));
     }
 
     @Test

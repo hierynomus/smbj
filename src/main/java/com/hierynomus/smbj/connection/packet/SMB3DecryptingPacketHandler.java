@@ -149,7 +149,11 @@ public class SMB3DecryptingPacketHandler extends AbstractIncomingPacketHandler {
             logger.debug("Decrypted packet {} is packet {}.", packetData, nextPacket);
             if (nextPacket.getHeader().getSessionId() != packetData.getHeader().getSessionId()) {
                 logger.error("Mismatched sessionId between encrypted packet {} and decrypted contents {}", packetData, nextPacket);
-                next.handle(new DeadLetterPacketData(nextPacket.getHeader()));
+                if (nextPacket.isOplockBreakNotification()) {
+                    next.handle(new DeadLetterPacketData(nextPacket.getHeader()));
+                    return;
+                }
+                throw new TransportException("Session ID of decrypted response differs from transform session ID: " + nextPacket);
             } else {
                 next.handle(nextPacket);
                 // Remaining members are validated together by SMB2CompoundedPacketHandler.

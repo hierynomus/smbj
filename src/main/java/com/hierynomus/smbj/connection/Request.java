@@ -35,16 +35,18 @@ public class Request {
     private final UUID cancelId;
     private final SMB2MessageCommandCode command;
     private final long sessionId;
+    private final boolean encrypted;
     private final boolean signingRequired;
     private final Date timestamp;
-    private long asyncId;
+    private volatile long asyncId;
 
     public Request(SMBPacket<?, ?> packet, long messageId, UUID cancelId) {
         this(packet, messageId, cancelId, false);
     }
 
     Request(SMBPacket<?, ?> packet, long messageId, UUID cancelId, boolean signingRequired) {
-        this.packet = packet;
+        this.packet = packet instanceof SMB2Packet ? ((SMB2Packet) packet).getPacket() : packet;
+        this.encrypted = packet instanceof PacketEncryptor.EncryptedPacketWrapper;
         this.signingRequired = signingRequired;
         this.messageId = messageId;
         this.cancelId = cancelId;
@@ -79,6 +81,14 @@ public class Request {
      */
     public long getSessionId() {
         return sessionId;
+    }
+
+    /**
+     * Returns whether this request was registered for sending inside an SMB2 TRANSFORM frame.
+     * @return true if the request was sent encrypted
+     */
+    public boolean isEncrypted() {
+        return encrypted;
     }
 
     /**

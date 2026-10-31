@@ -283,7 +283,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
                 lock.unlock();
             }
 
-            Request request = new Request(packet.getPacket(), packet.getHeader().getMessageId(), UUID.randomUUID(),
+            Request request = new Request(packet, packet.getHeader().getMessageId(), UUID.randomUUID(),
                 signingRequired);
             outstandingRequests.registerOutstanding(request);
             f = request.getFuture(new CancelRequest(request, packet.getHeader().getSessionId()));
@@ -350,7 +350,12 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
 
     @Override
     public void handle(SMBPacketData<?> uncheckedPacket) throws TransportException {
-        this.packetHandlerChain.handle(uncheckedPacket);
+        try {
+            this.packetHandlerChain.handle(uncheckedPacket);
+        } catch (TransportException e) {
+            handleError(e);
+            throw e;
+        }
         // [MS-SMB2] 3.2.5.1.6 Handling Session Expiration
         // if (packet.getHeader().getStatus() == NtStatus.STATUS_NETWORK_SESSION_EXPIRED) {
         // TODO reauthenticate session!
