@@ -73,6 +73,12 @@ public class StubTransportLayerFactory<D extends PacketData<?>, P extends Packet
             if (response != null) {
                 response.getHeader().setMessageId(request.getHeader().getMessageId());
                 response.getHeader().setCreditResponse(request.getHeader().getCreditRequest());
+                if (response.getHeader().getMessage() == null) {
+                    response.getHeader().setMessageType(request.getHeader().getMessage());
+                }
+                if (response.getHeader().getSessionId() == 0 && request.getHeader().getSessionId() != 0) {
+                    response.getHeader().setSessionId(request.getHeader().getSessionId());
+                }
                 try {
                     receiver.handle((D) new StubPacketData(response));
                 } catch (BufferException e) {

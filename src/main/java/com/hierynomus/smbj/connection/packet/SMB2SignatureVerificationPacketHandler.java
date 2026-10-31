@@ -18,11 +18,15 @@ package com.hierynomus.smbj.connection.packet;
 import com.hierynomus.mssmb2.DeadLetterPacketData;
 import com.hierynomus.mssmb2.SMB2PacketData;
 import com.hierynomus.protocol.transport.TransportException;
+import com.hierynomus.smbj.connection.OutstandingRequests;
+import com.hierynomus.smbj.connection.Request;
 import com.hierynomus.smbj.connection.SessionTable;
 import com.hierynomus.smbj.connection.Signatory;
 import com.hierynomus.smbj.session.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.crypto.SecretKey;
 
 import static com.hierynomus.mssmb2.SMB2MessageCommandCode.SMB2_SESSION_SETUP;
 import static com.hierynomus.mssmb2.SMB2MessageFlag.SMB2_FLAGS_SIGNED;
@@ -68,67 +72,80 @@ public class SMB2SignatureVerificationPacketHandler extends SMB2PacketHandler {
     private static final Logger logger = LoggerFactory.getLogger(SMB2SignatureVerificationPacketHandler.class);
     private SessionTable sessionTable;
     private Signatory signatory;
+    private OutstandingRequests outstandingRequests;
 
+    /**
+     * Creates a verifier that trusts the session ID in each response header.
+     * @deprecated use {@link #SMB2SignatureVerificationPacketHandler(SessionTable, Signatory, OutstandingRequests)}
+     */
+    @Deprecated
     public SMB2SignatureVerificationPacketHandler(SessionTable sessionTable, Signatory signatory) {
+        this(sessionTable, signatory, null);
+    }
+
+    /**
+     * Creates a verifier that uses the session, command and signing requirement captured on the outstanding request.
+     * @param sessionTable the established sessions
+     * @param signatory the signature verifier
+     * @param outstandingRequests the requests awaiting responses
+     */
+    public SMB2SignatureVerificationPacketHandler(SessionTable sessionTable, Signatory signatory, OutstandingRequests outstandingRequests) {
         this.sessionTable = sessionTable;
         this.signatory = signatory;
+        this.outstandingRequests = outstandingRequests;
     }
 
     @Override
     protected void doSMB2Handle(SMB2PacketData packetData) throws TransportException {
-        if (packetData.getHeader().getMessageId() == 0xFFFFFFFFFFFFFFFFL) {
-            logger.debug("Message ID is 0xFFFFFFFFFFFFFFFF, no verification necessary");
+        if (isValid(packetData)) {
             next.handle(packetData);
-            return;
+        } else {
+            next.handle(new DeadLetterPacketData(packetData.getHeader()));
+        }
+    }
+
+    boolean isValid(SMB2PacketData packetData) {
+        if (packetData.isOplockBreakNotification() || packetData.isDecrypted()) {
+            return true;
         }
 
-        if (packetData.isDecrypted()) {
-            logger.debug("Passthrough Signature Verification as packet is decrypted");
-            next.handle(packetData);
-            return;
+        long sessionId = packetData.getHeader().getSessionId();
+        boolean signingRequired = false;
+        if (outstandingRequests != null) {
+            Request request = outstandingRequests.getRequestByMessageId(packetData.getSequenceNumber());
+            if (request == null) {
+                logger.warn("Could not find request for packet {}", packetData);
+                return false;
+            }
+            // Authentication responses are handled by the session builder. Only the request
+            // can authorize this exemption, never an untrusted response header.
+            if (request.getSessionId() == 0 || request.getCommand() == SMB2_SESSION_SETUP) {
+                return true;
+            }
+            sessionId = request.getSessionId();
+            signingRequired = request.isSigningRequired();
         }
+        Session session = sessionTable.find(sessionId);
 
         if (packetData.getHeader().isFlagSet(SMB2_FLAGS_SIGNED)) {
-            long sessionId = packetData.getHeader().getSessionId();
-            // TODO Deviation from Spec...
-            if (sessionId == 0L || packetData.getHeader().getMessage() == SMB2_SESSION_SETUP) {
-                next.handle(packetData);
-                return;
-            }
-            Session session = sessionTable.find(sessionId);
-
             if (session == null) {
-                logger.error("Could not find session << {} >> for packet {}.", sessionId, packetData);
-                next.handle(new DeadLetterPacketData(packetData.getHeader()));
-                return;
+                logger.warn("Could not find session << {} >> for packet {}.", sessionId, packetData);
+                return false;
             }
-
-            if (signatory.verify(packetData, session.getSigningKey(packetData.getHeader(), false))) {
-                logger.debug("Signature for packet {} verified.", packetData);
-                next.handle(packetData);
-                return;
-            } else {
+            SecretKey key = session.getSigningKey(packetData.getHeader(), false);
+            if (key == null || !signatory.verify(packetData, key)) {
                 logger.warn("Invalid packet signature for packet {}", packetData);
-                next.handle(new DeadLetterPacketData(packetData.getHeader()));
-                return;
+                return false;
             }
+            logger.debug("Signature for packet {} verified.", packetData);
+        } else if (!packetData.isIntermediateAsyncResponse()
+            && (signingRequired || session != null && session.isSigningRequired())) {
+            logger.warn("Illegal request, session requires message signing, but packet {} is not signed.", packetData);
+            return false;
         }
-
-        if (!packetData.getHeader().isFlagSet(SMB2_FLAGS_SIGNED)) {
-            if (packetData.isIntermediateAsyncResponse() || packetData.isOplockBreakNotification()) {
-                // ok
-            } else {
-                long sessionId = packetData.getHeader().getSessionId();
-                Session session = sessionTable.find(sessionId);
-                if (session != null && session.isSigningRequired()) {
-                    logger.warn("Illegal request, session requires message signing, but packet {} is not signed.", packetData);
-                    next.handle(new DeadLetterPacketData(packetData.getHeader()));
-                    return;
-                }
-            }
-        }
-        next.handle(packetData);
+        return true;
     }
+
 //
 //    private void verifyPacketSignature(SMB2Packet packet, Session session) throws TransportException {
 //        if (!session.getPacketSignatory().verify(packet)) {

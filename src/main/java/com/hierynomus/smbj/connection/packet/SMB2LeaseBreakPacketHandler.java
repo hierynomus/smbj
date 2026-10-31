@@ -31,9 +31,8 @@ import com.hierynomus.smbj.connection.LeaseManager;
  * the NPE in {@code SMB2AsyncResponsePacketHandler} and the throw in {@code SMB2MessageConverter}
  * that a break would otherwise trigger. Every non-break packet is forwarded unchanged.
  *
- * <p>Inserted right after {@code SMB2IsOutstandingPacketHandler} (which passes the break through
- * rather than dead-lettering it) and before signature verification (the break is unsigned,
- * SessionId 0).
+ * <p>Inserted after frame validation, which exempts unsolicited breaks from request correlation
+ * and signature verification (the break is unsigned, SessionId 0).
  */
 public class SMB2LeaseBreakPacketHandler extends SMB2PacketHandler {
     private static final Logger logger = LoggerFactory.getLogger(SMB2LeaseBreakPacketHandler.class);

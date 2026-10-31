@@ -51,10 +51,8 @@ import com.hierynomus.smbj.connection.packet.SMB1PacketHandler;
 import com.hierynomus.smbj.connection.packet.SMB2AsyncResponsePacketHandler;
 import com.hierynomus.smbj.connection.packet.SMB2CompoundedPacketHandler;
 import com.hierynomus.smbj.connection.packet.SMB2CreditGrantingPacketHandler;
-import com.hierynomus.smbj.connection.packet.SMB2IsOutstandingPacketHandler;
 import com.hierynomus.smbj.connection.packet.SMB2LeaseBreakPacketHandler;
 import com.hierynomus.smbj.connection.packet.SMB2ProcessResponsePacketHandler;
-import com.hierynomus.smbj.connection.packet.SMB2SignatureVerificationPacketHandler;
 import com.hierynomus.smbj.connection.packet.SMB3DecryptingPacketHandler;
 import com.hierynomus.smbj.event.ConnectionClosed;
 import com.hierynomus.smbj.event.SMBEventBus;
@@ -125,14 +123,12 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         this.encryptor = new PacketEncryptor(config.getSecurityProvider());
 
         this.packetHandlerChain = new SMB3DecryptingPacketHandler(sessionTable, encryptor).setNext(
-            new SMB2CompoundedPacketHandler().setNext(
-                new SMB2IsOutstandingPacketHandler(outstandingRequests).setNext(
-                    new SMB2LeaseBreakPacketHandler(leaseManager).setNext(
-                    new SMB2SignatureVerificationPacketHandler(sessionTable, signatory).setNext(
-                        new SMB2CreditGrantingPacketHandler(sequenceWindow).setNext(
-                            new SMB2AsyncResponsePacketHandler(outstandingRequests).setNext(
-                                new SMB2ProcessResponsePacketHandler(messageConverter, outstandingRequests).setNext(
-                                    new SMB1PacketHandler().setNext(new DeadLetterPacketHandler())))))))));
+            new SMB2CompoundedPacketHandler(outstandingRequests, sessionTable, signatory).setNext(
+                new SMB2LeaseBreakPacketHandler(leaseManager).setNext(
+                    new SMB2CreditGrantingPacketHandler(sequenceWindow).setNext(
+                        new SMB2AsyncResponsePacketHandler(outstandingRequests).setNext(
+                            new SMB2ProcessResponsePacketHandler(messageConverter, outstandingRequests).setNext(
+                                new SMB1PacketHandler().setNext(new DeadLetterPacketHandler())))))));
     }
 
     public Connection(Connection connection) {
@@ -264,6 +260,9 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         checkConnected();
         Future<T> f = null;
         if (!(packet.getPacket() instanceof SMB2Cancel)) {
+            // LOGOFF may remove the session before this request receives its final response.
+            Session session = sessionTable.find(packet.getHeader().getSessionId());
+            boolean signingRequired = session != null && session.isSigningRequired();
             // Need to lock around the sequence window calls to ensure no credits get stolen by another thread
             lock.lock();
             try {
@@ -284,7 +283,8 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
                 lock.unlock();
             }
 
-            Request request = new Request(packet.getPacket(), packet.getHeader().getMessageId(), UUID.randomUUID());
+            Request request = new Request(packet.getPacket(), packet.getHeader().getMessageId(), UUID.randomUUID(),
+                signingRequired);
             outstandingRequests.registerOutstanding(request);
             f = request.getFuture(new CancelRequest(request, packet.getHeader().getSessionId()));
         }
