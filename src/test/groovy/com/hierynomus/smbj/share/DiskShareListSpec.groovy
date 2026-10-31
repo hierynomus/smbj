@@ -15,6 +15,7 @@
  */
 package com.hierynomus.smbj.share
 
+import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.msdtyp.FileTime
 import com.hierynomus.msfscc.FileAttributes
 import com.hierynomus.mserref.NtStatus
@@ -33,6 +34,7 @@ import com.hierynomus.smbj.testing.PacketProcessor.DefaultPacketProcessor
 import com.hierynomus.smbj.testing.StubAuthenticator
 import com.hierynomus.smbj.testing.StubTransportLayerFactory
 import spock.lang.Specification
+import spock.lang.Unroll
 
 import java.util.UUID
 
@@ -42,6 +44,84 @@ class DiskShareListSpec extends Specification {
 
     def cleanup() {
         connection?.close()
+    }
+
+    @Unroll
+    def "directory opens and repeated lists honour directory leasing"() {
+        given: "a server advertising both leasing capabilities, even when the client disables them"
+        def createRequests = [] as List<SMB2CreateRequest>
+        int queryDirectoryRequests = 0
+        def processor = new DefaultPacketProcessor().wrap({ SMB2Packet req ->
+            req = req.getPacket()
+            if (req instanceof SMB2NegotiateRequest) {
+                return buildNegotiateResponse()
+            }
+            if (req instanceof SMB2CreateRequest) {
+                createRequests << req
+                def resp = new SMB2CreateResponse()
+                resp.header.statusCode = NtStatus.STATUS_SUCCESS.value
+                resp.fileId = new SMB2FileId(new byte[8], new byte[8])
+                resp.fileAttributes = EnumSet.of(FileAttributes.FILE_ATTRIBUTE_DIRECTORY)
+                if (!req.getCreateContexts().isEmpty()) {
+                    resp.oplockLevel = SMB2OplockLevel.SMB2_OPLOCK_LEVEL_LEASE
+                    resp.createContexts = req.getCreateContexts()
+                }
+                return resp
+            }
+            if (req instanceof SMB2QueryDirectoryRequest) {
+                queryDirectoryRequests++
+                def resp = new SMB2QueryDirectoryResponse()
+                resp.header.statusCode = NtStatus.STATUS_NO_MORE_FILES.value
+                return resp
+            }
+            if (req instanceof SMB2Close) {
+                def resp = new SMB2Close()
+                resp.header.statusCode = NtStatus.STATUS_SUCCESS.value
+                return resp
+            }
+            null
+        })
+        def builder = SmbConfig.builder()
+            .withDfsEnabled(false)
+            .withTransportLayerFactory(new StubTransportLayerFactory(processor))
+            .withAuthenticators(new StubAuthenticator.Factory())
+        if (!leasingEnabled) {
+            builder.withDirectoryLeasingEnabled(false)
+        }
+        def client = new SMBClient(builder.build())
+        connection = client.connect("127.0.0.1")
+        def session = connection.authenticate(new AuthenticationContext("user", "pass".toCharArray(), "domain"))
+        def share = session.connectShare("share") as DiskShare
+
+        when:
+        def directory = share.openDirectory("opened", EnumSet.of(AccessMask.FILE_LIST_DIRECTORY), null,
+            SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null)
+        directory.close()
+        def first = share.list("listed")
+        def second = share.list("listed")
+
+        then:
+        first.isEmpty()
+        second.isEmpty()
+        (directory.getLeaseEntry() != null) == leasingEnabled
+        queryDirectoryRequests == (leasingEnabled ? 1 : 2)
+        createRequests.size() == (leasingEnabled ? 2 : 3)
+        createRequests.each { req ->
+            assert req.getCreateContexts().isEmpty() == !leasingEnabled
+            def buffer = new SMBBuffer()
+            req.write(buffer)
+            buffer.rpos(SMB2PacketHeader.STRUCTURE_SIZE + 3) // RequestedOplockLevel
+            def expected = leasingEnabled ? SMB2OplockLevel.SMB2_OPLOCK_LEVEL_LEASE : SMB2OplockLevel.SMB2_OPLOCK_LEVEL_NONE
+            assert (buffer.readByte() & 0xff) == expected.value
+            if (!leasingEnabled) {
+                buffer.rpos(SMB2PacketHeader.STRUCTURE_SIZE + 48) // CreateContextsOffset/Length
+                assert buffer.readUInt32() == 0
+                assert buffer.readUInt32() == 0
+            }
+        }
+
+        where:
+        leasingEnabled << [false, true]
     }
 
     def "list on a leased directory that throws on enumeration closes the kept-open handle"() {

@@ -174,12 +174,13 @@ public class ConnectionContext {
     }
 
     /**
-     * If the client implements SMB 2.1 or SMB 3.x dialect family, the client MUST perform the following:
-     * If SMB2_GLOBAL_CAP_LEASING is set in the Capabilities field of the SMB2 NEGOTIATE Response, the client MUST set Connection.SupportsFileLeasing to TRUE. Otherwise, it MUST be set to FALSE.
-     * @return
+     * Whether file leasing was advertised by both the client and server on this connection.
+     *
+     * @return true if both client and server capabilities include SMB2_GLOBAL_CAP_LEASING
      */
     public boolean supportsFileLeasing() {
-        return supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LEASING);
+        return clientCapabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LEASING)
+            && supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LEASING);
     }
 
     /**
@@ -192,12 +193,15 @@ public class ConnectionContext {
     }
 
     /**
-     * If Connection.Dialect belongs to the SMB 3.x dialect family, the client MUST perform the following:
-     * If SMB2_GLOBAL_CAP_DIRECTORY_LEASING is set in the Capabilities field of the SMB2 NEGOTIATE Response, the client MUST set Connection.SupportsDirectoryLeasing to TRUE. Otherwise, it MUST be set to FALSE.
-     * @return
+     * Whether directory leasing was advertised by both the client and server on an SMB 3.x connection.
+     *
+     * @return true if the negotiated dialect is SMB 3.x and both client and server capabilities
+     *         include SMB2_GLOBAL_CAP_DIRECTORY_LEASING
      */
     public boolean supportsDirectoryLeasing() {
-        return negotiatedProtocol.getDialect().isSmb3x() && supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_DIRECTORY_LEASING);
+        return negotiatedProtocol.getDialect().isSmb3x()
+            && clientCapabilities.contains(SMB2GlobalCapability.SMB2_GLOBAL_CAP_DIRECTORY_LEASING)
+            && supports(SMB2GlobalCapability.SMB2_GLOBAL_CAP_DIRECTORY_LEASING);
     }
 
     /**
