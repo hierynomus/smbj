@@ -49,9 +49,10 @@ public class DirectTcpTransport<D extends PacketData<?>, P extends Packet<?>> im
     private SocketFactory socketFactory = new ProxySocketFactory();
     private int soTimeout;
 
-    private Socket socket;
+    private volatile Socket socket;
     private BufferedOutputStream output;
     private PacketReader<D> packetReaderThread;
+    private long disconnectCount;
 
     private static final int INITIAL_BUFFER_SIZE = 9000;
 
@@ -64,8 +65,7 @@ public class DirectTcpTransport<D extends PacketData<?>, P extends Packet<?>> im
     @Override
     public void write(P packet) throws TransportException {
         logger.trace("Acquiring write lock to send packet << {} >>", packet);
-        // isConnected only locks readlock, so check first and check once write lock
-        // is acquired to prevent race
+        // Check again after acquiring the write lock to prevent a disconnect race.
         if (!isConnected()) {
             throw new TransportException(format("Cannot write %s as transport is disconnected", packet));
         }
@@ -81,6 +81,9 @@ public class DirectTcpTransport<D extends PacketData<?>, P extends Packet<?>> im
             writeDirectTcpPacketHeader(packetData.available());
             writePacketData(packetData);
             output.flush();
+            if (!isConnected()) {
+                throw new TransportException(format("Cannot write %s as transport got disconnected", packet));
+            }
             logger.trace("Packet {} sent, lock released.", packet);
         } catch (IOException ioe) {
             throw new TransportException(ioe);
@@ -91,9 +94,22 @@ public class DirectTcpTransport<D extends PacketData<?>, P extends Packet<?>> im
 
     @Override
     public void connect(InetSocketAddress remoteAddress) throws IOException {
+        long disconnects;
+        synchronized (this) {
+            disconnects = disconnectCount;
+        }
         String remoteHostname = remoteAddress.getHostString();
-        this.socket = socketFactory.createSocket(remoteHostname, remoteAddress.getPort());
-        initWithSocket(remoteHostname);
+        Socket newSocket = socketFactory.createSocket(remoteHostname, remoteAddress.getPort());
+        synchronized (this) {
+            if (disconnects == disconnectCount) {
+                this.socket = newSocket;
+                initWithSocket(remoteHostname);
+                return;
+            }
+        }
+        // A disconnect must also cancel a socket that is still being created.
+        newSocket.close();
+        throw new TransportException("Transport disconnected while connecting");
     }
 
     private void initWithSocket(String remoteHostname) throws IOException {
@@ -106,45 +122,29 @@ public class DirectTcpTransport<D extends PacketData<?>, P extends Packet<?>> im
 
     @Override
     public void disconnect() throws IOException {
-        if (!isConnected()) {
-            return;
-        }
-
-        lock.writeLock().lock();
-        try {
-            // check again to prevent race
-            if (!isConnected()) {
+        Socket socketToClose;
+        synchronized (this) {
+            disconnectCount++;
+            socketToClose = socket;
+            if (socketToClose == null) {
                 return;
             }
-
-            packetReaderThread.stop();
-
-            if (socket.getInputStream() != null) {
-                socket.getInputStream().close();
+            socket = null;
+            if (packetReaderThread != null) {
+                packetReaderThread.stop();
             }
-
-            if (output != null) {
-                output.close();
-                output = null;
-            }
-
-            if (socket != null) {
-                socket.close();
-                socket = null;
-            }
-        } finally {
-            lock.writeLock().unlock();
+        }
+        // Closing the socket must not wait for a writer stalled in flush(). Do not
+        // close the buffered output stream: that would try to flush it again.
+        if (!socketToClose.isClosed()) {
+            socketToClose.close();
         }
     }
 
     @Override
     public boolean isConnected() {
-        lock.readLock().lock();
-        try {
-            return (socket != null) && socket.isConnected() && !socket.isClosed();
-        } finally {
-            lock.readLock().unlock();
-        }
+        Socket currentSocket = socket;
+        return currentSocket != null && currentSocket.isConnected() && !currentSocket.isClosed();
     }
 
     public void setSocketFactory(SocketFactory socketFactory) {

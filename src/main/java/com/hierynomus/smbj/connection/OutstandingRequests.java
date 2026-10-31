@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.connection;
 
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.protocol.transport.TransportException;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,6 +28,7 @@ public class OutstandingRequests {
     private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private Map<Long, Request> lookup = new HashMap<>();
     private Map<UUID, Request> cancelLookup = new HashMap<>();
+    private TransportException error;
 
     public boolean isOutstanding(Long messageId) {
         lock.readLock().lock();
@@ -69,9 +71,13 @@ public class OutstandingRequests {
         }
     }
 
-    void registerOutstanding(Request request) {
+    void registerOutstanding(Request request) throws TransportException {
         lock.writeLock().lock();
         try {
+            if (error != null) {
+                request.getPromise().deliverError(error);
+                throw error;
+            }
             lookup.put(request.getMessageId(), request);
             cancelLookup.put(request.getCancelId(), request);
         } finally {
@@ -82,10 +88,14 @@ public class OutstandingRequests {
     void handleError(Throwable t) {
         lock.writeLock().lock();
         try {
+            if (error != null) {
+                return;
+            }
+            error = TransportException.Wrapper.wrap(t);
             for (Long id : new HashSet<>(lookup.keySet())) {
                 Request removed = lookup.remove(id);
                 cancelLookup.remove(removed.getCancelId());
-                removed.getPromise().deliverError(t);
+                removed.getPromise().deliverError(error);
             }
         } finally {
             lock.writeLock().unlock();

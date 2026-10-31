@@ -16,6 +16,7 @@
 package com.hierynomus.smbj.connection;
 
 import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.protocol.transport.TransportException;
 
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -41,34 +42,64 @@ public class SequenceWindow {
     private AtomicLong lowestAvailable = new AtomicLong(0);
     private Semaphore available = new Semaphore(1);
     private static final long MAX_WAIT = 5000;
+    private TransportException error;
 
-    long get() {
+    long get() throws TransportException {
         return get(1)[0];
     }
 
-    long[] get(int credits) {
+    synchronized long[] get(int credits) throws TransportException {
+        long remaining = TimeUnit.MILLISECONDS.toNanos(MAX_WAIT);
+        long start = System.nanoTime();
         try {
-            if (available.tryAcquire(credits, MAX_WAIT, TimeUnit.MILLISECONDS)) {
-                long lowest = lowestAvailable.getAndAdd(credits);
-                return range(lowest, lowest + credits);
+            while (true) {
+                if (error != null) {
+                    throw error;
+                }
+                if (Thread.interrupted()) {
+                    throw new InterruptedException();
+                }
+                if (available.tryAcquire(credits)) {
+                    long lowest = lowestAvailable.getAndAdd(credits);
+                    return range(lowest, lowest + credits);
+                }
+                if (remaining <= 0) {
+                    break;
+                }
+                TimeUnit.NANOSECONDS.timedWait(this, remaining);
+                remaining = TimeUnit.MILLISECONDS.toNanos(MAX_WAIT) - (System.nanoTime() - start);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            if (error != null) {
+                throw error;
+            }
             throw new SMBRuntimeException("Got interrupted waiting for " + credits + " to be available. Credits available at this moment: " + available.availablePermits());
         }
         throw new SMBRuntimeException("Not enough credits (" + available.availablePermits() + " available) to hand out " + credits + " sequence numbers");
     }
 
-    void disableCredits() {
+    synchronized void disableCredits() {
         this.available = new NoopSemaphore();
+        notifyAll();
     }
 
-    public int available() {
+    public synchronized int available() {
         return available.availablePermits();
     }
 
-    public void creditsGranted(int credits) {
-        available.release(credits);
+    public synchronized void creditsGranted(int credits) {
+        if (error == null) {
+            available.release(credits);
+            notifyAll();
+        }
+    }
+
+    synchronized void handleError(TransportException error) {
+        if (this.error == null) {
+            this.error = error;
+            notifyAll();
+        }
     }
 
     private long[] range(long start, long stop) {
