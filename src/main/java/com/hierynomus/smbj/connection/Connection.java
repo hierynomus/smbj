@@ -24,6 +24,8 @@ import java.net.InetSocketAddress;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.hierynomus.mssmb.SMB1PacketFactory;
@@ -99,6 +101,8 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     TransportLayer<SMBPacket<?, ?>> transport;
     private final SMBEventBus bus;
     private final ReentrantLock lock = new ReentrantLock();
+    private final AtomicReference<TransportException> error = new AtomicReference<>();
+    private final AtomicBoolean closingGracefully = new AtomicBoolean();
 
     public Connection(SmbConfig config, SMBClient client, SMBEventBus bus, ServerList serverList) {
         this.config = config;
@@ -144,14 +148,29 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         if (isConnected()) {
             throw new IllegalStateException(format("This connection is already connected to %s", getRemoteHostname()));
         }
-        transport.connect(new InetSocketAddress(hostname, port));
+        TransportException failure = error.get();
+        if (failure != null) {
+            throw failure;
+        }
         this.connectionContext = new ConnectionContext(config.getClientGuid(), hostname, port, config);
-        new SMBProtocolNegotiator(this, config, connectionContext).negotiateDialect();
-        this.encryptor.init(connectionContext);
+        try {
+            transport.connect(new InetSocketAddress(hostname, port));
+            failure = error.get();
+            if (failure != null) {
+                // An abort can win before the transport has opened its socket.
+                transport.disconnect();
+                throw failure;
+            }
+            new SMBProtocolNegotiator(this, config, connectionContext).negotiateDialect();
+            this.encryptor.init(connectionContext);
 
-        this.pathResolver = new SymlinkPathResolver(PathResolver.LOCAL);
-        if (config.isDfsEnabled() && connectionContext.supportsDFS()) {
-            this.pathResolver = new DFSPathResolver(pathResolver, config.getTransactTimeout());
+            this.pathResolver = new SymlinkPathResolver(PathResolver.LOCAL);
+            if (config.isDfsEnabled() && connectionContext.supportsDFS()) {
+                this.pathResolver = new DFSPathResolver(pathResolver, config.getTransactTimeout());
+            }
+        } catch (IOException | RuntimeException e) {
+            handleError(e);
+            throw e;
         }
 
         logger.info("Successfully connected to: {}", getRemoteHostname());
@@ -164,8 +183,9 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
 
     /**
      * Close the Connection. If {@code force} is set to true, it forgoes the
-     * {@link Session#close()} operation on the open sessions, and it just calls the
-     * {@link TransportLayer#disconnect()}.
+     * {@link Session#close()} operation on the open sessions, fails outstanding
+     * requests and credit waiters, and disconnects the transport. Subsequent sends
+     * fail with a {@link TransportException}.
      *
      * <p>
      * If {@code force} is set to false, the usage counter of the connection reduces with one. If the usage count drops to zero the connection will be closed.
@@ -175,24 +195,47 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
      * @throws IOException If any error occurred during close-ing.
      */
     public void close(boolean force) throws IOException {
-        if (!force && !release()) {
+        if (force) {
+            abort(new TransportException("Connection closed"));
+            return;
+        }
+        if (error.get() != null || !release() || !closingGracefully.compareAndSet(false, true)) {
             return;
         }
         try {
-            if (!force) {
-                for (Session session : sessionTable.activeSessions()) {
-                    try {
-                        session.close();
-                    } catch (IOException e) {
-                        logger.warn("Exception while closing session {}", session.getSessionId(), e);
-                    }
+            for (Session session : sessionTable.activeSessions()) {
+                try {
+                    session.close();
+                } catch (IOException e) {
+                    logger.warn("Exception while closing session {}", session.getSessionId(), e);
                 }
             }
         } finally {
-            leaseManager.close();
+            abort(new TransportException("Connection closed"));
+        }
+    }
+
+    private void abort(TransportException failure) throws IOException {
+        if (!error.compareAndSet(null, failure)) {
+            return;
+        }
+        // Neither of these operations takes Connection.lock: a sender may hold it
+        // while waiting for credits. Registration shares the request table's lock
+        // with handleError, so a racing request is either drained or rejected.
+        sequenceWindow.handleError(failure);
+        outstandingRequests.handleError(failure);
+        try {
             transport.disconnect();
-            logger.info("Closed connection to {}", getRemoteHostname());
-            bus.publish(new ConnectionClosed(connectionContext.getServer().getServerName(), connectionContext.getServer().getPort()));
+        } finally {
+            try {
+                leaseManager.close();
+            } finally {
+                bus.unsubscribe(this);
+                if (connectionContext != null) {
+                    logger.info("Closed connection to {}", getRemoteHostname());
+                    bus.publish(new ConnectionClosed(connectionContext.getServer().getServerName(), connectionContext.getServer().getPort(), this));
+                }
+            }
         }
     }
 
@@ -218,11 +261,13 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
      * @throws TransportException When a transport level error occurred
      */
     public <T extends SMB2Packet> Future<T> send(SMB2Packet packet) throws TransportException {
+        checkConnected();
         Future<T> f = null;
         if (!(packet.getPacket() instanceof SMB2Cancel)) {
             // Need to lock around the sequence window calls to ensure no credits get stolen by another thread
             lock.lock();
             try {
+                checkConnected();
                 int availableCredits = sequenceWindow.available();
                 int grantCredits = calculateGrantedCredits(packet, availableCredits);
                 if (availableCredits == 0) {
@@ -243,8 +288,26 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
             outstandingRequests.registerOutstanding(request);
             f = request.getFuture(new CancelRequest(request, packet.getHeader().getSessionId()));
         }
-        transport.write(packet);
+        try {
+            checkConnected();
+            transport.write(packet);
+        } catch (TransportException e) {
+            handleError(e);
+            throw e;
+        }
         return f;
+    }
+
+    private void checkConnected() throws TransportException {
+        TransportException failure = error.get();
+        if (failure != null) {
+            throw failure;
+        }
+        if (!transport.isConnected()) {
+            failure = new TransportException("Connection is disconnected");
+            handleError(failure);
+            throw failure;
+        }
     }
 
     <T extends SMB2Packet> T sendAndReceive(SMB2Packet packet) throws TransportException {
@@ -298,9 +361,8 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
 
     @Override
     public void handleError(Throwable t) {
-        outstandingRequests.handleError(t);
         try {
-            this.close();
+            abort(TransportException.Wrapper.wrap(t));
         } catch (Exception e) {
             String exceptionClass = e.getClass().getSimpleName();
             logger.debug("{} while closing connection on error, ignoring: {}", exceptionClass, e.getMessage());
@@ -312,7 +374,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     }
 
     public boolean isConnected() {
-        return transport.isConnected();
+        return error.get() == null && transport.isConnected();
     }
 
     public ConnectionContext getConnectionContext() {
