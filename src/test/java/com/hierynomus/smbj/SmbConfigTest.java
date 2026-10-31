@@ -17,15 +17,40 @@ package com.hierynomus.smbj;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.junit.jupiter.api.Test;
 
 import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.smbj.paths.PathResolver;
+import com.hierynomus.smbj.paths.SymlinkPathResolver;
 
 public class SmbConfigTest {
     @Test
     public void testCreateDefaultConfig() {
         assertDoesNotThrow(() -> SmbConfig.createDefaultConfig());
+    }
+
+    @Test
+    public void shouldDefaultToNoConfiguredPathResolver() {
+        assertNull(SmbConfig.createDefaultConfig().getPathResolver());
+    }
+
+    @Test
+    public void shouldUseConfiguredPathResolver() {
+        PathResolver pathResolver = new SymlinkPathResolver(PathResolver.LOCAL);
+        SmbConfig config = SmbConfig.builder().withPathResolver(pathResolver).build();
+
+        assertSame(pathResolver, config.getPathResolver());
+    }
+
+    @Test
+    public void shouldCopyConfiguredPathResolver() {
+        PathResolver pathResolver = new SymlinkPathResolver(PathResolver.LOCAL);
+        SmbConfig config = SmbConfig.builder().withPathResolver(pathResolver).build();
+
+        assertSame(pathResolver, SmbConfig.builder(config).build().getPathResolver());
     }
 
     @Test

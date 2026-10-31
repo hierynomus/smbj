@@ -149,7 +149,7 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
         new SMBProtocolNegotiator(this, config, connectionContext).negotiateDialect();
         this.encryptor.init(connectionContext);
 
-        this.pathResolver = new SymlinkPathResolver(PathResolver.LOCAL);
+        this.pathResolver = config.getPathResolver() != null ? config.getPathResolver() : new SymlinkPathResolver(PathResolver.LOCAL);
         if (config.isDfsEnabled() && connectionContext.supportsDFS()) {
             this.pathResolver = new DFSPathResolver(pathResolver, config.getTransactTimeout());
         }
