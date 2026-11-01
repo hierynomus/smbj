@@ -18,6 +18,7 @@ package com.hierynomus.smbj.share;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -121,7 +122,7 @@ public class LeasedDirectoryCache {
         private final String searchPattern;
 
         CacheKey(String path, FileInformationClass informationClass, String searchPattern) {
-            this.path = path == null ? "" : path.toLowerCase();
+            this.path = path == null ? "" : path.toLowerCase(Locale.ROOT);
             this.informationClass = informationClass;
             this.searchPattern = searchPattern == null ? "" : searchPattern;
         }

@@ -17,6 +17,7 @@ package com.hierynomus.ntlm.functions;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Random;
 
 import com.hierynomus.ntlm.NtlmException;
@@ -60,7 +61,7 @@ class NtlmV1Functions {
     @SuppressWarnings("PMD.MethodNamingConventions")
     public byte[] LMOWFv1(String password, String username, String userDomain) {
         try {
-            byte[] bytes = password.toUpperCase().getBytes("US-ASCII");
+            byte[] bytes = password.toUpperCase(Locale.ROOT).getBytes("US-ASCII");
             if (bytes.length != 14) {
                 bytes = Arrays.copyOf(bytes, 14);
             }

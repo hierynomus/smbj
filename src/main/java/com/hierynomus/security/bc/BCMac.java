@@ -17,6 +17,7 @@ package com.hierynomus.security.bc;
 
 import com.hierynomus.protocol.commons.Factory;
 import com.hierynomus.security.Mac;
+import java.util.Locale;
 import org.bouncycastle.crypto.digests.MD5Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.engines.AESEngine;
@@ -59,7 +60,7 @@ public class BCMac implements Mac {
     }
 
     private Factory<org.bouncycastle.crypto.Mac> getMacFactory(String name) {
-        Factory<org.bouncycastle.crypto.Mac> macFactory = lookup.get(name.toUpperCase());
+        Factory<org.bouncycastle.crypto.Mac> macFactory = lookup.get(name.toUpperCase(Locale.ROOT));
         if (macFactory == null) {
             throw new IllegalArgumentException("No Mac defined for " + name);
         }
