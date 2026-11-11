@@ -176,6 +176,27 @@ public class ReferralCache {
             return targetList.get(targetHint);
         }
 
+        // Read and move the target hint, so that step 3 can walk the whole target list
+        // round-robin and remember the target that worked.
+        public synchronized int getTargetHintIndex() {
+            return targetHint;
+        }
+
+        /**
+         * Moves the target hint to {@code index}, but only if it still is {@code expected}. An access
+         * that read the hint before a slow target answered must not overwrite a hint that another
+         * access has moved in the meantime (for example away from a target that has failed since).
+         *
+         * @return whether the hint was moved
+         */
+        public synchronized boolean compareAndSetTargetHintIndex(int expected, int index) {
+            if (targetHint != expected || index < 0 || index >= targetList.size()) {
+                return false;
+            }
+            targetHint = index;
+            return true;
+        }
+
         public synchronized TargetSetEntry nextTargetHint() {
             if (targetHint < targetList.size()-1) {
                 targetHint++;

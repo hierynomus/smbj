@@ -40,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -85,7 +86,10 @@ public class DFSPathResolver implements PathResolver {
 
         if (smbPath.getPath() != null && responsePacket.getHeader().getStatusCode() == NtStatus.STATUS_PATH_NOT_COVERED.getValue()) {
             logger.info("DFS Share {} does not cover {}, resolve through DFS", smbPath.getShareName(), smbPath);
-            return start(session, smbPath, new ResolveAction<T>() {
+            // PATH_NOT_COVERED proves that the path is in a DFS namespace. If the referral fails,
+            // this is step 14 (fail with the referral status), not step 12: returning the
+            // unchanged path would hand the error response back to the caller as a result.
+            return start(session, smbPath, true, new ResolveAction<T>() {
                 @Override
                 public T apply(SmbPath target) {
                     logger.info("DFS resolved {} -> {}", smbPath, target);
@@ -115,9 +119,14 @@ public class DFSPathResolver implements PathResolver {
     }
 
     private <T> T start(Session session, SmbPath uncPath, ResolveAction<T> action) throws PathResolveException {
+        return start(session, uncPath, false, action);
+    }
+
+    private <T> T start(Session session, SmbPath uncPath, boolean knownDfsPath, ResolveAction<T> action) throws PathResolveException {
         logger.info("Starting DFS resolution for {}", uncPath.toUncPath());
         DFSPath dfsPath = new DFSPath(uncPath.toUncPath());
         ResolveState<T> state = new ResolveState<T>(dfsPath, action);
+        state.isDFSPath = knownDfsPath;
         return step1(session, state);
     }
 
@@ -167,19 +176,30 @@ public class DFSPathResolver implements PathResolver {
      */
     private <T> T step3(Session session, ResolveState<T> state, ReferralCache.ReferralCacheEntry lookup) {
         logger.trace("DFS[3]: {}", state);
-        ReferralCache.TargetSetEntry target = lookup.getTargetHint();
+        // Try every target of the list at most once per access, starting at the target hint and
+        // wrapping around. The hint belongs to the cache entry and is shared by all accesses, so
+        // only moving forward from it would never reach the targets before it. Every failure,
+        // including PATH_NOT_COVERED, moves on to the next target.
+        List<ReferralCache.TargetSetEntry> targets = lookup.getTargetList();
+        int count = targets.size();
+        int start = lookup.getTargetHintIndex();
         SMBApiException lastException = null;
         DFSPath initialPath = state.path;
-        while (target != null) {
+        for (int attempt = 0; attempt < count; attempt++) {
+            int index = (start + attempt) % count;
+            ReferralCache.TargetSetEntry target = targets.get(index);
             try {
-                state.path = state.path.replacePrefix(lookup.getDfsPathPrefix(), lookup.getTargetHint().getTargetPath());
+                state.path = initialPath.replacePrefix(lookup.getDfsPathPrefix(), target.getTargetPath());
                 state.isDFSPath = true;
-                return step8(session, state, lookup);
+                T result = step8(session, state, lookup);
+                lookup.compareAndSetTargetHintIndex(start, index);
+                return result;
             } catch (SMBApiException e) {
                 lastException = e;
-                if (e.getStatusCode() != NtStatus.STATUS_PATH_NOT_COVERED.getValue()) {
-                    target = lookup.nextTargetHint();
-                    state.path = initialPath;
+                state.path = initialPath;
+                if (attempt + 1 < count) {
+                    logger.info("DFS root target {} failed for {} ({}), trying {}", "\\" + target.getTargetPath().toPath(),
+                        initialPath.toPath(), e.getStatus(), "\\" + targets.get((index + 1) % count).getTargetPath().toPath());
                 }
             }
         }
