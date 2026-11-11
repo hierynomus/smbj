@@ -64,13 +64,28 @@ public class DFSPathResolver implements PathResolver {
     private DomainCache domainCache = new DomainCache();
     private long transactTimeout;
 
+    // Guards the one-shot ACCESS_DENIED -> DFS retry (see resolve()). While a retry is in
+    // progress on this thread, ACCESS_DENIED is treated as a normal (thrown) error again, so a
+    // genuine denial on the resolved link target surfaces instead of being retried.
+    private static final ThreadLocal<Boolean> DFS_ACCESS_DENIED_RETRY = new ThreadLocal<>();
+
     public DFSPathResolver(final PathResolver wrapped, long transactTimeout) {
         this.wrapped = wrapped;
         this.transactTimeout = transactTimeout;
         this.statusHandler = new StatusHandler() {
             @Override
             public boolean isSuccess(long statusCode) {
-                return statusCode == NtStatus.STATUS_PATH_NOT_COVERED.getValue() || wrapped.statusHandler().isSuccess(statusCode);
+                if (statusCode == NtStatus.STATUS_PATH_NOT_COVERED.getValue()) {
+                    return true;
+                }
+                // Some namespace root targets answer a create that crosses a DFS folder link
+                // with ACCESS_DENIED instead of PATH_NOT_COVERED. Let resolve() inspect that
+                // response once so it can follow the link; during the retry the guard is set,
+                // so a real denial throws as before.
+                if (statusCode == NtStatus.STATUS_ACCESS_DENIED.getValue() && DFS_ACCESS_DENIED_RETRY.get() == null) {
+                    return true;
+                }
+                return wrapped.statusHandler().isSuccess(statusCode);
             }
         };
     }
@@ -95,6 +110,33 @@ public class DFSPathResolver implements PathResolver {
         } else if (smbPath.getPath() == null && NtStatus.isError(responsePacket.getHeader().getStatusCode())) {
             logger.info("Attempting to resolve {} through DFS", smbPath);
             return start(session, smbPath, action);
+        }
+
+        // A create that crosses a DFS folder link can be rejected by a namespace root target
+        // with ACCESS_DENIED instead of PATH_NOT_COVERED (seen on domain-based namespaces with
+        // multiple root targets). Try DFS resolution once: if it redirects to a different
+        // target, retry the operation there; if it does not, the denial is real and the
+        // original ACCESS_DENIED is rethrown. The guard bounds this to a single retry, so a
+        // denial on the link target itself throws as before.
+        if (smbPath.getPath() != null
+                && responsePacket.getHeader().getStatusCode() == NtStatus.STATUS_ACCESS_DENIED.getValue()
+                && DFS_ACCESS_DENIED_RETRY.get() == null) {
+            final SMB2Packet deniedResponse = responsePacket;
+            DFS_ACCESS_DENIED_RETRY.set(Boolean.TRUE);
+            try {
+                return start(session, smbPath, new ResolveAction<T>() {
+                    @Override
+                    public T apply(SmbPath target) {
+                        if (target.equals(smbPath)) {
+                            throw new SMBApiException(deniedResponse.getHeader(), "Create failed for " + smbPath);
+                        }
+                        logger.info("DFS (recovered from ACCESS_DENIED) resolved {} -> {}", smbPath, target);
+                        return action.apply(target);
+                    }
+                });
+            } finally {
+                DFS_ACCESS_DENIED_RETRY.remove();
+            }
         }
         return wrapped.resolve(session, responsePacket, smbPath, action);
     }
