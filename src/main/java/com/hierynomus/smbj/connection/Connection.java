@@ -300,7 +300,11 @@ public class Connection extends Pooled<Connection> implements Closeable, PacketR
     public void handleError(Throwable t) {
         outstandingRequests.handleError(t);
         try {
-            this.close();
+            // Force the close: the transport is broken and the packet reader (which calls this
+            // method) no longer reads. A graceful close() would log off trees and sessions over
+            // this transport and wait for the full transact timeout per request; on a connection
+            // leased more than once it would only release one lease and leave it "connected".
+            this.close(true);
         } catch (Exception e) {
             String exceptionClass = e.getClass().getSimpleName();
             logger.debug("{} while closing connection on error, ignoring: {}", exceptionClass, e.getMessage());
