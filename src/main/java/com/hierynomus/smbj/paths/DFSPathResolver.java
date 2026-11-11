@@ -40,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -175,20 +176,31 @@ public class DFSPathResolver implements PathResolver {
      */
     private <T> T step3(Session session, ResolveState<T> state, ReferralCache.ReferralCacheEntry lookup) {
         logger.trace("DFS[3]: {}", state);
-        ReferralCache.TargetSetEntry target = lookup.getTargetHint();
+        // Try every target of the list at most once per access, starting at the target hint and
+        // wrapping around. The hint belongs to the cache entry and is shared by all accesses, so
+        // only moving forward from it would never reach the targets before it. Every failure,
+        // including PATH_NOT_COVERED, moves on to the next target.
+        List<ReferralCache.TargetSetEntry> targets = lookup.getTargetList();
+        int count = targets.size();
+        int start = lookup.getTargetHintIndex();
         SMBApiException lastException = null;
         DFSPath initialPath = state.path;
-        while (target != null) {
+        for (int attempt = 0; attempt < count; attempt++) {
+            int index = (start + attempt) % count;
+            ReferralCache.TargetSetEntry target = targets.get(index);
             try {
-                state.path = state.path.replacePrefix(lookup.getDfsPathPrefix(), lookup.getTargetHint().getTargetPath());
+                state.path = initialPath.replacePrefix(lookup.getDfsPathPrefix(), target.getTargetPath());
                 state.isDFSPath = true;
-                return step8(session, state, lookup);
+                T result = step8(session, state, lookup);
+                lookup.compareAndSetTargetHintIndex(start, index);
+                return result;
             } catch (SMBApiException e) {
-                // Advance to the next target on every failure, including PATH_NOT_COVERED;
-                // otherwise the loop retries the same target for as long as it keeps failing.
                 lastException = e;
-                target = lookup.nextTargetHint();
                 state.path = initialPath;
+                if (attempt + 1 < count) {
+                    logger.info("DFS root target {} failed for {} ({}), trying {}", "\\" + target.getTargetPath().toPath(),
+                        initialPath.toPath(), e.getStatus(), "\\" + targets.get((index + 1) % count).getTargetPath().toPath());
+                }
             }
         }
 

@@ -16,6 +16,8 @@
 package com.hierynomus.smbj.paths
 
 import com.hierynomus.msdtyp.FileTime
+import com.hierynomus.msdfsc.DFSPath
+import com.hierynomus.msdfsc.ReferralCache
 import com.hierynomus.msdfsc.messages.DFSReferral
 import com.hierynomus.msfscc.FileAttributes
 import com.hierynomus.mserref.NtStatus
@@ -29,6 +31,7 @@ import com.hierynomus.smbj.share.DiskShare
 import com.hierynomus.smbj.testing.PacketProcessor.DefaultPacketProcessor
 import com.hierynomus.smbj.testing.StubAuthenticator
 import com.hierynomus.smbj.testing.StubTransportLayerFactory
+import org.slf4j.LoggerFactory
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
@@ -60,6 +63,10 @@ class DfsRootTargetFailoverSpec extends Specification {
     List<String> rootTargets = [BAD, GOOD]
     long badLinkReferralStatus = REFERRAL_FAILURE
     int badLinkReferralCap = 25
+    boolean badRootReferralWorks = true
+    boolean badBroken = true
+    int goodLinkCreateFailures = 0
+    Closure onGoodLinkReferral = null
 
     def cleanup() {
         client?.close()
@@ -125,6 +132,113 @@ class DfsRootTargetFailoverSpec extends Specification {
         referrals.count { it.startsWith("${BAD}:\\${BAD}\\DFS\\sales".toString()) } == 1
     }
 
+    def "a broken target at the end of the list wraps around to the healthy one"() {
+        given: "both targets healthy, the first one fails once: the target hint moves to the end of the list"
+        rootTargets = [GOOD, BAD]
+        badBroken = false
+        goodLinkCreateFailures = 1
+        def share = connectNamespace()
+        assert share.folderExists("sales\\reports\\2026\\q1")
+
+        when: "the target at the end of the list then breaks (BAD_NETWORK_NAME on tree connect)"
+        badBroken = true
+        badRootReferralWorks = false
+        def exists = share.folderExists("sales\\reports\\2026\\q1")
+
+        then: "the access wraps around to the healthy target at the start of the list"
+        exists
+        creates.count { it == "${FS}\\data:reports\\2026\\q1".toString() } == 2
+    }
+
+    def "every root target is tried at most once per access"() {
+        given:
+        rootTargets = [GOOD, BAD]
+        badRootReferralWorks = false
+        goodLinkCreateFailures = 100
+        def share = connectNamespace()
+
+        when:
+        share.folderExists("sales\\reports\\2026\\q1")
+
+        then:
+        thrown(SMBApiException)
+        goodLinkCreateFailures == 99
+    }
+
+    def "switching to the next root target is logged at INFO"() {
+        given:
+        // logback is only on the test runtime classpath; Groovy resolves the calls dynamically
+        def appender = Class.forName("ch.qos.logback.core.read.ListAppender").getDeclaredConstructor().newInstance()
+        def logger = LoggerFactory.getLogger(DFSPathResolver)
+        appender.start()
+        logger.addAppender(appender)
+        badRootReferralWorks = false
+        def share = connectNamespace()
+
+        when:
+        def exists = share.folderExists("sales\\reports\\2026\\q1")
+
+        and: "the target hint stays on the target that worked: no second switch"
+        def again = share.folderExists("sales\\reports\\2026\\q1")
+
+        then:
+        exists
+        again
+        def switches = appender.list.findAll { it.level.toString() == "INFO" && it.formattedMessage.contains("trying") }
+        switches.size() == 1
+        switches[0].formattedMessage.contains("\\\\${BAD}\\DFS".toString())
+        switches[0].formattedMessage.contains("STATUS_BAD_NETWORK_NAME")
+        switches[0].formattedMessage.contains("\\\\${GOOD}\\DFS".toString())
+
+        cleanup:
+        logger.detachAppender(appender)
+    }
+
+    def "a slow access does not move the target hint back after another access has moved it"() {
+        given: "both root targets healthy, the hint on the first one"
+        rootTargets = [GOOD, BAD]
+        badBroken = false
+        def share = connectNamespace()
+
+        and: "while this access waits for the first target, another access moves the hint to the second one"
+        def moved = []
+        onGoodLinkReferral = {
+            onGoodLinkReferral = null
+            def entries = rootEntries()
+            assert entries.size() == 1
+            moved << entries[0].compareAndSetTargetHintIndex(0, 1)
+        }
+
+        when:
+        def exists = share.folderExists("sales\\reports\\2026\\q1")
+
+        then: "the access succeeds on the first target, but keeps the newer hint"
+        exists
+        moved == [true]
+        referrals.count { it.startsWith("${GOOD}:\\${GOOD}\\DFS\\sales".toString()) } == 1
+        rootEntries()*.targetHintIndex == [1]
+    }
+
+    def "control: without a concurrent change the hint stays on the target that worked"() {
+        given:
+        rootTargets = [GOOD, BAD]
+        badBroken = false
+        def share = connectNamespace()
+
+        expect:
+        share.folderExists("sales\\reports\\2026\\q1")
+        rootEntries()*.targetHintIndex == [0]
+    }
+
+    private List<ReferralCache.ReferralCacheEntry> rootEntries() {
+        def path = new DFSPath("\\\\${DOM}\\DFS\\sales\\reports\\2026\\q1".toString())
+        return client.@connectionTable.values()
+            .collect { it.@pathResolver }
+            .findAll { it instanceof DFSPathResolver }
+            .collect { it.@referralCache.lookup(path) }
+            .findAll { it != null && it.isRoot() }
+    }
+
     private DiskShare connectNamespace() {
         def processor = new DefaultPacketProcessor().wrap({ SMB2Packet req -> respond(req.getPacket()) })
         def config = SmbConfig.builder()
@@ -167,7 +281,7 @@ class DfsRootTargetFailoverSpec extends Specification {
 
     private SMB2Packet treeConnect(String host, String share) {
         def resp = new SMB2TreeConnectResponse()
-        if (host == BAD && share == "DFS") {
+        if (host == BAD && share == "DFS" && badBroken) {
             resp.header.statusCode = NtStatus.STATUS_BAD_NETWORK_NAME.value
             return resp
         }
@@ -187,14 +301,18 @@ class DfsRootTargetFailoverSpec extends Specification {
         if (host == DOM && p.startsWith("\\${DOM}\\dfs".toString())) {
             return referralResponse(DFSReferral.ServerType.ROOT, "\\${DOM}\\DFS", rootTargets.collect { "\\${it}\\DFS".toString() })
         }
-        if (host == BAD && p == "\\${BAD}\\dfs".toString()) {
+        if (host == BAD && p == "\\${BAD}\\dfs".toString() && badRootReferralWorks) {
             return referralResponse(DFSReferral.ServerType.ROOT, "\\${BAD}\\DFS", ["\\${GOOD}\\DFS".toString()])
+        }
+        if (host == BAD && !badBroken && p.startsWith("\\${BAD}\\dfs\\sales\\reports".toString())) {
+            return referralResponse(DFSReferral.ServerType.LINK, "\\${BAD}\\DFS\\sales\\reports", ["\\${FS}\\data\\reports".toString()])
         }
         if (host == BAD) {
             def badLinkReferrals = referrals.count { it.startsWith("${BAD}:\\${BAD}\\DFS\\sales".toString()) }
             return failedReferral(badLinkReferrals < badLinkReferralCap ? badLinkReferralStatus : REFERRAL_FAILURE)
         }
         if (host == GOOD && p.startsWith("\\${GOOD}\\dfs\\sales\\reports".toString())) {
+            onGoodLinkReferral?.call()
             return referralResponse(DFSReferral.ServerType.LINK, "\\${GOOD}\\DFS\\sales\\reports", ["\\${FS}\\data\\reports".toString()])
         }
         return failedReferral(REFERRAL_FAILURE)
@@ -203,7 +321,18 @@ class DfsRootTargetFailoverSpec extends Specification {
     private SMB2Packet create(String host, String share, String path) {
         creates << "${host}\\${share}:${path}".toString()
         def resp = new SMB2CreateResponse()
-        if (share == "DFS" && (path.toLowerCase() == "sales\\reports" || path.toLowerCase().startsWith("sales\\reports\\"))) {
+        def belowLink = path.toLowerCase() == "sales\\reports" || path.toLowerCase().startsWith("sales\\reports\\")
+        if (host == BAD && share == "DFS" && badBroken) {
+            // a removed share also affects the already connected tree
+            resp.header.statusCode = NtStatus.STATUS_NETWORK_NAME_DELETED.value
+            return resp
+        }
+        if (host == GOOD && share == "DFS" && belowLink && goodLinkCreateFailures > 0) {
+            goodLinkCreateFailures--
+            resp.header.statusCode = NtStatus.STATUS_INSUFFICIENT_RESOURCES.value
+            return resp
+        }
+        if (share == "DFS" && belowLink) {
             resp.header.statusCode = NtStatus.STATUS_PATH_NOT_COVERED.value
             return resp
         }
