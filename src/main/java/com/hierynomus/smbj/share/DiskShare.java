@@ -21,6 +21,7 @@ import com.hierynomus.msdtyp.SecurityInformation;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.FileSystemInformationClass;
 import com.hierynomus.msfscc.fileinformation.*;
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.*;
 import com.hierynomus.mssmb2.messages.SMB2CreateResponse;
 import com.hierynomus.mssmb2.messages.SMB2QueryInfoRequest;
@@ -99,6 +100,13 @@ public class DiskShare extends Share {
 
             if (target != null) {
                 return target;
+            }
+
+            // Without a redirect, an error response that the resolver's status handler let through
+            // (e.g. PATH_NOT_COVERED) is a failure, not a result: it carries no file attributes,
+            // and getDiskEntry() would fail with a NullPointerException that hides the status.
+            if (NtStatus.isError(resp.getHeader().getStatusCode())) {
+                throw new SMBApiException(resp.getHeader(), "Create failed for " + path);
             }
 
             return new SMB2CreateResponseContext(resp, path, this);

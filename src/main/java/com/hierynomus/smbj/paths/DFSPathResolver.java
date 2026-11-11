@@ -85,7 +85,10 @@ public class DFSPathResolver implements PathResolver {
 
         if (smbPath.getPath() != null && responsePacket.getHeader().getStatusCode() == NtStatus.STATUS_PATH_NOT_COVERED.getValue()) {
             logger.info("DFS Share {} does not cover {}, resolve through DFS", smbPath.getShareName(), smbPath);
-            return start(session, smbPath, new ResolveAction<T>() {
+            // PATH_NOT_COVERED proves that the path is in a DFS namespace. If the referral fails,
+            // this is step 14 (fail with the referral status), not step 12: returning the
+            // unchanged path would hand the error response back to the caller as a result.
+            return start(session, smbPath, true, new ResolveAction<T>() {
                 @Override
                 public T apply(SmbPath target) {
                     logger.info("DFS resolved {} -> {}", smbPath, target);
@@ -115,9 +118,14 @@ public class DFSPathResolver implements PathResolver {
     }
 
     private <T> T start(Session session, SmbPath uncPath, ResolveAction<T> action) throws PathResolveException {
+        return start(session, uncPath, false, action);
+    }
+
+    private <T> T start(Session session, SmbPath uncPath, boolean knownDfsPath, ResolveAction<T> action) throws PathResolveException {
         logger.info("Starting DFS resolution for {}", uncPath.toUncPath());
         DFSPath dfsPath = new DFSPath(uncPath.toUncPath());
         ResolveState<T> state = new ResolveState<T>(dfsPath, action);
+        state.isDFSPath = knownDfsPath;
         return step1(session, state);
     }
 
@@ -176,11 +184,11 @@ public class DFSPathResolver implements PathResolver {
                 state.isDFSPath = true;
                 return step8(session, state, lookup);
             } catch (SMBApiException e) {
+                // Advance to the next target on every failure, including PATH_NOT_COVERED;
+                // otherwise the loop retries the same target for as long as it keeps failing.
                 lastException = e;
-                if (e.getStatusCode() != NtStatus.STATUS_PATH_NOT_COVERED.getValue()) {
-                    target = lookup.nextTargetHint();
-                    state.path = initialPath;
-                }
+                target = lookup.nextTargetHint();
+                state.path = initialPath;
             }
         }
 
